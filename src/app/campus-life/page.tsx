@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Laptop, BookOpen, Trophy, Construction, Code, Music, Speech, Leaf, CreditCard, Stethoscope, ShieldCheck, Bus, Cctv, Fingerprint, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
-import { useEffect, useState } from "react";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -18,13 +18,7 @@ const stagger = {
 };
 
 export default function CampusLife() {
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    getPageContent("campus-life").then((res) => {
-      if (res.success && res.data) setCmsData(res.data);
-    });
-  }, []);
+  const cmsData = useLivePreview("campus-life");
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

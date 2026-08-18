@@ -3,7 +3,8 @@
 import { Search, MapPin, Briefcase, GraduationCap, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { getPageContent } from "@/app/actions/cms";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const alumniData = [
   {
@@ -39,13 +40,8 @@ const alumniData = [
 ];
 
 export default function AlumniDirectoryPage() {
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    getPageContent("alumni").then((res) => {
-      if (res.success && res.data) setCmsData(res.data);
-    });
-  }, []);
+  const [searchTerm, setSearchTerm] = useState("");
+  const cmsData = useLivePreview("alumni");
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-primary/30">

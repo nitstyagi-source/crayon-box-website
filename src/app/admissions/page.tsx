@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Calculator, ChevronRight, UploadCloud, CheckCircle2, FileText, Phone, Mail, HelpCircle, Lock, GraduationCap, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
-import { useEffect } from "react";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,13 +22,7 @@ export default function AdmissionsHub() {
   const [feeGrade, setFeeGrade] = useState("pre-k");
   const [feeTransport, setFeeTransport] = useState("none");
   const [feeKits, setFeeKits] = useState("none");
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    getPageContent("admissions").then((res) => {
-      if (res.success && res.data) setCmsData(res.data);
-    });
-  }, []);
+  const cmsData = useLivePreview("admissions");
 
   // Simple fee calculation logic for the demo UI
   const baseTuition = feeGrade === "pre-k" || feeGrade === "kg" ? 18000 : 22000;

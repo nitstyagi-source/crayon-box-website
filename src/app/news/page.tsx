@@ -12,7 +12,7 @@ const Instagram = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="c
 const Linkedin = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>;
 import { motion } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
-import { useEffect } from "react";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -26,13 +26,7 @@ const stagger = {
 
 export default function NewsMedia() {
   const [activeGalleryTab, setActiveGalleryTab] = useState("All");
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    getPageContent("news").then((res) => {
-      if (res.success && res.data) setCmsData(res.data);
-    });
-  }, []);
+  const cmsData = useLivePreview("news");
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

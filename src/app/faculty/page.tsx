@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Search, Filter, Calendar, ArrowRight, ShieldCheck, Heart, Stethoscope, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
-import { useEffect } from "react";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,13 +22,7 @@ export default function FacultyDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWing, setSelectedWing] = useState("All");
   const [selectedDept, setSelectedDept] = useState("All");
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    getPageContent("faculty").then((res) => {
-      if (res.success && res.data) setCmsData(res.data);
-    });
-  }, []);
+  const cmsData = useLivePreview("faculty");
 
   return (
     <div className="flex flex-col min-h-screen bg-stone-50">

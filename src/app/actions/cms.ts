@@ -1,6 +1,8 @@
 "use server";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 // We use a vanilla Supabase client here because we are fetching public CMS data.
 // Using the SSR client with cookies() inside unstable_cache() throws dynamic server usage errors.
@@ -48,7 +50,21 @@ export async function getPageContent(slug: string) {
 export async function updateContentBlock(slug: string, section: string, key: string, newValue: string) {
   const blockKey = `${section}.${key}`;
   
-  const { error } = await supabase
+  const cookieStore = cookies();
+  const authSupabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+        } catch (error) {}
+      },
+    },
+  });
+
+  const { error } = await authSupabase
     .from('cms_blocks')
     .upsert(
       { 

@@ -28,6 +28,10 @@ export default function CMSDashboard() {
     { slug: "academics", title: "Academics" },
     { slug: "admissions", title: "Admissions Hub" },
     { slug: "contact", title: "Contact Us" },
+    { slug: "faculty", title: "Faculty Directory" },
+    { slug: "campus-life", title: "Campus Life" },
+    { slug: "news", title: "News & Events" },
+    { slug: "alumni", title: "Alumni Network" },
   ];
 
   const CAMPUSES = [

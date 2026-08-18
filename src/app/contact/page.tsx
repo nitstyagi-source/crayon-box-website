@@ -7,6 +7,7 @@ import { Phone, Mail, MapPin, ChevronDown, Send, ShieldAlert, Award, Calendar, C
 import { motion, AnimatePresence } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
 import { submitContactEnquiry } from "@/app/actions/forms";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,18 +23,8 @@ export default function ContactUs() {
   const [openAccordion, setOpenAccordion] = useState<number | null>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-  const [globalData, setGlobalData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    Promise.all([
-      getPageContent("contact"),
-      getPageContent("global")
-    ]).then(([res, globalRes]) => {
-      if (res.success && res.data) setCmsData(res.data);
-      if (globalRes.success && globalRes.data) setGlobalData(globalRes.data);
-    });
-  }, []);
+  const cmsData = useLivePreview("contact");
+  const globalData = useLivePreview("global");
 
   const toggleAccordion = (index: number) => {
     setOpenAccordion(openAccordion === index ? null : index);

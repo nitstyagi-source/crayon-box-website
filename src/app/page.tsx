@@ -7,6 +7,7 @@ import { ArrowRight, GraduationCap, ShieldCheck, Smartphone, CheckCircle2, Chevr
 import { motion } from "framer-motion";
 import { submitPublicEnquiry } from "@/app/actions/enquiry";
 import { getPageContent } from "@/app/actions/cms";
+import { useLivePreview } from "@/hooks/useLivePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,17 +23,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cmsData, setCmsData] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    const fetchCms = async () => {
-      const res = await getPageContent("home");
-      if (res.success && res.data && Object.keys(res.data).length > 0) {
-        setCmsData(res.data);
-      }
-    };
-    fetchCms();
-  }, []);
+  const cmsData = useLivePreview("home");
 
   const handleEnquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
