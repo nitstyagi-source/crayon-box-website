@@ -86,13 +86,13 @@ export default function AdmissionsHub() {
               <GraduationCap className="w-12 h-12" />
             </div>
             <div>
-              <span className="text-accent font-bold uppercase tracking-widest text-xs mb-2 block">Our Vision</span>
-              <h2 className="text-3xl font-serif font-bold text-stone-900 mb-4">Grow With Us: The K-12 Advantage.</h2>
+              <span className="text-accent font-bold uppercase tracking-widest text-xs mb-2 block">{cmsData.vision?.label || "Our Vision"}</span>
+              <h2 className="text-3xl font-serif font-bold text-stone-900 mb-4">{cmsData.vision?.headline || "Grow With Us: The K-12 Advantage."}</h2>
               <p className="text-stone-600 font-light leading-relaxed mb-4">
-                Crayon Box School is currently an elite K-8 institution, but our vision doesn't stop at middle school. We are actively expanding our campus infrastructure to become a fully-fledged K-12 senior secondary school.
+                {cmsData.vision?.description || "Crayon Box School is currently an elite K-8 institution, but our vision doesn't stop at middle school. We are actively expanding our campus infrastructure to become a fully-fledged K-12 senior secondary school."}
               </p>
               <p className="text-stone-900 font-medium">
-                <strong>The Promise:</strong> By enrolling your child today, you guarantee them a seamless transition through high school without the stress of changing schools, boards, or environments during their most crucial academic years.
+                <strong>{cmsData.vision?.promise_label || "The Promise:"}</strong> {cmsData.vision?.promise_text || "By enrolling your child today, you guarantee them a seamless transition through high school without the stress of changing schools, boards, or environments during their most crucial academic years."}
               </p>
             </div>
           </motion.div>
@@ -103,8 +103,8 @@ export default function AdmissionsHub() {
       <section className="py-24 bg-stone-50 border-b border-stone-200">
         <div className="container mx-auto px-4 max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-12 text-center">
-            <motion.h2 variants={fadeUp} className="text-4xl font-serif font-bold text-stone-900 mb-4">Admission Criteria for 2026–27</motion.h2>
-            <motion.p variants={fadeUp} className="text-stone-600 font-light">Please review the age eligibility requirements before proceeding with the application.</motion.p>
+            <motion.h2 variants={fadeUp} className="text-4xl font-serif font-bold text-stone-900 mb-4">{cmsData.criteria?.headline || "Admission Criteria for 2026–27"}</motion.h2>
+            <motion.p variants={fadeUp} className="text-stone-600 font-light">{cmsData.criteria?.description || "Please review the age eligibility requirements before proceeding with the application."}</motion.p>
           </motion.div>
 
           <motion.div variants={fadeUp} className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
@@ -164,8 +164,8 @@ export default function AdmissionsHub() {
                   <Calculator className="w-48 h-48" />
                 </div>
                 
-                <h3 className="text-3xl font-serif font-bold mb-2 relative z-10">Transparent Fee Calculator</h3>
-                <p className="text-blue-200 font-light text-sm mb-8 relative z-10">Calculate your estimated quarterly tuition instantly. No hidden costs.</p>
+                <h3 className="text-3xl font-serif font-bold mb-2 relative z-10">{cmsData.calculator?.headline || "Transparent Fee Calculator"}</h3>
+                <p className="text-blue-200 font-light text-sm mb-8 relative z-10">{cmsData.calculator?.description || "Calculate your estimated quarterly tuition instantly. No hidden costs."}</p>
 
                 <div className="space-y-6 relative z-10">
                   <div>

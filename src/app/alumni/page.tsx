@@ -6,42 +6,22 @@ import { getPageContent } from "@/app/actions/cms";
 import { useState } from "react";
 import { useLivePreview } from "@/hooks/useLivePreview";
 
-const alumniData = [
-  {
-    id: 1,
-    name: "Dr. Elena Rostova",
-    graduationYear: 2018,
-    university: "Stanford University",
-    company: "Mayo Clinic",
-    role: "Neurology Resident",
-    image: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    mentorshipOpen: true
-  },
-  {
-    id: 2,
-    name: "Marcus Chen",
-    graduationYear: 2020,
-    university: "MIT",
-    company: "OpenAI",
-    role: "Machine Learning Engineer",
-    image: "https://i.pravatar.cc/150?u=a042581f4e29026000d",
-    mentorshipOpen: false
-  },
-  {
-    id: 3,
-    name: "Sarah Jenkins",
-    graduationYear: 2015,
-    university: "Harvard Law School",
-    company: "United Nations",
-    role: "Human Rights Advocate",
-    image: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-    mentorshipOpen: true
-  }
-];
+import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AlumniDirectoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [alumniData, setAlumniData] = useState<any[]>([]);
   const cmsData = useLivePreview("alumni");
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchAlumni() {
+      const { data } = await supabase.from('alumni_network').select('*').order('order_index', { ascending: true });
+      if (data) setAlumniData(data);
+    }
+    fetchAlumni();
+  }, [supabase]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-primary/30">
@@ -83,21 +63,23 @@ export default function AlumniDirectoryPage() {
                 </div>
                 
                 <div className="px-8 pb-8 relative">
-                  <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden -mt-12 shadow-lg mb-6 bg-slate-100">
-                    <Image src={alumnus.image} alt={alumnus.name} width={96} height={96} className="object-cover" />
+                  <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden -mt-12 shadow-lg mb-6 bg-slate-100 relative">
+                    <Image src={alumnus.image_url || "https://i.pravatar.cc/150?u=a042581f4e29026704d"} alt={alumnus.name} fill sizes="96px" className="object-cover" />
                   </div>
                   
                   <h3 className="text-2xl font-bold text-slate-900">{alumnus.name}</h3>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Class of {alumnus.graduationYear}</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Class of {alumnus.graduation_year}</p>
                   
                   <div className="space-y-3 mb-8">
-                    <div className="flex items-start gap-3 text-sm text-slate-600">
-                      <GraduationCap className="w-5 h-5 text-slate-400 shrink-0" />
-                      <span>{alumnus.university}</span>
-                    </div>
+                    {alumnus.quote && (
+                      <div className="flex items-start gap-3 text-sm text-slate-600 italic">
+                        <GraduationCap className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span>"{alumnus.quote}"</span>
+                      </div>
+                    )}
                     <div className="flex items-start gap-3 text-sm text-slate-600">
                       <Briefcase className="w-5 h-5 text-slate-400 shrink-0" />
-                      <span>{alumnus.role} at <strong>{alumnus.company}</strong></span>
+                      <span>{alumnus.current_role} at <strong>{alumnus.company}</strong></span>
                     </div>
                   </div>
 

@@ -13,6 +13,8 @@ const Linkedin = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="cu
 import { motion } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
 import { useLivePreview } from "@/hooks/useLivePreview";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -26,7 +28,17 @@ const stagger = {
 
 export default function NewsMedia() {
   const [activeGalleryTab, setActiveGalleryTab] = useState("All");
+  const [articles, setArticles] = useState<any[]>([]);
   const cmsData = useLivePreview("news");
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchNews() {
+      const { data } = await supabase.from('news_articles').select('*').eq('is_published', true).order('published_date', { ascending: false });
+      if (data) setArticles(data);
+    }
+    fetchNews();
+  }, [supabase]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -248,21 +260,21 @@ export default function NewsMedia() {
             
             {/* Blog Posts Grid */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[
-                { tag: "Director's Desk", title: "How Project-Based Learning Prepares Middle Schoolers for High School Rigor.", date: "Aug 12, 2026", img: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" },
-                { tag: "Faculty Insight", title: "The Role of Emotional Intelligence in the Modern Classroom.", date: "Aug 02, 2026", img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop" },
-                { tag: "Student Spotlight", title: "Winning the State Level Robotics Championship: Our Journey.", date: "Jul 28, 2026", img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop" },
-                { tag: "Health & Nutrition", title: "Building Healthy Habits: A Look Inside Our Cashless Cafeteria.", date: "Jul 15, 2026", img: "https://images.unsplash.com/photo-1574880946059-fa64bfb422a5?q=80&w=2072&auto=format&fit=crop" },
-              ].map((blog, idx) => (
-                <motion.div variants={fadeUp} key={idx} className="group cursor-pointer">
+              {articles.map((blog, idx) => (
+                <motion.div variants={fadeUp} key={blog.id || idx} className="group cursor-pointer">
                   <div className="relative h-64 rounded-3xl overflow-hidden mb-6 shadow-sm">
-                    <Image src={blog.img} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <Image src={blog.image_url || "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop"} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-accent mb-3 block">{blog.tag}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-accent mb-3 block">{blog.category || "General"}</span>
                   <h3 className="text-2xl font-serif font-bold text-stone-900 mb-3 group-hover:text-primary transition-colors">{blog.title}</h3>
-                  <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{blog.date}</p>
+                  <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{blog.published_date || new Date(blog.created_at).toLocaleDateString()}</p>
                 </motion.div>
               ))}
+              {articles.length === 0 && (
+                <div className="col-span-2 text-center py-12 text-stone-500">
+                  Loading latest news and articles...
+                </div>
+              )}
             </motion.div>
 
             {/* Newsletter Archive Sidebar */}

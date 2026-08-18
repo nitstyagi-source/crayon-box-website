@@ -7,6 +7,7 @@ import { Search, Filter, Calendar, ArrowRight, ShieldCheck, Heart, Stethoscope, 
 import { motion, AnimatePresence } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
 import { useLivePreview } from "@/hooks/useLivePreview";
+import { createClient } from "@/lib/supabase/client";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,7 +23,17 @@ export default function FacultyDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWing, setSelectedWing] = useState("All");
   const [selectedDept, setSelectedDept] = useState("All");
+  const [facultyMembers, setFacultyMembers] = useState<any[]>([]);
   const cmsData = useLivePreview("faculty");
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchMembers() {
+      const { data } = await supabase.from('faculty_members').select('*').order('order_index', { ascending: true });
+      if (data) setFacultyMembers(data);
+    }
+    fetchMembers();
+  }, [supabase]);
 
   return (
     <div className="flex flex-col min-h-screen bg-stone-50">
@@ -138,26 +149,21 @@ export default function FacultyDirectory() {
         </div>
       </section>
 
-      {/* Section 4: The Faculty Grid (Categorized) */}
+      {/* Section 4: The Faculty Grid */}
       <section className="py-24 bg-stone-50 border-t border-stone-200">
         <div className="container mx-auto px-4 max-w-7xl">
           
           <div className="mb-16">
             <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2 flex items-center gap-4">
-              <span className="w-8 h-1 bg-primary rounded"></span> Mathematics & Sciences
+              <span className="w-8 h-1 bg-primary rounded"></span> Teaching Staff
             </h2>
           </div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
-            {[
-              { name: "Ms. Priya Desai", title: "Head of Mathematics", sub: "Middle School Mathematics & Coding", qual: "M.Sc. Mathematics, 10+ Years", img: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?q=80&w=2070&auto=format&fit=crop" },
-              { name: "Mr. Rahul Verma", title: "Senior Science Faculty", sub: "Physics & Chemistry", qual: "M.Sc. Physics, B.Ed", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop" },
-              { name: "Ms. Anita Roy", title: "Primary Science Educator", sub: "Environmental Science", qual: "B.Sc., B.Ed", img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop" },
-              { name: "Mr. Kunal Singh", title: "Computer Science Lead", sub: "Robotics & AI", qual: "B.Tech Computer Science", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" }
-            ].map((faculty, idx) => (
-              <motion.div variants={fadeUp} key={idx} className="bg-white rounded-[2rem] overflow-hidden border border-stone-100 hover:shadow-xl transition-all duration-300 group">
+            {facultyMembers.map((faculty, idx) => (
+              <motion.div variants={fadeUp} key={faculty.id || idx} className="bg-white rounded-[2rem] overflow-hidden border border-stone-100 hover:shadow-xl transition-all duration-300 group">
                 <div className="relative aspect-[4/5] bg-stone-200 overflow-hidden">
-                  <Image src={faculty.img} alt={faculty.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <Image src={faculty.image_url || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop"} alt={faculty.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
                     <button className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:bg-orange-800 transition-colors flex items-center justify-center gap-2 text-sm shadow-lg">
                       <Calendar className="w-4 h-4" /> Book PTM
@@ -167,41 +173,17 @@ export default function FacultyDirectory() {
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-stone-900 mb-1 font-serif">{faculty.name}</h3>
                   <p className="text-primary text-xs font-bold uppercase tracking-wider mb-4">{faculty.title}</p>
-                  <p className="text-sm text-stone-600 font-medium mb-1">{faculty.sub}</p>
-                  <p className="text-xs text-stone-400">{faculty.qual}</p>
+                  <p className="text-sm text-stone-600 font-medium mb-1">{faculty.department}</p>
+                  <p className="text-xs text-stone-400">{faculty.bio}</p>
                 </div>
               </motion.div>
             ))}
-          </motion.div>
-
-          <div className="mb-16">
-            <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2 flex items-center gap-4">
-              <span className="w-8 h-1 bg-secondary rounded"></span> Languages & Humanities
-            </h2>
-          </div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { name: "Ms. Neha Gupta", title: "Head of English", sub: "English Literature & Creative Writing", qual: "M.A. English, B.Ed", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop" },
-              { name: "Mr. Amit Patel", title: "Senior Faculty", sub: "History & Civics", qual: "M.A. History", img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1974&auto=format&fit=crop" },
-            ].map((faculty, idx) => (
-              <motion.div variants={fadeUp} key={idx} className="bg-white rounded-[2rem] overflow-hidden border border-stone-100 hover:shadow-xl transition-all duration-300 group">
-                <div className="relative aspect-[4/5] bg-stone-200 overflow-hidden">
-                  <Image src={faculty.img} alt={faculty.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                    <button className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:bg-orange-800 transition-colors flex items-center justify-center gap-2 text-sm shadow-lg">
-                      <Calendar className="w-4 h-4" /> Book PTM
-                    </button>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-stone-900 mb-1 font-serif">{faculty.name}</h3>
-                  <p className="text-secondary text-xs font-bold uppercase tracking-wider mb-4">{faculty.title}</p>
-                  <p className="text-sm text-stone-600 font-medium mb-1">{faculty.sub}</p>
-                  <p className="text-xs text-stone-400">{faculty.qual}</p>
-                </div>
-              </motion.div>
-            ))}
+            
+            {facultyMembers.length === 0 && (
+              <div className="col-span-4 text-center py-12 text-stone-500">
+                Loading faculty members from database...
+              </div>
+            )}
           </motion.div>
 
         </div>
