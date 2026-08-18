@@ -50,7 +50,7 @@ export async function getPageContent(slug: string) {
 export async function updateContentBlock(slug: string, section: string, key: string, newValue: string) {
   const blockKey = `${section}.${key}`;
   
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const authSupabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
