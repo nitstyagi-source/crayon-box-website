@@ -1,4 +1,5 @@
 "use server";
+import { revalidateTag } from "next/cache";
 
 import { unstable_cache } from "next/cache";
 
@@ -222,7 +223,6 @@ export async function updateContentBlock(slug: string, section: string, key: str
 }
 
 export async function clearAllCaches() {
-  const { revalidateTag } = await import("next/cache");
   Object.keys(MOCK_CMS_DB).forEach(slug => {
     revalidateTag(`cms-${slug}`);
   });

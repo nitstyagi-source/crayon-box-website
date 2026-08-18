@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail, MapPin, ChevronDown, Send, ShieldAlert, Award, Calendar } from "lucide-react";
+import { Phone, Mail, MapPin, ChevronDown, Send, ShieldAlert, Award, Calendar, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPageContent } from "@/app/actions/cms";
 import { submitContactEnquiry } from "@/app/actions/forms";
