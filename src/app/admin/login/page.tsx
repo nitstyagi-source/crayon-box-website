@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-stone-900"
-                  placeholder="admin@crayonbox.edu"
+                  placeholder="nits.tyagi@gmail.com"
                   required
                 />
               </div>
