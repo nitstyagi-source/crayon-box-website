@@ -1,69 +1,369 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, GraduationCap, ShieldCheck, Smartphone, CheckCircle2, ChevronRight, PlayCircle, Quote, Compass, BookOpen, Layers, RefreshCw, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { submitPublicEnquiry } from "@/app/actions/enquiry";
+import { getPageContent } from "@/app/actions/cms";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" as any } }
+};
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
+};
 
 export default function Home() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cmsData, setCmsData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const fetchCms = async () => {
+      const res = await getPageContent("home");
+      if (res.success && res.data && Object.keys(res.data).length > 0) {
+        setCmsData(res.data);
+      }
+    };
+    fetchCms();
+  }, []);
+
+  const handleEnquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    try {
+      const res = await submitPublicEnquiry(formData);
+      if (res.success) {
+        setSuccess(true);
+      } else {
+        setError(res.error || "Failed to submit enquiry.");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex flex-col min-h-screen bg-background">
+      
+      {/* Section 2: The Hero Section (First Impression) */}
+      <section className="relative h-[90vh] min-h-[700px] flex items-center justify-center overflow-hidden">
+        {/* Animated Background Image / Video Placeholder */}
+        <motion.div 
+          initial={{ scale: 1.05 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut" as any }}
+          className="absolute inset-0 z-0"
+        >
+          <Image
+            src={cmsData.hero?.image_url || "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"}
+            alt="Campus Aerial View"
+            fill sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
+            priority
+          />
+          {/* Dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-900/70 to-transparent mix-blend-multiply" />
+        </motion.div>
+
+        <div className="container relative z-10 mx-auto px-4">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
+            className="max-w-3xl"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl font-serif font-bold text-white mb-6 tracking-tight leading-[1.1] drop-shadow-lg">
+              {cmsData.hero?.headline || "Inspiring Excellence."}<br/>
+              <span className="text-secondary">{cmsData.hero?.subtext || "Nurturing Tomorrow."}</span>
+            </motion.h1>
+            <motion.p variants={fadeUp} className="text-lg md:text-xl text-stone-200 mb-10 font-light leading-relaxed max-w-2xl drop-shadow-md">
+              {cmsData.hero?.description || "Welcome to Crayon Box School—a modern, holistic learning ecosystem designed to help your child thrive in a rapidly evolving world."}
+            </motion.p>
+            
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
+              <button className="w-full sm:w-auto px-8 py-4 rounded-full bg-accent text-white font-bold hover:bg-orange-800 transition-all shadow-xl hover:shadow-accent/40 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
+                Book a Campus Tour
+              </button>
+              <Link href="/academics" className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/10 text-white font-bold hover:bg-white/20 backdrop-blur-md transition-all border border-white/30 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
+                Discover Our Curriculum
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
-      </main>
+      </section>
+
+      {/* Section 3: The Growth Announcement (K-8 to K-12 Roadmap) */}
+      <section className="py-24 bg-white relative z-20">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col lg:flex-row gap-16 items-center">
+            
+            {/* Left: Overlapping Photo Gallery */}
+            <motion.div 
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" as any }}
+              viewport={{ once: true }}
+              className="w-full lg:w-1/2 relative min-h-[500px]"
+            >
+              <div className="absolute top-0 left-0 w-3/4 aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl z-10">
+                <Image src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop" alt="Middle school students" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+              </div>
+              <div className="absolute bottom-0 right-0 w-3/5 aspect-square rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white z-20">
+                <Image src="https://images.unsplash.com/photo-1587691592099-24045742c181?q=80&w=2073&auto=format&fit=crop" alt="Students collaborating" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+              </div>
+              {/* Decorative Circle */}
+              <div className="absolute top-1/2 -left-12 w-32 h-32 bg-secondary/10 rounded-full blur-2xl -z-10" />
+            </motion.div>
+
+            {/* Right: Typography & Callout */}
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={stagger}
+              className="w-full lg:w-1/2"
+            >
+              <motion.span variants={fadeUp} className="text-secondary font-bold tracking-widest uppercase text-xs mb-4 block">Our Academic Journey</motion.span>
+              <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6 leading-tight">{cmsData.growth_announcement?.title || "Growing Alongside Your Child."}</motion.h2>
+              <motion.p variants={fadeUp} className="text-lg text-stone-600 mb-8 leading-relaxed font-light">
+                {cmsData.growth_announcement?.description || "Crayon Box School is currently a premier Kindergarten through Grade 8 (K-8) institution, providing a foundational environment where young minds feel secure, challenged, and deeply understood."}
+              </motion.p>
+              
+              <motion.div variants={fadeUp} className="bg-stone-50 border-l-4 border-accent p-8 rounded-r-2xl mb-10 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                  <Compass className="w-24 h-24" />
+                </div>
+                <h3 className="font-bold text-stone-900 mb-2 relative z-10">The Future Vision</h3>
+                <p className="text-stone-600 italic font-serif leading-relaxed relative z-10">
+                  {cmsData.growth_announcement?.vision_quote || "“We are expanding our horizons. Crayon Box School is actively upgrading our infrastructure, faculty, and curriculum to become a comprehensive K-12 institution in the near future. Students joining us today will have the seamless opportunity to complete their entire high school journey within the campus they know and love.”"}
+                </p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <span className="font-semibold text-stone-800 text-sm">Currently K-8</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <span className="font-semibold text-stone-800 text-sm">Future K-12 Expansion</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
+                  <span className="font-semibold text-stone-800 text-sm">Seamless Transition</span>
+                </div>
+              </motion.div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Section 4: The Core Pillars (Why Choose Us) */}
+      <section className="py-24 bg-stone-50 border-y border-stone-200">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+            className="text-center mb-16"
+          >
+            <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4">{cmsData.why_us?.heading || "Why Choose Us"}</motion.h2>
+            <div className="w-16 h-1 bg-accent mx-auto rounded"></div>
+          </motion.div>
+          
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
+            {/* Card 1 */}
+            <motion.div variants={fadeUp} className="bg-white p-10 rounded-3xl shadow-sm border border-stone-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-500">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-4 font-serif">{cmsData.why_us?.feature_1_title || "Future-Ready Academics"}</h3>
+              <p className="text-stone-600 leading-relaxed font-light">
+                {cmsData.why_us?.feature_1_desc || "A dynamic curriculum blending traditional rigor with AI-integrated tools, coding, and critical thinking."}
+              </p>
+            </motion.div>
+
+            {/* Card 2 */}
+            <motion.div variants={fadeUp} className="bg-white p-10 rounded-3xl shadow-sm border border-stone-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+              <div className="w-16 h-16 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-secondary group-hover:text-white transition-colors duration-500">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-4 font-serif">{cmsData.why_us?.feature_2_title || "Safe & Smart Campus"}</h3>
+              <p className="text-stone-600 leading-relaxed font-light">
+                {cmsData.why_us?.feature_2_desc || "Equipped with real-time digital visitor logs, automated gate security, and comprehensive CCTV monitoring for absolute peace of mind."}
+              </p>
+            </motion.div>
+
+            {/* Card 3 */}
+            <motion.div variants={fadeUp} className="bg-white p-10 rounded-3xl shadow-sm border border-stone-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+              <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:bg-accent group-hover:text-white transition-colors duration-500">
+                <Smartphone className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-4 font-serif">{cmsData.why_us?.feature_3_title || "360° Parent Transparency"}</h3>
+              <p className="text-stone-600 leading-relaxed font-light">
+                {cmsData.why_us?.feature_3_desc || "Stay connected with our live transport tracking, digital daily diaries, and seamless in-app fee management."}
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Section 5: Admissions & Digital Onboarding (The Funnel) */}
+      <section className="py-24 bg-primary text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+        <div className="container mx-auto px-4 max-w-6xl relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            
+            <motion.div 
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+              className="w-full lg:w-5/12"
+            >
+              <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-serif font-bold mb-6 leading-tight">{cmsData.admissions_cta?.headline || "Begin Your Child's Journey With Us."}</motion.h2>
+              <motion.p variants={fadeUp} className="text-lg text-blue-100 mb-10 font-light leading-relaxed">
+                {cmsData.admissions_cta?.description || "Admissions for the upcoming academic year are now open. Experience our paperless, hassle-free digital enrollment process."}
+              </motion.p>
+              <motion.div variants={fadeUp}>
+                <Link href="/admissions/apply" className="inline-block bg-accent text-white px-8 py-4 rounded-full font-bold hover:bg-orange-800 transition-all shadow-xl hover:-translate-y-1">
+                  {cmsData.admissions_cta?.button_text || "Start Application"}
+                </Link>
+              </motion.div>
+            </motion.div>
+
+            <motion.div 
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+              className="w-full lg:w-7/12"
+            >
+              <div className="bg-blue-950/50 backdrop-blur-sm border border-blue-800 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
+                {success ? (
+                  <div className="text-center py-12 animate-in zoom-in">
+                    <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full mx-auto flex items-center justify-center mb-6">
+                      <CheckCircle2 className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Request Received!</h3>
+                    <p className="text-blue-200 leading-relaxed">Thank you for your interest in Crayon Box School. Our Admissions Counselor will contact you shortly to schedule a campus tour.</p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-bold text-white mb-6">Request a Campus Tour</h3>
+                    <form onSubmit={handleEnquirySubmit} className="space-y-4">
+                      <div>
+                        <input type="text" name="parentName" required placeholder="Parent's Full Name" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
+                      </div>
+                      <div>
+                        <input type="tel" name="phone" required placeholder="Mobile Number (10 digits)" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <input type="text" name="childName" required placeholder="Child's Name" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
+                        </div>
+                        <div>
+                          <select name="grade" required defaultValue="" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all appearance-none [&>option]:text-slate-800">
+                            <option value="" disabled>Select Grade</option>
+                            <option value="Kindergarten">Kindergarten</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                            <option value="Grade 7">Grade 7</option>
+                            <option value="Grade 8">Grade 8</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {error && (
+                        <div className="p-3 bg-red-500/10 text-red-400 text-sm font-bold rounded-xl flex items-center gap-2 border border-red-500/20">
+                          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                        </div>
+                      )}
+
+                      <button type="submit" disabled={isSubmitting} className="w-full mt-4 bg-white text-blue-900 font-bold text-lg py-4 rounded-xl shadow-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
+                        {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : "Submit Enquiry"}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Section 6: Testimonials & Trust Signals */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div 
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+            className="text-center mb-16"
+          >
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-4">{cmsData.testimonials?.heading || "What Our Parents Say"}</motion.h2>
+            <div className="w-12 h-1 bg-secondary mx-auto rounded"></div>
+          </motion.div>
+
+          {/* Minimalist Carousel Placeholder (Static for now, but design implies sliding) */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}
+            className="grid md:grid-cols-2 gap-8 mb-20"
+          >
+            <div className="bg-stone-50 p-10 rounded-3xl border border-stone-100 relative">
+              <Quote className="absolute top-8 right-8 w-12 h-12 text-stone-200" />
+              <div className="flex text-accent mb-6">
+                {[1,2,3,4,5].map(star => <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>)}
+              </div>
+              <p className="text-stone-600 italic leading-relaxed mb-6">{cmsData.testimonials?.t1_quote || "\"The teaching quality is outstanding, but what really impressed us is the absolute safety of the campus. The live bus tracking feature on the school app gives us incredible peace of mind every single day.\"\""}</p>
+              <div>
+                <h4 className="font-bold text-stone-900">{cmsData.testimonials?.t1_author || "Priya Sharma"}</h4>
+                <p className="text-sm text-stone-500">{cmsData.testimonials?.t1_role || "Parent of Grade 4 Student"}</p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 p-10 rounded-3xl border border-stone-100 relative">
+              <Quote className="absolute top-8 right-8 w-12 h-12 text-stone-200" />
+              <div className="flex text-accent mb-6">
+                {[1,2,3,4,5].map(star => <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>)}
+              </div>
+              <p className="text-stone-600 italic leading-relaxed mb-6">{cmsData.testimonials?.t2_quote || "\"Moving from paper forms to their digital enrollment and fee payment was seamless. Crayon Box truly operates like a modern, transparent institution that values parent time as much as student education.\""}</p>
+              <div>
+                <h4 className="font-bold text-stone-900">{cmsData.testimonials?.t2_author || "David & Emma Wilson"}</h4>
+                <p className="text-sm text-stone-500">{cmsData.testimonials?.t2_role || "Parents of Grade 7 Student"}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Trust Badges */}
+          <div className="pt-12 border-t border-stone-200 text-center">
+            <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-8">Recognized For Excellence & Safety</h3>
+            <div className="flex flex-wrap items-center justify-center gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">CBSE <span className="font-light">Board</span></div>
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">ICSE <span className="font-light">Affiliated</span></div>
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">ISO <span className="font-light">9001:2015</span></div>
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">Safety <span className="font-light">Certified</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
