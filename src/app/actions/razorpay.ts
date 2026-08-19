@@ -1,7 +1,6 @@
 "use server";
 
 import Razorpay from "razorpay";
-import { getSupabaseAdmin } from "./finance-core"; // We will export this from finance-core
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_mock",
