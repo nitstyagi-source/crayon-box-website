@@ -242,34 +242,36 @@ export default function ContactUs() {
       </section>
 
       {/* Section 5: Interactive Location & Visitor Policy */}
-      <section className="relative h-[80vh] min-h-[600px] bg-stone-200">
+      <section className="relative h-[80vh] min-h-[600px] bg-stone-200 flex items-center justify-center">
         {/* Placeholder for Google Maps Embed */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-luminosity"></div>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center shadow-2xl animate-bounce">
-            <MapPin className="w-8 h-8 text-white" />
-          </div>
-        </div>
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop')] bg-cover bg-center mix-blend-luminosity"></div>
+        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm z-0"></div>
 
-        <div className="container mx-auto px-4 h-full flex items-center justify-end relative z-10 pointer-events-none">
-          {/* Safety Overlay Card */}
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div 
-            initial={{ opacity: 0, x: 50 }} 
-            whileInView={{ opacity: 1, x: 0 }} 
+            initial={{ opacity: 0, scale: 0.95 }} 
+            whileInView={{ opacity: 1, scale: 1 }} 
             viewport={{ once: true }} 
-            transition={{ duration: 0.8 }}
-            className="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-md pointer-events-auto border border-stone-100"
+            transition={{ duration: 0.5 }}
+            className="bg-white rounded-[2rem] shadow-2xl max-w-2xl mx-auto border-4 border-red-500/20 overflow-hidden"
           >
-            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6">
-              <ShieldAlert className="w-7 h-7" />
+            <div className="bg-red-500 text-white p-6 text-center flex flex-col items-center justify-center border-b border-red-600">
+              <ShieldAlert className="w-12 h-12 mb-3" />
+              <h3 className="text-2xl font-black uppercase tracking-widest">Strict Visitor Policy</h3>
             </div>
-            <h3 className="text-2xl font-serif font-bold text-stone-900 mb-4">Campus Visitor Policy</h3>
-            <p className="text-stone-600 font-light leading-relaxed mb-8">
-              Student safety is our uncompromising priority. All campus visits must be pre-scheduled. Upon arrival, guests must register at our digital Smart Visitor Kiosk at the main gate and present a valid government ID to receive a digital visitor badge.
-            </p>
-            <button className="w-full px-6 py-4 bg-stone-900 text-white font-bold rounded-xl shadow-lg hover:bg-stone-800 transition-colors flex items-center justify-center gap-2">
-              <Calendar className="w-5 h-5" /> Schedule a Campus Visit
-            </button>
+            <div className="p-8 md:p-12 text-center">
+              <p className="text-stone-800 font-medium text-lg leading-relaxed mb-6">
+                Student safety is our uncompromising priority. <strong>Walk-in campus visits are strictly prohibited.</strong>
+              </p>
+              <ul className="text-left space-y-4 mb-8 text-stone-600 font-light text-sm bg-stone-50 p-6 rounded-xl border border-stone-200">
+                <li className="flex gap-3"><CheckCircle2 className="w-5 h-5 text-red-500 shrink-0"/> All campus visits must be pre-scheduled via the portal below.</li>
+                <li className="flex gap-3"><CheckCircle2 className="w-5 h-5 text-red-500 shrink-0"/> Upon arrival, guests must register at our digital Smart Visitor Kiosk at the main gate.</li>
+                <li className="flex gap-3"><CheckCircle2 className="w-5 h-5 text-red-500 shrink-0"/> A valid government-issued ID (Aadhaar/Passport) is mandatory to receive a digital visitor badge.</li>
+              </ul>
+              <button className="w-full md:w-auto px-8 py-4 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-colors inline-flex items-center justify-center gap-2">
+                <Calendar className="w-5 h-5" /> I Understand, Schedule a Visit
+              </button>
+            </div>
           </motion.div>
         </div>
       </section>

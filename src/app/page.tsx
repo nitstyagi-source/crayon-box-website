@@ -49,25 +49,30 @@ export default function Home() {
       
       {/* Section 2: The Hero Section (First Impression) */}
       <section className="relative h-[90vh] min-h-[700px] flex items-center justify-center overflow-hidden">
-        {/* Animated Background Image / Video Placeholder */}
-        <motion.div 
-          initial={{ scale: 1.05 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" as any }}
-          className="absolute inset-0 z-0"
-        >
-          <Image
-            src={cmsData.hero?.image_url || "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"}
-            alt="Campus Aerial View"
-            fill sizes="(max-width: 768px) 100vw, 50vw"
-            className="object-cover"
-            priority
-          />
-          {/* Dark gradient overlay for text readability */}
+        {/* Cinematic Video Background Mockup */}
+        <div className="absolute inset-0 z-0">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="object-cover w-full h-full"
+            poster={cmsData.hero?.image_url || "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"}
+          >
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+          </video>
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-900/70 to-transparent mix-blend-multiply" />
-        </motion.div>
+        </div>
 
-        <div className="container relative z-10 mx-auto px-4">
+        {/* Live Circular Ticker */}
+        <div className="absolute top-24 left-0 w-full z-20 bg-accent/90 text-white overflow-hidden py-2 backdrop-blur-sm">
+          <div className="whitespace-nowrap flex animate-[marquee_20s_linear_infinite]">
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •</span>
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •</span>
+          </div>
+        </div>
+
+        <div className="container relative z-10 mx-auto px-4 mt-12">
           <motion.div 
             initial="hidden"
             animate="visible"
@@ -82,15 +87,50 @@ export default function Home() {
               {cmsData.hero?.description || "Welcome to Crayon Box School—a modern, holistic learning ecosystem designed to help your child thrive in a rapidly evolving world."}
             </motion.p>
             
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
-              <button className="w-full sm:w-auto px-8 py-4 rounded-full bg-accent text-white font-bold hover:bg-orange-800 transition-all shadow-xl hover:shadow-accent/40 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
-                Book a Campus Tour
-              </button>
-              <Link href="/academics" className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/10 text-white font-bold hover:bg-white/20 backdrop-blur-md transition-all border border-white/30 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
-                Discover Our Curriculum
+            {/* Quick Action Cards */}
+            <motion.div variants={fadeUp} className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              <Link href="/pay-fees" className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl hover:bg-white/20 transition-all flex flex-col items-center justify-center gap-2 group">
+                <Layers className="w-6 h-6 text-accent group-hover:scale-110 transition-transform" />
+                <span className="text-white text-xs font-bold uppercase tracking-wider">Pay Fees</span>
               </Link>
+              <Link href="/academics" className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl hover:bg-white/20 transition-all flex flex-col items-center justify-center gap-2 group">
+                <BookOpen className="w-6 h-6 text-secondary group-hover:scale-110 transition-transform" />
+                <span className="text-white text-xs font-bold uppercase tracking-wider">Syllabus</span>
+              </Link>
+              <Link href="/admissions/apply" className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl hover:bg-white/20 transition-all flex flex-col items-center justify-center gap-2 group">
+                <CheckCircle2 className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-white text-xs font-bold uppercase tracking-wider">Apply Now</span>
+              </Link>
+              <button className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl hover:bg-white/20 transition-all flex flex-col items-center justify-center gap-2 group">
+                <Compass className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+                <span className="text-white text-xs font-bold uppercase tracking-wider">Campus Tour</span>
+              </button>
             </motion.div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* School Metrics Grid */}
+      <section className="py-12 bg-stone-900 border-y border-stone-800 text-white relative z-20">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-stone-800">
+            <div className="text-center px-4">
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">50+</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Acres Campus</p>
+            </div>
+            <div className="text-center px-4">
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">100%</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Board Results</p>
+            </div>
+            <div className="text-center px-4">
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">15:1</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Student-Teacher Ratio</p>
+            </div>
+            <div className="text-center px-4">
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">20+</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Sports Facilities</p>
+            </div>
+          </div>
         </div>
       </section>
 

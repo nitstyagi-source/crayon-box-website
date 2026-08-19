@@ -88,48 +88,60 @@ export default function NewsMedia() {
               <div className="flex gap-4">
                 <div className="relative">
                   <Search className="w-5 h-5 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input type="text" placeholder="Search notices..." className="pl-12 pr-4 py-3 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full md:w-64" />
+                  <input type="text" placeholder="Search notices..." className="pl-12 pr-4 py-3 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full md:w-64 shadow-sm" />
                 </div>
-                <button className="px-4 py-3 bg-white border border-stone-200 rounded-full text-stone-600 flex items-center gap-2 hover:bg-stone-100 transition-colors">
+                <button className="px-4 py-3 bg-white border border-stone-200 rounded-full text-stone-600 flex items-center gap-2 hover:bg-stone-100 transition-colors shadow-sm">
                   <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span>
                 </button>
               </div>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 flex items-start gap-3">
+            <motion.div variants={fadeUp} className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 flex items-start gap-3 shadow-sm">
               <Smartphone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <p className="text-sm text-blue-900 leading-relaxed font-light">
                 <strong className="font-semibold">Note:</strong> For real-time push notifications regarding emergency closures or transport delays, ensure your Crayon Box Parent App is updated.
               </p>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="bg-white rounded-[2rem] border border-stone-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-stone-50 text-stone-500 text-xs uppercase tracking-widest border-b border-stone-200">
-                      <th className="p-6 font-bold">Date</th>
+            {/* Digital Noticeboard Mockup */}
+            <motion.div variants={fadeUp} className="bg-[#fcfbf9] rounded-[2rem] border-2 border-[#e6e2d8] shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] overflow-hidden relative">
+              {/* Noticeboard Header/Pin */}
+              <div className="absolute top-0 left-0 w-full h-8 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] border-b-2 border-[#e6e2d8]/60 flex items-center justify-center opacity-70">
+                <div className="w-32 h-1 bg-stone-300 rounded-full"></div>
+              </div>
+              
+              <div className="overflow-x-auto mt-8 p-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-stone-300 scrollbar-track-transparent">
+                <table className="w-full text-left border-collapse border-spacing-y-2">
+                  <thead className="sticky top-0 bg-[#fcfbf9] z-10 shadow-sm">
+                    <tr className="text-stone-500 text-xs uppercase tracking-widest">
+                      <th className="p-6 font-bold w-32">Date</th>
                       <th className="p-6 font-bold">Notice Title</th>
-                      <th className="p-6 font-bold">Audience</th>
-                      <th className="p-6 font-bold text-right">Action</th>
+                      <th className="p-6 font-bold w-48">Audience</th>
+                      <th className="p-6 font-bold text-right w-24">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
+                  <tbody className="space-y-4">
                     {[
-                      { date: 'Aug 18, 2026', title: 'Winter Uniform Guidelines for K-8', aud: 'Grades Pre-K to 8', tag: 'General' },
-                      { date: 'Aug 15, 2026', title: 'Term 1 Examination Schedule Published', aud: 'Grades 6 to 8', tag: 'Academics' },
-                      { date: 'Aug 10, 2026', title: 'Transport Route Changes for Sector 4', aud: 'Bus Route 04 Parents', tag: 'Transport' },
-                      { date: 'Aug 05, 2026', title: 'Call for Registrations: Inter-School MUN', aud: 'Grades 7 to 8', tag: 'Co-Curricular' },
+                      { date: 'Aug 18, 2026', title: 'Winter Uniform Guidelines for K-8', aud: 'Grades Pre-K to 8', tag: 'General', new: true },
+                      { date: 'Aug 15, 2026', title: 'Term 1 Examination Schedule Published', aud: 'Grades 6 to 8', tag: 'Academics', new: false },
+                      { date: 'Aug 10, 2026', title: 'Transport Route Changes for Sector 4', aud: 'Bus Route 04 Parents', tag: 'Transport', new: false },
+                      { date: 'Aug 05, 2026', title: 'Call for Registrations: Inter-School MUN', aud: 'Grades 7 to 8', tag: 'Co-Curricular', new: false },
+                      { date: 'Jul 30, 2026', title: 'Parent-Teacher Meeting (PTM) Setup', aud: 'All Grades', tag: 'Events', new: false },
                     ].map((notice, idx) => (
-                      <tr key={idx} className="hover:bg-stone-50 transition-colors group">
-                        <td className="p-6 text-sm text-stone-500 whitespace-nowrap">{notice.date}</td>
-                        <td className="p-6">
-                          <p className="text-stone-900 font-bold mb-1">{notice.title}</p>
-                          <span className="inline-block px-2 py-0.5 bg-stone-100 text-stone-600 rounded text-xs">{notice.tag}</span>
+                      <tr key={idx} className="bg-white hover:bg-orange-50/50 transition-colors group shadow-sm border border-stone-100 rounded-xl relative">
+                        <td className="p-6 text-sm text-stone-500 whitespace-nowrap align-top">
+                          {notice.date}
                         </td>
-                        <td className="p-6 text-sm text-stone-600">{notice.aud}</td>
-                        <td className="p-6 text-right">
-                          <button className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-stone-100 text-primary hover:bg-primary hover:text-white transition-colors">
+                        <td className="p-6 align-top">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-stone-900 font-bold">{notice.title}</p>
+                            {notice.new && <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold uppercase rounded-full animate-pulse">New</span>}
+                          </div>
+                          <span className="inline-block px-2 py-0.5 bg-stone-100 text-stone-600 rounded text-xs border border-stone-200">{notice.tag}</span>
+                        </td>
+                        <td className="p-6 text-sm text-stone-600 align-top">{notice.aud}</td>
+                        <td className="p-6 text-right align-top">
+                          <button className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-stone-100 text-primary hover:bg-primary hover:text-white transition-colors shadow-sm">
                             <Download className="w-4 h-4" />
                           </button>
                         </td>
@@ -152,22 +164,30 @@ export default function NewsMedia() {
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-stone-900 mb-6">Upcoming Events</h2>
               <p className="text-stone-600 font-light mb-8">Stay up to date with the latest workshops, cultural fests, and academic symposiums.</p>
               
-              {/* Visual Mini-Calendar Placeholder */}
-              <div className="bg-stone-50 border border-stone-200 rounded-[2rem] p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h4 className="font-bold text-lg text-stone-900">August 2026</h4>
+              {/* Interactive Visual Mini-Calendar Mockup */}
+              <div className="bg-white border border-stone-200 shadow-xl rounded-[2rem] p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h4 className="font-bold text-lg text-stone-900 font-serif">August 2026</h4>
                   <div className="flex gap-2">
-                    <button className="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center">&lt;</button>
-                    <button className="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center">&gt;</button>
+                    <button className="w-8 h-8 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-colors">&lt;</button>
+                    <button className="w-8 h-8 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-colors">&gt;</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-7 gap-2 text-center text-sm">
-                  {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-stone-400 font-bold mb-2">{d}</div>)}
-                  {Array.from({length: 31}).map((_, i) => (
-                    <div key={i} className={`py-2 rounded-full ${[15, 22, 28].includes(i+1) ? 'bg-primary text-white font-bold' : 'text-stone-700 hover:bg-stone-200 cursor-pointer'}`}>
-                      {i+1}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-7 gap-y-4 gap-x-2 text-center text-sm">
+                  {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-stone-400 font-bold text-xs">{d}</div>)}
+                  {Array.from({length: 31}).map((_, i) => {
+                    const isEvent = [15, 22, 28].includes(i+1);
+                    return (
+                      <div key={i} className={`relative py-2 rounded-full cursor-pointer transition-all duration-300 ${isEvent ? 'bg-primary text-white font-bold shadow-md hover:scale-110 hover:bg-blue-800' : 'text-stone-700 hover:bg-stone-100 font-medium'}`}>
+                        {i+1}
+                        {isEvent && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-8 pt-6 border-t border-stone-100 flex items-center gap-4 text-xs font-medium text-stone-500">
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 bg-primary rounded-full"></div> School Event</span>
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-stone-300 rounded-full"></div> Holiday</span>
                 </div>
               </div>
             </motion.div>
@@ -178,26 +198,27 @@ export default function NewsMedia() {
                 { date: 'AUG 28', title: 'Annual Science Exhibition (Grades 5-8)', time: '10:00 AM - 02:00 PM', loc: 'Science Block' },
                 { date: 'SEP 05', title: 'Teacher\'s Day Cultural Celebration', time: '11:00 AM - 01:30 PM', loc: 'Open Air Theater' },
               ].map((evt, idx) => (
-                <motion.div variants={fadeUp} key={idx} className="bg-white border border-stone-200 rounded-[2rem] p-8 flex flex-col md:flex-row gap-8 hover:shadow-lg transition-shadow group">
-                  <div className="flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-blue-50 text-primary shrink-0 border border-blue-100 group-hover:bg-primary group-hover:text-white transition-colors">
-                    <span className="text-sm font-bold uppercase tracking-widest">{evt.date.split(' ')[0]}</span>
-                    <span className="text-3xl font-black">{evt.date.split(' ')[1]}</span>
+                <motion.div variants={fadeUp} key={idx} className="bg-white border border-stone-200 rounded-[2rem] p-8 flex flex-col md:flex-row gap-8 hover:shadow-2xl hover:border-primary/30 transition-all duration-300 group cursor-pointer relative overflow-hidden">
+                  <div className="absolute left-0 top-0 w-2 h-full bg-primary/20 group-hover:bg-primary transition-colors"></div>
+                  <div className="flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-blue-50 text-primary shrink-0 border border-blue-100 group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
+                    <span className="text-xs font-bold uppercase tracking-widest">{evt.date.split(' ')[0]}</span>
+                    <span className="text-3xl font-black leading-none mt-1">{evt.date.split(' ')[1]}</span>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold font-serif text-stone-900 mb-3">{evt.title}</h3>
+                  <div className="flex-1 pt-2">
+                    <h3 className="text-2xl font-bold font-serif text-stone-900 mb-3 group-hover:text-primary transition-colors">{evt.title}</h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm text-stone-500 mb-6">
                       <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-stone-400"/> {evt.time}</span>
                       <span className="hidden sm:block text-stone-300">|</span>
                       <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-stone-400"/> {evt.loc}</span>
                     </div>
                     <div className="flex gap-3">
-                      <button className="text-xs font-bold uppercase tracking-widest text-primary hover:text-blue-900">Add to Calendar +</button>
+                      <button className="text-xs font-bold uppercase tracking-widest text-primary hover:text-blue-900 border border-primary/20 px-4 py-2 rounded-full hover:bg-blue-50 transition-colors">Add to Calendar +</button>
                     </div>
                   </div>
                 </motion.div>
               ))}
-              <motion.div variants={fadeUp} className="pt-4 text-center md:text-left">
-                <button className="text-stone-500 font-bold hover:text-primary transition-colors flex items-center gap-2 mx-auto md:mx-0">
+              <motion.div variants={fadeUp} className="pt-8 text-center md:text-left">
+                <button className="text-stone-500 font-bold hover:text-primary transition-colors flex items-center gap-2 mx-auto md:mx-0 px-6 py-3 border border-stone-200 rounded-full hover:border-primary">
                   View Full Academic Calendar <ArrowRight className="w-4 h-4" />
                 </button>
               </motion.div>

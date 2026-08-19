@@ -66,19 +66,19 @@ export default function FacultyDirectory() {
       {/* Section 2: The Smart Search & Filter Bar */}
       <section className="sticky top-20 z-30 bg-white/80 backdrop-blur-xl border-b border-stone-200 shadow-sm py-4">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-1/2 lg:w-1/3">
-              <Search className="w-5 h-5 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text" 
-                placeholder="Search by name, subject, or department..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
-              />
-            </div>
-            
-            <div className="flex w-full md:w-auto gap-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full md:w-1/2">
+                <Search className="w-5 h-5 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  placeholder="Search by name or subject..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm"
+                />
+              </div>
+              
               <div className="relative w-full md:w-auto">
                 <Filter className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <select 
@@ -94,22 +94,20 @@ export default function FacultyDirectory() {
                   <option value="Administration">Administration</option>
                 </select>
               </div>
-              
-              <div className="relative w-full md:w-auto">
-                <select 
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  className="w-full md:w-auto pl-6 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-sm appearance-none text-stone-600 font-bold"
+            </div>
+
+            {/* Department Filter Buttons */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm font-bold text-stone-500 mr-2 uppercase tracking-widest">Departments:</span>
+              {["All", "Languages", "Mathematics", "Sciences", "Arts & Humanities", "Sports & Physical Education", "Student Welfare"].map(dept => (
+                <button 
+                  key={dept}
+                  onClick={() => setSelectedDept(dept)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-colors border ${selectedDept === dept ? 'bg-primary text-white border-primary' : 'bg-white text-stone-600 border-stone-200 hover:border-primary hover:text-primary'}`}
                 >
-                  <option value="All">Filter by Department</option>
-                  <option value="Languages">Languages</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Sciences">Sciences</option>
-                  <option value="Arts & Humanities">Arts & Humanities</option>
-                  <option value="Sports & Physical Education">Sports & PE</option>
-                  <option value="Student Welfare">Student Welfare</option>
-                </select>
-              </div>
+                  {dept}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -165,8 +163,8 @@ export default function FacultyDirectory() {
                 <div className="relative aspect-[4/5] bg-stone-200 overflow-hidden">
                   <Image src={faculty.image_url || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop"} alt={faculty.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                    <button className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:bg-orange-800 transition-colors flex items-center justify-center gap-2 text-sm shadow-lg">
-                      <Calendar className="w-4 h-4" /> Book PTM
+                    <button className="w-full bg-accent text-white font-bold py-3 rounded-xl hover:bg-orange-800 transition-colors flex items-center justify-center gap-2 text-xs shadow-lg">
+                      <Calendar className="w-4 h-4" /> Parent Portal Booking
                     </button>
                   </div>
                 </div>

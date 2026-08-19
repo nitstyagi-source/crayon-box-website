@@ -119,7 +119,12 @@ export default function AdmissionsHub() {
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-stone-700">
                   <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Pre-K / Nursery</td>
+                    <td className="p-6 font-bold text-stone-900">Pre-Nursery</td>
+                    <td className="p-6">2.5 to 3 Years</td>
+                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
+                  </tr>
+                  <tr className="hover:bg-stone-50 transition-colors">
+                    <td className="p-6 font-bold text-stone-900">Nursery</td>
                     <td className="p-6">3 to 4 Years</td>
                     <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
                   </tr>
@@ -129,8 +134,13 @@ export default function AdmissionsHub() {
                     <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
                   </tr>
                   <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Primary (Grades 1 to 5)</td>
-                    <td className="p-6">6 to 11 Years</td>
+                    <td className="p-6 font-bold text-stone-900">Grade 1</td>
+                    <td className="p-6">6 to 7 Years</td>
+                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold uppercase">Limited Seats</span></td>
+                  </tr>
+                  <tr className="hover:bg-stone-50 transition-colors">
+                    <td className="p-6 font-bold text-stone-900">Primary (Grades 2 to 5)</td>
+                    <td className="p-6">7 to 11 Years</td>
                     <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold uppercase">Subject to Availability</span></td>
                   </tr>
                   <tr className="hover:bg-stone-50 transition-colors">
