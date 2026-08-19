@@ -104,6 +104,7 @@ export async function createStudent(payload: any) {
         last_name: payload.last_name,
         dob: payload.dob,
         gender: payload.gender,
+        category: payload.category || 'General',
       }])
       .select()
       .single();

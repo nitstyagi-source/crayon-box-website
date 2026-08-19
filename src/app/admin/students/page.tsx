@@ -22,6 +22,7 @@ export default function StudentsDirectory() {
     gender: "Male",
     class_name: "Grade 1",
     section_name: "A",
+    category: "General",
     parent_name: "",
     parent_mobile: ""
   });
@@ -54,7 +55,8 @@ export default function StudentsDirectory() {
       loadStudents();
       // Reset form
       setFormData({
-        admission_no: "", first_name: "", last_name: "", dob: "", gender: "Male", class_name: "Grade 1", section_name: "A", parent_name: "", parent_mobile: ""
+        admission_no: "", first_name: "", last_name: "", dob: "", gender: "Male", class_name: "Grade 1", section_name: "A",
+    category: "General", parent_name: "", parent_mobile: ""
       });
     } else {
       alert("Error: " + res.error);
@@ -118,6 +120,13 @@ export default function StudentsDirectory() {
                   <label className="text-xs font-bold text-stone-500 block mb-1">Gender</label>
                   <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm">
                     <option>Male</option><option>Female</option><option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Category *</label>
+                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm">
+                    <option value="General">General</option>
+                    <option value="EWS">EWS</option>
                   </select>
                 </div>
               </div>
@@ -186,6 +195,7 @@ export default function StudentsDirectory() {
                 <th className="p-4 font-bold">Student</th>
                 <th className="p-4 font-bold">Admission No</th>
                 <th className="p-4 font-bold">Class & Section</th>
+                <th className="p-4 font-bold">Category</th>
                 <th className="p-4 font-bold">Gender</th>
                 <th className="p-4 font-bold">Status</th>
                 <th className="p-4 font-bold text-right">Action</th>
@@ -199,8 +209,9 @@ export default function StudentsDirectory() {
               ) : (
                 filteredStudents.map((student) => {
                   const currentAcademic = student.student_academic_history?.[0];
+                  const isEWS = student.category === 'EWS';
                   return (
-                    <tr key={student.id} className="hover:bg-stone-50 transition-colors">
+                    <tr key={student.id} className={`transition-colors ${isEWS ? 'bg-orange-50/50 hover:bg-orange-50' : 'hover:bg-stone-50'}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
@@ -220,6 +231,13 @@ export default function StudentsDirectory() {
                         </div>
                       </td>
                       <td className="p-4 text-sm text-stone-700">{student.gender}</td>
+                      <td className="p-4">
+                        {student.category === 'EWS' ? (
+                          <span className="px-2 py-1 rounded-md text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200 shadow-sm">EWS</span>
+                        ) : (
+                          <span className="text-sm font-bold text-stone-500">General</span>
+                        )}
+                      </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                           student.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-600'
