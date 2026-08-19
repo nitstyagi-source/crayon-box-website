@@ -9,10 +9,10 @@ const NAV_LINKS = [
     name: "Academics", 
     href: "/academics",
     megaMenu: [
-      { name: "Early Years", href: "/academics/early-years" },
-      { name: "Primary", href: "/academics/primary" },
-      { name: "Middle School", href: "/academics/middle" },
-      { name: "Syllabus", href: "/academics/syllabus" },
+      { name: "Early Years", href: "/academics#early-years" },
+      { name: "Primary", href: "/academics#primary" },
+      { name: "Middle School", href: "/academics#middle" },
+      { name: "Syllabus", href: "/academics" },
     ]
   },
   { name: "Campus Life", href: "/campus-life" },

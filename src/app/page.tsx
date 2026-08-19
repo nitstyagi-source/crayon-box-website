@@ -59,7 +59,7 @@ export default function Home() {
             className="object-cover w-full h-full"
             poster={cmsData.hero?.image_url || "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop"}
           >
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+            <source src={cmsData.hero?.video_url || "https://www.w3schools.com/html/mov_bbb.mp4"} type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-900/70 to-transparent mix-blend-multiply" />
         </div>
@@ -67,8 +67,8 @@ export default function Home() {
         {/* Live Circular Ticker */}
         <div className="absolute top-24 left-0 w-full z-20 bg-accent/90 text-white overflow-hidden py-2 backdrop-blur-sm">
           <div className="whitespace-nowrap flex animate-[marquee_20s_linear_infinite]">
-             <span className="mx-4 text-sm font-bold tracking-widest uppercase">• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •</span>
-             <span className="mx-4 text-sm font-bold tracking-widest uppercase">• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •</span>
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || "• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •"}</span>
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || "• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •"}</span>
           </div>
         </div>
 
@@ -115,20 +115,20 @@ export default function Home() {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-stone-800">
             <div className="text-center px-4">
-              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">50+</h4>
-              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Acres Campus</p>
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">{cmsData.metrics?.stat_1_val || "50+"}</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{cmsData.metrics?.stat_1_label || "Acres Campus"}</p>
             </div>
             <div className="text-center px-4">
-              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">100%</h4>
-              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Board Results</p>
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">{cmsData.metrics?.stat_2_val || "100%"}</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{cmsData.metrics?.stat_2_label || "Board Results"}</p>
             </div>
             <div className="text-center px-4">
-              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">15:1</h4>
-              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Student-Teacher Ratio</p>
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">{cmsData.metrics?.stat_3_val || "15:1"}</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{cmsData.metrics?.stat_3_label || "Student-Teacher Ratio"}</p>
             </div>
             <div className="text-center px-4">
-              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">20+</h4>
-              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">Sports Facilities</p>
+              <h4 className="text-4xl md:text-5xl font-black text-accent mb-2">{cmsData.metrics?.stat_4_val || "20+"}</h4>
+              <p className="text-sm text-stone-400 font-bold uppercase tracking-widest">{cmsData.metrics?.stat_4_label || "Sports Facilities"}</p>
             </div>
           </div>
         </div>

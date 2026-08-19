@@ -118,41 +118,21 @@ export default function AdmissionsHub() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-stone-700">
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Pre-Nursery</td>
-                    <td className="p-6">2.5 to 3 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
-                  </tr>
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Nursery</td>
-                    <td className="p-6">3 to 4 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
-                  </tr>
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Kindergarten (K1 & K2)</td>
-                    <td className="p-6">4 to 6 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase">Open</span></td>
-                  </tr>
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Grade 1</td>
-                    <td className="p-6">6 to 7 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold uppercase">Limited Seats</span></td>
-                  </tr>
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Primary (Grades 2 to 5)</td>
-                    <td className="p-6">7 to 11 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold uppercase">Subject to Availability</span></td>
-                  </tr>
-                  <tr className="hover:bg-stone-50 transition-colors">
-                    <td className="p-6 font-bold text-stone-900">Middle School (Grades 6 to 8)</td>
-                    <td className="p-6">11 to 14 Years</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">Assessment Req.</span></td>
-                  </tr>
-                  <tr className="bg-stone-50 text-stone-400">
-                    <td className="p-6 font-bold">Senior Secondary (9 to 12)</td>
-                    <td className="p-6">-</td>
-                    <td className="p-6 text-right"><span className="inline-block px-3 py-1 bg-stone-200 text-stone-600 rounded-full text-xs font-bold uppercase">Coming Soon</span></td>
-                  </tr>
+                  {(cmsData.age_criteria || [
+                    { grade: 'Pre-Nursery', age: '2.5 to 3 Years', status: 'Open', statusColor: 'bg-green-100 text-green-700' },
+                    { grade: 'Nursery', age: '3 to 4 Years', status: 'Open', statusColor: 'bg-green-100 text-green-700' },
+                    { grade: 'Kindergarten (K1 & K2)', age: '4 to 6 Years', status: 'Open', statusColor: 'bg-green-100 text-green-700' },
+                    { grade: 'Grade 1', age: '6 to 7 Years', status: 'Limited Seats', statusColor: 'bg-orange-100 text-orange-700' },
+                    { grade: 'Primary (Grades 2 to 5)', age: '7 to 11 Years', status: 'Subject to Availability', statusColor: 'bg-orange-100 text-orange-700' },
+                    { grade: 'Middle School (Grades 6 to 8)', age: '11 to 14 Years', status: 'Assessment Req.', statusColor: 'bg-blue-100 text-blue-700' },
+                    { grade: 'Senior Secondary (9 to 12)', age: '-', status: 'Coming Soon', statusColor: 'bg-stone-200 text-stone-600', disabled: true }
+                  ]).map((item: any, idx: number) => (
+                    <tr key={idx} className={item.disabled ? "bg-stone-50 text-stone-400" : "hover:bg-stone-50 transition-colors"}>
+                      <td className="p-6 font-bold text-stone-900">{item.grade}</td>
+                      <td className="p-6">{item.age}</td>
+                      <td className="p-6 text-right"><span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${item.statusColor}`}>{item.status}</span></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

@@ -121,13 +121,13 @@ export default function NewsMedia() {
                     </tr>
                   </thead>
                   <tbody className="space-y-4">
-                    {[
+                    {(cmsData.notices || [
                       { date: 'Aug 18, 2026', title: 'Winter Uniform Guidelines for K-8', aud: 'Grades Pre-K to 8', tag: 'General', new: true },
                       { date: 'Aug 15, 2026', title: 'Term 1 Examination Schedule Published', aud: 'Grades 6 to 8', tag: 'Academics', new: false },
                       { date: 'Aug 10, 2026', title: 'Transport Route Changes for Sector 4', aud: 'Bus Route 04 Parents', tag: 'Transport', new: false },
                       { date: 'Aug 05, 2026', title: 'Call for Registrations: Inter-School MUN', aud: 'Grades 7 to 8', tag: 'Co-Curricular', new: false },
                       { date: 'Jul 30, 2026', title: 'Parent-Teacher Meeting (PTM) Setup', aud: 'All Grades', tag: 'Events', new: false },
-                    ].map((notice, idx) => (
+                    ]).map((notice: any, idx: number) => (
                       <tr key={idx} className="bg-white hover:bg-orange-50/50 transition-colors group shadow-sm border border-stone-100 rounded-xl relative">
                         <td className="p-6 text-sm text-stone-500 whitespace-nowrap align-top">
                           {notice.date}
@@ -193,11 +193,12 @@ export default function NewsMedia() {
             </motion.div>
 
             <motion.div variants={stagger} className="w-full lg:w-2/3 space-y-6">
-              {[
-                { date: 'AUG 22', title: 'Inter-School Tech Symposium', time: '09:00 AM - 04:00 PM', loc: 'Main Auditorium' },
+              {(cmsData.events || [
+                { date: 'AUG 15', title: 'Independence Day Flag Hoisting', time: '08:00 AM - 10:00 AM', loc: 'Main Sports Ground' },
+                { date: 'AUG 22', title: 'Inter-House Debate Competition', time: '09:00 AM - 01:00 PM', loc: 'School Auditorium' },
                 { date: 'AUG 28', title: 'Annual Science Exhibition (Grades 5-8)', time: '10:00 AM - 02:00 PM', loc: 'Science Block' },
                 { date: 'SEP 05', title: 'Teacher\'s Day Cultural Celebration', time: '11:00 AM - 01:30 PM', loc: 'Open Air Theater' },
-              ].map((evt, idx) => (
+              ]).map((evt: any, idx: number) => (
                 <motion.div variants={fadeUp} key={idx} className="bg-white border border-stone-200 rounded-[2rem] p-8 flex flex-col md:flex-row gap-8 hover:shadow-2xl hover:border-primary/30 transition-all duration-300 group cursor-pointer relative overflow-hidden">
                   <div className="absolute left-0 top-0 w-2 h-full bg-primary/20 group-hover:bg-primary transition-colors"></div>
                   <div className="flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-blue-50 text-primary shrink-0 border border-blue-100 group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
