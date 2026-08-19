@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { name: "About", href: "/about" },
   { name: "Academics", href: "/academics" },
   { name: "Campus Life", href: "/campus-life" },
+  { name: "Gallery", href: "/gallery" },
   { name: "News & Media", href: "/news" },
   { name: "Faculty", href: "/faculty" },
   { name: "Admissions", href: "/admissions" },

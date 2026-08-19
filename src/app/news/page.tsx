@@ -207,43 +207,17 @@ export default function NewsMedia() {
         </div>
       </section>
 
-      {/* Section 4: The Crayon Box Gallery (Visual Media) */}
+      {/* Section 4: The Crayon Box Gallery Link */}
       <section className="py-24 bg-stone-50">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="text-center mb-12">
-            <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">The Crayon Box Gallery</motion.h2>
-            
-            {/* Categorization Tabs */}
-            <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-2 mb-12">
-              {['All', 'Sports & Athletics', 'Arts & Culture', 'Academics & Labs', 'Campus Expansion Updates'].map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => setActiveGalleryTab(tab)}
-                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${activeGalleryTab === tab ? 'bg-primary text-white shadow-md' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </motion.div>
-
-            {/* Masonry Grid Placeholder */}
-            <motion.div variants={fadeUp} className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-              {[
-                { src: "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=2070&auto=format&fit=crop", aspect: "aspect-[4/3]", video: false },
-                { src: "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop", aspect: "aspect-[3/4]", video: true },
-                { src: "https://images.unsplash.com/photo-1546410531-bea4cadafd56?q=80&w=2070&auto=format&fit=crop", aspect: "aspect-[1/1]", video: false },
-                { src: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=2070&auto=format&fit=crop", aspect: "aspect-[3/4]", video: false },
-                { src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop", aspect: "aspect-[4/3]", video: true },
-                { src: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", aspect: "aspect-[1/1]", video: false },
-              ].map((item, idx) => (
-                <div key={idx} className={`relative rounded-3xl overflow-hidden group cursor-pointer break-inside-avoid ${item.aspect}`}>
-                  <Image src={item.src} alt="Gallery item" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/30 transition-colors duration-300 flex items-center justify-center">
-                    {item.video && <PlayCircle className="w-16 h-16 text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all drop-shadow-lg" />}
-                  </div>
-                </div>
-              ))}
-            </motion.div>
+        <div className="container mx-auto px-4 max-w-7xl text-center">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">The Crayon Box Gallery</h2>
+            <p className="text-xl text-stone-600 font-light mb-10">
+              Explore the vibrant moments, events, and milestones that shape our school community in our new dedicated gallery.
+            </p>
+            <Link href="/gallery" className="inline-flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-bold hover:bg-orange-800 transition-colors shadow-lg hover:shadow-xl">
+              View Full Gallery <ArrowRight className="w-5 h-5" />
+            </Link>
           </motion.div>
         </div>
       </section>

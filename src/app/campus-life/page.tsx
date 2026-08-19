@@ -41,14 +41,14 @@ export default function CampusLife() {
             className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]"
           >
             <div className="md:col-span-2 relative rounded-[2rem] overflow-hidden group">
-              <Image src="https://images.unsplash.com/photo-1543269664-56d5d37dfcb6?q=80&w=2070&auto=format&fit=crop" alt="Students laughing" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
+              <Image src={cmsData.hero?.image_1 || "https://images.unsplash.com/photo-1543269664-56d5d37dfcb6?q=80&w=2070&auto=format&fit=crop"} alt="Students laughing" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
             <div className="flex flex-col gap-4">
               <div className="relative h-1/2 rounded-[2rem] overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2070&auto=format&fit=crop" alt="Sports" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                <Image src={cmsData.hero?.image_2 || "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2070&auto=format&fit=crop"} alt="Sports" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
               <div className="relative h-1/2 rounded-[2rem] overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2071&auto=format&fit=crop" alt="Arts" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                <Image src={cmsData.hero?.image_3 || "https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2071&auto=format&fit=crop"} alt="Arts" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
           </motion.div>
@@ -100,7 +100,7 @@ export default function CampusLife() {
             {/* Card 1 */}
             <motion.div variants={fadeUp} className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl transition-shadow group">
               <div className="h-64 relative overflow-hidden">
-                <Image src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop" alt="Smart Classrooms" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.facilities?.smart_classrooms_img || "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop"} alt="Smart Classrooms" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </div>
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-4">
@@ -118,7 +118,7 @@ export default function CampusLife() {
             {/* Card 2 */}
             <motion.div variants={fadeUp} className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl transition-shadow group">
               <div className="h-64 relative overflow-hidden">
-                <Image src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop" alt="Knowledge Hub" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.facilities?.knowledge_hub_img || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop"} alt="Knowledge Hub" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </div>
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-4">
@@ -136,7 +136,7 @@ export default function CampusLife() {
             {/* Card 3 */}
             <motion.div variants={fadeUp} className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl transition-shadow group">
               <div className="h-64 relative overflow-hidden">
-                <Image src="https://images.unsplash.com/photo-1526676037777-05a232554f77?q=80&w=2070&auto=format&fit=crop" alt="Sports Complex" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.facilities?.sports_complex_img || "https://images.unsplash.com/photo-1526676037777-05a232554f77?q=80&w=2070&auto=format&fit=crop"} alt="Sports Complex" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </div>
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-4">
@@ -187,7 +187,7 @@ export default function CampusLife() {
             {/* Innovators */}
             <motion.div variants={fadeUp} className="text-center group cursor-pointer">
               <div className="w-40 h-40 mx-auto rounded-full bg-blue-50 relative overflow-hidden mb-6 border-4 border-white shadow-lg group-hover:scale-105 transition-transform duration-500">
-                <Image src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop" alt="Tech" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.clubs?.tech_img || "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop"} alt="Tech" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                 <div className="absolute inset-0 bg-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <Code className="w-10 h-10 text-white" />
                 </div>
@@ -199,7 +199,7 @@ export default function CampusLife() {
             {/* Performers */}
             <motion.div variants={fadeUp} className="text-center group cursor-pointer">
               <div className="w-40 h-40 mx-auto rounded-full bg-orange-50 relative overflow-hidden mb-6 border-4 border-white shadow-lg group-hover:scale-105 transition-transform duration-500">
-                <Image src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop" alt="Performers" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.clubs?.performers_img || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop"} alt="Performers" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                 <div className="absolute inset-0 bg-accent/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <Music className="w-10 h-10 text-white" />
                 </div>
@@ -211,7 +211,7 @@ export default function CampusLife() {
             {/* Orators */}
             <motion.div variants={fadeUp} className="text-center group cursor-pointer">
               <div className="w-40 h-40 mx-auto rounded-full bg-emerald-50 relative overflow-hidden mb-6 border-4 border-white shadow-lg group-hover:scale-105 transition-transform duration-500">
-                <Image src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2084&auto=format&fit=crop" alt="Orators" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.clubs?.orators_img || "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2084&auto=format&fit=crop"} alt="Orators" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                 <div className="absolute inset-0 bg-secondary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <Speech className="w-10 h-10 text-white" />
                 </div>
@@ -223,7 +223,7 @@ export default function CampusLife() {
             {/* Eco-Warriors */}
             <motion.div variants={fadeUp} className="text-center group cursor-pointer">
               <div className="w-40 h-40 mx-auto rounded-full bg-green-50 relative overflow-hidden mb-6 border-4 border-white shadow-lg group-hover:scale-105 transition-transform duration-500">
-                <Image src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2013&auto=format&fit=crop" alt="Eco" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.clubs?.eco_img || "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2013&auto=format&fit=crop"} alt="Eco" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                 <div className="absolute inset-0 bg-green-600/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <Leaf className="w-10 h-10 text-white" />
                 </div>
@@ -246,7 +246,7 @@ export default function CampusLife() {
               className="flex flex-col md:flex-row gap-12 items-center"
             >
               <motion.div variants={fadeUp} className="w-full md:w-1/2 relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl">
-                <Image src="https://images.unsplash.com/photo-1574880946059-fa64bfb422a5?q=80&w=2072&auto=format&fit=crop" alt="Cashless Cafeteria" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.services?.cafeteria_img || "https://images.unsplash.com/photo-1574880946059-fa64bfb422a5?q=80&w=2072&auto=format&fit=crop"} alt="Cashless Cafeteria" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
               </motion.div>
               <motion.div variants={fadeUp} className="w-full md:w-1/2">
                 <div className="w-16 h-16 bg-white border border-stone-100 rounded-2xl flex items-center justify-center mb-6 shadow-sm text-accent">
@@ -265,7 +265,7 @@ export default function CampusLife() {
               className="flex flex-col md:flex-row-reverse gap-12 items-center"
             >
               <motion.div variants={fadeUp} className="w-full md:w-1/2 relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl">
-                <Image src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2053&auto=format&fit=crop" alt="Wellness Clinic" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.services?.clinic_img || "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2053&auto=format&fit=crop"} alt="Wellness Clinic" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
               </motion.div>
               <motion.div variants={fadeUp} className="w-full md:w-1/2">
                 <div className="w-16 h-16 bg-white border border-stone-100 rounded-2xl flex items-center justify-center mb-6 shadow-sm text-secondary">
@@ -347,16 +347,16 @@ export default function CampusLife() {
             {/* Gallery */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <motion.div variants={fadeUp} className="aspect-square relative rounded-2xl overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1546410531-bea4cadafd56?q=80&w=2070&auto=format&fit=crop" alt="Sports Day" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.traditions?.sports_img || "https://images.unsplash.com/photo-1546410531-bea4cadafd56?q=80&w=2070&auto=format&fit=crop"} alt="Sports Day" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </motion.div>
               <motion.div variants={fadeUp} className="aspect-square relative rounded-2xl overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop" alt="Yoga" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.traditions?.yoga_img || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"} alt="Yoga" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </motion.div>
               <motion.div variants={fadeUp} className="aspect-square relative rounded-2xl overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=2070&auto=format&fit=crop" alt="Cultural Fest" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.traditions?.fest_img || "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=2070&auto=format&fit=crop"} alt="Cultural Fest" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </motion.div>
               <motion.div variants={fadeUp} className="aspect-square relative rounded-2xl overflow-hidden group">
-                <Image src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=2070&auto=format&fit=crop" alt="Exhibition" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Image src={cmsData.traditions?.exhibition_img || "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=2070&auto=format&fit=crop"} alt="Exhibition" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
               </motion.div>
             </div>
           </motion.div>

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3 } from "lucide-react";
 import { CampusProvider, useCampusContext } from "@/components/providers/CampusProvider";
 
 const NAV_ITEMS = [
   { name: "Global Command", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Website CMS", href: "/admin/cms", icon: LayoutTemplate },
-  { name: "News & Events", href: "/admin/news", icon: Bell },
-  { name: "Faculty Roster", href: "/admin/faculty", icon: Users },
-  { name: "Alumni Network", href: "/admin/alumni", icon: GraduationCap },
-  { name: "AI Analytics", href: "/admin/analytics", icon: Brain },
+  { name: 'Faculty', href: '/admin/faculty', icon: Users },
+  { name: 'News & Events', href: '/admin/news', icon: FileText },
+  { name: 'Alumni', href: '/admin/alumni', icon: GraduationCap },
+  { name: 'Gallery', href: '/admin/gallery', icon: ImageIcon },
+  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: "Enquiry CRM", href: "/admin/enquiries", icon: PhoneCall },
   { name: "Master SIS", href: "/admin/students", icon: Users },
   { name: "HR Command Center", href: "/admin/hr", icon: Users },

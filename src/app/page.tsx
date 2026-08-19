@@ -108,10 +108,10 @@ export default function Home() {
               className="w-full lg:w-1/2 relative min-h-[500px]"
             >
               <div className="absolute top-0 left-0 w-3/4 aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl z-10">
-                <Image src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop" alt="Middle school students" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.growth_announcement?.image_1 || "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop"} alt="Middle school students" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
               </div>
               <div className="absolute bottom-0 right-0 w-3/5 aspect-square rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white z-20">
-                <Image src="https://images.unsplash.com/photo-1587691592099-24045742c181?q=80&w=2073&auto=format&fit=crop" alt="Students collaborating" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+                <Image src={cmsData.growth_announcement?.image_2 || "https://images.unsplash.com/photo-1587691592099-24045742c181?q=80&w=2073&auto=format&fit=crop"} alt="Students collaborating" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
               </div>
               {/* Decorative Circle */}
               <div className="absolute top-1/2 -left-12 w-32 h-32 bg-secondary/10 rounded-full blur-2xl -z-10" />

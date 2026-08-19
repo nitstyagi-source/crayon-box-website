@@ -154,7 +154,7 @@ export default function AboutUs() {
               </motion.div>
 
               <motion.div variants={fadeUp}>
-                <Image src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Signature Placeholder" width={80} height={40} className="opacity-40 mb-2" />
+                <Image src={cmsData.director?.signature_url || "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"} alt="Signature Placeholder" width={80} height={40} className="opacity-40 mb-2" />
                 <h4 className="font-bold text-xl text-stone-900 font-serif">{cmsData.director?.author_name || "Nitin Tyagi"}</h4>
                 <p className="text-secondary font-semibold text-sm tracking-widest uppercase">{cmsData.director?.author_role || "Director, Crayon Box School"}</p>
               </motion.div>
