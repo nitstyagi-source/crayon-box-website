@@ -16,8 +16,6 @@ const FINANCE_NAV = [
   { name: "Invoices", href: "/admin/finance/invoices", icon: Receipt },
   { name: "Collections", href: "/admin/finance/collections", icon: Wallet },
   { name: "Pending Fees", href: "/admin/finance/pending", icon: Clock },
-  { name: "Late Fees", href: "/admin/finance/late-fees", icon: AlertTriangle },
-  { name: "Discounts", href: "/admin/finance/discounts", icon: Percent },
   { name: "Refunds", href: "/admin/finance/refunds", icon: RotateCcw },
   { name: "Receipts", href: "/admin/finance/receipts", icon: FileText },
   { name: "Reports", href: "/admin/finance/reports", icon: BarChart },
