@@ -1,144 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { useSiblingContext } from "@/components/providers/SiblingProvider";
-import { Wallet, Download, CreditCard, Receipt, TrendingUp, History } from "lucide-react";
+import { CreditCard, CheckCircle2, Download, Receipt } from "lucide-react";
 
-export default function FeesHub() {
-  const { activeSibling } = useSiblingContext();
-  const [feePlan, setFeePlan] = useState<"Quarterly" | "Monthly">("Quarterly");
+export default function ParentFeePortal() {
+  
+  const currentInvoice = {
+    invoiceNumber: "INV-2026-Q3-1045",
+    dueDate: "2026-09-15",
+    totalPayable: 18500,
+    items: [
+      { description: "Tuition Fee (Q3)", amount: 15000 },
+      { description: "Transport Zone B", amount: 3000 },
+      { description: "Lab Fee (Science)", amount: 500 }
+    ]
+  };
 
-  const isQuarterly = feePlan === "Quarterly";
-  const tuitionFee = isQuarterly ? 18000 : 6000;
-  const transportFee = isQuarterly ? 4500 : 1500;
-  const itFee = isQuarterly ? 2000 : 666;
-  const totalFee = tuitionFee + transportFee + itFee;
+  const pastTransactions = [
+    { period: "Q2 2026", date: "2026-06-10", amount: 18500, status: "Success", ref: "pay_xyz123" },
+    { period: "Q1 2026", date: "2026-03-12", amount: 18000, status: "Success", ref: "pay_abc456" },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-serif font-bold text-slate-900">Financial Hub</h1>
-        <p className="text-sm text-slate-500">Manage fee ledgers and smart campus wallet for <span className="font-bold text-primary">{activeSibling?.firstName}</span>.</p>
+    <div className="p-6 md:p-8 space-y-8 max-w-4xl mx-auto bg-stone-50 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-stone-900">Fee Portal</h1>
+        <p className="text-stone-500 mt-1">Manage and pay your school fees securely.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* CTA Card */}
+      <div className="bg-gradient-to-br from-primary to-blue-900 rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="relative z-10 text-center md:text-left">
+          <p className="text-blue-100 font-bold uppercase tracking-widest text-sm mb-2">Total Outstanding Dues</p>
+          <h2 className="text-5xl md:text-6xl font-black mb-2">₹{currentInvoice.totalPayable.toLocaleString()}</h2>
+          <p className="text-blue-200 text-sm">Due Date: <span className="font-bold text-white">{currentInvoice.dueDate}</span></p>
+        </div>
+        <div className="relative z-10 w-full md:w-auto">
+          <button className="w-full md:w-auto bg-accent text-white hover:bg-orange-600 font-black text-lg py-4 px-10 rounded-2xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-3">
+            Pay Now <CreditCard className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Current Invoice Breakdown */}
+      <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm">
+        <h3 className="text-xl font-bold text-stone-900 mb-6 flex items-center gap-2">
+          <Receipt className="w-5 h-5 text-stone-400" /> Current Invoice Breakdown
+        </h3>
         
-        {/* Fee Ledger Summary */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-            <div>
-              <div className="flex items-center gap-4 mb-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Current Dues</p>
-                <div className="flex bg-slate-200 rounded-md p-1">
-                  <button 
-                    onClick={() => setFeePlan("Monthly")}
-                    className={`px-3 py-1 text-xs font-bold rounded-sm transition-colors ${!isQuarterly ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    Monthly
-                  </button>
-                  <button 
-                    onClick={() => setFeePlan("Quarterly")}
-                    className={`px-3 py-1 text-xs font-bold rounded-sm transition-colors ${isQuarterly ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    Quarterly
-                  </button>
-                </div>
-              </div>
-              <h2 className="text-3xl font-black text-slate-900">₹{totalFee.toLocaleString('en-IN')}</h2>
-            </div>
-            <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold uppercase tracking-wider mb-2">Due in 5 Days</span>
-              <p className="text-xs text-slate-500">{isQuarterly ? "Oct 1 - Dec 31, 2026" : "Oct 1 - Oct 31, 2026"}</p>
-            </div>
+        <div className="space-y-4">
+          <div className="flex justify-between text-sm font-bold text-stone-500 uppercase tracking-widest border-b border-stone-100 pb-3">
+            <span>Description</span>
+            <span>Amount</span>
           </div>
           
-          <div className="p-6 flex-1">
-            <h3 className="text-sm font-bold text-slate-800 mb-4">Itemized Ledger Breakdown</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center text-slate-600 pb-2 border-b border-slate-100">
-                <span>Tuition Fee</span>
-                <span className="font-medium text-slate-900">₹{tuitionFee.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-600 pb-2 border-b border-slate-100">
-                <span>Transport Fee (Zone 1)</span>
-                <span className="font-medium text-slate-900">₹{transportFee.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-600 pb-2 border-b border-slate-100">
-                <span>IT & Activity Fee</span>
-                <span className="font-medium text-slate-900">₹{itFee.toLocaleString('en-IN')}</span>
-              </div>
+          {currentInvoice.items.map((item, idx) => (
+            <div key={idx} className="flex justify-between items-center py-2 text-stone-700">
+              <span className="font-medium">{item.description}</span>
+              <span className="font-bold text-stone-900">₹{item.amount.toLocaleString()}</span>
             </div>
-            
-            <div className="mt-8 flex gap-4">
-              <button className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-sm flex items-center justify-center gap-2">
-                <CreditCard className="w-4 h-4" /> Pay Securely
-              </button>
-              <button className="px-6 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center">
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
+          ))}
+          
+          <div className="flex justify-between items-center pt-6 mt-4 border-t border-stone-200">
+            <span className="text-lg font-bold text-stone-900">Total Payable</span>
+            <span className="text-2xl font-black text-primary">₹{currentInvoice.totalPayable.toLocaleString()}</span>
           </div>
         </div>
-
-        {/* Smart Wallet */}
-        <div className="bg-primary rounded-2xl shadow-xl overflow-hidden text-white relative">
-          <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-            <Wallet className="w-32 h-32" />
-          </div>
-          <div className="p-6 relative z-10 flex flex-col h-full">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center"><Wallet className="w-4 h-4" /></div>
-              <h2 className="font-bold text-sm uppercase tracking-widest text-blue-100">Campus Smart Wallet</h2>
-            </div>
-            
-            <p className="text-sm text-blue-200 mb-1">Available Balance</p>
-            <h3 className="text-4xl font-black mb-8">₹1,250</h3>
-            
-            <div className="mt-auto space-y-3">
-              <button className="w-full bg-white text-primary font-bold py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-sm flex items-center justify-center gap-2">
-                <TrendingUp className="w-4 h-4" /> Top-Up Wallet
-              </button>
-              <p className="text-[10px] text-center text-blue-300 uppercase tracking-widest font-medium">Used for Cafeteria & Print Kiosks</p>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      {/* Payment History */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><History className="w-5 h-5 text-slate-400" /> Recent Transactions</h2>
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-xs">Date</th>
-                <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-xs">Description</th>
-                <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-xs">Amount</th>
-                <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-xs text-right">Receipt</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {[
-                { date: "Jul 05, 2026", desc: "Q2 Tuition & Transport", amount: "₹24,500" },
-                { date: "Jun 12, 2026", desc: "Smart Wallet Top-Up", amount: "₹1,000" },
-                { date: "Apr 02, 2026", desc: "Q1 Tuition & Transport", amount: "₹24,500" }
-              ].map((tx, idx) => (
-                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-slate-600">{tx.date}</td>
-                  <td className="px-6 py-4 font-medium text-slate-900">{tx.desc}</td>
-                  <td className="px-6 py-4 font-bold text-slate-900">{tx.amount}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-primary hover:text-blue-800 font-bold text-xs uppercase tracking-widest flex items-center justify-end gap-1 ml-auto">
-                      <Receipt className="w-3 h-3" /> View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Past Transactions */}
+      <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm">
+        <h3 className="text-xl font-bold text-stone-900 mb-6">Past Transactions</h3>
+        
+        <div className="space-y-4">
+          {pastTransactions.map((tx, idx) => (
+            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-stone-100 bg-stone-50/50 gap-4 hover:bg-stone-50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-stone-900">{tx.period} Fee</h4>
+                  <p className="text-xs text-stone-500">Paid on {tx.date} • Ref: {tx.ref}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-1/3">
+                <span className="font-black text-stone-900">₹{tx.amount.toLocaleString()}</span>
+                <button className="text-primary hover:text-blue-900 transition-colors p-2 rounded-lg hover:bg-blue-50" title="Download Receipt">
+                  <Download className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
