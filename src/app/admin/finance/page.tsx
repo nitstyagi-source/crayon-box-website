@@ -1,244 +1,167 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Save, Plus, Trash2, Edit2, AlertTriangle, Building2, CheckCircle2, CreditCard } from "lucide-react";
-import { getFeePayments } from "@/app/actions/forms";
+import { useState } from "react";
+import { 
+  Download, 
+  Receipt, 
+  TrendingUp, 
+  AlertCircle, 
+  Search, 
+  Bell, 
+  FileSpreadsheet
+} from "lucide-react";
+import { generateQ3Invoices } from "@/app/actions/billing";
 
-type FeeStructure = {
-  id: string;
-  category: string;
-  amount: number;
-  period: "Monthly" | "Quarterly" | "Annual";
-};
+export default function AdminFinanceDashboard() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-const defaultTuition: FeeStructure[] = [
-  { id: "t1", category: "Pre-K & Kindergarten", amount: 15000, period: "Quarterly" },
-  { id: "t2", category: "Grade 1 - 5", amount: 18000, period: "Quarterly" },
-  { id: "t3", category: "Grade 6 - 8", amount: 20000, period: "Quarterly" },
-];
+  // Mock data for the table
+  const defaulters = [
+    { id: "STU-26-0102", name: "Aarav Sharma", grade: "Grade 5", pending: 45000, daysOverdue: 15 },
+    { id: "STU-26-0345", name: "Riya Patel", grade: "Grade 8", pending: 52000, daysOverdue: 30 },
+    { id: "STU-26-0891", name: "Vihaan Gupta", grade: "Grade 3", pending: 38000, daysOverdue: 5 },
+    { id: "STU-26-1122", name: "Ananya Desai", grade: "Grade 10", pending: 65000, daysOverdue: 45 },
+  ];
 
-const defaultTransport: FeeStructure[] = [
-  { id: "tr1", category: "Zone 1 (0-5 km)", amount: 4500, period: "Quarterly" },
-  { id: "tr2", category: "Zone 2 (5-10 km)", amount: 6000, period: "Quarterly" },
-  { id: "tr3", category: "Zone 3 (10+ km)", amount: 8000, period: "Quarterly" },
-];
+  const filteredDefaulters = defaulters.filter(d => d.id.toLowerCase().includes(searchQuery.toLowerCase()) || d.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-const defaultOther: FeeStructure[] = [
-  { id: "o1", category: "IT & Digital Activity Fee", amount: 2000, period: "Quarterly" },
-  { id: "o2", category: "Annual Subscription (Library)", amount: 1500, period: "Annual" },
-];
-
-export default function FeeManagement() {
-  const [tuition, setTuition] = useState(defaultTuition);
-  const [transport, setTransport] = useState(defaultTransport);
-  const [other, setOther] = useState(defaultOther);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [transactions, setTransactions] = useState<any[]>([]);
-
-  useEffect(() => {
-    getFeePayments().then(setTransactions);
-  }, []);
-
-  const handleSave = () => {
-    setIsEditing(false);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  const renderTable = (title: string, data: FeeStructure[], setter: React.Dispatch<React.SetStateAction<FeeStructure[]>>) => (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-8">
-      <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-        <h3 className="font-bold text-slate-800">{title}</h3>
-        {isEditing && (
-          <button className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
-            <Plus className="w-3 h-3" /> Add Tier
-          </button>
-        )}
-      </div>
-      <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50/50 text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
-          <tr>
-            <th className="px-5 py-3 font-medium">Category / Grade</th>
-            <th className="px-5 py-3 font-medium">Amount (₹)</th>
-            <th className="px-5 py-3 font-medium">Billing Period</th>
-            {isEditing && <th className="px-5 py-3 text-right">Actions</th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {data.map((item, index) => (
-            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-              <td className="px-5 py-3">
-                {isEditing ? (
-                  <input 
-                    type="text" 
-                    value={item.category} 
-                    onChange={(e) => {
-                      const newData = [...data];
-                      newData[index].category = e.target.value;
-                      setter(newData);
-                    }}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:ring-blue-500"
-                  />
-                ) : (
-                  <span className="font-medium text-slate-700">{item.category}</span>
-                )}
-              </td>
-              <td className="px-5 py-3">
-                {isEditing ? (
-                  <div className="relative">
-                    <span className="absolute left-2 top-1.5 text-slate-400">₹</span>
-                    <input 
-                      type="number" 
-                      value={item.amount} 
-                      onChange={(e) => {
-                        const newData = [...data];
-                        newData[index].amount = Number(e.target.value);
-                        setter(newData);
-                      }}
-                      className="w-full pl-6 pr-2 py-1 border border-slate-300 rounded text-sm focus:ring-blue-500 font-medium"
-                    />
-                  </div>
-                ) : (
-                  <span className="font-bold text-slate-900">₹{item.amount.toLocaleString('en-IN')}</span>
-                )}
-              </td>
-              <td className="px-5 py-3">
-                {isEditing ? (
-                  <select 
-                    value={item.period}
-                    onChange={(e) => {
-                      const newData = [...data];
-                      newData[index].period = e.target.value as "Monthly" | "Quarterly" | "Annual";
-                      setter(newData);
-                    }}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:ring-blue-500 bg-white"
-                  >
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annual">Annual</option>
-                  </select>
-                ) : (
-                  <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                    {item.period}
-                  </span>
-                )}
-              </td>
-              {isEditing && (
-                <td className="px-5 py-3 text-right">
-                  <button className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  async function handleGenerateInvoices() {
+    setIsGenerating(true);
+    setMessage(null);
+    try {
+      // Hardcoded campus ID for demo purposes
+      const result = await generateQ3Invoices("campus-001");
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message || 'Invoices generated successfully!' });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to generate invoices.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      
-      {/* Header */}
-      <div className="flex justify-between items-start">
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Fee Structure Configuration</h1>
-          <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-            <Building2 className="w-4 h-4 text-slate-400" />
-            Editing master structure for <strong className="text-slate-700">Delhi Main Branch</strong>
-          </p>
+          <h1 className="text-3xl font-bold text-stone-900">Revenue Command Center</h1>
+          <p className="text-stone-500 mt-1">Manage fee collections, invoices, and track outstanding dues.</p>
         </div>
         <div className="flex items-center gap-3">
-          {isSaved && (
-            <span className="flex items-center gap-1 text-sm font-bold text-green-600 animate-in fade-in duration-300">
-              <CheckCircle2 className="w-4 h-4" /> Changes Published
-            </span>
-          )}
-          {isEditing ? (
-            <>
-              <button 
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
-              >
-                <Save className="w-4 h-4" /> Publish Changes
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors shadow-sm"
-            >
-              <Edit2 className="w-4 h-4" /> Edit Master Fees
-            </button>
-          )}
+          <button className="bg-white border border-stone-200 text-stone-700 font-bold py-2.5 px-4 rounded-xl hover:bg-stone-50 transition-colors flex items-center gap-2 shadow-sm">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button 
+            onClick={handleGenerateInvoices}
+            disabled={isGenerating}
+            className="bg-primary text-white font-bold py-2.5 px-4 rounded-xl hover:bg-blue-900 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70"
+          >
+            <Receipt className="w-4 h-4" /> {isGenerating ? "Generating..." : "Generate Q3 Invoices"}
+          </button>
         </div>
       </div>
 
-      {isEditing && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-          <p className="text-sm text-amber-800">
-            <strong>Warning:</strong> Modifying the base fee structure will automatically recalculate the pending dues for the upcoming billing cycle for all enrolled students in this campus. Ensure appropriate communication is sent to parents.
-          </p>
+      {message && (
+        <div className={`p-4 rounded-xl border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          {message.text}
         </div>
       )}
 
-      {/* Tables */}
-      <div className="pt-4">
-        {renderTable("Tuition Fees (By Grade)", tuition, setTuition)}
-        {renderTable("Transport Fees (By Zone)", transport, setTransport)}
-        {renderTable("Mandatory IT & Activity Fees", other, setOther)}
+      {/* KPI Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-stone-500 uppercase tracking-wider">Collected Today</p>
+            <h3 className="text-2xl font-black text-stone-900">₹ 1,45,000</h3>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0">
+            <FileSpreadsheet className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-stone-500 uppercase tracking-wider">Outstanding Dues</p>
+            <h3 className="text-2xl font-black text-stone-900">₹ 8,24,500</h3>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-stone-500 uppercase tracking-wider">Defaulter Accounts</p>
+            <h3 className="text-2xl font-black text-stone-900">42</h3>
+          </div>
+        </div>
       </div>
 
-      {/* Transactions */}
-      <div className="pt-8">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-slate-600" /> Recent Fee Payments
-        </h2>
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-8">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs">
-              <tr>
-                <th className="px-6 py-4 font-bold">Transaction ID</th>
-                <th className="px-6 py-4 font-bold">Date</th>
-                <th className="px-6 py-4 font-bold">Student ID</th>
-                <th className="px-6 py-4 font-bold">Parent Name</th>
-                <th className="px-6 py-4 font-bold">Amount (₹)</th>
-                <th className="px-6 py-4 font-bold">Status</th>
+      {/* Data Table Section */}
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-xl font-bold text-stone-900">Pending Dues & Defaulters</h2>
+          <div className="relative">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Search by Student ID..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-stone-50 text-stone-500 text-xs uppercase tracking-wider">
+                <th className="p-4 font-bold">Student Name</th>
+                <th className="p-4 font-bold">Student ID</th>
+                <th className="p-4 font-bold">Grade</th>
+                <th className="p-4 font-bold">Pending Amount</th>
+                <th className="p-4 font-bold">Days Overdue</th>
+                <th className="p-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {transactions.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">No transactions recorded yet.</td></tr>
-              ) : (
-                transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-mono font-bold text-slate-700">{tx.id}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(tx.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-bold text-slate-900">{tx.studentId}</td>
-                    <td className="px-6 py-4 text-slate-700">{tx.parentName}</td>
-                    <td className="px-6 py-4 font-bold text-green-700">₹{tx.amount.toLocaleString()}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
-                        <CheckCircle2 className="w-3 h-3" /> Completed
-                      </span>
-                    </td>
-                  </tr>
-                ))
+            <tbody className="divide-y divide-stone-100">
+              {filteredDefaulters.map((student, idx) => (
+                <tr key={idx} className="hover:bg-stone-50/50 transition-colors">
+                  <td className="p-4 font-bold text-stone-900">{student.name}</td>
+                  <td className="p-4 text-stone-500 font-mono text-sm">{student.id}</td>
+                  <td className="p-4 text-stone-600">{student.grade}</td>
+                  <td className="p-4 font-bold text-stone-900">₹{student.pending.toLocaleString()}</td>
+                  <td className="p-4">
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                      student.daysOverdue > 30 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {student.daysOverdue} Days
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <button className="inline-flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-1.5 rounded-lg text-sm transition-colors">
+                      <Bell className="w-3.5 h-3.5" /> Remind
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredDefaulters.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-stone-500">No matching defaulters found.</td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }
