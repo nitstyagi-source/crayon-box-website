@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Plus, Filter, Download, GraduationCap } from "lucide-react";
+import { Users, Search, Plus, Filter, Download, GraduationCap, X } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
-import { getStudents } from "@/app/actions/students";
+import { getStudents, createStudent } from "@/app/actions/students";
 import Link from "next/link";
 
 export default function StudentsDirectory() {
@@ -11,6 +11,21 @@ export default function StudentsDirectory() {
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Modal State
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    admission_no: "",
+    first_name: "",
+    last_name: "",
+    dob: "",
+    gender: "Male",
+    class_name: "Grade 1",
+    section_name: "A",
+    parent_name: "",
+    parent_mobile: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (activeCampusId) loadStudents();
@@ -23,6 +38,27 @@ export default function StudentsDirectory() {
       setStudents(res.data);
     }
     setIsLoading(false);
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const res = await createStudent({
+      ...formData,
+      campus_id: activeCampusId
+    });
+    
+    setIsSubmitting(false);
+    if (res.success) {
+      setIsAdding(false);
+      loadStudents();
+      // Reset form
+      setFormData({
+        admission_no: "", first_name: "", last_name: "", dob: "", gender: "Male", class_name: "Grade 1", section_name: "A", parent_name: "", parent_mobile: ""
+      });
+    } else {
+      alert("Error: " + res.error);
+    }
   }
 
   const filteredStudents = students.filter(s => 
@@ -46,11 +82,78 @@ export default function StudentsDirectory() {
           <button className="bg-stone-100 text-stone-700 font-bold py-2.5 px-4 rounded-xl hover:bg-stone-200 transition-colors flex items-center gap-2 shadow-sm">
             <Download className="w-4 h-4" /> Export
           </button>
-          <button className="bg-primary text-white font-bold py-2.5 px-4 rounded-xl hover:bg-blue-900 transition-colors flex items-center gap-2 shadow-sm">
+          <button onClick={() => setIsAdding(true)} className="bg-primary text-white font-bold py-2.5 px-4 rounded-xl hover:bg-blue-900 transition-colors flex items-center gap-2 shadow-sm">
             <Plus className="w-4 h-4" /> Add Student
           </button>
         </div>
       </div>
+
+      {/* Add Student Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-stone-900">New Registration</h2>
+              <button onClick={() => setIsAdding(false)} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200"><X className="w-5 h-5"/></button>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Admission No *</label>
+                  <input required type="text" value={formData.admission_no} onChange={e => setFormData({...formData, admission_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. ADM-2026-001" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Date of Birth *</label>
+                  <input required type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">First Name *</label>
+                  <input required type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Last Name *</label>
+                  <input required type="text" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Gender</label>
+                  <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm">
+                    <option>Male</option><option>Female</option><option>Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-stone-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Class</label>
+                  <input required type="text" value={formData.class_name} onChange={e => setFormData({...formData, class_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Section</label>
+                  <input type="text" value={formData.section_name} onChange={e => setFormData({...formData, section_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-stone-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Primary Parent Name</label>
+                  <input required type="text" value={formData.parent_name} onChange={e => setFormData({...formData, parent_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Parent Mobile</label>
+                  <input required type="text" value={formData.parent_mobile} onChange={e => setFormData({...formData, parent_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-stone-100">
+                <button type="button" onClick={() => setIsAdding(false)} className="px-6 py-2.5 text-stone-600 font-bold hover:bg-stone-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="bg-primary text-white px-8 py-2.5 font-bold rounded-xl shadow-sm hover:bg-blue-900 disabled:opacity-50">
+                  {isSubmitting ? "Saving..." : "Register Student"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex flex-col md:flex-row gap-4">
