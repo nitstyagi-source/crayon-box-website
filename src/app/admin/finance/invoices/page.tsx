@@ -17,7 +17,7 @@ export default function InvoicesModule() {
   async function loadData() {
     setIsLoading(true);
     const res = await getInvoices(activeCampusId);
-    if (res.success) setInvoices(res.data);
+    if (res.success) setInvoices(res.data || []);
     setIsLoading(false);
   }
 

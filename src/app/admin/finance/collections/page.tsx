@@ -18,7 +18,7 @@ export default function CollectionsModule() {
 
   async function loadData() {
     const res = await getInvoices(activeCampusId);
-    if (res.success) setInvoices(res.data.filter((i:any) => i.status !== 'Paid'));
+    if (res.success && res.data) setInvoices(res.data.filter((i:any) => i.status !== 'Paid'));
   }
 
   async function handlePayment() {

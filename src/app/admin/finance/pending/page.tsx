@@ -15,7 +15,7 @@ export default function PendingModule() {
 
   async function loadData() {
     const res = await getPendingFees(activeCampusId);
-    if (res.success) setTotalPending(res.totalPending);
+    if (res.success) setTotalPending(res.totalPending || 0);
   }
 
   return (
