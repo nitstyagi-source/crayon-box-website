@@ -51,7 +51,7 @@ export default function GenerateModule() {
     setIsGenerating(false);
     
     if (res.success) {
-      setSuccessMsg(res.message);
+      setSuccessMsg(res.message || "Success");
       setTimeout(() => setSuccessMsg(""), 5000);
     } else {
       alert("Error: " + res.error);
