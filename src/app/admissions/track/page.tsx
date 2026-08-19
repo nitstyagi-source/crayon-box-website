@@ -5,7 +5,9 @@ import { Search, CheckCircle2, Clock, FileText } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function TrackApplicationPage() {
+import { Suspense } from "react";
+
+function TrackApplicationContent() {
   const searchParams = useSearchParams();
   const initialToken = searchParams?.get("token") || "";
   
@@ -128,5 +130,13 @@ export default function TrackApplicationPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TrackApplicationPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-stone-50 pt-32 pb-24 flex items-center justify-center"><p>Loading...</p></div>}>
+      <TrackApplicationContent />
+    </Suspense>
   );
 }
