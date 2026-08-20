@@ -45,6 +45,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     blood_group: "",
     nationality: "Indian",
     aadhaar_no: "",
+    pen_no: "",
     class_name: "",
     section_name: "",
     roll_no: "",
@@ -156,6 +157,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         blood_group: data.blood_group || data.medical?.blood_group || "",
         nationality: data.nationality || "Indian",
         aadhaar_no: data.aadhaar_no || "",
+        pen_no: data.pen_no || "",
         class_name: currentAc.class_name || "",
         section_name: currentAc.section_name || "",
         roll_no: currentAc.roll_no || "",
@@ -417,6 +419,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-stone-500">
             <p>Admission No: <span className="text-stone-900 font-mono">{profile.admission_no}</span></p>
+            {profile.pen_no ? (
+              <p>PEN: <span className="text-blue-600 font-mono font-bold">{profile.pen_no}</span></p>
+            ) : (
+              <p>PEN: <span className="text-stone-400 font-mono font-normal">Unassigned</span></p>
+            )}
             <p>Class: <span className="text-stone-900">{currentAcademic.class_name || 'N/A'} {currentAcademic.section_name || ''}</span></p>
             <p>Roll No: <span className="text-stone-900">{currentAcademic.roll_no || 'N/A'}</span></p>
           </div>
@@ -544,6 +551,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+              <div><p className="text-stone-400 text-xs font-bold uppercase">Permanent Education No. (PEN)</p><p className="font-bold text-blue-700 font-mono mt-1">{profile.pen_no || 'Not Assigned'}</p></div>
               <div><p className="text-stone-400 text-xs font-bold uppercase">Date of Birth</p><p className="font-bold text-stone-900 mt-1">{profile.dob || 'N/A'}</p></div>
               <div><p className="text-stone-400 text-xs font-bold uppercase">Gender</p><p className="font-bold text-stone-900 mt-1">{profile.gender || 'N/A'}</p></div>
               <div><p className="text-stone-400 text-xs font-bold uppercase">Blood Group</p><p className="font-bold text-stone-900 mt-1">{profile.blood_group || profile.medical?.blood_group || 'N/A'}</p></div>
@@ -1092,7 +1100,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Permanent Education No. (PEN)</label>
+                      <input type="text" placeholder="e.g. PEN-2026-991" value={profileFormData.pen_no} onChange={e => setProfileFormData({...profileFormData, pen_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono text-blue-700 font-bold" />
+                    </div>
                     <div>
                       <label className="text-xs font-bold text-stone-500 block mb-1">Blood Group</label>
                       <input type="text" placeholder="e.g. B+, O+, AB-" value={profileFormData.blood_group} onChange={e => setProfileFormData({...profileFormData, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />

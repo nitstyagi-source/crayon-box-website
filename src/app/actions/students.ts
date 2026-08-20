@@ -127,6 +127,7 @@ export async function createStudent(payload: any) {
     const dob = payload.dob && String(payload.dob).trim() !== "" ? String(payload.dob).trim() : null;
     const aadhaar = payload.aadhaar_no && String(payload.aadhaar_no).trim() !== "" ? String(payload.aadhaar_no).trim() : null;
     const bloodGroup = payload.blood_group && String(payload.blood_group).trim() !== "" ? String(payload.blood_group).trim() : null;
+    const penNo = payload.pen_no && String(payload.pen_no).trim() !== "" ? String(payload.pen_no).trim() : null;
 
     const { data: student, error: studentError } = await supabase
       .from('students')
@@ -142,6 +143,7 @@ export async function createStudent(payload: any) {
         blood_group: bloodGroup,
         nationality: payload.nationality || 'Indian',
         aadhaar_no: aadhaar,
+        pen_no: penNo,
         status: 'Active',
       }])
       .select()
@@ -438,20 +440,28 @@ export async function updateStudentProfile(studentId: string, payload: any) {
     const supabase = getSupabaseAdmin();
 
     // 1. Update students table
+    const penNo = payload.pen_no !== undefined ? (payload.pen_no && String(payload.pen_no).trim() !== "" ? String(payload.pen_no).trim() : null) : undefined;
+    
+    const updateData: any = {
+      first_name: payload.first_name,
+      middle_name: payload.middle_name || null,
+      last_name: payload.last_name,
+      dob: payload.dob || null,
+      gender: payload.gender,
+      category: payload.category || 'General',
+      blood_group: payload.blood_group || null,
+      nationality: payload.nationality || 'Indian',
+      aadhaar_no: payload.aadhaar_no || null,
+      updated_at: new Date().toISOString()
+    };
+
+    if (penNo !== undefined) {
+      updateData.pen_no = penNo;
+    }
+
     const { error: studentErr } = await supabase
       .from('students')
-      .update({
-        first_name: payload.first_name,
-        middle_name: payload.middle_name || null,
-        last_name: payload.last_name,
-        dob: payload.dob || null,
-        gender: payload.gender,
-        category: payload.category || 'General',
-        blood_group: payload.blood_group || null,
-        nationality: payload.nationality || 'Indian',
-        aadhaar_no: payload.aadhaar_no || null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', studentId);
 
     if (studentErr) throw studentErr;

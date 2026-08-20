@@ -26,6 +26,7 @@ export default function StudentsDirectory() {
   const [formData, setFormData] = useState({
     // Student
     admission_no: "",
+    pen_no: "",
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -100,7 +101,7 @@ export default function StudentsDirectory() {
       loadData();
       // Reset form
       setFormData({
-        admission_no: "", first_name: "", middle_name: "", last_name: "", dob: "", gender: "Male",
+        admission_no: "", pen_no: "", first_name: "", middle_name: "", last_name: "", dob: "", gender: "Male",
         category: "General", blood_group: "", aadhaar_no: "", nationality: "Indian",
         class_name: "Grade 1", section_name: "A", roll_no: "",
         father_name: "", father_mobile: "", father_email: "", father_occupation: "", father_income: "", father_qualification: "", father_aadhaar: "",
@@ -140,7 +141,8 @@ export default function StudentsDirectory() {
     const currentAc = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
     const matchSearch = s.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       s.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.admission_no.toLowerCase().includes(searchTerm.toLowerCase());
+      s.admission_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.pen_no && s.pen_no.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchClass = classFilter === "All" || currentAc?.class_name === classFilter;
     return matchSearch && matchClass;
   });
@@ -152,11 +154,12 @@ export default function StudentsDirectory() {
 
   function exportCSV() {
     if (filteredStudents.length === 0) return;
-    const headers = ["Admission No", "First Name", "Last Name", "DOB", "Gender", "Category", "Class", "Section", "Status"];
+    const headers = ["Admission No", "PEN (Permanent Education No)", "First Name", "Last Name", "DOB", "Gender", "Category", "Class", "Section", "Status"];
     const rows = filteredStudents.map(s => {
       const ac = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
       return [
         s.admission_no,
+        s.pen_no || "",
         `"${s.first_name}"`,
         `"${s.last_name}"`,
         s.dob || "",
@@ -338,7 +341,12 @@ export default function StudentsDirectory() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4 font-mono font-medium text-stone-800 text-xs">{student.admission_no}</td>
+                      <td className="p-4 text-xs">
+                        <p className="font-mono font-bold text-stone-800">{student.admission_no}</p>
+                        {student.pen_no && (
+                          <p className="font-mono text-[11px] text-blue-600 font-bold mt-0.5">PEN: {student.pen_no}</p>
+                        )}
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                            <GraduationCap className="w-4 h-4 text-stone-400" />
@@ -482,7 +490,11 @@ export default function StudentsDirectory() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Permanent Education No. (PEN)</label>
+                      <input type="text" placeholder="e.g. PEN-2026-991" value={formData.pen_no} onChange={e => setFormData({...formData, pen_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono text-blue-700 font-bold" />
+                    </div>
                     <div>
                       <label className="text-xs font-bold text-stone-500 block mb-1">Blood Group</label>
                       <input type="text" placeholder="e.g. B+, O+" value={formData.blood_group} onChange={e => setFormData({...formData, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
