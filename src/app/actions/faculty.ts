@@ -61,7 +61,7 @@ export async function getFacultyList(campusId?: string, filters?: FacultyFilterO
       query = query.eq('department', filters.department);
     }
 
-    if (filters?.wing && filters.wing !== 'All') {
+    if (filters?.wing && filters.wing !== 'All' && filters.wing !== 'All Wings') {
       query = query.eq('wing', filters.wing);
     }
 

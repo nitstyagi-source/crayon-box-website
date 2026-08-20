@@ -141,7 +141,7 @@ export default function FacultyAdminDashboard() {
           search: searchTerm,
           category: selectedCategory,
           department: selectedDept,
-          wing: selectedWing,
+          wing: selectedWing === "All Wings" ? "All" : selectedWing,
           status: statusFilter === "Former" ? "Resigned" : statusFilter
         }),
         getManagementExecutiveDashboard(activeCampusId),
@@ -265,9 +265,11 @@ export default function FacultyAdminDashboard() {
       if (selectedCategory === "Leadership" && !f.is_leadership) return false;
       if (selectedCategory !== "Leadership" && f.employee_category !== selectedCategory && f.employee_category) return false;
     }
+    if (selectedDept !== "All" && f.department !== selectedDept) return false;
+    if (selectedWing !== "All" && selectedWing !== "All Wings" && f.wing !== selectedWing) return false;
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
-    const fullName = `${f.first_name} ${f.middle_name || ''} ${f.last_name}`.toLowerCase();
+    const fullName = `${f.first_name || ''} ${f.middle_name || ''} ${f.last_name || ''}`.toLowerCase();
     return (
       fullName.includes(term) ||
       (f.employee_id && f.employee_id.toLowerCase().includes(term)) ||
