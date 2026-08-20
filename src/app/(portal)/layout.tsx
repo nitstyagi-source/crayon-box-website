@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, MessageSquare, Wallet, Bus, Bell, User, ChevronDown, Grid } from "lucide-react";
+import { LayoutDashboard, BookOpen, MessageSquare, Wallet, Bus, Bell, User, ChevronDown, Grid, Radio } from "lucide-react";
 import { SiblingProvider, useSiblingContext } from "@/components/providers/SiblingProvider";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
+  { name: "Live Classroom 🔴", href: "/parent/live-stream", icon: Radio },
   { name: "Academics", href: "/parent/academics", icon: BookOpen },
   { name: "Fees & Payments", href: "/parent/fees", icon: Wallet },
   { name: "Communication", href: "/parent/communication", icon: MessageSquare },
