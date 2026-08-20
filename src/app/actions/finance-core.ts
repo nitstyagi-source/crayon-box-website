@@ -239,10 +239,31 @@ export async function generateBulkInvoices(payload: {
   billing_period: string;
   due_date: string;
   notes?: string;
+  custom_items?: Array<{
+    fee_head_id?: string;
+    fee_head_name: string;
+    base_amount: number;
+    discount_amount?: number;
+  }>;
+  student_overrides?: Record<string, {
+    custom_discount?: number;
+    notes?: string;
+  }>;
 }) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    // Fetch fee heads master map for fallback IDs
+    const { data: allHeads } = await supabase
+      .from('fee_heads')
+      .select('id, name')
+      .eq('campus_id', resolvedId);
+    const headNameIdMap: Record<string, string> = {};
+    (allHeads || []).forEach((h: any) => {
+      headNameIdMap[h.name] = h.id;
+    });
+    const defaultHeadId = allHeads?.[0]?.id || null;
 
     // 1. Fetch students for the target class/section
     let studentQuery = supabase
@@ -281,7 +302,7 @@ export async function generateBulkInvoices(payload: {
       return true;
     });
 
-    // Separate non-EWS from EWS students
+    // Separate non-EWS from EWS students (100% RTE Quota Exemption)
     const nonEwsStudents = targetStudents.filter(s => s.category !== 'EWS');
     const ewsCount = targetStudents.filter(s => s.category === 'EWS').length;
 
@@ -307,27 +328,61 @@ export async function generateBulkInvoices(payload: {
       const studentName = `${st.first_name} ${st.last_name || ''}`.trim();
       const admNo = st.admission_no || st.enrollment_number || 'ADM-N/A';
 
-      const struct = structMap[className] || structMap['Grade 1'] || { total_annual_amount: 11500, fee_structure_items: [] };
-      const items = struct.fee_structure_items || [];
-
       let totalBase = 0;
       let totalDiscount = 0;
       const concessionPct = Number(profile.concession_percentage || 0);
+      const studentOverride = payload.student_overrides?.[st.id];
 
-      const invoiceItems = items.map((it: any) => {
-        const base = Number(it.amount || 3500);
-        const disc = concessionPct > 0 ? Math.round((base * concessionPct) / 100) : 0;
-        totalBase += base;
-        totalDiscount += disc;
-        return {
-          fee_head_id: it.fee_head_id,
-          fee_head_name: it.fee_head_name,
-          base_amount: base,
-          discount_amount: disc,
-          net_amount: base - disc,
-          due_date: payload.due_date
-        };
-      });
+      let invoiceItems: any[] = [];
+
+      if (payload.custom_items && payload.custom_items.length > 0) {
+        // Use user-edited customized bulk line items
+        invoiceItems = payload.custom_items.map((it: any) => {
+          const base = Number(it.base_amount || 0);
+          let disc = Number(it.discount_amount || 0);
+          if (concessionPct > 0 && disc === 0) {
+            disc = Math.round((base * concessionPct) / 100);
+          }
+          totalBase += base;
+          totalDiscount += disc;
+
+          const headId = it.fee_head_id || headNameIdMap[it.fee_head_name] || defaultHeadId;
+          return {
+            fee_head_id: headId,
+            fee_head_name: it.fee_head_name,
+            base_amount: base,
+            discount_amount: disc,
+            net_amount: Math.max(0, base - disc),
+            due_date: payload.due_date
+          };
+        });
+      } else {
+        // Use default class fee structure
+        const struct = structMap[className] || structMap['Grade 1'] || { total_annual_amount: 11500, fee_structure_items: [] };
+        const items = struct.fee_structure_items || [];
+
+        invoiceItems = items.map((it: any) => {
+          const base = Number(it.amount || 3500);
+          const disc = concessionPct > 0 ? Math.round((base * concessionPct) / 100) : 0;
+          totalBase += base;
+          totalDiscount += disc;
+          const headId = it.fee_head_id || headNameIdMap[it.fee_head_name] || defaultHeadId;
+          return {
+            fee_head_id: headId,
+            fee_head_name: it.fee_head_name,
+            base_amount: base,
+            discount_amount: disc,
+            net_amount: Math.max(0, base - disc),
+            due_date: payload.due_date
+          };
+        });
+      }
+
+      // Apply extra custom student discount if provided
+      if (studentOverride?.custom_discount && Number(studentOverride.custom_discount) > 0) {
+        const extraDisc = Number(studentOverride.custom_discount);
+        totalDiscount += extraDisc;
+      }
 
       if (invoiceItems.length === 0) {
         totalBase = 11500;
@@ -350,7 +405,7 @@ export async function generateBulkInvoices(payload: {
           amount_paid: 0,
           status: netPayable === 0 ? 'Paid' : 'Unpaid',
           due_date: payload.due_date,
-          notes: payload.notes || 'Bulk batch generated invoice',
+          notes: studentOverride?.notes || payload.notes || 'Bulk batch generated invoice',
           class_name: className,
           section_name: sectionName,
           student_name: studentName,

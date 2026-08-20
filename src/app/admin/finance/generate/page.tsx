@@ -74,6 +74,26 @@ export default function GenerateInvoicesPage() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
 
+  // Bulk Batch Customization & Preview State
+  const [bulkPreviewModalOpen, setBulkPreviewModalOpen] = useState(false);
+  const [bulkPreviewTab, setBulkPreviewTab] = useState<"heads" | "students" | "slip">("heads");
+  const [bulkActiveStudentIndex, setBulkActiveStudentIndex] = useState(0);
+  const bulkPrintRef = useRef<HTMLDivElement>(null);
+
+  const [bulkBatchItems, setBulkBatchItems] = useState<Array<{
+    fee_head_id: string;
+    fee_head_name: string;
+    base_amount: number;
+    discount_amount: number;
+  }>>([
+    { fee_head_id: "", fee_head_name: "Tuition Fee", base_amount: 6500, discount_amount: 0 },
+    { fee_head_id: "", fee_head_name: "Annual Charges", base_amount: 3000, discount_amount: 0 },
+    { fee_head_id: "", fee_head_name: "Activity Fee", base_amount: 1000, discount_amount: 0 },
+    { fee_head_id: "", fee_head_name: "Computer & AI Fee", base_amount: 1000, discount_amount: 0 },
+  ]);
+
+  const [bulkStudentOverrides, setBulkStudentOverrides] = useState<Record<string, { custom_discount: number; notes?: string }>>({});
+
   useEffect(() => {
     loadFeeHeads();
   }, [activeCampusId]);
@@ -81,6 +101,35 @@ export default function GenerateInvoicesPage() {
   useEffect(() => {
     if (activeTab === "bulk") {
       loadBulkStudents();
+      // Initialize default bulk items based on class
+      let tuition = 6500;
+      let annual = 3000;
+      let activity = 1000;
+      let lab = 1000;
+
+      if (["Nursery", "LKG", "UKG"].includes(selectedClass)) {
+        tuition = 5500; annual = 2500; activity = 1000; lab = 0;
+      } else if (["Grade 3", "Grade 4"].includes(selectedClass)) {
+        tuition = 7000; annual = 3500; activity = 1000; lab = 1000;
+      } else if (selectedClass === "Grade 5") {
+        tuition = 7500; annual = 3500; activity = 1200; lab = 1200;
+      } else if (["Grade 6", "Grade 7", "Grade 8"].includes(selectedClass)) {
+        tuition = 8500; annual = 4000; activity = 1200; lab = 1500;
+      } else if (["Grade 9", "Grade 10"].includes(selectedClass)) {
+        tuition = 9000; annual = 4500; activity = 1500; lab = 1800;
+      } else if (["Grade 11", "Grade 12"].includes(selectedClass)) {
+        tuition = 9500; annual = 5000; activity = 1500; lab = 2000;
+      }
+
+      const items = [
+        { fee_head_id: "", fee_head_name: "Tuition Fee", base_amount: tuition, discount_amount: 0 },
+        { fee_head_id: "", fee_head_name: "Annual Charges", base_amount: annual, discount_amount: 0 },
+        { fee_head_id: "", fee_head_name: "Activity Fee", base_amount: activity, discount_amount: 0 },
+      ];
+      if (lab > 0) {
+        items.push({ fee_head_id: "", fee_head_name: "Computer & AI Fee", base_amount: lab, discount_amount: 0 });
+      }
+      setBulkBatchItems(items);
     }
   }, [activeCampusId, selectedClass, selectedSection, activeTab]);
 
@@ -325,11 +374,97 @@ export default function GenerateInvoicesPage() {
 
   async function handleGenerateBulk(e: React.FormEvent) {
     e.preventDefault();
+    await handleConfirmAndGenerateBulkCustom();
+  }
+
+  function handleOpenBulkPreview() {
     if (selectedStudentIds.length === 0) {
       setNotification({ 
         type: "error", 
-        message: "No students selected! Please check at least one student in the student list below." 
+        message: "No students selected! Please check at least one student in the student list below to preview." 
       });
+      return;
+    }
+    setBulkActiveStudentIndex(0);
+    setBulkPreviewTab("heads");
+    setBulkPreviewModalOpen(true);
+  }
+
+  function handleAddBulkBatchItem() {
+    setBulkBatchItems([
+      ...bulkBatchItems,
+      { fee_head_id: "", fee_head_name: "Examination Fee", base_amount: 1000, discount_amount: 0 }
+    ]);
+  }
+
+  function handleRemoveBulkBatchItem(index: number) {
+    setBulkBatchItems(bulkBatchItems.filter((_, i) => i !== index));
+  }
+
+  function handleBulkBatchItemChange(index: number, field: string, value: any) {
+    const updated = [...bulkBatchItems];
+    (updated[index] as any)[field] = value;
+    setBulkBatchItems(updated);
+  }
+
+  function handleBulkStudentOverrideChange(studentId: string, field: string, value: any) {
+    setBulkStudentOverrides(prev => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || { custom_discount: 0, notes: "" }),
+        [field]: value
+      }
+    }));
+  }
+
+  // Selected non-EWS students for bulk batch preview
+  const selectedBulkStudentList = bulkStudents.filter(s => selectedStudentIds.includes(s.id) && !s.isEws);
+  const currentPreviewBulkStudent = selectedBulkStudentList[bulkActiveStudentIndex] || selectedBulkStudentList[0];
+
+  const getStudentNetDemand = (student: any) => {
+    if (!student) return { base: 0, disc: 0, net: 0, items: [] };
+    const concessionPct = Number(student.concession_percentage || 0);
+    const extraDisc = Number(bulkStudentOverrides[student.id]?.custom_discount || 0);
+
+    let totalBase = 0;
+    let totalDisc = extraDisc;
+
+    const items = bulkBatchItems.map(it => {
+      const base = Number(it.base_amount || 0);
+      let disc = Number(it.discount_amount || 0);
+      if (concessionPct > 0 && disc === 0) {
+        disc = Math.round((base * concessionPct) / 100);
+      }
+      totalBase += base;
+      totalDisc += disc;
+      return {
+        ...it,
+        calculated_discount: disc,
+        net_head: Math.max(0, base - disc)
+      };
+    });
+
+    const net = Math.max(0, totalBase - totalDisc);
+    return { base: totalBase, disc: totalDisc, net, items };
+  };
+
+  const currentStudentCalculation = getStudentNetDemand(currentPreviewBulkStudent);
+
+  const bulkTotalBase = bulkBatchItems.reduce((sum, it) => sum + Number(it.base_amount || 0), 0);
+  const bulkTotalDiscount = bulkBatchItems.reduce((sum, it) => sum + Number(it.discount_amount || 0), 0);
+  const bulkNetPerStudentDefault = Math.max(0, bulkTotalBase - bulkTotalDiscount);
+
+  const bulkTotalBatchEstimatedDemand = selectedBulkStudentList.reduce((sum, st) => {
+    return sum + getStudentNetDemand(st).net;
+  }, 0);
+
+  async function handleConfirmAndGenerateBulkCustom() {
+    if (selectedStudentIds.length === 0) {
+      alert("No students selected for invoice generation.");
+      return;
+    }
+    if (bulkBatchItems.length === 0) {
+      alert("Please ensure at least one fee head item is added to the batch.");
       return;
     }
 
@@ -344,14 +479,17 @@ export default function GenerateInvoicesPage() {
         selected_student_ids: selectedStudentIds,
         billing_period: billingPeriod,
         due_date: dueDate,
-        notes: notes
+        notes: notes,
+        custom_items: bulkBatchItems,
+        student_overrides: bulkStudentOverrides
       });
 
       if (res.success) {
         setNotification({
           type: "success",
-          message: res.message || `🎉 Bulk invoices generated successfully!`
+          message: res.message || `🎉 Bulk customized invoices generated successfully for ${selectedCount} students!`
         });
+        setBulkPreviewModalOpen(false);
         loadBulkStudents();
       } else {
         setNotification({ type: "error", message: res.error || "Failed to generate bulk invoices." });
@@ -985,14 +1123,26 @@ export default function GenerateInvoicesPage() {
                 </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={isProcessing || selectedCount === 0}
-                className="w-full sm:w-auto px-8 py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Users className="w-4 h-4" />
-                {isProcessing ? "Processing Batch..." : `Generate ${selectedCount} Invoices Now`}
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleOpenBulkPreview}
+                  disabled={isProcessing || selectedCount === 0}
+                  className="w-full sm:w-auto px-5 py-3.5 bg-amber-400 hover:bg-amber-500 text-stone-950 font-black text-xs rounded-2xl transition shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Eye className="w-4 h-4 text-stone-950" />
+                  Preview & Edit Batch Invoices
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isProcessing || selectedCount === 0}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-xs rounded-2xl transition shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Users className="w-4 h-4" />
+                  {isProcessing ? "Processing Batch..." : `Generate ${selectedCount} Invoices Now`}
+                </button>
+              </div>
             </div>
 
           </div>
@@ -1360,6 +1510,411 @@ export default function GenerateInvoicesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 👁️ BULK INVOICE BATCH INSPECTOR & PRE-GENERATION EDITOR MODAL */}
+      {bulkPreviewModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md">
+                    Pre-Generation Batch Inspector
+                  </span>
+                  <span className="text-xs text-stone-400">•</span>
+                  <span className="text-xs font-bold text-stone-600">
+                    {selectedClass} ({selectedSection}) • {billingPeriod}
+                  </span>
+                </div>
+                <h3 className="text-xl font-black text-stone-900 mt-1">
+                  Preview & Edit Batch Invoices ({selectedCount} Students)
+                </h3>
+                <p className="text-xs text-stone-400">
+                  Customize fee heads, adjust individual student waivers, and inspect live A5 demand slips before generating the batch bills.
+                </p>
+              </div>
+              <button 
+                onClick={() => setBulkPreviewModalOpen(false)} 
+                className="text-stone-400 hover:text-stone-900 font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Sub-Tabs Switcher */}
+            <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-2xl w-fit text-xs">
+              <button
+                type="button"
+                onClick={() => setBulkPreviewTab("heads")}
+                className={`px-4 py-2 rounded-xl font-black transition ${
+                  bulkPreviewTab === "heads" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500 hover:text-stone-900"
+                }`}
+              >
+                🎛️ 1. Batch Fee Heads ({bulkBatchItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkPreviewTab("students")}
+                className={`px-4 py-2 rounded-xl font-black transition ${
+                  bulkPreviewTab === "students" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500 hover:text-stone-900"
+                }`}
+              >
+                👥 2. Student Waivers & Adjustments ({selectedBulkStudentList.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkPreviewTab("slip")}
+                className={`px-4 py-2 rounded-xl font-black transition ${
+                  bulkPreviewTab === "slip" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500 hover:text-stone-900"
+                }`}
+              >
+                👁️ 3. A5 Demand Slip Navigator
+              </button>
+            </div>
+
+            {/* SUB-TAB 1: BATCH FEE HEADS & LINE ITEMS EDITOR */}
+            {bulkPreviewTab === "heads" && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-blue-50/60 p-3.5 rounded-2xl border border-blue-100">
+                  <div className="text-xs text-blue-950">
+                    <strong className="font-bold">Batch Template Rates:</strong> Adjust standard base charges and discounts applied to this class run.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddBulkBatchItem}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Fee Head
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-stone-200 rounded-2xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200">
+                      <tr>
+                        <th className="p-3">Fee Head Name</th>
+                        <th className="p-3 w-36">Base Amount (₹)</th>
+                        <th className="p-3 w-36 text-purple-700">Default Discount (₹)</th>
+                        <th className="p-3 w-28 text-right">Net per Head</th>
+                        <th className="p-3 w-10 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {bulkBatchItems.map((item, idx) => {
+                        const net = Math.max(0, Number(item.base_amount || 0) - Number(item.discount_amount || 0));
+                        return (
+                          <tr key={idx} className="hover:bg-stone-50/60 transition">
+                            <td className="p-2.5">
+                              <input
+                                type="text"
+                                value={item.fee_head_name}
+                                onChange={(e) => handleBulkBatchItemChange(idx, "fee_head_name", e.target.value)}
+                                className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 font-bold text-stone-900"
+                                required
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <input
+                                type="number"
+                                value={item.base_amount}
+                                onChange={(e) => handleBulkBatchItemChange(idx, "base_amount", Number(e.target.value))}
+                                className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 font-mono font-bold text-stone-900"
+                                min="0"
+                                required
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <input
+                                type="number"
+                                value={item.discount_amount}
+                                onChange={(e) => handleBulkBatchItemChange(idx, "discount_amount", Number(e.target.value))}
+                                className="w-full bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-1.5 font-mono font-bold text-purple-800"
+                                min="0"
+                              />
+                            </td>
+                            <td className="p-2.5 text-right font-mono font-black text-stone-800">
+                              {formatCurrency(net)}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              {bulkBatchItems.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveBulkBatchItem(idx)}
+                                  className="text-stone-300 hover:text-red-600 transition p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-stone-500 font-semibold">Standard Default Demand per Student:</span>
+                    <div className="text-base font-black text-stone-900">
+                      {formatCurrency(bulkNetPerStudentDefault)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-stone-500 font-semibold">Total Batch Students Included:</span>
+                    <div className="text-base font-black text-blue-600">
+                      {selectedCount} Students
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 2: STUDENT CONCESSIONS & INDIVIDUAL OVERRIDES */}
+            {bulkPreviewTab === "students" && (
+              <div className="space-y-4">
+                <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-xs text-stone-600">
+                  You can specify custom discounts or additional waivers for specific students in this batch before generating invoices.
+                </div>
+
+                <div className="overflow-x-auto max-h-80 overflow-y-auto border border-stone-200 rounded-2xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="p-3 w-28">Admission No</th>
+                        <th className="p-3">Student Name</th>
+                        <th className="p-3 w-32">Class & Sec</th>
+                        <th className="p-3 w-36">Profile Concession</th>
+                        <th className="p-3 w-36 text-purple-700">Extra Waiver (₹)</th>
+                        <th className="p-3 w-32 text-right">Net Demand</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {selectedBulkStudentList.map((st) => {
+                        const calc = getStudentNetDemand(st);
+                        const currentExtra = bulkStudentOverrides[st.id]?.custom_discount ?? "";
+                        return (
+                          <tr key={st.id} className="hover:bg-stone-50/60 transition">
+                            <td className="p-3 font-mono font-bold text-stone-800">{st.admission_no}</td>
+                            <td className="p-3 font-bold text-stone-900">{st.name}</td>
+                            <td className="p-3 text-stone-600">{st.class_name} ({st.section_name})</td>
+                            <td className="p-3">
+                              {st.concession_percentage > 0 ? (
+                                <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                                  {st.concession_percentage}% Standard
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 text-[11px]">Regular (0%)</span>
+                              )}
+                            </td>
+                            <td className="p-2.5">
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={currentExtra}
+                                onChange={(e) => handleBulkStudentOverrideChange(st.id, "custom_discount", Number(e.target.value))}
+                                className="w-full bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-1.5 font-mono font-bold text-purple-800"
+                                min="0"
+                              />
+                            </td>
+                            <td className="p-3 text-right font-mono font-black text-stone-900">
+                              {formatCurrency(calc.net)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 3: A5 DEMAND SLIP LIVE NAVIGATOR */}
+            {bulkPreviewTab === "slip" && currentPreviewBulkStudent && (
+              <div className="space-y-4">
+                {/* Navigator Header Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={bulkActiveStudentIndex <= 0}
+                      onClick={() => setBulkActiveStudentIndex(prev => Math.max(0, prev - 1))}
+                      className="px-3 py-1.5 bg-white border border-stone-200 text-stone-800 font-bold rounded-xl disabled:opacity-30 hover:bg-stone-100"
+                    >
+                      ← Prev
+                    </button>
+                    <select
+                      value={bulkActiveStudentIndex}
+                      onChange={(e) => setBulkActiveStudentIndex(Number(e.target.value))}
+                      className="bg-white border border-stone-200 rounded-xl px-3 py-1.5 font-bold text-stone-900"
+                    >
+                      {selectedBulkStudentList.map((st, idx) => (
+                        <option key={st.id} value={idx}>
+                          Student {idx + 1} of {selectedBulkStudentList.length}: {st.name} ({st.admission_no})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={bulkActiveStudentIndex >= selectedBulkStudentList.length - 1}
+                      onClick={() => setBulkActiveStudentIndex(prev => Math.min(selectedBulkStudentList.length - 1, prev + 1))}
+                      className="px-3 py-1.5 bg-white border border-stone-200 text-stone-800 font-bold rounded-xl disabled:opacity-30 hover:bg-stone-100"
+                    >
+                      Next →
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bulkPrintRef.current) {
+                        printIsolatedElement(bulkPrintRef.current, `Invoice_Slip_${currentPreviewBulkStudent.admission_no}`);
+                      } else {
+                        window.print();
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-stone-100 text-stone-800 border border-stone-200 font-bold rounded-xl shadow-xs transition"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Print This Slip (A5)
+                  </button>
+                </div>
+
+                {/* A5 Printable Invoice Slip Container */}
+                <div 
+                  ref={bulkPrintRef} 
+                  className="bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-3.5 text-xs font-sans max-w-[148mm] mx-auto"
+                >
+                  {/* School Header (Official details, strictly no branch info) */}
+                  <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+                    <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                    <p className="text-[10px] font-bold text-stone-700">
+                      School ID: 1253481 • UDISE Code: 07124100151
+                    </p>
+                    <p className="text-[9.5px] text-stone-500">
+                      Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                    </p>
+                    <div className="pt-1.5 flex justify-center">
+                      <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                        FEE DEMAND INVOICE
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Student & Invoice Meta Details */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
+                    <div>
+                      <span className="text-stone-400">Student Name:</span> <strong className="text-stone-900">{currentPreviewBulkStudent.name}</strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{currentPreviewBulkStudent.admission_no}</strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{currentPreviewBulkStudent.class_name} {currentPreviewBulkStudent.section_name}</strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-400">Parent / Guardian:</span> <strong className="text-stone-900">{currentPreviewBulkStudent.parent_name || 'Parent'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-400">Billing Period:</span> <strong className="text-stone-900 font-semibold">{billingPeriod}</strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-400">Payment Due Date:</span> <strong className="text-red-700 font-bold">{dueDate}</strong>
+                    </div>
+                  </div>
+
+                  {/* Itemized Fee Breakdown Table */}
+                  <div className="border border-stone-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-stone-100/70 text-stone-600 font-bold border-b border-stone-200">
+                        <tr>
+                          <th className="p-2">Fee Head</th>
+                          <th className="p-2 text-right">Gross Amount</th>
+                          <th className="p-2 text-right">Discount</th>
+                          <th className="p-2 text-right">Net Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {currentStudentCalculation.items.map((item, idx) => (
+                          <tr key={idx}>
+                            <td className="p-2 font-semibold text-stone-800">{item.fee_head_name}</td>
+                            <td className="p-2 text-right font-mono text-stone-600">{formatCurrency(item.base_amount)}</td>
+                            <td className="p-2 text-right font-mono text-purple-700">
+                              {item.calculated_discount > 0 ? `- ${formatCurrency(item.calculated_discount)}` : '—'}
+                            </td>
+                            <td className="p-2 text-right font-mono font-bold text-stone-900">{formatCurrency(item.net_head)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Totals Breakdown */}
+                  <div className="border-t border-stone-200 pt-2 space-y-1 text-[11px]">
+                    <div className="flex justify-between text-stone-600">
+                      <span>Gross Invoice Total:</span>
+                      <span className="font-mono">{formatCurrency(currentStudentCalculation.base)}</span>
+                    </div>
+                    {currentStudentCalculation.disc > 0 && (
+                      <div className="flex justify-between text-purple-700 font-semibold">
+                        <span>Total Discounts & Waivers:</span>
+                        <span className="font-mono">- {formatCurrency(currentStudentCalculation.disc)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-black text-stone-900 pt-1.5 border-t border-dashed border-stone-200">
+                      <span>Net Demand Payable:</span>
+                      <span className="text-blue-600 font-mono">{formatCurrency(currentStudentCalculation.net)}</span>
+                    </div>
+                  </div>
+
+                  {/* Signatory & Notes */}
+                  <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-500">
+                    <div>
+                      <p>Authorized Signatory: <strong className="text-stone-800">Accounts Department</strong></p>
+                      <p className="italic text-stone-400">Payable online via parent portal or at reception fee counter.</p>
+                    </div>
+                    <div className="text-right font-mono text-[9px] text-stone-400">
+                      DUE: {dueDate}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Bottom Footer Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-3 border-t border-stone-100">
+              <div className="text-xs">
+                <span className="text-stone-400 font-bold">Total Batch Net Demand: </span>
+                <strong className="text-stone-900 font-mono text-sm">
+                  {formatCurrency(bulkTotalBatchEstimatedDemand)}
+                </strong>
+                <span className="text-stone-400 ml-1">across {selectedCount} Students</span>
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setBulkPreviewModalOpen(false)}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition"
+                >
+                  Back to Checklist
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAndGenerateBulkCustom}
+                  disabled={isProcessing || selectedCount === 0}
+                  className="flex-1 sm:flex-initial px-6 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  {isProcessing ? "Generating Invoices..." : `Confirm & Generate (${selectedCount}) Invoices`}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
