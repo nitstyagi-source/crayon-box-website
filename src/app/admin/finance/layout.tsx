@@ -5,14 +5,15 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, Layers, Wallet, Receipt, 
   Clock, RotateCcw, BarChart, CreditCard, Settings,
-  Users, CheckCircle2, ShieldAlert
+  Users, CheckCircle2, ShieldAlert, FileText
 } from "lucide-react";
 
 const FINANCE_NAV = [
   { name: "Executive Dashboard", href: "/admin/finance", icon: LayoutDashboard },
-  { name: "Fee Master & Structures", href: "/admin/finance/structure", icon: Layers },
+  { name: "Invoices & Demand", href: "/admin/finance/invoices", icon: FileText },
   { name: "Collect Fee (POS)", href: "/admin/finance/collections", icon: Wallet },
   { name: "Official Receipts Hub", href: "/admin/finance/receipts", icon: Receipt },
+  { name: "Fee Master & Structures", href: "/admin/finance/structure", icon: Layers },
   { name: "Defaulters & Aging Dues", href: "/admin/finance/pending", icon: Clock },
   { name: "Refunds Workflow", href: "/admin/finance/refunds", icon: RotateCcw },
   { name: "Management Reports", href: "/admin/finance/reports", icon: BarChart },

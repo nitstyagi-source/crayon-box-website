@@ -25,6 +25,81 @@ async function resolveCampusId(supabase: any, campusId: string): Promise<string>
 // -------------------------------------------------------------
 // BACKWARD COMPATIBILITY HELPERS
 // -------------------------------------------------------------
+export async function updateIndividualInvoice(payload: {
+  id: string;
+  total_amount: number;
+  total_discount?: number;
+  total_late_fee?: number;
+  amount_paid?: number;
+  due_date?: string;
+  billing_period?: string;
+  status?: string;
+  notes?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: inv, error: fetchErr } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('id', payload.id)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    const totalAmt = Number(payload.total_amount || 0);
+    const discount = Number(payload.total_discount || 0);
+    const lateFee = Number(payload.total_late_fee || 0);
+    const paid = Number(payload.amount_paid ?? inv.amount_paid ?? 0);
+    const netDue = Math.max(0, totalAmt + lateFee - discount - paid);
+
+    let status = payload.status || (netDue === 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'));
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('student_invoices')
+      .update({
+        total_amount: totalAmt,
+        total_discount: discount,
+        total_late_fee: lateFee,
+        amount_paid: paid,
+        due_date: payload.due_date || inv.due_date,
+        billing_period: payload.billing_period || inv.billing_period,
+        status: status,
+        notes: payload.notes
+      })
+      .eq('id', payload.id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Post audit adjustment to student_fee_ledgers
+    if (inv.student_id) {
+      await supabase.from('student_fee_ledgers').insert([{
+        campus_id: inv.campus_id,
+        student_id: inv.student_id,
+        academic_session: '2026-2027',
+        transaction_date: new Date().toISOString().split('T')[0],
+        particulars: `Invoice #${inv.invoice_number} adjusted: Total ₹${totalAmt}, Discount ₹${discount}, Net Due ₹${netDue}`,
+        fee_head_name: 'Invoice Adjustment',
+        debit: 0,
+        credit: 0,
+        running_balance: netDue,
+        voucher_type: 'Demand',
+        reference_no: inv.invoice_number,
+        created_by: 'Accounts Administrator'
+      }]);
+    }
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/collections');
+    return { success: true, data: updated };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function getInvoices(campusId: string) {
   try {
     if (!campusId) return { success: true, data: [] };
