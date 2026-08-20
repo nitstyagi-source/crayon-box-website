@@ -1,86 +1,113 @@
 "use client";
 
 import { useState } from "react";
-import { Search, CreditCard, Lock, CheckCircle2, AlertCircle, FileText, Download } from "lucide-react";
+import { Search, CreditCard, Lock, CheckCircle2, AlertCircle, FileText, Download, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { lookupStudentDues, processInvoiceOnlinePayment } from "@/app/actions/payments";
 
 export default function PayFeesPage() {
   const [studentId, setStudentId] = useState("");
   const [dob, setDob] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
-  const [dues, setDues] = useState<any>(null);
-  const [isPaid, setIsPaid] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Data State
+  const [accountData, setAccountData] = useState<any>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const [receipt, setReceipt] = useState<any>(null);
 
-  function handleLookup(e: React.FormEvent) {
+  async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
-    if (!studentId || !dob) return;
+    if (!studentId) return;
     
     setIsLookingUp(true);
-    // Mock lookup logic
-    setTimeout(() => {
-      setDues({
-        studentName: "Aarav Sharma",
-        grade: "Grade 3",
-        quarter: "Q2 (Jul - Sep 2026)",
-        tuitionFee: 22000,
-        transportFee: 4500,
-        activityFee: 1500,
-        lateFee: 0,
-        totalDue: 28000,
-        dueDate: "2026-07-15"
-      });
-      setIsLookingUp(false);
-    }, 1200);
+    setErrorMsg("");
+    setReceipt(null);
+
+    const res = await lookupStudentDues(studentId, dob || undefined);
+    setIsLookingUp(false);
+
+    if (res.success && res.data) {
+      setAccountData(res.data);
+    } else {
+      setErrorMsg(res.error || "Student record not found. Please verify your Admission No.");
+      setAccountData(null);
+    }
   }
 
-  function handlePayment() {
-    setIsLookingUp(true);
-    setTimeout(() => {
-      setIsPaid(true);
-      setIsLookingUp(false);
-    }, 1500);
+  async function handlePayment() {
+    if (!accountData?.invoice) return;
+    
+    setIsPaying(true);
+    setErrorMsg("");
+
+    const res = await processInvoiceOnlinePayment(accountData.invoice.id, 'Razorpay (Online Gateway)');
+    setIsPaying(false);
+
+    if (res.success) {
+      setReceipt({
+        ...res,
+        studentName: accountData.student.name,
+        admissionNo: accountData.student.admissionNo,
+        className: accountData.student.className,
+        billingPeriod: accountData.invoice.billing_period,
+        items: accountData.items || []
+      });
+      setAccountData(null);
+    } else {
+      setErrorMsg("Payment processing failed: " + res.error);
+    }
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 pt-32 pb-24">
+    <div className="min-h-screen bg-stone-50 pt-32 pb-24 font-sans">
       <div className="container mx-auto px-4 max-w-4xl">
         
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <CreditCard className="w-8 h-8" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4">Quick Fee Payment</h1>
-          <p className="text-stone-600 text-lg max-w-2xl mx-auto">Fast, secure, and hassle-free fee payments for enrolled students. Fetch your current dues instantly using your Student ID.</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-3">Quick Fee Payment</h1>
+          <p className="text-stone-600 text-base max-w-2xl mx-auto">
+            Fast, encrypted fee payments for enrolled students. Lookup your outstanding dues instantly using your Admission Number.
+          </p>
         </div>
 
-        {!dues && !isPaid && (
+        {/* Step 1: Lookup Box */}
+        {!accountData && !receipt && (
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-stone-100 max-w-2xl mx-auto relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
               <Lock className="w-48 h-48" />
             </div>
             
-            <h2 className="text-2xl font-bold text-stone-900 mb-8 relative z-10">Find Your Account</h2>
+            <h2 className="text-2xl font-bold text-stone-900 mb-6 relative z-10">Find Your Student Account</h2>
+
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
             
-            <form onSubmit={handleLookup} className="space-y-6 relative z-10">
+            <form onSubmit={handleLookup} className="space-y-5 relative z-10">
               <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Student ID / Admission No.</label>
+                <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Admission No. / Student ID *</label>
                 <input 
                   required
                   type="text" 
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="e.g. CB-2024-001" 
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-stone-800"
+                  placeholder="e.g. ADM-5525" 
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-stone-800 font-medium"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Student Date of Birth</label>
+                <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Student Date of Birth (Optional)</label>
                 <input 
-                  required
                   type="date" 
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-stone-500"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-stone-700"
                 />
               </div>
               <button 
@@ -88,141 +115,207 @@ export default function PayFeesPage() {
                 disabled={isLookingUp}
                 className="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
               >
-                {isLookingUp ? "Securely Fetching Data..." : "Fetch Dues"} <Search className="w-5 h-5" />
+                {isLookingUp ? "Checking Database Records..." : "Search Dues & Invoice"} <Search className="w-5 h-5" />
               </button>
             </form>
             
             <div className="mt-8 flex items-start gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
               <p className="text-xs text-blue-800 leading-relaxed">
-                Your Student ID can be found on the ID card, previous fee receipts, or the parent mobile app. For assistance, contact the accounts office.
+                Your Admission No. is printed on the Student ID card, fee receipts, or available from the school office.
               </p>
             </div>
           </div>
         )}
 
-        {dues && !isPaid && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Invoice Details */}
-            <div className="lg:col-span-7 bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-stone-100">
-              <div className="flex justify-between items-start mb-8 pb-6 border-b border-stone-100">
-                <div>
-                  <h2 className="text-2xl font-bold text-stone-900 mb-1">Fee Invoice</h2>
-                  <p className="text-stone-500">Invoice generated for {dues.quarter}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Student ID</p>
-                  <p className="font-mono font-bold text-stone-800">{studentId.toUpperCase()}</p>
-                </div>
-              </div>
+        {/* Step 2: Dues Display & Payment Gateway */}
+        {accountData && !receipt && (
+          <div className="space-y-6">
+            <button 
+              onClick={() => setAccountData(null)}
+              className="text-stone-500 hover:text-stone-900 text-sm font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Search
+            </button>
 
-              <div className="bg-stone-50 rounded-2xl p-6 border border-stone-200 mb-8 flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-lg">
-                  {dues.studentName.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-stone-900">{dues.studentName}</h3>
-                  <p className="text-stone-500 text-sm">{dues.grade}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between items-center text-stone-700">
-                  <span>Tuition Fee</span>
-                  <span className="font-medium">₹{dues.tuitionFee.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between items-center text-stone-700">
-                  <span>Transport Fee</span>
-                  <span className="font-medium">₹{dues.transportFee.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between items-center text-stone-700">
-                  <span>Activity Fee</span>
-                  <span className="font-medium">₹{dues.activityFee.toLocaleString('en-IN')}</span>
-                </div>
-                {dues.lateFee > 0 && (
-                  <div className="flex justify-between items-center text-red-600">
-                    <span>Late Fee Fine</span>
-                    <span className="font-medium">₹{dues.lateFee.toLocaleString('en-IN')}</span>
+            {accountData.hasPendingDues ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
+                {/* Invoice Details */}
+                <div className="lg:col-span-7 bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-stone-100">
+                  <div className="flex justify-between items-start mb-6 pb-6 border-b border-stone-100">
+                    <div>
+                      <h2 className="text-2xl font-bold text-stone-900">Fee Invoice</h2>
+                      <p className="text-stone-500 text-sm">Invoice #{accountData.invoice?.invoice_number}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Billing Period</p>
+                      <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold font-mono">
+                        {accountData.invoice?.billing_period || "Current Term"}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="border-t-2 border-dashed border-stone-200 pt-6 flex justify-between items-end">
-                <div>
-                  <p className="text-sm font-bold text-stone-500 uppercase tracking-widest mb-1">Total Due</p>
-                  <p className="text-xs text-stone-400">Due by {dues.dueDate}</p>
+                  {/* Student Header Card */}
+                  <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 mb-6 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                      {accountData.student.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-stone-900">{accountData.student.name}</h3>
+                      <p className="text-stone-500 text-xs font-medium">Adm No: <span className="font-mono text-stone-800">{accountData.student.admissionNo}</span> • Class: {accountData.student.className}</p>
+                    </div>
+                  </div>
+
+                  {/* Line Items Breakdown */}
+                  <div className="space-y-3 mb-6">
+                    <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Itemized Fee Heads</p>
+                    {accountData.items && accountData.items.length > 0 ? (
+                      accountData.items.map((item: any) => (
+                        <div key={item.id} className="flex justify-between items-center text-sm py-2 border-b border-stone-100">
+                          <div>
+                            <span className="font-semibold text-stone-800">{item.fee_heads?.name || "Fee Head"}</span>
+                            {item.discount_amount > 0 && (
+                              <span className="ml-2 text-xs text-green-600 font-medium">(-₹{item.discount_amount} Disc.)</span>
+                            )}
+                          </div>
+                          <span className="font-bold text-stone-900">₹{Number(item.base_amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex justify-between items-center text-sm py-2">
+                        <span className="text-stone-700">Total Academic & Tuition Dues</span>
+                        <span className="font-bold text-stone-900">₹{Number(accountData.invoice?.total_amount || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Invoice Summary */}
+                  <div className="border-t-2 border-dashed border-stone-200 pt-6 flex justify-between items-end">
+                    <div>
+                      <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Net Payable Balance</p>
+                      <p className="text-xs text-stone-500">Status: <span className="font-bold text-amber-600">{accountData.invoice?.status}</span></p>
+                    </div>
+                    <p className="text-3xl font-black text-stone-900">₹{Number(accountData.invoice?.total_amount || 0).toLocaleString('en-IN')}</p>
+                  </div>
                 </div>
-                <p className="text-3xl font-black text-stone-900">₹{dues.totalDue.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
 
-            {/* Payment Gateway Mockup */}
-            <div className="lg:col-span-5 bg-stone-900 rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-white flex flex-col">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Lock className="w-5 h-5 text-accent" /> Secure Checkout</h3>
-              
-              <div className="bg-white/10 rounded-2xl p-6 mb-8 border border-white/20">
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
-                  <div className="w-5 h-5 rounded-full border-[6px] border-accent bg-transparent"></div>
+                {/* Payment Gateway Box */}
+                <div className="lg:col-span-5 bg-stone-900 rounded-[2.5rem] p-8 md:p-10 shadow-2xl text-white flex flex-col justify-between">
                   <div>
-                    <p className="font-bold text-white">Pay via Razorpay</p>
-                    <p className="text-xs text-stone-400">UPI, Cards, NetBanking</p>
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-amber-400" /> Secure Payment Gateway
+                    </h3>
+                    
+                    <div className="bg-white/10 rounded-2xl p-5 mb-6 border border-white/20">
+                      <div className="flex items-center gap-4">
+                        <div className="w-5 h-5 rounded-full border-[6px] border-amber-400 bg-transparent shrink-0"></div>
+                        <div>
+                          <p className="font-bold text-white text-sm">Razorpay Smart Gateway</p>
+                          <p className="text-xs text-stone-400">Instant UPI (GPay, PhonePe), Cards & NetBanking</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs text-stone-400 mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div className="flex justify-between">
+                        <span>Invoice Amount:</span>
+                        <span className="text-white font-bold">₹{Number(accountData.invoice?.total_amount || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gateway Processing Fee:</span>
+                        <span className="text-green-400 font-bold">₹0.00 (Waived)</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4 opacity-50">
-                  <div className="w-5 h-5 rounded-full border-2 border-stone-500 bg-transparent"></div>
+
                   <div>
-                    <p className="font-bold text-white">Pay via Stripe</p>
-                    <p className="text-xs text-stone-400">International Cards Only</p>
+                    {errorMsg && (
+                      <p className="text-xs text-red-400 mb-3 text-center">{errorMsg}</p>
+                    )}
+                    <button 
+                      onClick={handlePayment}
+                      disabled={isPaying}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-base"
+                    >
+                      {isPaying ? "Connecting Gateway..." : `Pay ₹${Number(accountData.invoice?.total_amount || 0).toLocaleString('en-IN')} Now`}
+                    </button>
+                    <div className="flex items-center justify-center gap-2 mt-4 text-stone-400 text-xs">
+                      <Lock className="w-3 h-3" /> PCI-DSS & 256-bit SSL Encrypted
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="mt-auto">
+            ) : (
+              /* No Pending Dues Screen */
+              <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-stone-100 text-center max-w-xl mx-auto">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-stone-900 mb-2">No Outstanding Dues!</h2>
+                <p className="text-stone-600 text-sm mb-6">
+                  All fee invoices for <strong>{accountData.student.name}</strong> ({accountData.student.admissionNo}) are fully cleared.
+                </p>
                 <button 
-                  onClick={handlePayment}
-                  disabled={isLookingUp}
-                  className="w-full bg-accent text-white font-bold py-4 rounded-xl shadow-lg hover:bg-orange-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 text-lg"
+                  onClick={() => setAccountData(null)}
+                  className="bg-stone-900 text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-stone-800 transition-colors"
                 >
-                  {isLookingUp ? "Processing..." : `Pay ₹${dues.totalDue.toLocaleString('en-IN')} Now`}
+                  Lookup Another Student
                 </button>
-                <div className="flex items-center justify-center gap-2 mt-4 text-stone-400 text-xs">
-                  <Lock className="w-3 h-3" /> 256-bit SSL Encrypted
-                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
-        {isPaid && (
-          <div className="bg-white rounded-[2.5rem] p-12 shadow-xl border border-stone-100 max-w-2xl mx-auto text-center animate-in zoom-in duration-500">
-            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-12 h-12" />
+        {/* Step 3: Payment Success & Printable Receipt */}
+        {receipt && (
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-stone-100 max-w-2xl mx-auto animate-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
-            <h2 className="text-3xl font-serif font-bold text-stone-900 mb-2">Payment Successful!</h2>
-            <p className="text-stone-500 mb-8">Transaction ID: TXN-{Math.floor(Math.random() * 1000000000)}</p>
+            <h2 className="text-3xl font-serif font-bold text-stone-900 text-center mb-1">Fee Payment Successful!</h2>
+            <p className="text-stone-500 text-xs font-mono text-center mb-6">Receipt No: {receipt.receiptNumber}</p>
             
-            <div className="bg-stone-50 rounded-2xl p-6 border border-stone-200 mb-8 text-left space-y-4">
-              <div className="flex justify-between border-b border-stone-200 pb-4">
-                <span className="text-stone-500">Amount Paid</span>
-                <span className="font-bold text-stone-900">₹{dues.totalDue.toLocaleString('en-IN')}</span>
+            {/* Printable Receipt Body */}
+            <div id="printable-receipt" className="bg-stone-50 rounded-2xl p-6 border border-stone-200 mb-8 space-y-4 text-sm">
+              <div className="flex justify-between border-b border-stone-200 pb-3">
+                <span className="text-stone-500">Student Name</span>
+                <span className="font-bold text-stone-900">{receipt.studentName}</span>
               </div>
-              <div className="flex justify-between border-b border-stone-200 pb-4">
-                <span className="text-stone-500">Student</span>
-                <span className="font-bold text-stone-900">{dues.studentName} ({studentId.toUpperCase()})</span>
+              <div className="flex justify-between border-b border-stone-200 pb-3">
+                <span className="text-stone-500">Admission No.</span>
+                <span className="font-mono font-bold text-stone-900">{receipt.admissionNo}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-500">Quarter</span>
-                <span className="font-bold text-stone-900">{dues.quarter}</span>
+              <div className="flex justify-between border-b border-stone-200 pb-3">
+                <span className="text-stone-500">Class & Section</span>
+                <span className="font-bold text-stone-900">{receipt.className}</span>
+              </div>
+              <div className="flex justify-between border-b border-stone-200 pb-3">
+                <span className="text-stone-500">Invoice Number</span>
+                <span className="font-mono text-stone-800">{receipt.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-stone-200 pb-3">
+                <span className="text-stone-500">Transaction ID</span>
+                <span className="font-mono text-xs text-stone-600">{receipt.transactionId}</span>
+              </div>
+              <div className="flex justify-between pt-2">
+                <span className="text-base font-bold text-stone-900">Total Amount Paid</span>
+                <span className="text-xl font-black text-green-700">₹{Number(receipt.amountPaid).toLocaleString('en-IN')}</span>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="flex items-center justify-center gap-2 bg-stone-100 text-stone-800 px-8 py-4 rounded-full font-bold hover:bg-stone-200 transition-colors">
-                <Download className="w-5 h-5" /> Download Receipt
+              <button 
+                onClick={() => window.print()}
+                className="flex items-center justify-center gap-2 bg-stone-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-stone-800 transition-colors text-sm shadow-md"
+              >
+                <Printer className="w-4 h-4" /> Print Receipt
               </button>
-              <Link href="/" className="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold hover:bg-blue-900 transition-colors">
-                Return to Home
-              </Link>
+              <button 
+                onClick={() => { setReceipt(null); setAccountData(null); setStudentId(""); }}
+                className="flex items-center justify-center gap-2 bg-stone-100 text-stone-700 px-8 py-3.5 rounded-xl font-bold hover:bg-stone-200 transition-colors text-sm"
+              >
+                Make Another Payment
+              </button>
             </div>
           </div>
         )}

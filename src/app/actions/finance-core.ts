@@ -28,7 +28,6 @@ export async function getInvoices(campusId: string) {
     const supabase = getSupabaseAdmin();
     const resolvedId = await resolveCampusId(supabase, campusId);
     
-    // 1. Fetch invoices
     const { data: invoices, error } = await supabase
       .from('student_invoices')
       .select('*')
@@ -38,7 +37,6 @@ export async function getInvoices(campusId: string) {
     if (error) throw error;
     if (!invoices || invoices.length === 0) return { success: true, data: [] };
 
-    // 2. Fetch associated student data gracefully without relying on FK relations
     const studentIds = Array.from(new Set(invoices.map((i: any) => i.student_id).filter(Boolean)));
     let studentMap: Record<string, any> = {};
 
@@ -122,11 +120,142 @@ export async function recordManualPayment(campusId: string, invoiceId: string, a
       .eq('id', invoiceId);
 
     if (updateErr) throw updateErr;
+
+    // Record ledger entry
+    await supabase
+      .from('student_fee_ledgers')
+      .insert([{
+        campus_id: invoice.campus_id,
+        student_id: invoice.student_id,
+        transaction_type: 'Payment',
+        amount: -amount,
+        running_balance: Math.max(0, Number(invoice.total_amount) - newPaid),
+        reference_id: invoice.id,
+        remarks: `Manual ${mode} Payment Collection`
+      }]);
     
     revalidatePath('/admin/finance/collections');
     revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/receipts');
     return { success: true, message: 'Payment recorded successfully.' };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function getReceipts(campusId: string) {
+  try {
+    if (!campusId) return { success: true, data: [] };
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    // Fetch invoices with paid amount > 0
+    const { data: invoices, error } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('campus_id', resolvedId)
+      .gt('amount_paid', 0)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!invoices || invoices.length === 0) return { success: true, data: [] };
+
+    const studentIds = Array.from(new Set(invoices.map((i: any) => i.student_id).filter(Boolean)));
+    let studentMap: Record<string, any> = {};
+
+    if (studentIds.length > 0) {
+      const { data: students } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, admission_no')
+        .in('id', studentIds);
+
+      if (students) {
+        studentMap = students.reduce((acc: any, s: any) => {
+          acc[s.id] = s;
+          return acc;
+        }, {});
+      }
+    }
+
+    const receipts = invoices.map((inv: any) => ({
+      id: inv.id,
+      receiptNumber: `REC-${inv.invoice_number.replace('INV-', '')}`,
+      invoiceNumber: inv.invoice_number,
+      billingPeriod: inv.billing_period,
+      amountPaid: Number(inv.amount_paid || 0),
+      totalAmount: Number(inv.total_amount || 0),
+      status: inv.status,
+      paidDate: inv.created_at,
+      student: studentMap[inv.student_id] || { first_name: "Student", last_name: "", admission_no: "ADM" }
+    }));
+
+    return { success: true, data: receipts };
+  } catch (error: any) {
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
+export async function getDefaultersReport(campusId: string) {
+  try {
+    if (!campusId) return { success: true, data: [] };
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    const { data: invoices, error } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('campus_id', resolvedId)
+      .in('status', ['Unpaid', 'Partial', 'Overdue'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!invoices || invoices.length === 0) return { success: true, data: [] };
+
+    const studentIds = Array.from(new Set(invoices.map((i: any) => i.student_id).filter(Boolean)));
+    let studentMap: Record<string, any> = {};
+    let academicMap: Record<string, any> = {};
+    let parentMap: Record<string, any> = {};
+
+    if (studentIds.length > 0) {
+      const [
+        { data: students },
+        { data: academics },
+        { data: parents }
+      ] = await Promise.all([
+        supabase.from('students').select('id, first_name, last_name, admission_no').in('id', studentIds),
+        supabase.from('student_academic_history').select('student_id, class_name, section_name').in('student_id', studentIds),
+        supabase.from('student_parents').select('student_id, name, mobile').in('student_id', studentIds)
+      ]);
+
+      if (students) studentMap = students.reduce((acc: any, s: any) => { acc[s.id] = s; return acc; }, {});
+      if (academics) academicMap = academics.reduce((acc: any, a: any) => { acc[a.student_id] = a; return acc; }, {});
+      if (parents) parentMap = parents.reduce((acc: any, p: any) => { acc[p.student_id] = p; return acc; }, {});
+    }
+
+    const defaulters = invoices.map((inv: any) => {
+      const balance = Number(inv.total_amount || 0) - Number(inv.amount_paid || 0);
+      const student = studentMap[inv.student_id] || {};
+      const academic = academicMap[inv.student_id] || {};
+      const parent = parentMap[inv.student_id] || {};
+
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoice_number,
+        studentName: `${student.first_name || 'Student'} ${student.last_name || ''}`.trim(),
+        admissionNo: student.admission_no || 'N/A',
+        className: academic.class_name ? `${academic.class_name} ${academic.section_name || ''}`.trim() : 'General',
+        parentName: parent.name || 'Guardian',
+        parentMobile: parent.mobile || 'N/A',
+        billingPeriod: inv.billing_period,
+        totalAmount: Number(inv.total_amount || 0),
+        amountPaid: Number(inv.amount_paid || 0),
+        balanceDue: balance,
+        status: inv.status
+      };
+    });
+
+    return { success: true, data: defaulters };
+  } catch (error: any) {
+    return { success: false, error: error.message, data: [] };
   }
 }

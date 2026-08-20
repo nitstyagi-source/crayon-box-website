@@ -65,14 +65,18 @@ export async function getStudentProfile(studentId: string) {
       { data: addresses },
       { data: medical },
       { data: documents },
-      { data: lifecycle }
+      { data: lifecycle },
+      { data: invoices },
+      { data: ledgers }
     ] = await Promise.all([
       supabase.from('student_academic_history').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
       supabase.from('student_parents').select('*').eq('student_id', studentId),
       supabase.from('student_addresses').select('*').eq('student_id', studentId),
       supabase.from('student_medical').select('*').eq('student_id', studentId).maybeSingle(),
       supabase.from('student_documents').select('*').eq('student_id', studentId),
-      supabase.from('student_lifecycle').select('*').eq('student_id', studentId).order('action_date', { ascending: false })
+      supabase.from('student_lifecycle').select('*').eq('student_id', studentId).order('action_date', { ascending: false }),
+      supabase.from('student_invoices').select('*, student_invoice_items(*)').eq('student_id', studentId).order('created_at', { ascending: false }),
+      supabase.from('student_fee_ledgers').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
     ]);
 
     return { 
@@ -84,7 +88,9 @@ export async function getStudentProfile(studentId: string) {
         addresses: addresses || [],
         medical: medical || {},
         documents: documents || [],
-        lifecycle: lifecycle || []
+        lifecycle: lifecycle || [],
+        invoices: invoices || [],
+        ledgers: ledgers || []
       }
     };
   } catch (error: any) {
@@ -95,11 +101,9 @@ export async function getStudentProfile(studentId: string) {
 export async function createStudent(payload: any) {
   try {
     const supabase = getSupabaseAdmin();
-    
-    // Always resolve to a real campus UUID
     const campusId = await resolveCampusId(supabase, payload.campus_id);
 
-    // 1. Get or create the active academic year for this campus
+    // 1. Get active academic year
     let { data: academicYear } = await supabase
       .from('academic_years')
       .select('id')
@@ -128,6 +132,9 @@ export async function createStudent(payload: any) {
         dob: payload.dob || null,
         gender: payload.gender,
         category: payload.category || 'General',
+        blood_group: payload.blood_group || null,
+        nationality: payload.nationality || 'Indian',
+        aadhaar_no: payload.aadhaar_no || null,
         status: 'Active',
       }])
       .select()
@@ -142,6 +149,7 @@ export async function createStudent(payload: any) {
         academic_year_id: yearId,
         class_name: payload.class_name || '',
         section_name: payload.section_name || '',
+        roll_no: payload.roll_no || null,
         is_current_session: true
       }]);
     }
@@ -153,12 +161,90 @@ export async function createStudent(payload: any) {
         parent_type: 'Father',
         name: payload.parent_name,
         mobile: payload.parent_mobile || '',
+        email: payload.parent_email || null,
+        occupation: payload.parent_occupation || null,
         is_primary_contact: true
       }]);
     }
 
     revalidatePath('/admin/students');
     return { success: true, data: student };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateStudentLifecycleStatus(studentId: string, actionType: string, reason?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // Map action to status
+    let status = 'Active';
+    if (actionType === 'Withdrawal') status = 'Withdrawn';
+    else if (actionType === 'TC_Issued') status = 'TC Issued';
+    else if (actionType === 'Promotion') status = 'Promoted';
+    else if (actionType === 'Suspension') status = 'Suspended';
+
+    // 1. Update status on students table
+    await supabase
+      .from('students')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', studentId);
+
+    // 2. Insert lifecycle event
+    await supabase
+      .from('student_lifecycle')
+      .insert([{
+        student_id: studentId,
+        action_type: actionType,
+        action_date: new Date().toISOString().split('T')[0],
+        reason: reason || `Status changed to ${status}`,
+      }]);
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveStudentMedicalRecord(studentId: string, payload: any) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: existing } = await supabase
+      .from('student_medical')
+      .select('id')
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from('student_medical')
+        .update({
+          blood_group: payload.blood_group,
+          allergies: payload.allergies,
+          medical_conditions: payload.medical_conditions,
+          emergency_instructions: payload.emergency_instructions,
+          doctor_contact: payload.doctor_contact,
+        })
+        .eq('student_id', studentId);
+    } else {
+      await supabase
+        .from('student_medical')
+        .insert([{
+          student_id: studentId,
+          blood_group: payload.blood_group,
+          allergies: payload.allergies,
+          medical_conditions: payload.medical_conditions,
+          emergency_instructions: payload.emergency_instructions,
+          doctor_contact: payload.doctor_contact,
+        }]);
+    }
+
+    revalidatePath(`/admin/students/${studentId}`);
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

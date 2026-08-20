@@ -1,51 +1,151 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-// import Stripe from 'stripe';
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
+import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 
-export async function generatePaymentLink(transactionId: string, amount: number, studentName: string, purpose: string) {
-  console.log(`[Payment Integration] Generating link for Transaction: ${transactionId}, Amount: ${amount}`);
-  
-  // MOCK IMPLEMENTATION:
-  // Since we don't have live Stripe/Razorpay keys, we will simulate a successful checkout session generation.
-  // In production, this would call:
-  // const session = await stripe.checkout.sessions.create({
-  //   payment_method_types: ['card'],
-  //   line_items: [{ price_data: { currency: 'inr', product_data: { name: purpose }, unit_amount: amount * 100 }, quantity: 1 }],
-  //   mode: 'payment',
-  //   success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/parent/fees/success?session_id={CHECKOUT_SESSION_ID}`,
-  //   cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/parent/fees/cancel`,
-  //   metadata: { transactionId }
-  // });
-  
-  // Simulate delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // Mock URL that bypasses actual payment and lands on a dummy success handler
-  const mockCheckoutUrl = `/parent/fees/success?transaction_id=${transactionId}&mock=true`;
-
-  return {
-    success: true,
-    url: mockCheckoutUrl
-  };
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
 }
 
-export async function confirmMockPayment(transactionId: string) {
-  const supabase = await createClient();
-  
-  // In a real scenario, this would be handled by the Stripe Webhook, not the client hitting a server action.
-  // We update the transaction record in Supabase to 'Completed'.
-  
-  const { error } = await supabase
-    .from('transactions')
-    .update({ payment_status: 'Completed', paid_at: new Date().toISOString() })
-    .eq('id', transactionId);
+/**
+ * Looks up student by Admission Number and Date of Birth,
+ * and fetches any unpaid or partially paid fee invoices.
+ */
+export async function lookupStudentDues(admissionNo: string, dob?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const cleanAdm = admissionNo.trim().toUpperCase();
 
-  if (error) {
-    console.error("[Payment Confirmation Error]", error);
+    // 1. Query student
+    let studentQuery = supabase
+      .from('students')
+      .select('id, first_name, last_name, admission_no, dob, campus_id')
+      .ilike('admission_no', cleanAdm);
+
+    const { data: students, error: sErr } = await studentQuery;
+    if (sErr) throw sErr;
+    if (!students || students.length === 0) {
+      return { success: false, error: "No student found with admission number: " + cleanAdm };
+    }
+
+    const student = students[0];
+
+    // Optional DOB validation if provided
+    if (dob && student.dob && student.dob !== dob) {
+      return { success: false, error: "Date of Birth does not match student record." };
+    }
+
+    // 2. Fetch active/unpaid invoices
+    const { data: invoices, error: invErr } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('student_id', student.id)
+      .in('status', ['Unpaid', 'Partial', 'Overdue'])
+      .order('created_at', { ascending: false });
+
+    if (invErr) throw invErr;
+
+    // 3. Fetch invoice items breakdown if an invoice exists
+    let invoiceItems: any[] = [];
+    if (invoices && invoices.length > 0) {
+      const activeInvoice = invoices[0];
+      const { data: items } = await supabase
+        .from('student_invoice_items')
+        .select('*, fee_heads(name)')
+        .eq('invoice_id', activeInvoice.id);
+      invoiceItems = items || [];
+    }
+
+    // 4. Fetch academic info for class name
+    const { data: academic } = await supabase
+      .from('student_academic_history')
+      .select('class_name, section_name')
+      .eq('student_id', student.id)
+      .limit(1)
+      .maybeSingle();
+
+    return {
+      success: true,
+      data: {
+        student: {
+          id: student.id,
+          name: `${student.first_name} ${student.last_name}`,
+          admissionNo: student.admission_no,
+          dob: student.dob,
+          className: academic ? `${academic.class_name} ${academic.section_name || ''}`.trim() : 'General Grade'
+        },
+        hasPendingDues: invoices && invoices.length > 0,
+        invoice: invoices && invoices.length > 0 ? invoices[0] : null,
+        items: invoiceItems
+      }
+    };
+  } catch (error: any) {
     return { success: false, error: error.message };
   }
+}
 
-  return { success: true };
+/**
+ * Processes online fee payment for an invoice (Razorpay / Gateway success).
+ * Updates invoice status to 'Paid' and records receipt.
+ */
+export async function processInvoiceOnlinePayment(invoiceId: string, paymentMethod: string = 'Razorpay / Online', transactionRef?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: invoice, error: fetchErr } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
+
+    if (fetchErr || !invoice) throw new Error("Invoice not found");
+
+    const totalAmount = Number(invoice.total_amount || 0);
+    const txnId = transactionRef || `TXN-ONL-${Date.now()}`;
+
+    // 1. Update invoice to Paid
+    const { error: updateErr } = await supabase
+      .from('student_invoices')
+      .update({
+        amount_paid: totalAmount,
+        status: 'Paid',
+        total_late_fee: invoice.total_late_fee || 0
+      })
+      .eq('id', invoiceId);
+
+    if (updateErr) throw updateErr;
+
+    // 2. Insert into student fee ledgers
+    await supabase
+      .from('student_fee_ledgers')
+      .insert([{
+        campus_id: invoice.campus_id,
+        student_id: invoice.student_id,
+        transaction_type: 'Payment',
+        amount: -totalAmount,
+        running_balance: 0,
+        reference_id: invoice.id,
+        remarks: `Online Payment via ${paymentMethod} (Ref: ${txnId})`
+      }]);
+
+    revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/collections');
+    revalidatePath('/pay-fees');
+    revalidatePath('/parent/fees');
+
+    return {
+      success: true,
+      transactionId: txnId,
+      receiptNumber: `REC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+      amountPaid: totalAmount,
+      invoiceNumber: invoice.invoice_number,
+      paidAt: new Date().toISOString()
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
