@@ -987,3 +987,45 @@ export async function getDashboardMetrics(campusId: string) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Uploads a file (photo or document) to Supabase Storage and returns its public URL.
+ */
+export async function uploadFileToStorage(formData: FormData) {
+  try {
+    const file = formData.get('file') as File;
+    const folder = (formData.get('folder') as string) || 'general';
+    if (!file) throw new Error("No file selected.");
+
+    const supabase = getSupabaseAdmin();
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const ext = file.name.split('.').pop() || 'bin';
+    const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const path = `${folder}/${Date.now()}_${cleanName}`;
+
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(path, buffer, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(path);
+
+    return { 
+      success: true, 
+      url: publicUrlData.publicUrl,
+      fileName: file.name,
+      fileSize: file.size
+    };
+  } catch (error: any) {
+    console.error("Storage upload error:", error);
+    return { success: false, error: error.message };
+  }
+}

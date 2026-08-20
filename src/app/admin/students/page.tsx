@@ -11,6 +11,7 @@ import { getStudents, createStudent, deleteStudentPermanently } from "@/app/acti
 import { getClasses } from "@/app/actions/classes";
 import Link from "next/link";
 import TransferCertificateModal from "@/components/admin/TransferCertificateModal";
+import FileUpload from "@/components/admin/FileUpload";
 
 export default function StudentsDirectory() {
   const { activeCampusId } = useCampusContext();
@@ -534,25 +535,13 @@ export default function StudentsDirectory() {
                   </div>
 
                   {/* Student Photo & Demographics */}
-                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-white border-2 border-stone-300 shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
-                      {formData.photo_url ? (
-                        <img src={formData.photo_url} alt="Student Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-stone-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 w-full">
-                      <label className="text-xs font-bold text-stone-700 block mb-1">Student Passport Photo URL</label>
-                      <input 
-                        type="url" 
-                        placeholder="https://example.com/student-photo.jpg (or image URL)" 
-                        value={formData.photo_url} 
-                        onChange={e => setFormData({...formData, photo_url: e.target.value})} 
-                        className="w-full border border-stone-200 p-2 rounded-xl text-xs bg-white" 
-                      />
-                    </div>
-                  </div>
+                  <FileUpload 
+                    label="Student Passport Photograph" 
+                    value={formData.photo_url} 
+                    onChange={url => setFormData({...formData, photo_url: url})} 
+                    folder="student_photos" 
+                    mode="avatar"
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
@@ -638,11 +627,117 @@ export default function StudentsDirectory() {
                 </div>
               )}
 
+              {/* Tab 2: Father Details */}
+              {regTab === "father" && (
+                <div className="space-y-4">
+                  <FileUpload 
+                    label="Father Passport Photograph" 
+                    value={formData.father_photo_url} 
+                    onChange={url => setFormData({...formData, father_photo_url: url})} 
+                    folder="parent_photos" 
+                    mode="avatar"
+                  />
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Full Name *</label>
+                      <input type="text" value={formData.father_name} onChange={e => setFormData({...formData, father_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="Enter father's name" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Mobile Phone *</label>
+                      <input type="text" value={formData.father_mobile} onChange={e => setFormData({...formData, father_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" placeholder="10-digit mobile" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
+                      <input type="email" value={formData.father_email} onChange={e => setFormData({...formData, father_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
+                      <input type="text" value={formData.father_occupation} onChange={e => setFormData({...formData, father_occupation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. Software Engineer, Business" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
+                      <input type="text" value={formData.father_income} onChange={e => setFormData({...formData, father_income: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. ₹8,00,000" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Highest Qualification</label>
+                      <input type="text" value={formData.father_qualification} onChange={e => setFormData({...formData, father_qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. B.Tech, MBA" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Aadhaar No</label>
+                      <input type="text" value={formData.father_aadhaar} onChange={e => setFormData({...formData, father_aadhaar: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Mother Details */}
+              {regTab === "mother" && (
+                <div className="space-y-4">
+                  <FileUpload 
+                    label="Mother Passport Photograph" 
+                    value={formData.mother_photo_url} 
+                    onChange={url => setFormData({...formData, mother_photo_url: url})} 
+                    folder="parent_photos" 
+                    mode="avatar"
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Full Name</label>
+                      <input type="text" value={formData.mother_name} onChange={e => setFormData({...formData, mother_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="Enter mother's name" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Mobile Phone</label>
+                      <input type="text" value={formData.mother_mobile} onChange={e => setFormData({...formData, mother_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
+                      <input type="email" value={formData.mother_email} onChange={e => setFormData({...formData, mother_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
+                      <input type="text" value={formData.mother_occupation} onChange={e => setFormData({...formData, mother_occupation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. Teacher, Homemaker" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
+                      <input type="text" value={formData.mother_income} onChange={e => setFormData({...formData, mother_income: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Qualification</label>
+                      <input type="text" value={formData.mother_qualification} onChange={e => setFormData({...formData, mother_qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Aadhaar</label>
+                      <input type="text" value={formData.mother_aadhaar} onChange={e => setFormData({...formData, mother_aadhaar: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tab 4: Guardian Details */}
               {regTab === "guardian" && (
                 <div className="space-y-4">
+                  <FileUpload 
+                    label="Guardian Passport Photograph" 
+                    value={formData.guardian_photo_url} 
+                    onChange={url => setFormData({...formData, guardian_photo_url: url})} 
+                    folder="parent_photos" 
+                    mode="avatar"
+                  />
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-bold text-stone-500 block mb-1">Local Guardian Full Name</label>

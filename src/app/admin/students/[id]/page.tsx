@@ -26,6 +26,7 @@ import {
 } from "@/app/actions/students";
 import { useRouter } from "next/navigation";
 import TransferCertificateModal from "@/components/admin/TransferCertificateModal";
+import FileUpload from "@/components/admin/FileUpload";
 
 export default function StudentProfileDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -1400,26 +1401,14 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               
               {editSection === "student" ? (
                 <div className="space-y-4">
-                  {/* Photo Preview & Input */}
-                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-white border-2 border-stone-300 shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
-                      {profileFormData.photo_url ? (
-                        <img src={profileFormData.photo_url} alt="Student Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-stone-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 w-full">
-                      <label className="text-xs font-bold text-stone-700 block mb-1">Student Passport Photo URL</label>
-                      <input 
-                        type="url" 
-                        placeholder="https://example.com/student-photo.jpg (or image link)" 
-                        value={profileFormData.photo_url} 
-                        onChange={e => setProfileFormData({...profileFormData, photo_url: e.target.value})} 
-                        className="w-full border border-stone-200 p-2 rounded-xl text-xs bg-white" 
-                      />
-                    </div>
-                  </div>
+                  {/* Student Photo */}
+                  <FileUpload 
+                    label="Student Passport Photograph" 
+                    value={profileFormData.photo_url} 
+                    onChange={url => setProfileFormData({...profileFormData, photo_url: url})} 
+                    folder="student_photos" 
+                    mode="avatar"
+                  />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
@@ -1534,6 +1523,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   {/* Father Details */}
                   <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">Father&apos;s Information</h4>
+                    <FileUpload 
+                      label="Father Passport Photograph" 
+                      value={profileFormData.father_photo_url} 
+                      onChange={url => setProfileFormData({...profileFormData, father_photo_url: url})} 
+                      folder="parent_photos" 
+                      mode="avatar"
+                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Name</label>
@@ -1544,17 +1540,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <input type="text" value={profileFormData.father_mobile} onChange={e => setProfileFormData({...profileFormData, father_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
                         <input type="email" value={profileFormData.father_email} onChange={e => setProfileFormData({...profileFormData, father_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Photo URL</label>
-                        <input type="url" placeholder="https://example.com/father.jpg" value={profileFormData.father_photo_url} onChange={e => setProfileFormData({...profileFormData, father_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
                         <input type="text" value={profileFormData.father_occupation} onChange={e => setProfileFormData({...profileFormData, father_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
@@ -1569,6 +1559,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   {/* Mother Details */}
                   <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-pink-700">Mother&apos;s Information</h4>
+                    <FileUpload 
+                      label="Mother Passport Photograph" 
+                      value={profileFormData.mother_photo_url} 
+                      onChange={url => setProfileFormData({...profileFormData, mother_photo_url: url})} 
+                      folder="parent_photos" 
+                      mode="avatar"
+                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Name</label>
@@ -1579,17 +1576,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <input type="text" value={profileFormData.mother_mobile} onChange={e => setProfileFormData({...profileFormData, mother_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
                         <input type="email" value={profileFormData.mother_email} onChange={e => setProfileFormData({...profileFormData, mother_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Photo URL</label>
-                        <input type="url" placeholder="https://example.com/mother.jpg" value={profileFormData.mother_photo_url} onChange={e => setProfileFormData({...profileFormData, mother_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
                         <input type="text" value={profileFormData.mother_occupation} onChange={e => setProfileFormData({...profileFormData, mother_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
@@ -1604,6 +1595,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   {/* Local Guardian Details */}
                   <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700">Local Guardian (Optional)</h4>
+                    <FileUpload 
+                      label="Guardian Passport Photograph" 
+                      value={profileFormData.guardian_photo_url} 
+                      onChange={url => setProfileFormData({...profileFormData, guardian_photo_url: url})} 
+                      folder="parent_photos" 
+                      mode="avatar"
+                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Guardian Name</label>
@@ -1613,10 +1611,6 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone</label>
                         <input type="text" value={profileFormData.guardian_mobile} onChange={e => setProfileFormData({...profileFormData, guardian_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Guardian Photo URL</label>
-                      <input type="url" placeholder="https://example.com/guardian.jpg" value={profileFormData.guardian_photo_url} onChange={e => setProfileFormData({...profileFormData, guardian_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                     </div>
                   </div>
 
@@ -1798,13 +1792,14 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               </div>
 
               <div>
-                <label className="text-xs font-bold text-stone-500 block mb-1">File Storage URL / Link</label>
-                <input 
-                  type="text" 
-                  placeholder="https://... (or leave blank for standard cloud storage)" 
-                  value={docFormData.file_url} 
-                  onChange={e => setDocFormData({...docFormData, file_url: e.target.value})} 
-                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" 
+                <FileUpload 
+                  label="Document File / Scan (Image or PDF) *"
+                  value={docFormData.file_url}
+                  onChange={url => setDocFormData({...docFormData, file_url: url})}
+                  folder="student_documents"
+                  accept="image/*,application/pdf"
+                  mode="document"
+                  placeholder="Upload certificate, mark sheet, or ID document"
                 />
               </div>
 

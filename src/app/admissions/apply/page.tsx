@@ -4,11 +4,13 @@ import { useState } from "react";
 import { submitAdmission } from "@/app/actions/forms";
 import { CheckCircle2, ArrowRight, UploadCloud, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import FileUpload from "@/components/admin/FileUpload";
 
 export default function ApplyNowPage() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [docUrl, setDocUrl] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -139,13 +141,16 @@ export default function ApplyNowPage() {
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="space-y-6">
                     <h2 className="text-xl font-bold text-stone-800 border-b border-stone-100 pb-2">Document Upload</h2>
-                    <div className="border-2 border-dashed border-stone-300 rounded-2xl p-8 text-center hover:bg-stone-50 transition-colors cursor-pointer flex flex-col items-center">
-                      <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
-                        <UploadCloud className="w-8 h-8" />
-                      </div>
-                      <p className="text-stone-800 font-bold mb-1">Upload Birth Certificate / ID</p>
-                      <p className="text-sm text-stone-500">Drag and drop or click to browse (PDF, JPG, PNG)</p>
-                    </div>
+                    <input type="hidden" name="document_url" value={docUrl} />
+                    <FileUpload 
+                      label="Child's Birth Certificate or Aadhaar Card (PDF / Image)"
+                      value={docUrl}
+                      onChange={setDocUrl}
+                      folder="admissions_documents"
+                      accept="image/*,application/pdf"
+                      mode="document"
+                      placeholder="Upload Birth Certificate or ID scan"
+                    />
                   </div>
 
                   <div className="space-y-6">
