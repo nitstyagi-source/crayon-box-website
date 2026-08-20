@@ -16,7 +16,9 @@ import {
   deleteStudentDocument,
   promoteStudent,
   transferStudentClass,
-  deleteStudentPermanently
+  deleteStudentPermanently,
+  saveStudentAddress,
+  deleteStudentAddress
 } from "@/app/actions/students";
 import { useRouter } from "next/navigation";
 
@@ -106,6 +108,16 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     remarks: ""
   });
   const [actionReason, setActionReason] = useState("");
+
+  // Address Modal State
+  const [addressModal, setAddressModal] = useState(false);
+  const [addressData, setAddressData] = useState({
+    address_type: "Residential",
+    street: "",
+    city: "New Delhi",
+    state: "Delhi",
+    pin_code: ""
+  });
 
   // Medical Edit State
   const [medicalEdit, setMedicalEdit] = useState(false);
@@ -239,6 +251,32 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
       router.push("/admin/students");
     } else {
       alert("Failed to delete student: " + res.error);
+    }
+  }
+
+  async function handleSaveAddress(e: React.FormEvent) {
+    e.preventDefault();
+    setIsUpdating(true);
+    const res = await saveStudentAddress(studentId, addressData);
+    setIsUpdating(false);
+    if (res.success) {
+      setAddressModal(false);
+      setAddressData({ address_type: "Residential", street: "", city: "New Delhi", state: "Delhi", pin_code: "" });
+      loadProfile();
+    } else {
+      alert("Failed to save address: " + res.error);
+    }
+  }
+
+  async function handleDeleteAddress(addressId: string) {
+    if (!confirm("Remove this address record?")) return;
+    setIsUpdating(true);
+    const res = await deleteStudentAddress(addressId, studentId);
+    setIsUpdating(false);
+    if (res.success) {
+      loadProfile();
+    } else {
+      alert("Failed to delete address: " + res.error);
     }
   }
 
@@ -515,16 +553,40 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             </div>
 
             <div>
-              <h3 className="text-lg font-bold text-stone-900 mb-4 border-b border-stone-100 pb-2">Addresses on File</h3>
+              <div className="flex justify-between items-center mb-4 border-b border-stone-100 pb-2">
+                <h3 className="text-lg font-bold text-stone-900">Addresses on File</h3>
+                <button 
+                  onClick={() => setAddressModal(true)} 
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Address
+                </button>
+              </div>
+
               {profile.addresses && profile.addresses.length > 0 ? (
-                profile.addresses.map((addr: any) => (
-                  <div key={addr.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-100 mb-3">
-                    <span className="text-xs font-bold uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{addr.address_type}</span>
-                    <p className="font-bold text-stone-800 mt-2 text-sm">{addr.street}, {addr.city}, {addr.state} - {addr.pin_code}</p>
-                  </div>
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {profile.addresses.map((addr: any) => (
+                    <div key={addr.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">{addr.address_type}</span>
+                        <p className="font-bold text-stone-800 mt-2 text-sm">{addr.street}</p>
+                        <p className="text-xs text-stone-500">{addr.city}, {addr.state} - {addr.pin_code}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteAddress(addr.id)}
+                        className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Address"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <p className="text-stone-400 text-sm">No secondary address records attached.</p>
+                <div className="text-center py-6 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                  <p className="text-stone-400 text-xs">No address records attached yet.</p>
+                  <button onClick={() => setAddressModal(true)} className="mt-2 text-xs font-bold text-blue-600 hover:underline">Add Residential Address</button>
+                </div>
               )}
             </div>
           </div>
@@ -1453,6 +1515,92 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   }`}
                 >
                   {isUpdating ? "Processing..." : selectedAction === "Promotion" ? "Promote Student" : "Apply & Move"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 6: Add Address */}
+      {addressModal && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <h3 className="text-xl font-bold text-stone-900">Add Address Record</h3>
+                <p className="text-stone-500 text-xs mt-0.5">Attach residential or permanent address for this student.</p>
+              </div>
+              <button onClick={() => setAddressModal(false)} className="p-2 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddress} className="space-y-4 mt-4">
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Address Type</label>
+                <select 
+                  value={addressData.address_type} 
+                  onChange={e => setAddressData({...addressData, address_type: e.target.value})}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-800"
+                >
+                  <option value="Residential">Residential / Current Address</option>
+                  <option value="Permanent">Permanent Home Address</option>
+                  <option value="Postal">Postal / Communication Address</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Street / House No. / Area *</label>
+                <textarea 
+                  required
+                  rows={2}
+                  placeholder="e.g. Flat 302, Green Valley Apartments, Sector 14" 
+                  value={addressData.street}
+                  onChange={e => setAddressData({...addressData, street: e.target.value})}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm text-stone-900" 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">City *</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={addressData.city}
+                    onChange={e => setAddressData({...addressData, city: e.target.value})}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">State *</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={addressData.state}
+                    onChange={e => setAddressData({...addressData, state: e.target.value})}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">PIN / Postal Code *</label>
+                <input 
+                  required
+                  type="text" 
+                  placeholder="6-digit PIN"
+                  value={addressData.pin_code}
+                  onChange={e => setAddressData({...addressData, pin_code: e.target.value})}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" 
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-stone-100">
+                <button type="button" onClick={() => setAddressModal(false)} className="px-5 py-2.5 font-bold text-stone-500 text-sm hover:bg-stone-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isUpdating} className="bg-stone-900 hover:bg-stone-800 text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-50 shadow-md">
+                  {isUpdating ? "Saving..." : "Save Address"}
                 </button>
               </div>
             </form>

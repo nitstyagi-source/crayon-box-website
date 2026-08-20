@@ -124,6 +124,10 @@ export async function createStudent(payload: any) {
     }
 
     // 2. Insert Student
+    const dob = payload.dob && String(payload.dob).trim() !== "" ? String(payload.dob).trim() : null;
+    const aadhaar = payload.aadhaar_no && String(payload.aadhaar_no).trim() !== "" ? String(payload.aadhaar_no).trim() : null;
+    const bloodGroup = payload.blood_group && String(payload.blood_group).trim() !== "" ? String(payload.blood_group).trim() : null;
+
     const { data: student, error: studentError } = await supabase
       .from('students')
       .insert([{
@@ -132,12 +136,12 @@ export async function createStudent(payload: any) {
         first_name: payload.first_name.trim(),
         middle_name: payload.middle_name?.trim() || null,
         last_name: payload.last_name.trim(),
-        dob: payload.dob || null,
+        dob: dob,
         gender: payload.gender || 'Male',
         category: payload.category || 'General',
-        blood_group: payload.blood_group || null,
+        blood_group: bloodGroup,
         nationality: payload.nationality || 'Indian',
-        aadhaar_no: payload.aadhaar_no || null,
+        aadhaar_no: aadhaar,
         status: 'Active',
       }])
       .select()
@@ -585,6 +589,55 @@ export async function uploadStudentDocument(studentId: string, payload: {
 
     revalidatePath(`/admin/students/${studentId}`);
     return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveStudentAddress(studentId: string, payload: {
+  address_type?: string;
+  street: string;
+  city: string;
+  state: string;
+  pin_code: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('student_addresses')
+      .insert([{
+        student_id: studentId,
+        address_type: payload.address_type || 'Residential',
+        street: payload.street.trim(),
+        city: payload.city.trim(),
+        state: payload.state.trim(),
+        pin_code: payload.pin_code.trim(),
+        country: 'India'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath(`/admin/students/${studentId}`);
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteStudentAddress(addressId: string, studentId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('student_addresses')
+      .delete()
+      .eq('id', addressId);
+
+    if (error) throw error;
+
+    revalidatePath(`/admin/students/${studentId}`);
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
