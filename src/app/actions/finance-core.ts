@@ -25,6 +25,286 @@ async function resolveCampusId(supabase: any, campusId: string): Promise<string>
 // -------------------------------------------------------------
 // BACKWARD COMPATIBILITY HELPERS
 // -------------------------------------------------------------
+export async function generateIndividualInvoice(payload: {
+  campus_id: string;
+  student_id: string;
+  billing_period: string;
+  due_date: string;
+  notes?: string;
+  items: Array<{
+    fee_head_id?: string;
+    fee_head_name: string;
+    base_amount: number;
+    discount_amount?: number;
+  }>;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    // 1. Verify student and check EWS status
+    const { data: student, error: stErr } = await supabase
+      .from('students')
+      .select('id, first_name, last_name, admission_no, enrollment_number, category')
+      .eq('id', payload.student_id)
+      .single();
+
+    if (stErr || !student) throw new Error("Student record not found.");
+
+    if (student.category === 'EWS') {
+      throw new Error("Cannot generate fee invoices for EWS / RTE quota students (100% Free Quota under RTE Act).");
+    }
+
+    const { data: academic } = await supabase
+      .from('student_academic_history')
+      .select('class_name, section_name')
+      .eq('student_id', student.id)
+      .eq('is_current_session', true)
+      .maybeSingle();
+
+    const studentName = `${student.first_name} ${student.last_name || ''}`.trim();
+    const admissionNo = student.admission_no || student.enrollment_number || 'ADM-N/A';
+    const className = academic?.class_name || 'Grade 1';
+    const sectionName = academic?.section_name || 'A';
+
+    // 2. Calculate totals from items with individual head discounts
+    let totalBase = 0;
+    let totalDiscount = 0;
+
+    const sanitizedItems = (payload.items || []).map(item => {
+      const base = Number(item.base_amount || 0);
+      const disc = Math.min(base, Number(item.discount_amount || 0));
+      totalBase += base;
+      totalDiscount += disc;
+      return {
+        fee_head_id: item.fee_head_id || null,
+        fee_head_name: item.fee_head_name,
+        base_amount: base,
+        discount_amount: disc,
+        net_amount: base - disc
+      };
+    });
+
+    const netPayable = Math.max(0, totalBase - totalDiscount);
+    const invoiceNumber = `INV-2026-${Date.now().toString().slice(-6)}`;
+
+    // 3. Insert into student_invoices
+    const { data: invoice, error: invErr } = await supabase
+      .from('student_invoices')
+      .insert([{
+        campus_id: resolvedId,
+        student_id: student.id,
+        invoice_number: invoiceNumber,
+        billing_period: payload.billing_period || 'Session 2026-27',
+        total_amount: totalBase,
+        total_discount: totalDiscount,
+        total_late_fee: 0,
+        amount_paid: 0,
+        status: netPayable === 0 ? 'Paid' : 'Unpaid',
+        due_date: payload.due_date || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+        notes: payload.notes || 'Individual fee demand invoice',
+        class_name: className,
+        section_name: sectionName,
+        student_name: studentName,
+        admission_no: admissionNo
+      }])
+      .select()
+      .single();
+
+    if (invErr) throw invErr;
+
+    // 4. Insert individual line items with head discounts
+    if (sanitizedItems.length > 0) {
+      const lineItems = sanitizedItems.map(it => ({
+        invoice_id: invoice.id,
+        fee_head_id: it.fee_head_id,
+        fee_head_name: it.fee_head_name,
+        base_amount: it.base_amount,
+        discount_amount: it.discount_amount,
+        net_amount: it.net_amount,
+        due_date: payload.due_date || new Date().toISOString().split('T')[0]
+      }));
+
+      await supabase.from('student_invoice_items').insert(lineItems);
+    }
+
+    // 5. Post debit demand to student fee ledger
+    await supabase.from('student_fee_ledgers').insert([{
+      campus_id: resolvedId,
+      student_id: student.id,
+      academic_session: '2026-2027',
+      transaction_date: new Date().toISOString().split('T')[0],
+      particulars: `Fee Demand Invoice #${invoiceNumber} (${payload.billing_period})`,
+      fee_head_name: 'Fee Invoice Demand',
+      debit: netPayable,
+      credit: 0,
+      running_balance: netPayable,
+      voucher_type: 'Demand',
+      reference_no: invoiceNumber,
+      receipt_id: null,
+      created_by: 'Accounts Desk'
+    }]);
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/generate');
+    revalidatePath('/admin/finance/collections');
+    return { success: true, data: invoice };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function generateBulkInvoices(payload: {
+  campus_id: string;
+  class_name?: string; // 'All' or specific
+  section_name?: string;
+  billing_period: string;
+  due_date: string;
+  notes?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    // 1. Fetch non-EWS students for the target class
+    let studentQuery = supabase
+      .from('students')
+      .select(`
+        id, first_name, last_name, admission_no, enrollment_number, category,
+        student_academic_history (class_name, section_name, is_current_session),
+        student_fee_profiles (*)
+      `)
+      .eq('campus_id', resolvedId);
+
+    const { data: allStudents, error: stErr } = await studentQuery;
+    if (stErr) throw stErr;
+
+    // Filter students by class if specified
+    const targetStudents = (allStudents || []).filter(s => {
+      const academic = s.student_academic_history?.find((h: any) => h.is_current_session) || s.student_academic_history?.[0] || {};
+      if (payload.class_name && payload.class_name !== 'All' && academic.class_name !== payload.class_name) {
+        return false;
+      }
+      return true;
+    });
+
+    // Separate non-EWS from EWS students
+    const nonEwsStudents = targetStudents.filter(s => s.category !== 'EWS');
+    const ewsCount = targetStudents.filter(s => s.category === 'EWS').length;
+
+    let generatedCount = 0;
+    let invCounter = Number(Date.now().toString().slice(-4));
+
+    // 2. Fetch fee structures
+    const { data: structures } = await supabase
+      .from('fee_structures')
+      .select('*, fee_structure_items(*)')
+      .eq('campus_id', resolvedId);
+
+    const structMap = (structures || []).reduce((acc: any, s: any) => {
+      acc[s.class_name] = s;
+      return acc;
+    }, {});
+
+    for (const st of nonEwsStudents) {
+      const academic = st.student_academic_history?.find((h: any) => h.is_current_session) || st.student_academic_history?.[0] || {};
+      const profile = st.student_fee_profiles?.[0] || {};
+      const className = academic.class_name || 'Grade 1';
+      const sectionName = academic.section_name || 'A';
+      const studentName = `${st.first_name} ${st.last_name || ''}`.trim();
+      const admNo = st.admission_no || st.enrollment_number || 'ADM-N/A';
+
+      const struct = structMap[className] || structMap['Grade 1'] || { total_annual_amount: 11500, fee_structure_items: [] };
+      const items = struct.fee_structure_items || [];
+
+      let totalBase = 0;
+      let totalDiscount = 0;
+      const concessionPct = Number(profile.concession_percentage || 0);
+
+      const invoiceItems = items.map((it: any) => {
+        const base = Number(it.amount || 3500);
+        const disc = concessionPct > 0 ? Math.round((base * concessionPct) / 100) : 0;
+        totalBase += base;
+        totalDiscount += disc;
+        return {
+          fee_head_id: it.fee_head_id,
+          fee_head_name: it.fee_head_name,
+          base_amount: base,
+          discount_amount: disc,
+          net_amount: base - disc,
+          due_date: payload.due_date
+        };
+      });
+
+      if (invoiceItems.length === 0) {
+        totalBase = 11500;
+        totalDiscount = concessionPct > 0 ? Math.round((11500 * concessionPct) / 100) : 0;
+      }
+
+      const netPayable = Math.max(0, totalBase - totalDiscount);
+      const invNum = `INV-2026-B${invCounter++}`;
+
+      const { data: inv } = await supabase
+        .from('student_invoices')
+        .insert([{
+          campus_id: resolvedId,
+          student_id: st.id,
+          invoice_number: invNum,
+          billing_period: payload.billing_period || 'Session 2026-27',
+          total_amount: totalBase,
+          total_discount: totalDiscount,
+          total_late_fee: 0,
+          amount_paid: 0,
+          status: netPayable === 0 ? 'Paid' : 'Unpaid',
+          due_date: payload.due_date,
+          notes: payload.notes || 'Bulk batch generated invoice',
+          class_name: className,
+          section_name: sectionName,
+          student_name: studentName,
+          admission_no: admNo
+        }])
+        .select()
+        .single();
+
+      if (inv && invoiceItems.length > 0) {
+        const lines = invoiceItems.map((l: any) => ({ ...l, invoice_id: inv.id }));
+        await supabase.from('student_invoice_items').insert(lines);
+      }
+
+      // Ledger Debit
+      await supabase.from('student_fee_ledgers').insert([{
+        campus_id: resolvedId,
+        student_id: st.id,
+        academic_session: '2026-2027',
+        transaction_date: new Date().toISOString().split('T')[0],
+        particulars: `Fee Demand Invoice #${invNum} (${payload.billing_period})`,
+        fee_head_name: 'Fee Demand',
+        debit: netPayable,
+        credit: 0,
+        running_balance: netPayable,
+        voucher_type: 'Demand',
+        reference_no: invNum,
+        created_by: 'Bulk Generator'
+      }]);
+
+      generatedCount++;
+    }
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/generate');
+    return {
+      success: true,
+      message: `🎉 Successfully generated ${generatedCount} invoices. Skipped ${ewsCount} EWS students (100% RTE Free Quota).`,
+      generatedCount,
+      ewsCount
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function updateIndividualInvoice(payload: {
   id: string;
   total_amount: number;
@@ -35,6 +315,12 @@ export async function updateIndividualInvoice(payload: {
   billing_period?: string;
   status?: string;
   notes?: string;
+  items?: Array<{
+    id?: string;
+    fee_head_name: string;
+    base_amount: number;
+    discount_amount: number;
+  }>;
 }) {
   try {
     const supabase = getSupabaseAdmin();
@@ -47,8 +333,27 @@ export async function updateIndividualInvoice(payload: {
 
     if (fetchErr) throw fetchErr;
 
-    const totalAmt = Number(payload.total_amount || 0);
-    const discount = Number(payload.total_discount || 0);
+    let totalAmt = Number(payload.total_amount || 0);
+    let discount = Number(payload.total_discount || 0);
+
+    // If items provided, compute sum from line-item head discounts
+    if (payload.items && payload.items.length > 0) {
+      totalAmt = payload.items.reduce((sum, it) => sum + Number(it.base_amount || 0), 0);
+      discount = payload.items.reduce((sum, it) => sum + Number(it.discount_amount || 0), 0);
+
+      // Upsert line items
+      await supabase.from('student_invoice_items').delete().eq('invoice_id', payload.id);
+      const lines = payload.items.map(it => ({
+        invoice_id: payload.id,
+        fee_head_name: it.fee_head_name,
+        base_amount: Number(it.base_amount || 0),
+        discount_amount: Number(it.discount_amount || 0),
+        net_amount: Number(it.base_amount || 0) - Number(it.discount_amount || 0),
+        due_date: payload.due_date || inv.due_date
+      }));
+      await supabase.from('student_invoice_items').insert(lines);
+    }
+
     const lateFee = Number(payload.total_late_fee || 0);
     const paid = Number(payload.amount_paid ?? inv.amount_paid ?? 0);
     const netDue = Math.max(0, totalAmt + lateFee - discount - paid);
@@ -565,6 +870,11 @@ export async function collectFeePayment(payload: {
     const dueAmt = Number(payload.total_amount_due || 0);
     const concessionAmt = Number(payload.concession_amount || 0);
     const lateFeeAmt = Number(payload.late_fee_amount || 0);
+
+    if (dueAmt <= 0) {
+      throw new Error("This account / invoice is already fully paid. An invoice cannot be paid twice.");
+    }
+
     const remainingBalance = Math.max(0, dueAmt + lateFeeAmt - concessionAmt - paidAmt);
 
     // Generate Unique Receipt Number
@@ -606,7 +916,30 @@ export async function collectFeePayment(payload: {
 
     if (recErr) throw recErr;
 
-    // 2. Insert Double-Entry Ledger Credit
+    // 2. Update matching student_invoices record
+    const { data: activeInvs } = await supabase
+      .from('student_invoices')
+      .select('*')
+      .eq('student_id', payload.student_id)
+      .in('status', ['Unpaid', 'Partial', 'Overdue'])
+      .order('created_at', { ascending: false });
+
+    if (activeInvs && activeInvs.length > 0) {
+      const activeInv = activeInvs[0];
+      const curPaid = Number(activeInv.amount_paid || 0) + paidAmt;
+      const netInvDue = Math.max(0, Number(activeInv.total_amount || 0) - Number(activeInv.total_discount || 0) - curPaid);
+      const newInvStatus = netInvDue === 0 ? 'Paid' : 'Partial';
+
+      await supabase
+        .from('student_invoices')
+        .update({
+          amount_paid: curPaid,
+          status: newInvStatus
+        })
+        .eq('id', activeInv.id);
+    }
+
+    // 3. Insert Double-Entry Ledger Credit
     await supabase.from('student_fee_ledgers').insert([{
       campus_id: resolvedId,
       student_id: payload.student_id,

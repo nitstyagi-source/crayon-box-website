@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { 
   Receipt, Search, Filter, Edit3, Printer, CheckCircle2, 
   AlertTriangle, Clock, RefreshCw, X, Eye, ShieldCheck, DollarSign,
-  Calendar, FileText, ArrowRight, Save
+  Calendar, FileText, ArrowRight, Save, Plus, Trash2, Layers
 } from "lucide-react";
+import Link from "next/link";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getInvoices, updateIndividualInvoice } from "@/app/actions/finance-core";
 
@@ -21,6 +22,12 @@ export default function InvoicesModule() {
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [editFormData, setEditFormData] = useState<any>({});
+  const [editItems, setEditItems] = useState<Array<{
+    id?: string;
+    fee_head_name: string;
+    base_amount: number;
+    discount_amount: number;
+  }>>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -43,6 +50,15 @@ export default function InvoicesModule() {
 
   function handleOpenEdit(inv: any) {
     setSelectedInvoice(inv);
+    
+    // Default or existing line items breakdown
+    const defaultItems = [
+      { fee_head_name: "Tuition Fee", base_amount: Math.round(Number(inv.total_amount || 11500) * 0.6), discount_amount: Number(inv.total_discount || 0) },
+      { fee_head_name: "Annual & Development Charges", base_amount: Math.round(Number(inv.total_amount || 11500) * 0.25), discount_amount: 0 },
+      { fee_head_name: "Activity & Lab Charges", base_amount: Math.round(Number(inv.total_amount || 11500) * 0.15), discount_amount: 0 }
+    ];
+
+    setEditItems(defaultItems);
     setEditFormData({
       id: inv.id,
       invoice_number: inv.invoice_number,
@@ -61,24 +77,47 @@ export default function InvoicesModule() {
     setEditModalOpen(true);
   }
 
+  function handleAddEditItem() {
+    setEditItems([
+      ...editItems,
+      { fee_head_name: "Miscellaneous Fee", base_amount: 1000, discount_amount: 0 }
+    ]);
+  }
+
+  function handleRemoveEditItem(index: number) {
+    setEditItems(editItems.filter((_, i) => i !== index));
+  }
+
+  function handleEditItemChange(index: number, field: string, value: any) {
+    const updated = [...editItems];
+    (updated[index] as any)[field] = value;
+    setEditItems(updated);
+  }
+
+  // Recalculate totals from items
+  const computedTotalAmount = editItems.reduce((sum, it) => sum + Number(it.base_amount || 0), 0);
+  const computedTotalDiscount = editItems.reduce((sum, it) => sum + Number(it.discount_amount || 0), 0);
+  const computedNetDue = Math.max(0, computedTotalAmount + Number(editFormData.total_late_fee || 0) - computedTotalDiscount - Number(editFormData.amount_paid || 0));
+
   async function handleSaveInvoice(e: React.FormEvent) {
     e.preventDefault();
     setIsSaving(true);
     try {
       const res = await updateIndividualInvoice({
         id: editFormData.id,
-        total_amount: Number(editFormData.total_amount),
-        total_discount: Number(editFormData.total_discount || 0),
+        total_amount: computedTotalAmount,
+        total_discount: computedTotalDiscount,
         total_late_fee: Number(editFormData.total_late_fee || 0),
         amount_paid: Number(editFormData.amount_paid || 0),
         due_date: editFormData.due_date,
         billing_period: editFormData.billing_period,
         status: editFormData.status,
-        notes: editFormData.notes
+        notes: editFormData.notes,
+        items: editItems
       });
 
       if (res.success) {
-        alert("🎉 Invoice updated successfully and ledger adjusted!");
+        alert("🎉 Invoice & itemized head discounts updated successfully!");
         setEditModalOpen(false);
         loadData();
       } else {
@@ -131,17 +170,25 @@ export default function InvoicesModule() {
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">Invoice Management</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            View, edit, adjust amounts, extend due dates, and print official fee demand notices for individual students.
+            View, edit, adjust amounts, manage head discounts, extend due dates, and print official fee demand notices.
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2.5 bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh Invoices
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/finance/generate"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" /> Generate Invoices
+          </Link>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-2 px-4 py-2.5 bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh Invoices
+          </button>
+        </div>
       </div>
 
       {/* RTE Policy Banner */}
@@ -197,7 +244,8 @@ export default function InvoicesModule() {
                 <th className="py-4 px-6">Class</th>
                 <th className="py-4 px-6">Billing Period</th>
                 <th className="py-4 px-6">Due Date</th>
-                <th className="py-4 px-6">Total Billed</th>
+                <th className="py-4 px-6">Gross Bill</th>
+                <th className="py-4 px-6 text-purple-700">Discounts</th>
                 <th className="py-4 px-6">Paid</th>
                 <th className="py-4 px-6">Net Due</th>
                 <th className="py-4 px-6">Status</th>
@@ -207,14 +255,14 @@ export default function InvoicesModule() {
             <tbody className="divide-y divide-stone-100 text-xs">
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-stone-400">
+                  <td colSpan={11} className="py-16 text-center text-stone-400">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     Loading student invoices...
                   </td>
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-stone-400">
+                  <td colSpan={11} className="py-16 text-center text-stone-400">
                     No invoices match your search.
                   </td>
                 </tr>
@@ -248,6 +296,9 @@ export default function InvoicesModule() {
                       </td>
                       <td className="py-4 px-6 font-bold text-stone-900">
                         {formatCurrency(total)}
+                      </td>
+                      <td className="py-4 px-6 font-bold text-purple-700">
+                        {discount > 0 ? `- ${formatCurrency(discount)}` : "—"}
                       </td>
                       <td className="py-4 px-6 font-black text-emerald-600">
                         {formatCurrency(paid)}
@@ -292,20 +343,21 @@ export default function InvoicesModule() {
         </div>
       </div>
 
-      {/* Edit Individual Invoice Modal */}
+      {/* Edit Individual Invoice & Fee Head Discounts Modal */}
       {editModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-stone-900">Edit Individual Invoice</h3>
+                <h3 className="text-lg font-black text-stone-900">Edit Invoice & Fee Head Discounts</h3>
                 <p className="text-xs text-stone-400">{editFormData.invoice_number} • {editFormData.student_name} (#{editFormData.admission_no})</p>
               </div>
               <button onClick={() => setEditModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
-            <form onSubmit={handleSaveInvoice} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveInvoice} className="space-y-5 text-xs">
               
+              {/* Billing Period & Due Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-stone-700 block mb-1">Billing Period</label>
@@ -329,15 +381,78 @@ export default function InvoicesModule() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Itemized Fee Heads & Individual Head Discounts */}
+              <div className="space-y-3 bg-stone-50/70 p-4 rounded-2xl border border-stone-200">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-stone-800">Itemized Fee Heads & Head-wise Discounts</span>
+                  <button
+                    type="button"
+                    onClick={handleAddEditItem}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 font-bold rounded-lg text-[11px]"
+                  >
+                    <Plus className="w-3 h-3" /> Add Head
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {editItems.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-5">
+                        <input
+                          type="text"
+                          value={item.fee_head_name}
+                          onChange={(e) => handleEditItemChange(idx, "fee_head_name", e.target.value)}
+                          className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 font-semibold text-stone-900"
+                          placeholder="Head Name"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={item.base_amount}
+                          onChange={(e) => handleEditItemChange(idx, "base_amount", Number(e.target.value))}
+                          className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 font-bold text-stone-900"
+                          placeholder="Amount (₹)"
+                          min="0"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={item.discount_amount}
+                          onChange={(e) => handleEditItemChange(idx, "discount_amount", Number(e.target.value))}
+                          className="w-full bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-1.5 font-bold text-purple-800"
+                          placeholder="Discount (₹)"
+                          min="0"
+                        />
+                      </div>
+                      <div className="col-span-1 text-right">
+                        {editItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditItem(idx)}
+                            className="text-stone-300 hover:text-red-600 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status & Adjustments */}
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Total Bill Amount (₹)</label>
+                  <label className="font-bold text-stone-700 block mb-1">Late Fee Penalty (₹)</label>
                   <input
                     type="number"
-                    value={editFormData.total_amount}
-                    onChange={(e) => setEditFormData({ ...editFormData, total_amount: Number(e.target.value) })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-black text-sm"
-                    required
+                    value={editFormData.total_late_fee}
+                    onChange={(e) => setEditFormData({ ...editFormData, total_late_fee: Number(e.target.value) })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-red-700"
                   />
                 </div>
                 <div>
@@ -346,45 +461,23 @@ export default function InvoicesModule() {
                     type="number"
                     value={editFormData.amount_paid}
                     onChange={(e) => setEditFormData({ ...editFormData, amount_paid: Number(e.target.value) })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-emerald-700 font-black text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Discount / Concession (₹)</label>
-                  <input
-                    type="number"
-                    value={editFormData.total_discount}
-                    onChange={(e) => setEditFormData({ ...editFormData, total_discount: Number(e.target.value) })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-purple-700"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-black text-emerald-700"
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Late Fee Fine (₹)</label>
-                  <input
-                    type="number"
-                    value={editFormData.total_late_fee}
-                    onChange={(e) => setEditFormData({ ...editFormData, total_late_fee: Number(e.target.value) })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-red-700"
-                  />
+                  <label className="font-bold text-stone-700 block mb-1">Invoice Status</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
+                  >
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Paid">Fully Paid</option>
+                    <option value="Overdue">Overdue</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-stone-700 block mb-1">Invoice Status</label>
-                <select
-                  value={editFormData.status}
-                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
-                >
-                  <option value="Unpaid">Unpaid</option>
-                  <option value="Partial">Partial</option>
-                  <option value="Paid">Fully Paid</option>
-                  <option value="Overdue">Overdue</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
               </div>
 
               <div>
@@ -392,18 +485,24 @@ export default function InvoicesModule() {
                 <textarea
                   value={editFormData.notes}
                   onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
-                  placeholder="e.g. 15-day due date extension approved by Principal"
+                  placeholder="e.g. Sibling discount applied to tuition fee with Principal approval"
                   rows={2}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold"
                 />
               </div>
 
               {/* Net Balance Calculated Preview */}
-              <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/70 flex justify-between items-center text-xs">
-                <span className="font-bold text-stone-600">Calculated Net Due:</span>
-                <span className="font-black font-mono text-amber-600 text-sm">
-                  {formatCurrency(Math.max(0, Number(editFormData.total_amount || 0) + Number(editFormData.total_late_fee || 0) - Number(editFormData.total_discount || 0) - Number(editFormData.amount_paid || 0)))}
-                </span>
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200/70 flex justify-between items-center text-xs">
+                <div>
+                  <span className="font-bold text-stone-600">Gross: {formatCurrency(computedTotalAmount)}</span>
+                  {computedTotalDiscount > 0 && (
+                    <span className="text-purple-700 ml-2 font-semibold">| Head Discounts: -{formatCurrency(computedTotalDiscount)}</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-stone-400 uppercase font-black block">Net Balance Due</span>
+                  <span className="font-black font-mono text-blue-600 text-sm">{formatCurrency(computedNetDue)}</span>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
@@ -420,7 +519,7 @@ export default function InvoicesModule() {
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  {isSaving ? "Saving..." : "Save Invoice Changes"}
+                  {isSaving ? "Saving..." : "Save Changes & Rebalance"}
                 </button>
               </div>
             </form>
@@ -480,7 +579,7 @@ export default function InvoicesModule() {
                 </div>
                 {Number(selectedInvoice.total_discount) > 0 && (
                   <div className="flex justify-between text-purple-700">
-                    <span>Authorized Concession:</span>
+                    <span>Authorized Concessions / Head Discounts:</span>
                     <span>- {formatCurrency(selectedInvoice.total_discount)}</span>
                   </div>
                 )}
@@ -491,7 +590,7 @@ export default function InvoicesModule() {
                   </div>
                 )}
                 <div className="flex justify-between text-emerald-700">
-                  <span>Amount Paid So Far:</span>
+                  <span>Amount Paid:</span>
                   <span>- {formatCurrency(selectedInvoice.amount_paid || 0)}</span>
                 </div>
                 <div className="flex justify-between text-base font-black text-amber-700 pt-1 border-t border-dashed border-stone-200">
