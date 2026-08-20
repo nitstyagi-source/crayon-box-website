@@ -29,6 +29,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
 
 export interface FacultyFilterOptions {
   search?: string;
+  category?: string;
   department?: string;
   wing?: string;
   status?: string;
@@ -50,6 +51,10 @@ export async function getFacultyList(campusId?: string, filters?: FacultyFilterO
 
     if (filters?.status && filters.status !== 'All') {
       query = query.eq('status', filters.status);
+    }
+
+    if (filters?.category && filters.category !== 'All') {
+      query = query.eq('employee_category', filters.category);
     }
 
     if (filters?.department && filters.department !== 'All') {

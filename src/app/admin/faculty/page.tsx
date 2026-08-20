@@ -139,6 +139,7 @@ export default function FacultyAdminDashboard() {
       const [facRes, kpiRes, classRes] = await Promise.all([
         getFacultyList(activeCampusId, {
           search: searchTerm,
+          category: selectedCategory,
           department: selectedDept,
           wing: selectedWing,
           status: statusFilter === "Former" ? "Resigned" : statusFilter
