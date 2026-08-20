@@ -6,7 +6,9 @@ import {
   CheckCircle2, FileText, Download, Sparkles, Filter, 
   ChevronDown, ChevronRight, Eye, Save, HelpCircle, 
   Award, Copy, ArrowUp, ArrowDown, FileQuestion, Upload,
-  Palette, Star, Smile, Heart, CheckSquare, Compass
+  Palette, Star, Smile, Heart, CheckSquare, Compass,
+  Image as ImageIcon, AlignLeft, AlignCenter, AlignRight,
+  Maximize2, Minimize2, Grid, Hash, AlignJustify
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
@@ -16,6 +18,8 @@ import {
   getDistinctTeachers
 } from "@/app/actions/syllabus-core";
 import PdfUploader from "@/components/ui/PdfUploader";
+import ImageUploader from "@/components/ui/ImageUploader";
+import WritingGuideRenderer, { WritingGuideType } from "@/components/ui/WritingGuideRenderer";
 
 interface PaperQuestion {
   q_num: number;
@@ -25,6 +29,15 @@ interface PaperQuestion {
   or_choice?: string;
   correct_answer?: string;
   marking_scheme?: string;
+  image_url?: string;
+  image_size?: "small" | "medium" | "large" | "full";
+  image_alignment?: "left" | "center" | "right";
+  image_caption?: string;
+  writing_guide_type?: WritingGuideType;
+  writing_guide_rows?: number;
+  math_column_op?: "+" | "-" | "×" | "÷";
+  math_column_num1?: string;
+  math_column_num2?: string;
 }
 
 interface PaperSection {
@@ -83,7 +96,16 @@ export default function QuestionPaperGeneratorPage() {
     marking_scheme: "",
     difficulty: "Medium",
     blooms_level: "Understand",
-    pdf_attachment_url: ""
+    pdf_attachment_url: "",
+    image_url: "",
+    image_size: "medium" as "small" | "medium" | "large" | "full",
+    image_alignment: "center" as "left" | "center" | "right",
+    image_caption: "",
+    writing_guide_type: "none" as WritingGuideType,
+    writing_guide_rows: 2,
+    math_column_op: "+" as "+" | "-" | "×" | "÷",
+    math_column_num1: "458",
+    math_column_num2: "273"
   });
 
   // Generated Papers State
@@ -92,6 +114,13 @@ export default function QuestionPaperGeneratorPage() {
   const [editingPaperId, setEditingPaperId] = useState<string | null>(null);
   const [activePreviewPaper, setActivePreviewPaper] = useState<any>(null);
   const [showMarkingScheme, setShowMarkingScheme] = useState(false);
+
+  // Expanded tools per question inside designer modal
+  const [activeToolIndex, setActiveToolIndex] = useState<{ secIdx: number; qIdx: number; tool: "image" | "lines" | null }>({
+    secIdx: -1,
+    qIdx: -1,
+    tool: null
+  });
 
   // Paper / Worksheet Designer Form
   const [paperForm, setPaperForm] = useState<PaperFormState>({
@@ -127,9 +156,9 @@ export default function QuestionPaperGeneratorPage() {
         instructions: "Question numbers 5 to 7 carry 2 marks each. Show all working steps.",
         marks_per_question: 2,
         questions: [
-          { q_num: 5, text: "Write the Roman Numeral for: (a) 78  (b) 94", marks: 2 },
-          { q_num: 6, text: "Evaluate and express in simplest fraction form: 5/12 + 7/18", marks: 2 },
-          { q_num: 7, text: "A factory produces 2,450 light bulbs each day. How many bulbs will it produce in April?", marks: 2 }
+          { q_num: 5, text: "Write the Roman Numeral for: (a) 78  (b) 94", marks: 2, writing_guide_type: "none" },
+          { q_num: 6, text: "Evaluate and express in simplest fraction form: 5/12 + 7/18", marks: 2, writing_guide_type: "none" },
+          { q_num: 7, text: "A factory produces 2,450 light bulbs each day. How many bulbs will it produce in April?", marks: 2, writing_guide_type: "none" }
         ]
       },
       {
@@ -292,7 +321,16 @@ export default function QuestionPaperGeneratorPage() {
       marking_scheme: "",
       difficulty: "Medium",
       blooms_level: "Understand",
-      pdf_attachment_url: ""
+      pdf_attachment_url: "",
+      image_url: "",
+      image_size: "medium",
+      image_alignment: "center",
+      image_caption: "",
+      writing_guide_type: isMotherTeacherClass ? "english_4lines" : "none",
+      writing_guide_rows: 2,
+      math_column_op: "+",
+      math_column_num1: "458",
+      math_column_num2: "273"
     });
     setQBankModalOpen(true);
   }
@@ -313,7 +351,16 @@ export default function QuestionPaperGeneratorPage() {
       marking_scheme: q.marking_scheme || "",
       difficulty: q.difficulty || "Medium",
       blooms_level: q.blooms_level || "Understand",
-      pdf_attachment_url: q.pdf_attachment_url || ""
+      pdf_attachment_url: q.pdf_attachment_url || "",
+      image_url: q.image_url || "",
+      image_size: q.image_size || "medium",
+      image_alignment: q.image_alignment || "center",
+      image_caption: q.image_caption || "",
+      writing_guide_type: q.writing_guide_type || "none",
+      writing_guide_rows: q.writing_guide_rows || 2,
+      math_column_op: q.math_column_op || "+",
+      math_column_num1: q.math_column_num1 || "458",
+      math_column_num2: q.math_column_num2 || "273"
     });
     setQBankModalOpen(true);
   }
@@ -348,6 +395,15 @@ export default function QuestionPaperGeneratorPage() {
         difficulty: qForm.difficulty,
         blooms_level: qForm.blooms_level,
         pdf_attachment_url: qForm.pdf_attachment_url || undefined,
+        image_url: qForm.image_url || undefined,
+        image_size: qForm.image_size,
+        image_alignment: qForm.image_alignment,
+        image_caption: qForm.image_caption,
+        writing_guide_type: qForm.writing_guide_type,
+        writing_guide_rows: Number(qForm.writing_guide_rows),
+        math_column_op: qForm.math_column_op,
+        math_column_num1: qForm.math_column_num1,
+        math_column_num2: qForm.math_column_num2,
         created_by: selectedTeacher !== "All" ? selectedTeacher : "Academic Staff"
       });
 
@@ -374,7 +430,7 @@ export default function QuestionPaperGeneratorPage() {
     const defSubId = selectedSubjectId || (subjects[0]?.id || "");
     
     if (isWorksheet || isMotherTeacherClass) {
-      // Early childhood Worksheet format
+      // Early childhood Worksheet format with 4-lines and Math Column options
       setPaperForm({
         class_name: selectedClass,
         subject_id: defSubId,
@@ -384,31 +440,65 @@ export default function QuestionPaperGeneratorPage() {
         general_instructions: [
           "Encourage the child to hold the crayon/pencil independently.",
           "Read instructions clearly and cheerfully to the student.",
-          "Teacher grading includes star rubric for concept mastery and fine motor skills."
+          "Write neatly inside the guided 4-lines and math boxes."
         ],
         sections: [
           {
-            section_name: "ACTIVITY 1: Tracing & Line Patterns",
-            instructions: "Trace along the dotted lines neatly with your crayon.",
+            section_name: "ACTIVITY 1: English Handwriting & Phonics (4-Lines Guide)",
+            instructions: "Write the capital and small letters neatly inside the 4-lines.",
             marks_per_question: 5,
             questions: [
-              { q_num: 1, text: "Trace the path to connect the honeybee to the flower: 🐝 ~ ~ ~ ~ 🌸", marks: 5 }
+              { 
+                q_num: 1, 
+                text: "Look at the letter and write 3 times on the 4-lines:\nLetter 'A a' (Apple 🍎)", 
+                marks: 5,
+                writing_guide_type: "english_4lines",
+                writing_guide_rows: 2
+              }
             ]
           },
           {
-            section_name: "ACTIVITY 2: Match & Circle the Correct Object",
-            instructions: "Draw lines to match the pictures with their correct sound/partner.",
+            section_name: "ACTIVITY 2: Hindi Swar & Vyanjan (Hindi 2-Lines)",
+            instructions: "सुंदर अक्षरों में नीचे दी गई दो-लाइनों में लिखिए।",
             marks_per_question: 5,
             questions: [
-              { q_num: 2, text: "Match Column A with Column B:\n(a) 🍎 Apple  ➔  [  ] B\n(b) ⚽ Ball   ➔  [  ] A\n(c) 🐱 Cat    ➔  [  ] D\n(d) 🦆 Duck   ➔  [  ] C", marks: 5 }
+              { 
+                q_num: 2, 
+                text: "चित्र देखकर पहला अक्षर लिखिए: अ से अनार (🍎), आ से आम (🥭)", 
+                marks: 5,
+                writing_guide_type: "hindi_2lines",
+                writing_guide_rows: 2
+              }
             ]
           },
           {
-            section_name: "ACTIVITY 3: Count & Write in the Star Box",
-            instructions: "Count the objects and write the number in the star ⭐.",
+            section_name: "ACTIVITY 3: Math Place Value Column Addition",
+            instructions: "Add the numbers in place value columns (H T O).",
             marks_per_question: 5,
             questions: [
-              { q_num: 3, text: "Count the balloons: 🎈 🎈 🎈 🎈 ➔ [      ]", marks: 5 }
+              { 
+                q_num: 3, 
+                text: "Solve the column addition problem:", 
+                marks: 5,
+                writing_guide_type: "math_column",
+                math_column_op: "+",
+                math_column_num1: "452",
+                math_column_num2: "326"
+              }
+            ]
+          },
+          {
+            section_name: "ACTIVITY 4: Number Writing (Square-Grid Box)",
+            instructions: "Write numbers from 21 to 30 in the square grid boxes.",
+            marks_per_question: 5,
+            questions: [
+              { 
+                q_num: 4, 
+                text: "Fill in the numbers in the square grid boxes:", 
+                marks: 5,
+                writing_guide_type: "math_grid",
+                writing_guide_rows: 2
+              }
             ]
           }
         ],
@@ -500,9 +590,13 @@ export default function QuestionPaperGeneratorPage() {
     const updated = [...paperForm.sections];
     updated[secIdx].questions.push({
       q_num: totalQCount,
-      text: isMotherTeacherClass ? "Trace and write: ____________________" : "State and explain...",
+      text: isMotherTeacherClass ? "Write or draw in the given space: ____________________" : "State and explain...",
       marks: updated[secIdx].marks_per_question || (isMotherTeacherClass ? 5 : 2),
-      options: []
+      options: [],
+      image_size: "medium",
+      image_alignment: "center",
+      writing_guide_type: isMotherTeacherClass ? "english_4lines" : "none",
+      writing_guide_rows: 2
     });
     setPaperForm({ ...paperForm, sections: updated });
   }
@@ -521,7 +615,16 @@ export default function QuestionPaperGeneratorPage() {
       marks: bankItem.marks,
       options: bankItem.options || [],
       correct_answer: bankItem.correct_answer,
-      marking_scheme: bankItem.marking_scheme
+      marking_scheme: bankItem.marking_scheme,
+      image_url: bankItem.image_url,
+      image_size: bankItem.image_size || "medium",
+      image_alignment: bankItem.image_alignment || "center",
+      image_caption: bankItem.image_caption,
+      writing_guide_type: bankItem.writing_guide_type || "none",
+      writing_guide_rows: bankItem.writing_guide_rows || 2,
+      math_column_op: bankItem.math_column_op || "+",
+      math_column_num1: bankItem.math_column_num1,
+      math_column_num2: bankItem.math_column_num2
     });
     setPaperForm({ ...paperForm, sections: updated });
     setPickerModalOpen(false);
@@ -615,7 +718,7 @@ export default function QuestionPaperGeneratorPage() {
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 8mm 12mm !important;
+            padding: 6mm 10mm !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
@@ -660,7 +763,7 @@ export default function QuestionPaperGeneratorPage() {
             Standard Question Paper & Worksheet Studio
           </h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Assemble, formulate, and print standardized examination question papers and early childhood activity worksheets with large, student-friendly fonts.
+            Assemble, formulate, and print standardized examination question papers and early childhood activity worksheets with image insertion, 4-line guides, and math columns.
           </p>
         </div>
 
@@ -747,7 +850,7 @@ export default function QuestionPaperGeneratorPage() {
                 </span>
               </div>
               <p className="text-xs text-purple-950/80 mt-0.5 font-medium">
-                For <strong>{selectedClass}</strong>, exams are conducted in <strong>Worksheet / Activity Evaluation Format</strong>. Mother Teachers have access to all subjects of this class to create cross-curricular worksheets.
+                For <strong>{selectedClass}</strong>, exams are conducted in <strong>Worksheet / Activity Evaluation Format</strong>. Mother Teachers have access to all subjects of this class to insert images, English 4-lines, Hindi double-lines, and math calculation columns.
               </p>
             </div>
           </div>
@@ -945,7 +1048,7 @@ export default function QuestionPaperGeneratorPage() {
                 </ol>
               </div>
 
-              {/* 5. SECTIONS & LARGE READABLE QUESTIONS */}
+              {/* 5. SECTIONS & LARGE READABLE QUESTIONS WITH IMAGES & WRITING LINES */}
               <div className="space-y-10 pt-4">
                 {nonEmptySections.map((sec: any, sIdx: number) => (
                   <div key={sIdx} className="space-y-5 page-break-inside-avoid">
@@ -966,7 +1069,7 @@ export default function QuestionPaperGeneratorPage() {
                     </div>
 
                     {/* Questions in Section */}
-                    <div className="space-y-6">
+                    <div className="space-y-7">
                       {(sec.questions || []).map((q: any, qIdx: number) => (
                         <div key={qIdx} className="space-y-3 leading-relaxed page-break-inside-avoid">
                           
@@ -980,6 +1083,30 @@ export default function QuestionPaperGeneratorPage() {
                               [{q.marks || sec.marks_per_question || 1}]
                             </span>
                           </div>
+
+                          {/* QUESTION IMAGE / DIAGRAM (USER RESIZABLE) */}
+                          {q.image_url && (
+                            <div className={`my-3 flex ${
+                              q.image_alignment === "left" ? "justify-start" :
+                              q.image_alignment === "right" ? "justify-end" : "justify-center"
+                            }`}>
+                              <div className="space-y-1 text-center">
+                                <img
+                                  src={q.image_url}
+                                  alt={q.image_caption || `Diagram for Question ${q.q_num}`}
+                                  className={`rounded-2xl border border-stone-400 bg-white object-contain ${
+                                    q.image_size === "small" ? "max-w-[140px] max-h-[120px]" :
+                                    q.image_size === "medium" ? "max-w-[260px] max-h-[200px]" :
+                                    q.image_size === "large" ? "max-w-[420px] max-h-[300px]" :
+                                    "w-full max-h-[400px]"
+                                  }`}
+                                />
+                                {q.image_caption && (
+                                  <p className="text-xs italic text-stone-500 font-sans">{q.image_caption}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Multiple Choice Options */}
                           {q.options && q.options.length > 0 && (
@@ -997,6 +1124,19 @@ export default function QuestionPaperGeneratorPage() {
                             <div className="pt-3 pl-8 space-y-2 text-sm sm:text-base italic font-sans border-l-4 border-stone-400 ml-4">
                               <span className="font-black uppercase tracking-wider text-stone-900 not-italic block text-sm">OR</span>
                               <p className="text-stone-950 whitespace-pre-line not-italic font-medium">{q.or_choice}</p>
+                            </div>
+                          )}
+
+                          {/* WORKSHEET WRITING LINE GUIDES & MATH COLUMNS */}
+                          {q.writing_guide_type && q.writing_guide_type !== "none" && (
+                            <div className="pl-4 sm:pl-8 pt-2">
+                              <WritingGuideRenderer
+                                type={q.writing_guide_type}
+                                rows={q.writing_guide_rows || 2}
+                                mathOp={q.math_column_op || "+"}
+                                num1={q.math_column_num1 || "458"}
+                                num2={q.math_column_num2 || "273"}
+                              />
                             </div>
                           )}
 
@@ -1108,7 +1248,7 @@ export default function QuestionPaperGeneratorPage() {
                 >
                   <option value="All">All Types</option>
                   <option value="MCQ">MCQs (1M)</option>
-                  <option value="ShortAnswer">Short Answer / Activity (2-3M)</option>
+                  <option value="ShortAnswer">Short Answer / Worksheet Activity (2-3M)</option>
                   <option value="LongAnswer">Long Answer (5M)</option>
                   <option value="CaseStudy">Case Study (4M)</option>
                 </select>
@@ -1144,7 +1284,7 @@ export default function QuestionPaperGeneratorPage() {
               <div className="bg-white p-12 text-center rounded-3xl border border-stone-200 shadow-xs space-y-3">
                 <BookOpen className="w-12 h-12 text-stone-300 mx-auto" />
                 <h3 className="text-base font-black text-stone-900">Question Bank is Empty</h3>
-                <p className="text-xs text-stone-500">Add questions or early years tracing/matching activities with options and model answers.</p>
+                <p className="text-xs text-stone-500">Add questions or early years tracing/matching activities with options, images, and model answers.</p>
               </div>
             ) : (
               questionBank.map((q) => (
@@ -1160,6 +1300,16 @@ export default function QuestionPaperGeneratorPage() {
                       }`}>
                         {q.difficulty}
                       </span>
+                      {q.image_url && (
+                        <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Image Included
+                        </span>
+                      )}
+                      {q.writing_guide_type && q.writing_guide_type !== "none" && (
+                        <span className="text-[10px] font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded">
+                          📝 {q.writing_guide_type}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -1181,6 +1331,30 @@ export default function QuestionPaperGeneratorPage() {
                   </div>
 
                   <p className="text-sm font-semibold text-stone-900 whitespace-pre-line">{q.question_text}</p>
+
+                  {/* Question Bank Image Preview */}
+                  {q.image_url && (
+                    <div className={`my-2 flex ${q.image_alignment === "left" ? "justify-start" : q.image_alignment === "right" ? "justify-end" : "justify-center"}`}>
+                      <img
+                        src={q.image_url}
+                        alt="Question asset"
+                        className="rounded-xl border border-stone-300 max-h-32 object-contain bg-stone-50"
+                      />
+                    </div>
+                  )}
+
+                  {/* Writing Guide Preview */}
+                  {q.writing_guide_type && q.writing_guide_type !== "none" && (
+                    <div className="pt-2">
+                      <WritingGuideRenderer
+                        type={q.writing_guide_type}
+                        rows={q.writing_guide_rows || 2}
+                        mathOp={q.math_column_op || "+"}
+                        num1={q.math_column_num1 || "458"}
+                        num2={q.math_column_num2 || "273"}
+                      />
+                    </div>
+                  )}
 
                   {q.options && q.options.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 text-xs text-stone-700 bg-stone-50 p-3 rounded-xl">
@@ -1283,7 +1457,7 @@ export default function QuestionPaperGeneratorPage() {
                 </div>
               </div>
 
-              {/* Sections Builder */}
+              {/* Sections & Questions Builder */}
               <div className="space-y-4 pt-2 border-t border-stone-100">
                 <div className="flex justify-between items-center">
                   <h4 className="text-sm font-black text-stone-900 uppercase tracking-wide">
@@ -1331,41 +1505,228 @@ export default function QuestionPaperGeneratorPage() {
                     </div>
 
                     {/* Questions in Section */}
-                    <div className="space-y-2">
-                      {sec.questions.map((q, qIdx) => (
-                        <div key={qIdx} className="bg-white border border-stone-200 rounded-xl p-3 space-y-2">
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="font-bold text-stone-700 mt-1">Q{q.q_num}:</span>
-                            <textarea
-                              rows={2}
-                              value={q.text}
-                              onChange={(e) => {
-                                const updated = [...paperForm.sections];
-                                updated[secIdx].questions[qIdx].text = e.target.value;
-                                setPaperForm({ ...paperForm, sections: updated });
-                              }}
-                              className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 font-medium text-stone-900 text-xs"
-                            />
-                            <input
-                              type="number"
-                              value={q.marks}
-                              onChange={(e) => {
-                                const updated = [...paperForm.sections];
-                                updated[secIdx].questions[qIdx].marks = Number(e.target.value);
-                                setPaperForm({ ...paperForm, sections: updated });
-                              }}
-                              className="w-12 bg-stone-50 border border-stone-200 rounded-lg p-1 text-center font-mono font-bold text-xs"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeQuestionFromSection(secIdx, qIdx)}
-                              className="text-red-500 hover:text-red-700 p-1"
-                            >
-                              ✕
-                            </button>
+                    <div className="space-y-3">
+                      {sec.questions.map((q, qIdx) => {
+                        const isImageOpen = activeToolIndex.secIdx === secIdx && activeToolIndex.qIdx === qIdx && activeToolIndex.tool === "image";
+                        const isLinesOpen = activeToolIndex.secIdx === secIdx && activeToolIndex.qIdx === qIdx && activeToolIndex.tool === "lines";
+
+                        return (
+                          <div key={qIdx} className="bg-white border border-stone-200 rounded-xl p-3.5 space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="font-bold text-stone-700 mt-1">Q{q.q_num}:</span>
+                              <textarea
+                                rows={2}
+                                value={q.text}
+                                onChange={(e) => {
+                                  const updated = [...paperForm.sections];
+                                  updated[secIdx].questions[qIdx].text = e.target.value;
+                                  setPaperForm({ ...paperForm, sections: updated });
+                                }}
+                                placeholder="Enter question or activity instruction..."
+                                className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 font-medium text-stone-900 text-xs"
+                              />
+                              <input
+                                type="number"
+                                value={q.marks}
+                                onChange={(e) => {
+                                  const updated = [...paperForm.sections];
+                                  updated[secIdx].questions[qIdx].marks = Number(e.target.value);
+                                  setPaperForm({ ...paperForm, sections: updated });
+                                }}
+                                className="w-12 bg-stone-50 border border-stone-200 rounded-lg p-1 text-center font-mono font-bold text-xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeQuestionFromSection(secIdx, qIdx)}
+                                className="text-red-500 hover:text-red-700 p-1 font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            {/* TOOL TOGGLES (IMAGE & WRITING LINES) */}
+                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-stone-100 text-[11px]">
+                              
+                              {/* 1. Image Tool Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isImageOpen) {
+                                    setActiveToolIndex({ secIdx: -1, qIdx: -1, tool: null });
+                                  } else {
+                                    setActiveToolIndex({ secIdx, qIdx, tool: "image" });
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition ${
+                                  q.image_url 
+                                    ? "bg-purple-100 text-purple-900 border border-purple-300" 
+                                    : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                                }`}
+                              >
+                                <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                                {q.image_url ? "🖼️ Image Attached" : "+ Add Image"}
+                              </button>
+
+                              {/* 2. Writing Lines Guide Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isLinesOpen) {
+                                    setActiveToolIndex({ secIdx: -1, qIdx: -1, tool: null });
+                                  } else {
+                                    setActiveToolIndex({ secIdx, qIdx, tool: "lines" });
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition ${
+                                  q.writing_guide_type && q.writing_guide_type !== "none"
+                                    ? "bg-sky-100 text-sky-900 border border-sky-300" 
+                                    : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                                }`}
+                              >
+                                <AlignJustify className="w-3.5 h-3.5 text-sky-600" />
+                                {q.writing_guide_type && q.writing_guide_type !== "none"
+                                  ? `📝 ${q.writing_guide_type}`
+                                  : "+ Add Writing Lines / Math Column"}
+                              </button>
+                            </div>
+
+                            {/* INLINE IMAGE UPLOADER / SIZER */}
+                            {isImageOpen && (
+                              <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-xl space-y-2">
+                                <ImageUploader
+                                  label="Question Diagram / Image"
+                                  initialUrl={q.image_url}
+                                  initialSize={q.image_size || "medium"}
+                                  initialAlignment={q.image_alignment || "center"}
+                                  onImageChanged={(imgData) => {
+                                    const updated = [...paperForm.sections];
+                                    updated[secIdx].questions[qIdx].image_url = imgData.imageUrl;
+                                    updated[secIdx].questions[qIdx].image_size = imgData.imageSize;
+                                    updated[secIdx].questions[qIdx].image_alignment = imgData.imageAlignment;
+                                    setPaperForm({ ...paperForm, sections: updated });
+                                  }}
+                                  onImageRemoved={() => {
+                                    const updated = [...paperForm.sections];
+                                    updated[secIdx].questions[qIdx].image_url = "";
+                                    setPaperForm({ ...paperForm, sections: updated });
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {/* INLINE WRITING GUIDE / MATH COLUMN PICKER */}
+                            {isLinesOpen && (
+                              <div className="p-3.5 bg-sky-50/60 border border-sky-200 rounded-xl space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="font-bold text-sky-950 block mb-1">Select Line / Guide Type</label>
+                                    <select
+                                      value={q.writing_guide_type || "none"}
+                                      onChange={(e) => {
+                                        const updated = [...paperForm.sections];
+                                        updated[secIdx].questions[qIdx].writing_guide_type = e.target.value as WritingGuideType;
+                                        setPaperForm({ ...paperForm, sections: updated });
+                                      }}
+                                      className="w-full bg-white border border-sky-300 rounded-lg px-2.5 py-1.5 font-bold text-sky-950 text-xs"
+                                    >
+                                      <option value="none">None (Plain Space)</option>
+                                      <option value="english_4lines">English 4-Lines Guide (Red/Blue Ruled)</option>
+                                      <option value="hindi_2lines">Hindi 2-Lines Guide (Shirorekha Ruled)</option>
+                                      <option value="math_grid">Math Square-Grid Box (Digits / Geometry)</option>
+                                      <option value="math_column">Math Arithmetic Column (Place Value H T O)</option>
+                                    </select>
+                                  </div>
+
+                                  {q.writing_guide_type && q.writing_guide_type !== "none" && q.writing_guide_type !== "math_column" && (
+                                    <div>
+                                      <label className="font-bold text-sky-950 block mb-1">Number of Rows / Bands</label>
+                                      <select
+                                        value={q.writing_guide_rows || 2}
+                                        onChange={(e) => {
+                                          const updated = [...paperForm.sections];
+                                          updated[secIdx].questions[qIdx].writing_guide_rows = Number(e.target.value);
+                                          setPaperForm({ ...paperForm, sections: updated });
+                                        }}
+                                        className="w-full bg-white border border-sky-300 rounded-lg px-2.5 py-1.5 font-bold text-sky-950 text-xs"
+                                      >
+                                        <option value="1">1 Row</option>
+                                        <option value="2">2 Rows</option>
+                                        <option value="3">3 Rows</option>
+                                        <option value="4">4 Rows</option>
+                                      </select>
+                                    </div>
+                                  )}
+
+                                  {q.writing_guide_type === "math_column" && (
+                                    <div className="col-span-2 grid grid-cols-3 gap-2">
+                                      <div>
+                                        <label className="font-bold text-sky-950 block mb-0.5">Operation</label>
+                                        <select
+                                          value={q.math_column_op || "+"}
+                                          onChange={(e) => {
+                                            const updated = [...paperForm.sections];
+                                            updated[secIdx].questions[qIdx].math_column_op = e.target.value as "+" | "-" | "×" | "÷";
+                                            setPaperForm({ ...paperForm, sections: updated });
+                                          }}
+                                          className="w-full bg-white border border-sky-300 rounded-lg p-1.5 font-black text-center"
+                                        >
+                                          <option value="+">+ (Add)</option>
+                                          <option value="-">- (Sub)</option>
+                                          <option value="×">× (Mul)</option>
+                                          <option value="÷">÷ (Div)</option>
+                                        </select>
+                                      </div>
+
+                                      <div>
+                                        <label className="font-bold text-sky-950 block mb-0.5">Top Number</label>
+                                        <input
+                                          type="text"
+                                          value={q.math_column_num1 || "458"}
+                                          onChange={(e) => {
+                                            const updated = [...paperForm.sections];
+                                            updated[secIdx].questions[qIdx].math_column_num1 = e.target.value;
+                                            setPaperForm({ ...paperForm, sections: updated });
+                                          }}
+                                          className="w-full bg-white border border-sky-300 rounded-lg p-1.5 font-mono font-bold text-center"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="font-bold text-sky-950 block mb-0.5">Bottom Number</label>
+                                        <input
+                                          type="text"
+                                          value={q.math_column_num2 || "273"}
+                                          onChange={(e) => {
+                                            const updated = [...paperForm.sections];
+                                            updated[secIdx].questions[qIdx].math_column_num2 = e.target.value;
+                                            setPaperForm({ ...paperForm, sections: updated });
+                                          }}
+                                          className="w-full bg-white border border-sky-300 rounded-lg p-1.5 font-mono font-bold text-center"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Live preview of the writing guide */}
+                                {q.writing_guide_type && q.writing_guide_type !== "none" && (
+                                  <div className="bg-white p-3 rounded-lg border border-sky-200">
+                                    <span className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Live Guide Preview:</span>
+                                    <WritingGuideRenderer
+                                      type={q.writing_guide_type}
+                                      rows={q.writing_guide_rows || 2}
+                                      mathOp={q.math_column_op || "+"}
+                                      num1={q.math_column_num1 || "458"}
+                                      num2={q.math_column_num2 || "273"}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -1402,9 +1763,15 @@ export default function QuestionPaperGeneratorPage() {
               {questionBank.map((item) => (
                 <div key={item.id} className="p-3 bg-stone-50 hover:bg-purple-50/60 rounded-xl border border-stone-200 flex justify-between items-center gap-3 transition">
                   <div>
-                    <span className="text-[10px] font-bold bg-stone-200 px-1.5 py-0.5 rounded mr-2">
-                      {item.question_type} • {item.marks}M
-                    </span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold bg-stone-200 px-1.5 py-0.5 rounded">
+                        {item.question_type} • {item.marks}M
+                      </span>
+                      {item.image_url && <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">🖼️ Image</span>}
+                      {item.writing_guide_type && item.writing_guide_type !== "none" && (
+                        <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-1.5 py-0.5 rounded">📝 {item.writing_guide_type}</span>
+                      )}
+                    </div>
                     <span className="text-xs font-semibold text-stone-900">{item.question_text}</span>
                   </div>
                   <button
@@ -1434,7 +1801,7 @@ export default function QuestionPaperGeneratorPage() {
               <button onClick={() => setQBankModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
-            <form onSubmit={handleSaveQuestionBankItem} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveQuestionBankItem} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-stone-700 block mb-1">Subject *</label>
@@ -1469,9 +1836,58 @@ export default function QuestionPaperGeneratorPage() {
                   rows={3}
                   value={qForm.question_text}
                   onChange={(e) => setQForm({ ...qForm, question_text: e.target.value })}
+                  placeholder="Enter the question or activity instruction..."
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
                   required
                 />
+              </div>
+
+              {/* IMAGE UPLOADER & RESIZER */}
+              <ImageUploader
+                label="Question Image / Diagram (Optional)"
+                helperText="Drag & drop diagram or paste image URL"
+                initialUrl={qForm.image_url}
+                initialSize={qForm.image_size}
+                initialAlignment={qForm.image_alignment}
+                onImageChanged={(imgData) => {
+                  setQForm({
+                    ...qForm,
+                    image_url: imgData.imageUrl,
+                    image_size: imgData.imageSize,
+                    image_alignment: imgData.imageAlignment
+                  });
+                }}
+                onImageRemoved={() => {
+                  setQForm({ ...qForm, image_url: "" });
+                }}
+              />
+
+              {/* WORKSHEET WRITING LINE GUIDES */}
+              <div className="p-3 bg-sky-50/60 border border-sky-200 rounded-2xl space-y-2">
+                <label className="font-bold text-sky-950 block">Worksheet Writing Lines / Math Grid</label>
+                <select
+                  value={qForm.writing_guide_type}
+                  onChange={(e) => setQForm({ ...qForm, writing_guide_type: e.target.value as WritingGuideType })}
+                  className="w-full bg-white border border-sky-300 rounded-xl px-3 py-2 font-bold text-sky-950"
+                >
+                  <option value="none">None (Plain Space)</option>
+                  <option value="english_4lines">English 4-Lines Guide (Red/Blue Ruled)</option>
+                  <option value="hindi_2lines">Hindi 2-Lines Guide (Shirorekha Ruled)</option>
+                  <option value="math_grid">Math Square-Grid Box (Digits / Geometry)</option>
+                  <option value="math_column">Math Arithmetic Column (Place Value H T O)</option>
+                </select>
+
+                {qForm.writing_guide_type && qForm.writing_guide_type !== "none" && (
+                  <div className="pt-2">
+                    <WritingGuideRenderer
+                      type={qForm.writing_guide_type}
+                      rows={qForm.writing_guide_rows}
+                      mathOp={qForm.math_column_op}
+                      num1={qForm.math_column_num1}
+                      num2={qForm.math_column_num2}
+                    />
+                  </div>
+                )}
               </div>
 
               {qForm.question_type === "MCQ" && (
@@ -1492,15 +1908,6 @@ export default function QuestionPaperGeneratorPage() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900"
                 />
               </div>
-
-              {/* Attach Reference Diagram / PDF */}
-              <PdfUploader
-                label="Attach Reference Diagram / Passage PDF (Optional)"
-                helperText="Upload reference PDF for this question"
-                initialUrl={qForm.pdf_attachment_url}
-                onPdfUploaded={(data) => setQForm({ ...qForm, pdf_attachment_url: data.fileUrl })}
-                onPdfRemoved={() => setQForm({ ...qForm, pdf_attachment_url: "" })}
-              />
 
               <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
                 <button type="button" onClick={() => setQBankModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">

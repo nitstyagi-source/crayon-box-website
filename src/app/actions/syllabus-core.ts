@@ -1197,7 +1197,9 @@ export async function getQuestionBank(
       .select(`
         id, subject_id, chapter_id, question_type, marks, question_text,
         options, correct_answer, marking_scheme, difficulty, blooms_level,
-        pdf_attachment_url, created_by, created_at,
+        pdf_attachment_url, image_url, image_size, image_alignment, image_caption,
+        writing_guide_type, writing_guide_rows, math_column_op, math_column_num1, math_column_num2,
+        created_by, created_at,
         academic_subjects (id, name, class_name, code),
         syllabus_chapters (id, chapter_number, chapter_name)
       `)
@@ -1231,6 +1233,15 @@ export async function saveQuestionBankItem(payload: {
   difficulty?: string;
   blooms_level?: string;
   pdf_attachment_url?: string;
+  image_url?: string;
+  image_size?: string;
+  image_alignment?: string;
+  image_caption?: string;
+  writing_guide_type?: string;
+  writing_guide_rows?: number;
+  math_column_op?: string;
+  math_column_num1?: string;
+  math_column_num2?: string;
   created_by?: string;
 }) {
   try {
@@ -1250,6 +1261,15 @@ export async function saveQuestionBankItem(payload: {
       difficulty: payload.difficulty || 'Medium',
       blooms_level: payload.blooms_level || 'Understand',
       pdf_attachment_url: payload.pdf_attachment_url || null,
+      image_url: payload.image_url || null,
+      image_size: payload.image_size || 'medium',
+      image_alignment: payload.image_alignment || 'center',
+      image_caption: payload.image_caption || '',
+      writing_guide_type: payload.writing_guide_type || 'none',
+      writing_guide_rows: payload.writing_guide_rows || 2,
+      math_column_op: payload.math_column_op || '+',
+      math_column_num1: payload.math_column_num1 || null,
+      math_column_num2: payload.math_column_num2 || null,
       created_by: payload.created_by || 'Faculty'
     };
 
