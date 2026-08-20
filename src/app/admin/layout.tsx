@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { name: 'Staff Attendance', href: '/admin/attendance', icon: MapPin },
   { name: "Master SIS", href: "/admin/students", icon: Users },
   { name: "Student Attendance", href: "/admin/students/attendance", icon: QrCode },
+  { name: "ID & Escort Cards", href: "/admin/id-cards", icon: CreditCard },
   { name: "Classes & Sections", href: "/admin/classes", icon: GraduationCap },
   { name: 'News & Events', href: '/admin/news', icon: FileText },
   { name: 'Alumni', href: '/admin/alumni', icon: GraduationCap },
