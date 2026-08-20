@@ -180,10 +180,9 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
     const { data: staffList } = await supabase.from('staff').select('id, first_name, last_name, designation, subjects_taught, department').eq('campus_id', resolvedCampusId);
     const teachers = (staffList || []).filter((s: any) => s.first_name);
 
-    // Standard Period Templates according to User Specification:
-    // 8:00 AM - 2:20 PM (40-min periods)
+    // Standard Period Templates with dedicated 1-Hour Sports & Activity Block (8:00 AM - 2:30 PM)
     const PRIMARY_PERIODS = [
-      { num: 0, label: "Assembly / Morning Activity", start: "08:00 AM", end: "08:15 AM", dur: 15, break_type: "Assembly" },
+      { num: 0, label: "Morning Assembly & Mindfulness", start: "08:00 AM", end: "08:15 AM", dur: 15, break_type: "Assembly" },
       { num: 1, label: "Period 1", start: "08:15 AM", end: "08:55 AM", dur: 40, break_type: "None" },
       { num: 2, label: "Period 2", start: "08:55 AM", end: "09:35 AM", dur: 40, break_type: "None" },
       { num: 3, label: "Period 3", start: "09:35 AM", end: "10:15 AM", dur: 40, break_type: "None" },
@@ -191,8 +190,9 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
       { num: 5, label: "Short Break / Tiffin", start: "10:55 AM", end: "11:25 AM", dur: 30, break_type: "Short Break" },
       { num: 6, label: "Period 5", start: "11:25 AM", end: "12:05 PM", dur: 40, break_type: "None" },
       { num: 7, label: "Period 6", start: "12:05 PM", end: "12:45 PM", dur: 40, break_type: "None" },
-      { num: 8, label: "Period 7", start: "12:45 PM", end: "01:25 PM", dur: 40, break_type: "None" },
-      { num: 9, label: "Dispersal / Diary / Closing", start: "01:25 PM", end: "01:40 PM", dur: 15, break_type: "Dispersal" }
+      { num: 8, label: "Period 7", start: "12:45 PM", end: "01:15 PM", dur: 30, break_type: "None" },
+      { num: 9, label: "Sports & Co-Curricular Activity (1 Hour)", start: "01:15 PM", end: "02:15 PM", dur: 60, break_type: "None" },
+      { num: 10, label: "Dispersal / Diary / Closing", start: "02:15 PM", end: "02:30 PM", dur: 15, break_type: "Dispersal" }
     ];
 
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -212,8 +212,16 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
 
     const SUBJECT_ROTATION: Record<string, string[]> = {
       "Early Years": ["Phonics & Rhymes", "Number Fun & Math", "Storytelling & EVS", "Fine Motor Play", "Music & Movement", "Art & Craft", "Free Play"],
-      "Lower Primary (1-2)": ["English Grammar", "Mathematics", "Hindi", "Environmental Studies (EVS)", "Physical Education & Yoga", "Computer & Coding", "Visual Arts"],
-      "Upper Primary (3-5)": ["Mathematics", "Science & Discovery", "English Literature", "Social Studies / EVS", "Hindi Vyakaran", "Robotics & Computer", "Sports & Athletics"]
+      "Lower Primary (1-2)": ["English Grammar", "Mathematics", "Hindi", "Environmental Studies (EVS)", "Computer & Coding", "Vedic Math", "Visual Arts"],
+      "Upper Primary (3-5)": ["Mathematics", "Science & Discovery", "English Literature", "Social Studies / EVS", "Hindi Vyakaran", "Robotics & Computer", "Mental Math & Logic"]
+    };
+
+    const DAILY_ACTIVITIES: Record<string, { subject: string; room: string }> = {
+      "Monday": { subject: "Athletics, Football & Fitness (Sports)", room: "Sports Ground" },
+      "Tuesday": { subject: "STEM Lab, Robotics & Tinkering", room: "STEM Lab" },
+      "Wednesday": { subject: "Visual Arts, Pottery & Origami", room: "Art Studio" },
+      "Thursday": { subject: "Music, Classical Dance & Theatre", room: "Music & Dance Studio" },
+      "Friday": { subject: "Yoga, Martial Arts & Chess", room: "Sports Complex" }
     };
 
     // Clean existing timetable
@@ -226,15 +234,24 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
 
       for (const day of DAYS) {
         for (const p of PRIMARY_PERIODS) {
-          let subject = "Break / Assembly";
+          let subject = p.label;
           let assignedTeacher: any = null;
           let room = `Room 10${cls.grade.includes('Nursery') ? '1' : cls.grade.includes('UKG') ? '2' : '3'}`;
 
-          if (p.break_type === 'None') {
+          if (p.num === 9) {
+            // Dedicated 1-Hour Sports & Activity Block
+            const act = DAILY_ACTIVITIES[day] || { subject: "Sports & Activities", room: "Sports Ground" };
+            subject = act.subject;
+            room = act.room;
+            assignedTeacher = teachers.find((t: any) => 
+              t.designation?.toLowerCase().includes("sport") || 
+              t.subjects_taught?.toLowerCase().includes("sport") ||
+              t.department?.toLowerCase().includes("sport")
+            ) || teachers[0];
+          } else if (p.break_type === 'None') {
             const subIdx = (p.num + DAYS.indexOf(day)) % subList.length;
             subject = subList[subIdx];
 
-            // Match teacher by subject
             if (teachers.length > 0) {
               assignedTeacher = teachers.find((t: any) => 
                 (t.subjects_taught && t.subjects_taught.toLowerCase().includes(subject.split(' ')[0].toLowerCase())) ||
@@ -243,11 +260,8 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
             }
 
             if (subject.includes("Computer") || subject.includes("Robotics")) room = "STEM Lab";
-            else if (subject.includes("Sports") || subject.includes("Physical")) room = "Sports Ground";
             else if (subject.includes("Art")) room = "Art Studio";
             else if (subject.includes("Music")) room = "Music & Dance Studio";
-          } else {
-            subject = p.label;
           }
 
           slotsToInsert.push({

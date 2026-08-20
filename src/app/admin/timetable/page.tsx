@@ -188,7 +188,7 @@ export default function TimetableManagementPage() {
               Academic Operations & Timetable
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Standard 8:00 AM – 2:05 PM (40-Min Periods)</span>
+            <span className="text-stone-500 text-xs font-bold">Standard 8:00 AM – 2:30 PM (40-Min Periods + 1-Hour Sports & Activities)</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">School Master Timetable Hub</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
@@ -351,7 +351,7 @@ export default function TimetableManagementPage() {
 
           <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 px-3 py-1.5 rounded-xl">
             <Clock className="w-3.5 h-3.5 text-blue-600" />
-            <span className="text-xs font-bold text-stone-700">08:00 AM – 02:05 PM</span>
+            <span className="text-xs font-bold text-stone-700">08:00 AM – 02:30 PM</span>
           </div>
         </div>
 
