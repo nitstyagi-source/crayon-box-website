@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, CreditCard, Lock, CheckCircle2, AlertCircle, FileText, Download, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { lookupStudentDues, processInvoiceOnlinePayment } from "@/app/actions/payments";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function PayFeesPage() {
   const [studentId, setStudentId] = useState("");
@@ -339,7 +340,7 @@ export default function PayFeesPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
-                onClick={() => window.print()}
+                onClick={() => printIsolatedElement("printable-receipt", `Fee-Receipt-${receipt.receiptNumber}`)}
                 className="flex items-center justify-center gap-2 bg-stone-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-stone-800 transition-colors text-sm shadow-md"
               >
                 <Printer className="w-4 h-4" /> Print A5 Receipt

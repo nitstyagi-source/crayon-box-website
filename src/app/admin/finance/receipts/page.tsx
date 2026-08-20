@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getOfficialReceipts, cancelFeeReceipt } from "@/app/actions/finance-core";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function OfficialReceiptsHubPage() {
   const { activeCampusId } = useCampusContext();
@@ -80,7 +81,11 @@ export default function OfficialReceiptsHubPage() {
   }
 
   function handlePrintReceipt() {
-    window.print();
+    if (printModalRef.current) {
+      printIsolatedElement(printModalRef.current, `Fee-Receipt-${selectedReceipt?.receipt_no || 'Slip'}`);
+    } else {
+      window.print();
+    }
   }
 
   const formatCurrency = (val: number) => {

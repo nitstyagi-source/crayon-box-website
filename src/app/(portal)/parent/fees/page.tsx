@@ -5,6 +5,8 @@ import { CreditCard, CheckCircle2, Download, Receipt, Lock, AlertCircle, Printer
 import Script from "next/script";
 import { useSiblingContext } from "@/components/providers/SiblingProvider";
 import { lookupStudentDues, processInvoiceOnlinePayment } from "@/app/actions/payments";
+import { printIsolatedElement } from "@/lib/printUtils";
+import { useRef } from "react";
 
 export default function ParentFeePortal() {
   const { activeSibling } = useSiblingContext();
@@ -13,6 +15,7 @@ export default function ParentFeePortal() {
   
   const [feeData, setFeeData] = useState<any>(null);
   const [receipt, setReceipt] = useState<any>(null);
+  const receiptPrintRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadDues();
@@ -76,7 +79,7 @@ export default function ParentFeePortal() {
           <p className="text-xs text-stone-500 font-mono mt-1 mb-6">Receipt #{receipt.receiptNumber}</p>
 
           {/* A5 Printable Receipt Body */}
-          <div className="bg-white rounded-2xl p-6 border border-stone-200 text-left text-xs space-y-3 mb-6 max-w-[148mm] mx-auto">
+          <div ref={receiptPrintRef} className="bg-white rounded-2xl p-6 border border-stone-200 text-left text-xs space-y-3 mb-6 max-w-[148mm] mx-auto">
             <style jsx global>{`
               @media print {
                 @page {
@@ -133,7 +136,13 @@ export default function ParentFeePortal() {
 
           <div className="flex gap-3 justify-center">
             <button 
-              onClick={() => window.print()}
+              onClick={() => {
+                if (receiptPrintRef.current) {
+                  printIsolatedElement(receiptPrintRef.current, `Fee-Receipt-${receipt.receiptNumber}`);
+                } else {
+                  window.print();
+                }
+              }}
               className="bg-stone-900 text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-stone-800 flex items-center gap-2"
             >
               <Printer className="w-4 h-4" /> Print A5 Receipt

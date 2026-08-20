@@ -7,7 +7,12 @@ import {
   Share2, ArrowRight, RefreshCw, X, Receipt, ShieldCheck, QrCode
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
-import { searchStudentsForFeeCollection, collectFeePayment, getStudentFeeLedger } from "@/app/actions/finance-core";
+import { 
+  searchStudentsForFeeCollection, 
+  collectFeePayment, 
+  getStudentFeeLedger 
+} from "@/app/actions/finance-core";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function CollectFeePOSPage() {
   const { activeCampusId } = useCampusContext();
@@ -111,7 +116,11 @@ export default function CollectFeePOSPage() {
   }
 
   function handlePrintReceipt() {
-    window.print();
+    if (receiptPrintRef.current) {
+      printIsolatedElement(receiptPrintRef.current, `Fee-Receipt-${generatedReceipt?.receipt_no || 'Slip'}`);
+    } else {
+      window.print();
+    }
   }
 
   const formatCurrency = (val: number) => {

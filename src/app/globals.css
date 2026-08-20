@@ -49,4 +49,11 @@ body {
   @apply bg-[#fffdfa]/90 backdrop-blur-lg border-b border-stone-200 shadow-sm transition-all duration-300;
 }
 
+@media print {
+  header, footer, nav, aside, .glass-nav, .no-print {
+    display: none !important;
+  }
+}
+
+
 

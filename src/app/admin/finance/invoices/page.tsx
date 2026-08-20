@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getInvoices, updateIndividualInvoice } from "@/app/actions/finance-core";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function InvoicesModule() {
   const { activeCampusId } = useCampusContext();
@@ -640,7 +641,13 @@ export default function InvoicesModule() {
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => {
+                  if (printRef.current) {
+                    printIsolatedElement(printRef.current, `Invoice-${selectedInvoice?.invoice_number || 'Slip'}`);
+                  } else {
+                    window.print();
+                  }
+                }}
                 className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
