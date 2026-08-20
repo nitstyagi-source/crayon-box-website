@@ -71,11 +71,11 @@ function StudentIdCardBatchPrintContent() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Print Batch: Student ID Cards</h1>
             <span className="bg-amber-100 text-amber-900 font-mono text-[11px] font-black px-2.5 py-0.5 rounded-md">
-              CR80 • 85.6 mm × 54 mm (3.375&quot; × 2.125&quot;)
+              Vertical CR80 • 54 mm × 85.6 mm (2.125&quot; × 3.375&quot;)
             </span>
           </div>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Standard ISO/IEC CR80 Credit Card Size • Printing {students.length} student cards for {classFilter}.
+            Standard ISO/IEC Vertical Lanyard ID Format • Printing {students.length} student cards for {classFilter}.
           </p>
         </div>
 
@@ -120,7 +120,7 @@ function StudentIdCardBatchPrintContent() {
         </div>
       </div>
 
-      {/* Printable Sheet Container - Formatted strictly to 85.6mm x 54mm */}
+      {/* Printable Sheet Container - Vertical Portrait (54mm x 85.6mm) */}
       <div id="printable-student-cards" className="flex flex-wrap gap-4 justify-center print:justify-start print:gap-3 print:p-0">
         {students.map((student, idx) => {
           const cleanAdm = student.admission_no || `CB10${(idx + 1).toString().padStart(2, '0')}`;
@@ -128,106 +128,108 @@ function StudentIdCardBatchPrintContent() {
           return (
             <div key={student.id} className="flex flex-wrap gap-3 print:gap-2 print:break-inside-avoid print:page-break-inside-avoid">
               
-              {/* FRONT SIDE - EXACT CR80 (85.6mm x 54mm) */}
+              {/* FRONT SIDE - VERTICAL CR80 (54mm x 85.6mm) */}
               {(layoutMode === "front" || layoutMode === "both") && (
                 <div 
-                  className="cr80-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between relative overflow-hidden print:shadow-none print:border-stone-900"
-                  style={{ width: "85.6mm", height: "54mm", boxSizing: "border-box" }}
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between items-center text-center relative overflow-hidden print:shadow-none print:border-stone-900"
+                  style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
-                  {/* Top Bar */}
-                  <div className="flex items-center justify-between border-b border-stone-900 pb-[1mm]">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[6.5pt] shrink-0">
+                  {/* Top Lanyard Header */}
+                  <div className="w-full border-b border-stone-900 pb-[1mm] flex flex-col items-center">
+                    <div className="flex items-center gap-1">
+                      <div className="w-[5mm] h-[5mm] rounded-[1mm] bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[6pt]">
                         CBS
                       </div>
-                      <div className="leading-none">
-                        <h3 className="font-black text-[7.5pt] text-stone-900 uppercase tracking-tight">Crayon Box School</h3>
-                        <p className="text-[5pt] font-bold text-stone-500 uppercase tracking-wide">Student ID Card • 2026-2027</p>
-                      </div>
+                      <h3 className="font-black text-[7pt] text-stone-900 uppercase tracking-tight">Crayon Box School</h3>
                     </div>
-                    <span className="text-[5.5pt] font-mono font-black bg-stone-100 px-1 py-0.2 rounded border border-stone-300">
-                      {student.class_name}-{student.section_name}
-                    </span>
+                    <p className="text-[4.5pt] font-bold text-stone-500 uppercase tracking-wider mt-[0.2mm]">
+                      Student ID Card • 2026-2027
+                    </p>
                   </div>
 
-                  {/* Middle Content */}
-                  <div className="flex items-center gap-[2mm] py-[1mm] flex-1">
-                    {/* Student Photo */}
-                    <div className="w-[17mm] h-[21mm] rounded-[1.5mm] border border-stone-800 overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
-                      {student.photo_url ? (
-                        <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-[6mm] h-[6mm] text-stone-400" />
-                      )}
+                  {/* Student Photograph (Portrait Box) */}
+                  <div className="w-[24mm] h-[28mm] rounded-[2mm] border-2 border-stone-900 overflow-hidden my-[1mm] bg-stone-100 flex items-center justify-center shrink-0 shadow-xs">
+                    {student.photo_url ? (
+                      <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-[10mm] h-[10mm] text-stone-400" />
+                    )}
+                  </div>
+
+                  {/* Student Info Details */}
+                  <div className="w-full leading-tight space-y-[0.6mm]">
+                    <h4 className="font-black text-[8.5pt] text-stone-900 uppercase truncate">
+                      {student.first_name} {student.last_name || ''}
+                    </h4>
+
+                    <div>
+                      <span className="inline-block bg-purple-100 text-purple-900 font-bold px-[2mm] py-[0.3mm] rounded-[1mm] text-[5.5pt] border border-purple-200">
+                        {student.class_name} - {student.section_name}
+                      </span>
                     </div>
 
-                    {/* Student Info */}
-                    <div className="flex-1 min-w-0 leading-tight space-y-[0.4mm]">
-                      <h4 className="font-black text-[7.5pt] text-stone-900 uppercase truncate">
-                        {student.first_name} {student.last_name || ''}
-                      </h4>
-                      <p className="text-[5.8pt] text-stone-700">
-                        <span className="font-bold text-stone-400">Adm:</span> <span className="font-mono font-bold text-stone-900">{cleanAdm}</span>
-                      </p>
-                      <p className="text-[5.8pt] text-stone-700">
-                        <span className="font-bold text-stone-400">Roll:</span> <span className="font-bold text-stone-800">{student.roll_no || `${idx + 1}`}</span>
-                        <span className="font-bold text-stone-400 ml-1.5">Blood:</span> <span className="font-bold text-red-600">{student.blood_group || 'O+'}</span>
-                      </p>
-                      <p className="text-[5.5pt] text-stone-600 truncate">
-                        <span className="font-bold text-stone-400">Ph:</span> <span className="font-mono font-bold text-stone-800">{student.parent_phone || '+91 98100 81008'}</span>
-                      </p>
+                    <div className="grid grid-cols-2 gap-[1mm] bg-stone-50 rounded-[1mm] p-[1mm] text-[5pt] text-stone-700 border border-stone-200 text-left mt-[0.5mm]">
+                      <div>
+                        <span className="font-bold text-stone-400 block">Adm No:</span>
+                        <span className="font-mono font-black text-stone-900">{cleanAdm}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-stone-400 block">Roll / Blood:</span>
+                        <span className="font-bold text-stone-900">{student.roll_no || `${idx + 1}`} • <span className="text-red-600 font-black">{student.blood_group || 'O+'}</span></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scannable High-Contrast QR Code */}
+                  <div className="flex items-center justify-between w-full pt-[1mm] border-t border-stone-200">
+                    <div className="text-left text-[4pt] text-stone-500 leading-none">
+                      <p className="font-bold text-stone-700">Burari Campus</p>
+                      <p className="font-mono text-stone-400 mt-[0.3mm]">Ph: {student.parent_phone || '+91 98100 81008'}</p>
                     </div>
 
-                    {/* Scannable High-Contrast QR Code */}
-                    <div className="w-[16mm] h-[16mm] bg-white border border-stone-800 rounded-[1.5mm] p-[0.8mm] shrink-0 flex flex-col items-center justify-center">
+                    <div className="w-[13mm] h-[13mm] bg-white border border-stone-800 rounded-[1mm] p-[0.5mm] shrink-0 flex items-center justify-center">
                       <svg className="w-full h-full" viewBox="0 0 100 100" fill="currentColor">
                         <path d="M0 0h30v30H0zm5 5v20h20V5zm5 5h10v10H10zM70 0h30v30H70zm5 5v20h20V5zm5 5h10v10H80zM0 70h30v30H0zm5 5v20h20V75zm5 5h10v10H10zM40 10h10v10H40zm10 20h10v10H50zm-10 20h20v10H40zm30 10h10v20H70zm10 10h10v10H80zm-40 10h20v10H40zm20 10h10v10H60zm20 0h10v10H80z" />
                       </svg>
-                      <span className="text-[4pt] font-mono font-black text-stone-500 tracking-tighter truncate w-full text-center">
-                        {cleanAdm}
-                      </span>
                     </div>
-                  </div>
-
-                  {/* Bottom Bar */}
-                  <div className="border-t border-stone-200 pt-[0.8mm] flex justify-between items-center text-[4.5pt] text-stone-400 font-bold uppercase">
-                    <span>Crayon Box School • Burari</span>
-                    <span>Valid: 31 Mar 2027</span>
                   </div>
                 </div>
               )}
 
-              {/* BACK SIDE - EXACT CR80 (85.6mm x 54mm) */}
+              {/* BACK SIDE - VERTICAL CR80 (54mm x 85.6mm) */}
               {(layoutMode === "back" || layoutMode === "both") && (
                 <div 
-                  className="cr80-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between relative overflow-hidden print:shadow-none print:border-stone-900"
-                  style={{ width: "85.6mm", height: "54mm", boxSizing: "border-box" }}
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between text-left relative overflow-hidden print:shadow-none print:border-stone-900"
+                  style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
-                  <div className="border-b border-stone-200 pb-[0.8mm] flex justify-between items-center">
+                  <div className="border-b border-stone-900 pb-[0.8mm] text-center">
                     <span className="font-black text-[6pt] text-stone-900 uppercase">Emergency &amp; Security Protocol</span>
-                    <span className="font-mono text-[5pt] text-stone-400">ID: {student.card_number}</span>
+                    <p className="text-[4.5pt] font-mono text-stone-400">{student.card_number}</p>
                   </div>
 
-                  <div className="space-y-[0.5mm] text-[5.5pt] text-stone-600 flex-1 py-[1mm] leading-tight">
-                    <p><span className="font-bold text-stone-800">Student Name:</span> {student.first_name} {student.last_name || ''}</p>
-                    <p><span className="font-bold text-stone-800">Transport:</span> {student.transport_route}</p>
-                    <p><span className="font-bold text-stone-800">School Helpline:</span> +91 98100 81008</p>
-                    <p className="text-[4.8pt] text-stone-500 pt-[0.5mm]">
-                      1. This card must be worn by student during school &amp; bus commute.
-                    </p>
-                    <p className="text-[4.8pt] text-stone-500">
-                      2. If found, return to Crayon Box School Reception, Burari, Delhi.
-                    </p>
-                  </div>
-
-                  <div className="border-t border-stone-300 pt-[1mm] flex justify-between items-end text-[4.8pt]">
-                    <div>
-                      <span className="text-stone-700 font-bold block">www.crayonboxschool.com</span>
-                      <span className="text-[4pt] text-stone-400">Burari, Delhi - 110084</span>
+                  <div className="space-y-[1mm] text-[5pt] text-stone-600 flex-1 py-[1.5mm] leading-tight">
+                    <div className="bg-stone-50 p-[1mm] rounded-[1mm] border border-stone-200">
+                      <p><span className="font-bold text-stone-700">Student:</span> {student.first_name} {student.last_name || ''}</p>
+                      <p><span className="font-bold text-stone-700">Transport:</span> {student.transport_route}</p>
+                      <p><span className="font-bold text-stone-700">Helpline:</span> +91 98100 81008</p>
                     </div>
-                    <div className="text-center">
-                      <div className="w-[12mm] border-b border-stone-900 mb-[0.5mm]"></div>
-                      <span className="font-bold text-stone-800 text-[4.5pt] block">Authorized Sign</span>
+
+                    <div className="space-y-[0.8mm] text-[4.5pt] text-stone-500 pt-[0.5mm]">
+                      <p className="font-bold text-stone-700">TERMS OF USE:</p>
+                      <p>1. This card must be worn by the student at all times during school hours &amp; transit.</p>
+                      <p>2. Non-transferable identity credential.</p>
+                      <p>3. If found, please return to Crayon Box School Reception, Burari, Delhi - 110084.</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-stone-300 pt-[1mm] flex justify-between items-end text-[4.5pt]">
+                    <div>
+                      <span className="text-stone-800 font-bold block">www.crayonboxschool.com</span>
+                      <span className="text-[3.8pt] text-stone-400">Valid: 31 Mar 2027</span>
+                    </div>
+                    <div className="text-center shrink-0">
+                      <div className="w-[14mm] border-b border-stone-900 mb-[0.4mm]"></div>
+                      <span className="font-bold text-stone-800 text-[4pt] block">Principal Sign</span>
                     </div>
                   </div>
                 </div>
@@ -238,7 +240,7 @@ function StudentIdCardBatchPrintContent() {
         })}
       </div>
 
-      {/* Direct A4 Printing Style for exact 85.6mm x 54mm CR80 cards */}
+      {/* Direct A4 Printing Style for Vertical 54mm x 85.6mm CR80 cards */}
       <style jsx global>{`
         @media print {
           body * {
@@ -257,13 +259,13 @@ function StudentIdCardBatchPrintContent() {
             gap: 4mm;
             padding: 5mm;
           }
-          .cr80-card {
-            width: 85.6mm !important;
-            height: 54mm !important;
-            min-width: 85.6mm !important;
-            max-width: 85.6mm !important;
-            min-height: 54mm !important;
-            max-height: 54mm !important;
+          .cr80-vertical-card {
+            width: 54mm !important;
+            height: 85.6mm !important;
+            min-width: 54mm !important;
+            max-width: 54mm !important;
+            min-height: 85.6mm !important;
+            max-height: 85.6mm !important;
             border-radius: 3.18mm !important;
             page-break-inside: avoid;
             break-inside: avoid;
