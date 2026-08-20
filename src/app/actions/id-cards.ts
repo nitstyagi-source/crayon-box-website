@@ -72,14 +72,13 @@ export async function getIdCardDashboardStats(campusId?: string) {
 export async function getStudentsForIdCardGeneration(campusId?: string, filters?: { class_name?: string; section?: string; search?: string }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
-    // Fetch students
-    const { data: students, error: stuErr } = await supabase
+    // Fetch all active students
+    let { data: students, error: stuErr } = await supabase
       .from('students')
-      .select('id, admission_no, first_name, last_name, gender, dob, blood_group, photo_url, status, parent_phone, address')
-      .eq('campus_id', resolvedCampusId)
-      .eq('status', 'Active');
+      .select('id, admission_no, first_name, last_name, gender, dob, blood_group, photo_url, status, parent_phone, address, campus_id')
+      .eq('status', 'Active')
+      .order('first_name', { ascending: true });
 
     if (stuErr) throw stuErr;
 
@@ -108,7 +107,7 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
     const enriched = (students || []).map((s: any, idx: number) => {
       const h = histMap[s.id];
       const card = cardMap[s.id];
-      const cleanAdm = s.admission_no || `CB10${idx + 1}`;
+      const cleanAdm = s.admission_no || `CB10${(idx + 1).toString().padStart(2, '0')}`;
       const defaultQr = card?.qr_token || `CBS-SEC-STU-${cleanAdm}-${s.id.substring(0, 4).toUpperCase()}`;
 
       return {
@@ -120,7 +119,8 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
         qr_token: defaultQr,
         card_status: card?.status || 'Active',
         expiry_date: card?.expiry_date || '2027-03-31',
-        transport_route: 'Route #04 (Burari Main)'
+        transport_route: 'Route #04 (Burari Main)',
+        has_generated_card: !!card
       };
     });
 
@@ -128,6 +128,54 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
   } catch (error: any) {
     console.error("Error fetching students for ID cards:", error);
     return { success: false, error: error.message, data: [] };
+  }
+}
+
+// -------------------------------------------------------------
+// 2B. GENERATE / SYNC ALL STUDENT ID CARDS
+// -------------------------------------------------------------
+export async function generateAllMissingIdCards() {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data: students } = await supabase.from('students').select('id, admission_no, campus_id').eq('status', 'Active');
+    const { data: campuses } = await supabase.from('campuses').select('id').limit(1);
+    const defaultCampusId = campuses?.[0]?.id;
+
+    if (!students || students.length === 0) return { success: false, message: 'No active students found.' };
+
+    const { data: existingCards } = await supabase.from('id_cards').select('student_id').eq('card_type', 'Student');
+    const existingSet = new Set((existingCards || []).map((c: any) => c.student_id));
+
+    let createdCount = 0;
+    for (let i = 0; i < students.length; i++) {
+      const st = students[i];
+      if (!existingSet.has(st.id)) {
+        const cleanAdm = st.admission_no || `CB10${(i + 1).toString().padStart(2, '0')}`;
+        const qrToken = `CBS-SEC-STU-${cleanAdm}-${st.id.substring(0, 4).toUpperCase()}`;
+        const cardNum = `CB-STU-2026-${(i + 1).toString().padStart(4, '0')}`;
+
+        await supabase.from('id_cards').insert([{
+          campus_id: st.campus_id || defaultCampusId,
+          card_number: cardNum,
+          card_type: 'Student',
+          student_id: st.id,
+          qr_token: qrToken,
+          template_type: 'Standard',
+          academic_session: '2026-2027',
+          issue_date: '2026-04-01',
+          expiry_date: '2027-03-31',
+          status: 'Active',
+          reprint_count: 0
+        }]);
+        createdCount++;
+      }
+    }
+
+    revalidatePath('/admin/id-cards');
+    revalidatePath('/admin/id-cards/print-students');
+    return { success: true, message: `Successfully generated ${createdCount} ID cards!` };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
 
@@ -202,14 +250,13 @@ export async function getEscortsForCardGeneration(campusId?: string, filters?: {
 export async function getStudentsWithAllEscorts(campusId?: string, filters?: { class_name?: string }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
     // 1. Fetch Students
     const { data: students, error: stuErr } = await supabase
       .from('students')
-      .select('id, admission_no, first_name, last_name, gender, dob, blood_group, photo_url, parent_phone, address')
-      .eq('campus_id', resolvedCampusId)
-      .eq('status', 'Active');
+      .select('id, admission_no, first_name, last_name, gender, dob, blood_group, photo_url, parent_phone, address, campus_id')
+      .eq('status', 'Active')
+      .order('first_name', { ascending: true });
 
     if (stuErr) throw stuErr;
 

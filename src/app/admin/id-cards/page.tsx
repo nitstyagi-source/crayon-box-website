@@ -13,7 +13,8 @@ import {
   getIdCardDashboardStats, 
   getStudentsForIdCardGeneration, 
   getStudentsWithAllEscorts,
-  blockAndReplaceIdCard 
+  blockAndReplaceIdCard,
+  generateAllMissingIdCards
 } from "@/app/actions/id-cards";
 
 const CLASSES = [
@@ -30,6 +31,7 @@ export default function IdAndEscortCardManagementHub() {
   const [students, setStudents] = useState<any[]>([]);
   const [studentEscortCards, setStudentEscortCards] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Filters
   const [selectedClass, setSelectedClass] = useState("All Classes");
@@ -38,9 +40,6 @@ export default function IdAndEscortCardManagementHub() {
   // Preview Modal
   const [previewCard, setPreviewCard] = useState<any>(null);
   const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
-
-  // Block/Replace Action State
-  const [isProcessingBlock, setIsProcessingBlock] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -65,11 +64,22 @@ export default function IdAndEscortCardManagementHub() {
     }
   }
 
+  async function handleGenerateAll() {
+    setIsGenerating(true);
+    const res = await generateAllMissingIdCards();
+    if (res.success) {
+      alert(res.message);
+      await loadData();
+    } else {
+      alert("Error: " + res.error);
+    }
+    setIsGenerating(false);
+  }
+
   async function handleBlockAndReplace(cardId: string) {
     const reason = prompt("Enter reason for blocking this card (e.g. 'Reported lost by parent on bus'):");
     if (!reason) return;
 
-    setIsProcessingBlock(true);
     const res = await blockAndReplaceIdCard(cardId, reason);
     if (res.success) {
       alert(res.message);
@@ -77,7 +87,6 @@ export default function IdAndEscortCardManagementHub() {
     } else {
       alert("Error: " + res.error);
     }
-    setIsProcessingBlock(false);
   }
 
   const filteredStudents = students.filter(s => {
@@ -102,18 +111,31 @@ export default function IdAndEscortCardManagementHub() {
       {/* Top Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md flex items-center gap-1">
-              <CreditCard className="w-3.5 h-3.5 text-purple-600" /> Student &amp; Escort Card Master
+              <CreditCard className="w-3.5 h-3.5 text-purple-600" /> CR80 ID &amp; Escort Card Generator
             </span>
-            <span className="text-stone-400 text-xs">•</span>
+            <span className="bg-stone-100 text-stone-700 font-mono text-xs font-bold px-2.5 py-0.5 rounded-md border border-stone-300">
+              3.375&quot; × 2.125&quot; (85.6 mm × 54 mm)
+            </span>
             <span className="text-stone-500 text-xs font-bold">Session 2026-2027</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">ID &amp; Escort Card Generator</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">1 Escort Card per student containing all authorized pickup persons with gate security clearance.</p>
+          <p className="text-stone-500 text-xs sm:text-sm mt-1">
+            Standard ISO/IEC CR80 Size • 1 Escort Card per student containing all authorized pickup persons with gate security clearance.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          <button
+            onClick={handleGenerateAll}
+            disabled={isGenerating}
+            className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-purple-700 ${isGenerating ? 'animate-spin' : ''}`} />
+            {isGenerating ? "Generating..." : "Generate / Sync All Cards"}
+          </button>
+
           <Link
             href="/admin/id-cards/gate-pickup"
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
@@ -125,7 +147,7 @@ export default function IdAndEscortCardManagementHub() {
             href="/admin/id-cards/temporary-pass"
             className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-amber-200 flex items-center gap-1.5 transition-all"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Temporary Emergency Pass
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Temporary Pass
           </Link>
         </div>
       </div>
@@ -134,13 +156,13 @@ export default function IdAndEscortCardManagementHub() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[10px] font-bold text-stone-400 uppercase block">Student ID Cards</span>
-          <span className="text-2xl font-black text-stone-900 mt-1 block">{stats?.totalStudentCards || students.length}</span>
+          <span className="text-2xl font-black text-stone-900 mt-1 block">{students.length}</span>
           <span className="text-[10px] text-stone-500">Enrolled Students</span>
         </div>
 
         <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 shadow-xs">
           <span className="text-[10px] font-bold text-purple-800 uppercase block">Student Escort Cards</span>
-          <span className="text-2xl font-black text-purple-700 mt-1 block">{studentEscortCards.length || 850}</span>
+          <span className="text-2xl font-black text-purple-700 mt-1 block">{studentEscortCards.length}</span>
           <span className="text-[10px] text-purple-600">Multi-Escort Enabled</span>
         </div>
 
@@ -236,12 +258,22 @@ export default function IdAndEscortCardManagementHub() {
                 </div>
               </div>
 
-              <Link
-                href={`/admin/id-cards/print-students?class=${encodeURIComponent(selectedClass)}`}
-                className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Student Cards (A4)
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGenerateAll}
+                  disabled={isGenerating}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Generate ID Cards ({students.length})
+                </button>
+
+                <Link
+                  href={`/admin/id-cards/print-students?class=${encodeURIComponent(selectedClass)}`}
+                  className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print (85.6×54mm)
+                </Link>
+              </div>
             </div>
 
             {/* Students Table */}
@@ -293,7 +325,7 @@ export default function IdAndEscortCardManagementHub() {
                           }}
                           className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-2.5 py-1 rounded-lg text-xs"
                         >
-                          Preview Front/Back
+                          Preview (85.6×54mm)
                         </button>
                         <button
                           onClick={() => handleBlockAndReplace(student.card_number)}
@@ -340,7 +372,7 @@ export default function IdAndEscortCardManagementHub() {
                 href={`/admin/id-cards/print-escorts?class=${encodeURIComponent(selectedClass)}`}
                 className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
               >
-                <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Escort Cards (A4)
+                <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Escort Cards (85.6×54mm)
               </Link>
             </div>
 
@@ -394,7 +426,7 @@ export default function IdAndEscortCardManagementHub() {
                           }}
                           className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-2.5 py-1 rounded-lg text-xs"
                         >
-                          Preview Multi-Escort Card
+                          Preview Card (85.6×54mm)
                         </button>
                       </td>
                     </tr>
@@ -467,17 +499,22 @@ export default function IdAndEscortCardManagementHub() {
 
       </div>
 
-      {/* Card Preview Modal (Interactive Flip) */}
+      {/* Card Preview Modal - CR80 Dimensions */}
       {previewCard && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4">
             
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-base font-black text-stone-900">
-                  {previewCard.type === 'Student' ? 'Student ID Card Preview' : 'Student Multi-Escort Card Preview'}
-                </h3>
-                <p className="text-xs text-stone-500">Double-sided high-contrast print preview.</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-stone-900">
+                    {previewCard.type === 'Student' ? 'Student ID Card Preview' : 'Student Multi-Escort Card Preview'}
+                  </h3>
+                  <span className="bg-stone-100 text-stone-700 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    85.6 × 54 mm
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500">CR80 Double-Sided Form Factor</p>
               </div>
               <button onClick={() => setPreviewCard(null)} className="p-1 text-stone-400 hover:text-stone-800">
                 <X className="w-5 h-5" />
@@ -500,111 +537,117 @@ export default function IdAndEscortCardManagementHub() {
                   previewSide === 'back' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'
                 }`}
               >
-                Back Side (Authorized Escorts)
+                Back Side
               </button>
             </div>
 
-            {/* Render Card */}
-            <div className="border-2 border-stone-900 rounded-2xl p-4 bg-white shadow-lg space-y-3 min-h-[235px] flex flex-col justify-between">
-              {previewSide === 'front' ? (
-                /* Front Side */
-                <>
-                  <div className="flex items-center justify-between border-b-2 border-stone-900 pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-stone-900 text-amber-400 flex items-center justify-center font-black text-xs">
-                        CBS
+            {/* Render Exact CR80 Card Preview */}
+            <div className="flex justify-center py-2">
+              <div 
+                className="border-2 border-stone-900 rounded-[3.18mm] p-[3mm] bg-white shadow-xl flex flex-col justify-between"
+                style={{ width: "324px", height: "204px", boxSizing: "border-box" }}
+              >
+                {previewSide === 'front' ? (
+                  /* Front Side */
+                  <>
+                    <div className="flex items-center justify-between border-b border-stone-900 pb-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[9px]">
+                          CBS
+                        </div>
+                        <div className="leading-tight">
+                          <h4 className="font-black text-[10px] text-stone-900 uppercase">Crayon Box School</h4>
+                          <p className="text-[7px] text-stone-500 uppercase font-bold">
+                            {previewCard.type === 'Student' ? 'Student Identity Card' : 'Student Escort Card'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-black text-xs text-stone-900 uppercase">Crayon Box School</h4>
-                        <p className="text-[8px] text-stone-500 uppercase font-bold">
-                          {previewCard.type === 'Student' ? 'Student Identity Card' : 'Student Escort & Pickup Card'}
+                      <span className="text-[8px] font-mono font-bold bg-stone-100 px-1 py-0.2 rounded border border-stone-300">
+                        {previewCard.class_name}-{previewCard.section_name || 'A'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 py-1 flex-1">
+                      <div className="w-14 h-18 rounded border border-stone-800 overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
+                        {previewCard.photo_url ? (
+                          <img src={previewCard.photo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-6 h-6 text-stone-400" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-0.5 text-[9px] leading-tight">
+                        <h4 className="font-black text-[11px] text-stone-900 uppercase truncate">
+                          {previewCard.first_name} {previewCard.last_name || ''}
+                        </h4>
+                        <p className="text-stone-600">
+                          <span className="font-bold text-stone-400">Adm:</span> <span className="font-mono font-bold text-stone-900">{previewCard.admission_no}</span>
+                        </p>
+                        <p className="text-stone-600">
+                          <span className="font-bold text-stone-400">Roll:</span> <span className="font-bold text-stone-800">{previewCard.roll_no || '1'}</span>
+                          <span className="font-bold text-stone-400 ml-1">Blood:</span> <span className="font-bold text-red-600">{previewCard.blood_group || 'O+'}</span>
+                        </p>
+                        <p className="text-stone-600 truncate text-[8px]">
+                          <span className="font-bold text-stone-400">Ph:</span> <span className="font-mono font-bold text-stone-800">{previewCard.parent_phone || '+91 98100 81008'}</span>
                         </p>
                       </div>
-                    </div>
-                    <span className="text-[9px] font-mono font-bold bg-stone-100 px-1.5 py-0.5 rounded border border-stone-300">
-                      2026-2027
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-3 py-1">
-                    <div className="w-16 h-20 rounded-xl border border-stone-800 overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
-                      {previewCard.photo_url ? (
-                        <img src={previewCard.photo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-8 h-8 text-stone-400" />
-                      )}
+                      <div className="w-13 h-13 bg-white border border-stone-800 rounded p-1 shrink-0 flex flex-col items-center justify-center">
+                        <QrCode className="w-8 h-8 text-stone-900" />
+                        <span className="text-[5px] font-mono font-bold text-stone-500">GATE-TOKEN</span>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 space-y-0.5 text-[10px]">
-                      <h4 className="font-black text-xs text-stone-900 uppercase truncate">
-                        {previewCard.first_name} {previewCard.last_name || ''}
-                      </h4>
-                      <p className="text-stone-600">
-                        <span className="font-bold">Adm No:</span> <span className="font-mono font-bold text-stone-900">{previewCard.admission_no}</span>
-                      </p>
-                      <p className="text-stone-600">
-                        <span className="font-bold">Class:</span> <span className="font-bold text-purple-800">{previewCard.class_name}-{previewCard.section_name || 'A'}</span>
-                      </p>
-                      <p className="text-stone-600">
-                        <span className="font-bold">Validity:</span> 31 Mar 2027
-                      </p>
+                    <div className="border-t border-stone-200 pt-0.5 text-[7px] text-stone-400 font-bold uppercase flex justify-between">
+                      <span>Main Campus, Burari</span>
+                      <span>Valid: 31 Mar 2027</span>
+                    </div>
+                  </>
+                ) : (
+                  /* Back Side */
+                  <>
+                    <div className="border-b border-stone-200 pb-0.5 flex justify-between items-center">
+                      <h5 className="font-black text-[8px] text-stone-900 uppercase">
+                        {previewCard.type === 'EscortCard' ? `Authorized Escorts for ${previewCard.first_name}` : 'Emergency & Security Terms'}
+                      </h5>
                     </div>
 
-                    <div className="w-16 h-16 bg-white border border-stone-800 rounded-xl p-1 shrink-0 flex flex-col items-center justify-center">
-                      <QrCode className="w-10 h-10 text-stone-900" />
-                      <span className="text-[5px] font-mono font-bold text-stone-500">GATE-TOKEN</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-stone-200 pt-1 text-[7px] text-stone-400 font-bold uppercase flex justify-between">
-                    <span>Main Campus, Burari</span>
-                    <span>Valid Until: 31 Mar 2027</span>
-                  </div>
-                </>
-              ) : (
-                /* Back Side: Roster of Authorized Escorts */
-                <>
-                  <div className="border-b border-stone-200 pb-1 flex justify-between items-center">
-                    <h5 className="font-black text-[9px] text-stone-900 uppercase">
-                      Authorized Pickup Persons for {previewCard.first_name}
-                    </h5>
-                  </div>
-
-                  {previewCard.type === 'EscortCard' && previewCard.escorts ? (
-                    <div className="grid grid-cols-2 gap-1.5 py-1">
-                      {previewCard.escorts.slice(0, 4).map((e: any, idx: number) => (
-                        <div key={idx} className="bg-stone-50 border border-stone-200 rounded p-1 flex items-center gap-1.5">
-                          <div className="w-6 h-8 rounded border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center">
-                            {e.photo_url ? (
-                              <img src={e.photo_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <User className="w-3 h-3 text-stone-400" />
-                            )}
+                    {previewCard.type === 'EscortCard' && previewCard.escorts ? (
+                      <div className="grid grid-cols-2 gap-1 py-1">
+                        {previewCard.escorts.slice(0, 4).map((e: any, idx: number) => (
+                          <div key={idx} className="bg-stone-50 border border-stone-200 rounded p-1 flex items-center gap-1">
+                            <div className="w-5 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center">
+                              {e.photo_url ? (
+                                <img src={e.photo_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="w-3 h-3 text-stone-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 leading-none text-[7px]">
+                              <p className="font-bold text-stone-900 truncate">{e.full_name}</p>
+                              <span className="text-[6px] font-bold text-purple-700">{e.relationship}</span>
+                              <p className="text-[6px] font-mono text-stone-400 truncate">{e.mobile}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1 leading-tight text-[8px]">
-                            <p className="font-bold text-stone-900 truncate">{e.full_name}</p>
-                            <span className="text-[7px] font-bold text-purple-700">{e.relationship}</span>
-                            <p className="text-[6px] font-mono text-stone-400 truncate">{e.mobile}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-1 text-[9px] text-stone-600 flex-1">
-                      <p><span className="font-bold text-stone-800">Emergency Phone:</span> +91 98100 81008</p>
-                      <p><span className="font-bold text-stone-800">Transport:</span> Route #04 (Burari Main)</p>
-                      <p className="text-[8px] text-stone-500 pt-1">
-                        1. This card must be presented to security at the gate during morning drop-off and afternoon pickup.
-                      </p>
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5 text-[8px] text-stone-600 flex-1 leading-tight py-1">
+                        <p><span className="font-bold text-stone-800">Helpline:</span> +91 98100 81008</p>
+                        <p><span className="font-bold text-stone-800">Transport:</span> Route #04 (Burari Main)</p>
+                        <p className="text-[7px] text-stone-500 pt-0.5">
+                          1. This card must be worn by student during school &amp; transport.
+                        </p>
+                      </div>
+                    )}
 
-                  <div className="border-t border-stone-300 pt-1 flex justify-between items-end text-[7px]">
-                    <span className="text-stone-500">Only persons pictured are authorized for gate pickup.</span>
-                    <span className="font-bold text-stone-800">Principal Signature</span>
-                  </div>
-                </>
-              )}
+                    <div className="border-t border-stone-300 pt-0.5 flex justify-between items-end text-[7px]">
+                      <span className="text-stone-500 text-[6px]">www.crayonboxschool.com</span>
+                      <span className="font-bold text-stone-800 text-[7px]">Principal Sign</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
           </div>
