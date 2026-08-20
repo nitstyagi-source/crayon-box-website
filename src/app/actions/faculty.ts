@@ -21,7 +21,10 @@ function isValidUUID(id: string) {
 }
 
 async function resolveCampusId(supabase: any, campusId?: string): Promise<string> {
-  if (campusId && isValidUUID(campusId)) return campusId;
+  if (campusId && isValidUUID(campusId)) {
+    const { data: existing } = await supabase.from('campuses').select('id').eq('id', campusId).maybeSingle();
+    if (existing?.id) return existing.id;
+  }
   const { data } = await supabase.from('campuses').select('id').limit(1).single();
   if (!data?.id) throw new Error("No campus found in database.");
   return data.id;
