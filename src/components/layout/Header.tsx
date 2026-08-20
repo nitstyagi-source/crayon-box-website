@@ -35,9 +35,9 @@ export default async function Header() {
           {/* Section 1: Logo */}
           <Link href="/" className="flex items-center shrink-0">
             {globalData.brand?.logo_primary_url ? (
-              <img src={globalData.brand.logo_primary_url} alt="Crayon Box School Logo" className="w-16 h-16 object-contain hover:scale-105 transition-transform mix-blend-multiply" />
+              <img src={globalData.brand.logo_primary_url} alt="Crayon Box School Logo" className="w-16 h-16 object-contain hover:scale-105 transition-transform" />
             ) : (
-              <Image src="/logo.jpg" alt="Crayon Box School Logo" width={64} height={64} className="w-16 h-16 object-contain hover:scale-105 transition-transform" />
+              <Image src="/logo.png" alt="Crayon Box School Logo" width={64} height={64} className="w-16 h-16 object-contain hover:scale-105 transition-transform" priority />
             )}
           </Link>
 

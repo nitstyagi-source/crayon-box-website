@@ -41,7 +41,7 @@ export default async function Footer() {
               {globalData.brand?.logo_inverse_url ? (
                 <img src={globalData.brand.logo_inverse_url} alt="Crayon Box School Logo" className="w-24 h-24 object-contain rounded-full bg-white border-2 border-white/20 shadow-lg p-1 hover:scale-105 transition-transform" />
               ) : (
-                <Image src="/logo.jpg" alt="Crayon Box School Logo" width={96} height={96} className="w-24 h-24 object-contain rounded-full bg-white border-2 border-white/20 shadow-lg p-1 hover:scale-105 transition-transform" />
+                <Image src="/logo.png" alt="Crayon Box School Logo" width={96} height={96} className="w-24 h-24 object-contain rounded-full bg-white border-2 border-white/20 shadow-lg p-1 hover:scale-105 transition-transform" />
               )}
             </Link>
             <p className="text-sm leading-relaxed text-blue-200">

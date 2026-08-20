@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3 } from "lucide-react";
 import { CampusProvider, useCampusContext } from "@/components/providers/CampusProvider";
@@ -34,9 +35,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shrink-0">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-serif font-bold">A</div>
-          <span className="font-bold text-white tracking-wider uppercase text-sm">Super Admin</span>
+        <div className="p-5 flex items-center gap-3 border-b border-slate-800">
+          <div className="w-10 h-10 rounded-full bg-white p-0.5 shadow-md shrink-0 flex items-center justify-center overflow-hidden">
+            <Image src="/logo.png" alt="Crayon Box Logo" width={40} height={40} className="object-contain" priority />
+          </div>
+          <div>
+            <span className="font-black text-white tracking-wider uppercase text-xs block">Crayon Box</span>
+            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest block">Super Admin</span>
+          </div>
         </div>
         
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
