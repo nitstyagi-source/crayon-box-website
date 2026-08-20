@@ -153,6 +153,29 @@ export async function assignSubstitutionToSlot(slotId: string, substituteTeacher
   }
 }
 
+export async function clearSubstitutionFromSlot(slotId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('school_timetable')
+      .update({
+        substitution_teacher_id: null,
+        substitution_teacher_name: null,
+        status: 'Active'
+      })
+      .eq('id', slotId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    revalidatePath('/admin/timetable');
+    revalidatePath('/admin/faculty/substitutions');
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 // -------------------------------------------------------------
 // 4. DELETE TIMETABLE SLOT
 // -------------------------------------------------------------
