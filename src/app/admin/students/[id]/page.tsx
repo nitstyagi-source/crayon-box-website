@@ -21,6 +21,7 @@ import {
   deleteStudentAddress
 } from "@/app/actions/students";
 import { useRouter } from "next/navigation";
+import TransferCertificateModal from "@/components/admin/TransferCertificateModal";
 
 export default function StudentProfileDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -88,6 +89,9 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
 
   // Delete Modal State
   const [deleteModal, setDeleteModal] = useState(false);
+
+  // Transfer Certificate (SLC) Modal State
+  const [tcModalOpen, setTcModalOpen] = useState(false);
 
   // Document Upload Modal State
   const [uploadDocModal, setUploadDocModal] = useState(false);
@@ -355,6 +359,19 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     }
   }
 
+  async function handleLogTC(tcData: any) {
+    try {
+      await updateStudentLifecycleStatus(
+        studentId, 
+        'TC_Issued', 
+        `School Leaving Certificate (Ref: ${tcData.ref_no}) issued on ${tcData.issue_date}. Reason: ${tcData.reason_for_leaving || 'Parent Request'}`
+      );
+      loadProfile();
+    } catch (e) {
+      console.error("Failed to log TC issuance:", e);
+    }
+  }
+
   if (isLoading) return <div className="p-12 text-center font-bold text-stone-500">Loading 360° student profile...</div>;
   if (!profile) return <div className="p-12 text-center font-bold text-red-500">Student not found.</div>;
 
@@ -446,6 +463,12 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               <Edit3 className="w-3.5 h-3.5" /> Edit Profile
             </button>
             <button 
+              onClick={() => setTcModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" /> Generate TC / SLC
+            </button>
+            <button 
               onClick={() => setTransferModal(true)}
               className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
@@ -455,7 +478,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               onClick={() => setLifecycleModal(true)}
               className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
-              <Activity className="w-3.5 h-3.5 text-amber-400" /> Promote / TC
+              <Activity className="w-3.5 h-3.5 text-amber-400" /> Promote / Status
             </button>
             <button 
               onClick={() => setDeleteModal(true)}
@@ -993,12 +1016,20 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                 <h3 className="text-lg font-bold text-stone-900">Student Lifecycle & TC Registry</h3>
                 <p className="text-xs text-stone-500">Official log of class promotions, school withdrawals, and TC issuances.</p>
               </div>
-              <button 
-                onClick={() => setLifecycleModal(true)}
-                className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold"
-              >
-                Log Status Change
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setTcModalOpen(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Generate Transfer Certificate (SLC)
+                </button>
+                <button 
+                  onClick={() => setLifecycleModal(true)}
+                  className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold"
+                >
+                  Log Status Change
+                </button>
+              </div>
             </div>
 
             {profile.lifecycle && profile.lifecycle.length > 0 ? (
@@ -1619,6 +1650,14 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
           </div>
         </div>
       )}
+
+      {/* Modal 7: School Leaving Certificate (SLC / TC) */}
+      <TransferCertificateModal
+        isOpen={tcModalOpen}
+        onClose={() => setTcModalOpen(false)}
+        student={profile}
+        onLogTC={handleLogTC}
+      />
 
     </div>
   );

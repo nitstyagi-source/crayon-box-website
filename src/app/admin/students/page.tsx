@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { 
   Users, Search, Plus, Filter, Download, GraduationCap, X, 
   UserMinus, UserCheck, Sparkles, Trash2, AlertTriangle, ChevronRight,
-  Phone, User
+  Phone, User, Printer, FileText
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getStudents, createStudent, deleteStudentPermanently } from "@/app/actions/students";
 import { getClasses } from "@/app/actions/classes";
 import Link from "next/link";
+import TransferCertificateModal from "@/components/admin/TransferCertificateModal";
 
 export default function StudentsDirectory() {
   const { activeCampusId } = useCampusContext();
@@ -71,6 +72,9 @@ export default function StudentsDirectory() {
 
   // Delete Modal State
   const [deleteModal, setDeleteModal] = useState<any>(null);
+
+  // TC Modal State
+  const [tcStudent, setTcStudent] = useState<any>(null);
 
   useEffect(() => {
     if (activeCampusId) loadData();
@@ -381,7 +385,14 @@ export default function StudentsDirectory() {
                           {student.status}
                         </span>
                       </td>
-                      <td className="p-4 text-right space-x-2">
+                      <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                        <button
+                          onClick={() => setTcStudent(student)}
+                          className="text-emerald-700 hover:text-emerald-900 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+                          title="Generate Transfer Certificate (SLC)"
+                        >
+                          <Printer className="w-3 h-3" /> TC
+                        </button>
                         <Link href={`/admin/students/${student.id}`} className="text-blue-700 hover:text-blue-900 font-bold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors inline-block">
                           View 360°
                         </Link>
@@ -701,6 +712,13 @@ export default function StudentsDirectory() {
           </div>
         </div>
       )}
+
+      {/* Modal: Transfer Certificate (SLC / TC) */}
+      <TransferCertificateModal
+        isOpen={!!tcStudent}
+        onClose={() => setTcStudent(null)}
+        student={tcStudent}
+      />
 
     </div>
   );
