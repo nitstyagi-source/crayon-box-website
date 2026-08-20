@@ -202,18 +202,31 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
       { grade: "UKG", section: "Jupiter", wing: "Early Years" },
       { grade: "UKG", section: "Neptune", wing: "Early Years" },
       { grade: "UKG", section: "Uranus", wing: "Early Years" },
+      // Primary (Classes 1 - 5)
       { grade: "Grade 1", section: "A", wing: "Lower Primary (1-2)" },
       { grade: "Grade 1", section: "B", wing: "Lower Primary (1-2)" },
       { grade: "Grade 2", section: "A", wing: "Lower Primary (1-2)" },
       { grade: "Grade 3", section: "A", wing: "Upper Primary (3-5)" },
       { grade: "Grade 4", section: "A", wing: "Upper Primary (3-5)" },
-      { grade: "Grade 5", section: "A", wing: "Upper Primary (3-5)" }
+      { grade: "Grade 5", section: "A", wing: "Upper Primary (3-5)" },
+      // Middle School (Classes 6 - 8)
+      { grade: "Grade 6", section: "A", wing: "Middle School (6-8)" },
+      { grade: "Grade 7", section: "A", wing: "Middle School (6-8)" },
+      { grade: "Grade 8", section: "A", wing: "Middle School (6-8)" },
+      // Secondary & Senior Secondary (Classes 9 - 12)
+      { grade: "Grade 9", section: "A", wing: "Secondary (9-10)" },
+      { grade: "Grade 10", section: "A", wing: "Secondary (9-10)" },
+      { grade: "Grade 11", section: "A", wing: "Senior Secondary (11-12)" },
+      { grade: "Grade 12", section: "A", wing: "Senior Secondary (11-12)" }
     ];
 
     const SUBJECT_ROTATION: Record<string, string[]> = {
       "Early Years": ["Phonics & Rhymes", "Number Fun & Math", "Storytelling & EVS", "Fine Motor Play", "Music & Movement", "Art & Craft", "Free Play"],
       "Lower Primary (1-2)": ["English Grammar", "Mathematics", "Hindi", "Environmental Studies (EVS)", "Computer & Coding", "Vedic Math", "Visual Arts"],
-      "Upper Primary (3-5)": ["Mathematics", "Science & Discovery", "English Literature", "Social Studies / EVS", "Hindi Vyakaran", "Robotics & Computer", "Mental Math & Logic"]
+      "Upper Primary (3-5)": ["Mathematics", "Science & Discovery", "English Literature", "Social Studies / EVS", "Hindi Vyakaran", "Robotics & Computer", "Mental Math & Logic"],
+      "Middle School (6-8)": ["Advanced Mathematics", "General Science (Physics/Chem/Bio)", "Social Science (Hist/Civics/Geo)", "English Language & Lit", "Hindi / Sanskrit", "Artificial Intelligence & Coding", "Reasoning & Aptitude"],
+      "Secondary (9-10)": ["Mathematics Standard", "Physics & Chemistry", "Biology & Life Sciences", "History, Civics & Geography", "English Communicative", "Information Technology", "Economics & Commercial Studies"],
+      "Senior Secondary (11-12)": ["Physics / Accountancy", "Chemistry / Business Studies", "Mathematics / Applied Math", "Biology / Economics", "Computer Science / IP", "English Core", "General Studies & Aptitude"]
     };
 
     const DAILY_ACTIVITIES: Record<string, { subject: string; room: string }> = {
@@ -239,7 +252,7 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
           let room = `Room 10${cls.grade.includes('Nursery') ? '1' : cls.grade.includes('UKG') ? '2' : '3'}`;
 
           if (p.num === 9) {
-            // Dedicated 1-Hour Sports & Activity Block
+            // Dedicated 50-Min Sports & Activity Block
             const act = DAILY_ACTIVITIES[day] || { subject: "Sports & Activities", room: "Sports Ground" };
             subject = act.subject;
             room = act.room;
@@ -259,7 +272,8 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
               ) || teachers[(p.num + cls.grade.length) % teachers.length];
             }
 
-            if (subject.includes("Computer") || subject.includes("Robotics")) room = "STEM Lab";
+            if (subject.includes("Computer") || subject.includes("Robotics") || subject.includes("Artificial Intelligence")) room = "STEM Lab";
+            else if (subject.includes("Physics") || subject.includes("Chemistry") || subject.includes("Biology")) room = "Science Composite Lab";
             else if (subject.includes("Art")) room = "Art Studio";
             else if (subject.includes("Music")) room = "Music & Dance Studio";
           }
