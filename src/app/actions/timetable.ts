@@ -180,8 +180,8 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
     const { data: staffList } = await supabase.from('staff').select('id, first_name, last_name, designation, subjects_taught, department').eq('campus_id', resolvedCampusId);
     const teachers = (staffList || []).filter((s: any) => s.first_name);
 
-    // Standard Period Templates: Period 1-7 (40 min each), Short Break (30 min), Sports (50 min), Assembly & Dispersal (15 min each)
-    const PRIMARY_PERIODS = [
+    // 1. Primary & Senior Period Templates (Classes 1 to 12): 8:00 AM - 2:30 PM
+    const SENIOR_PERIODS = [
       { num: 0, label: "Morning Assembly & Mindfulness", start: "08:00 AM", end: "08:15 AM", dur: 15, break_type: "Assembly" },
       { num: 1, label: "Period 1", start: "08:15 AM", end: "08:55 AM", dur: 40, break_type: "None" },
       { num: 2, label: "Period 2", start: "08:55 AM", end: "09:35 AM", dur: 40, break_type: "None" },
@@ -195,14 +195,30 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
       { num: 10, label: "Dispersal / Diary / Closing", start: "02:15 PM", end: "02:30 PM", dur: 15, break_type: "Dispersal" }
     ];
 
+    // 2. Early Childhood Period Templates (Nursery / LKG / UKG): 9:00 AM - 1:00 PM (25-30 Min Blocks)
+    const EARLY_YEARS_PERIODS = [
+      { num: 0, label: "Morning Circle Time & Welcome Prayer", start: "09:00 AM", end: "09:20 AM", dur: 20, break_type: "Assembly" },
+      { num: 1, label: "Block 1: Phonics, Rhymes & Language Fun", start: "09:20 AM", end: "09:50 AM", dur: 30, break_type: "None" },
+      { num: 2, label: "Block 2: Number Magic & Pre-Math Concepts", start: "09:50 AM", end: "10:20 AM", dur: 30, break_type: "None" },
+      { num: 3, label: "Healthy Fruit & Snack Break (Tiffin)", start: "10:20 AM", end: "10:50 AM", dur: 30, break_type: "Short Break" },
+      { num: 4, label: "Block 3: Sensory Play, EVS & Nature Walk", start: "10:50 AM", end: "11:20 AM", dur: 30, break_type: "None" },
+      { num: 5, label: "Block 4: Creative Arts, Clay Moulding & Craft", start: "11:20 AM", end: "11:50 AM", dur: 30, break_type: "None" },
+      { num: 6, label: "Block 5: Music, Movement & Rhythmic Dance", start: "11:50 AM", end: "12:20 PM", dur: 30, break_type: "None" },
+      { num: 7, label: "Block 6: Gross Motor, Outdoor Play & Games", start: "12:20 PM", end: "12:45 PM", dur: 25, break_type: "None" },
+      { num: 8, label: "Storytelling, Diary & Warm Dispersal", start: "12:45 PM", end: "01:00 PM", dur: 15, break_type: "Dispersal" }
+    ];
+
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
     const CLASSES = [
+      // Early Years (9:00 AM - 1:00 PM)
       { grade: "Nursery", section: "Earth", wing: "Early Years" },
       { grade: "Nursery", section: "Mars", wing: "Early Years" },
+      { grade: "LKG", section: "Sun", wing: "Early Years" },
+      { grade: "LKG", section: "Moon", wing: "Early Years" },
       { grade: "UKG", section: "Jupiter", wing: "Early Years" },
       { grade: "UKG", section: "Neptune", wing: "Early Years" },
       { grade: "UKG", section: "Uranus", wing: "Early Years" },
-      // Primary (Classes 1 - 5)
+      // Primary (Classes 1 - 5: 8:00 AM - 2:30 PM)
       { grade: "Grade 1", section: "A", wing: "Lower Primary (1-2)" },
       { grade: "Grade 1", section: "B", wing: "Lower Primary (1-2)" },
       { grade: "Grade 2", section: "A", wing: "Lower Primary (1-2)" },
@@ -243,16 +259,18 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
     const slotsToInsert = [];
 
     for (const cls of CLASSES) {
+      const isEarlyYears = cls.wing === "Early Years";
+      const periodsTemplate = isEarlyYears ? EARLY_YEARS_PERIODS : SENIOR_PERIODS;
       const subList = SUBJECT_ROTATION[cls.wing] || SUBJECT_ROTATION["Upper Primary (3-5)"];
 
       for (const day of DAYS) {
-        for (const p of PRIMARY_PERIODS) {
+        for (const p of periodsTemplate) {
           let subject = p.label;
           let assignedTeacher: any = null;
-          let room = `Room 10${cls.grade.includes('Nursery') ? '1' : cls.grade.includes('UKG') ? '2' : '3'}`;
+          let room = `Room 10${cls.grade.includes('Nursery') ? '1' : cls.grade.includes('LKG') ? '2' : cls.grade.includes('UKG') ? '3' : '4'}`;
 
-          if (p.num === 9) {
-            // Dedicated 50-Min Sports & Activity Block
+          if (!isEarlyYears && p.num === 9) {
+            // Dedicated 50-Min Sports & Activity Block for Classes 1 to 12
             const act = DAILY_ACTIVITIES[day] || { subject: "Sports & Activities", room: "Sports Ground" };
             subject = act.subject;
             room = act.room;

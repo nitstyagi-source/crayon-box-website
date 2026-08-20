@@ -14,9 +14,9 @@ import { getClasses } from "@/app/actions/classes";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const AGE_RECOMMENDATIONS = [
-  { wing: "Pre-Nursery – KG", duration: "25–30 min blocks", desc: "Short learning blocks with snack, movement & play", badge: "Early Years" },
-  { wing: "Classes 1–2", duration: "35–40 min periods", desc: "Foundation numeracy, literacy & motor development", badge: "Lower Primary" },
-  { wing: "Classes 3–5", duration: "40 min standard", desc: "Core subjects (Math, EVS, Hindi, Eng) + Sports & STEM", badge: "Upper Primary" }
+  { wing: "Nursery / LKG / UKG", duration: "9:00 AM – 1:00 PM", desc: "25–30 min active learning blocks, fruit break, sensory play & gross motor games", badge: "Early Years" },
+  { wing: "Classes 1–5 (Primary)", duration: "8:00 AM – 2:30 PM", desc: "40 min periods, 30m break, 50m sports & co-curricular activity block", badge: "Primary Wing" },
+  { wing: "Classes 6–12 (Middle & Senior)", duration: "8:00 AM – 2:30 PM", desc: "40 min standard periods, advanced labs & 50m athletics/STEM block", badge: "Secondary & Senior" }
 ];
 
 export default function TimetableManagementPage() {
@@ -351,7 +351,11 @@ export default function TimetableManagementPage() {
 
           <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 px-3 py-1.5 rounded-xl">
             <Clock className="w-3.5 h-3.5 text-blue-600" />
-            <span className="text-xs font-bold text-stone-700">08:00 AM – 02:30 PM</span>
+            <span className="text-xs font-bold text-stone-700">
+              {(selectedClass.includes("Nursery") || selectedClass.includes("LKG") || selectedClass.includes("UKG")) 
+                ? "09:00 AM – 01:00 PM (Early Childhood)" 
+                : "08:00 AM – 02:30 PM (Classes 1–12 Standard)"}
+            </span>
           </div>
         </div>
 
