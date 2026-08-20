@@ -773,6 +773,171 @@ export async function getFeeStructures(campusId: string) {
   }
 }
 
+export async function saveFeeStructure(payload: {
+  id?: string;
+  campus_id: string;
+  name: string;
+  class_name: string;
+  academic_session?: string;
+  fee_category?: string;
+  items: Array<{
+    fee_head_id: string;
+    fee_head_name: string;
+    frequency: string;
+    amount: number;
+    due_day?: number;
+    late_fee_per_day?: number;
+    max_late_fee?: number;
+  }>;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    const totalAnnual = payload.items.reduce((sum, it) => {
+      let multiplier = 1;
+      if (it.frequency === 'Monthly') multiplier = 12;
+      else if (it.frequency === 'Quarterly') multiplier = 4;
+      else if (it.frequency === 'Half-Yearly') multiplier = 2;
+      return sum + (Number(it.amount || 0) * multiplier);
+    }, 0);
+
+    const structureData = {
+      campus_id: resolvedId,
+      name: payload.name,
+      class_name: payload.class_name,
+      academic_session: payload.academic_session || '2026-2027',
+      fee_category: payload.fee_category || 'General',
+      total_annual_amount: totalAnnual,
+      is_active: true
+    };
+
+    let structureId = payload.id;
+    if (structureId && isValidUUID(structureId)) {
+      const { error: updateErr } = await supabase
+        .from('fee_structures')
+        .update(structureData)
+        .eq('id', structureId);
+      if (updateErr) throw updateErr;
+
+      // Clear existing items
+      await supabase.from('fee_structure_items').delete().eq('fee_structure_id', structureId);
+    } else {
+      const { data: newStruct, error: insertErr } = await supabase
+        .from('fee_structures')
+        .insert([structureData])
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
+      structureId = newStruct.id;
+    }
+
+    if (payload.items && payload.items.length > 0) {
+      const itemsToInsert = payload.items.map(it => ({
+        fee_structure_id: structureId,
+        fee_head_id: it.fee_head_id && isValidUUID(it.fee_head_id) ? it.fee_head_id : null,
+        fee_head_name: it.fee_head_name,
+        frequency: it.frequency || 'Quarterly',
+        amount: Number(it.amount || 0),
+        due_day: Number(it.due_day || 10),
+        late_fee_per_day: Number(it.late_fee_per_day || 25),
+        max_late_fee: Number(it.max_late_fee || 500)
+      }));
+
+      const { error: itemsErr } = await supabase.from('fee_structure_items').insert(itemsToInsert);
+      if (itemsErr) throw itemsErr;
+    }
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/structure');
+    return { success: true, structure_id: structureId };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 3B. REFUNDS & ADJUSTMENTS
+// -------------------------------------------------------------
+export async function getFeeRefunds(campusId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    const { data, error } = await supabase
+      .from('fee_refunds')
+      .select('*')
+      .eq('campus_id', resolvedId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
+export async function processFeeRefund(payload: {
+  campus_id: string;
+  student_id: string;
+  student_name: string;
+  receipt_no?: string;
+  refund_amount: number;
+  refund_mode: string;
+  refund_reason: string;
+  requested_by?: string;
+  approved_by?: string;
+  status?: string;
+  transaction_ref?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    const refundData = {
+      campus_id: resolvedId,
+      student_id: payload.student_id,
+      student_name: payload.student_name,
+      receipt_no: payload.receipt_no || null,
+      refund_amount: Number(payload.refund_amount || 0),
+      refund_date: new Date().toISOString().split('T')[0],
+      refund_mode: payload.refund_mode || 'Bank Transfer',
+      refund_reason: payload.refund_reason || 'Fee Adjustment / Security Return',
+      requested_by: payload.requested_by || 'Accounts Desk',
+      approved_by: payload.approved_by || 'Chief Accountant',
+      status: payload.status || 'Approved',
+      transaction_ref: payload.transaction_ref || `REF-${Date.now().toString().slice(-6)}`
+    };
+
+    const { data: refundRecord, error: refundErr } = await supabase
+      .from('fee_refunds')
+      .insert([refundData])
+      .select()
+      .single();
+
+    if (refundErr) throw refundErr;
+
+    // Post financial ledger entry for audit trail
+    await supabase.from('student_fee_ledgers').insert([{
+      campus_id: resolvedId,
+      student_id: payload.student_id,
+      transaction_type: 'Refund / Credit Note',
+      particulars: `Fee Refund: ${payload.refund_reason} (${refundData.transaction_ref})`,
+      debit: Number(payload.refund_amount || 0),
+      credit: 0,
+      running_balance: 0,
+      voucher_type: 'REFUND_VOUCHER',
+      reference_no: refundData.transaction_ref
+    }]);
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/refunds');
+    return { success: true, data: refundRecord };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 // -------------------------------------------------------------
 // 4. STUDENT FEE PROFILES & SEARCH (POS Counter)
 // -------------------------------------------------------------
