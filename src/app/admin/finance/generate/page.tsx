@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { 
   FilePlus, Users, User, Search, Plus, Trash2, CheckCircle2, 
   AlertCircle, ShieldCheck, DollarSign, Calendar, Clock, ArrowRight,
-  Sparkles, RefreshCw, Layers, ShieldAlert
+  Sparkles, RefreshCw, Layers, ShieldAlert, CheckSquare, Square,
+  Filter, UserCheck, UserX, Info
 } from "lucide-react";
 import Link from "next/link";
 import { useCampusContext } from "@/components/providers/CampusProvider";
@@ -12,7 +13,8 @@ import {
   searchStudentsForFeeCollection, 
   generateIndividualInvoice, 
   generateBulkInvoices,
-  getFeeHeads
+  getFeeHeads,
+  getBulkTargetStudents
 } from "@/app/actions/finance-core";
 
 export default function GenerateInvoicesPage() {
@@ -44,11 +46,23 @@ export default function GenerateInvoicesPage() {
   ]);
 
   // Bulk Form State
-  const [selectedClass, setSelectedClass] = useState("All");
+  const [selectedClass, setSelectedClass] = useState("Grade 1");
+  const [selectedSection, setSelectedSection] = useState("All");
+  const [availableSections, setAvailableSections] = useState<string[]>([]);
+  const [bulkStudents, setBulkStudents] = useState<any[]>([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
 
   useEffect(() => {
     loadFeeHeads();
   }, [activeCampusId]);
+
+  useEffect(() => {
+    if (activeTab === "bulk") {
+      loadBulkStudents();
+    }
+  }, [activeCampusId, selectedClass, selectedSection, activeTab]);
 
   async function loadFeeHeads() {
     try {
@@ -59,6 +73,47 @@ export default function GenerateInvoicesPage() {
     } catch (e) {
       console.error("Error loading fee heads:", e);
     }
+  }
+
+  async function loadBulkStudents() {
+    setIsLoadingStudents(true);
+    try {
+      const res = await getBulkTargetStudents(activeCampusId, selectedClass, selectedSection);
+      if (res.success && res.data) {
+        const studentList = res.data.students || [];
+        setBulkStudents(studentList);
+        setAvailableSections(res.data.available_sections || []);
+
+        // By default, select all non-EWS students
+        const nonEwsIds = studentList.filter((s: any) => !s.isEws).map((s: any) => s.id);
+        setSelectedStudentIds(nonEwsIds);
+      }
+    } catch (e) {
+      console.error("Error loading bulk target students:", e);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  }
+
+  // Toggle individual student selection
+  function handleToggleStudent(studentId: string, isEws: boolean) {
+    if (isEws) return; // Cannot select EWS students
+    if (selectedStudentIds.includes(studentId)) {
+      setSelectedStudentIds(selectedStudentIds.filter(id => id !== studentId));
+    } else {
+      setSelectedStudentIds([...selectedStudentIds, studentId]);
+    }
+  }
+
+  // Select all non-EWS students
+  function handleSelectAllNonEws() {
+    const nonEwsIds = bulkStudents.filter((s: any) => !s.isEws).map((s: any) => s.id);
+    setSelectedStudentIds(nonEwsIds);
+  }
+
+  // Deselect all students
+  function handleDeselectAll() {
+    setSelectedStudentIds([]);
   }
 
   async function handleStudentSearch(q: string) {
@@ -108,6 +163,18 @@ export default function GenerateInvoicesPage() {
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
   };
+
+  // Filtered student list for rendering in bulk table
+  const filteredBulkStudents = bulkStudents.filter(s => {
+    if (!studentSearchQuery.trim()) return true;
+    const q = studentSearchQuery.toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.admission_no.toLowerCase().includes(q);
+  });
+
+  const totalClassCount = bulkStudents.length;
+  const nonEwsClassCount = bulkStudents.filter(s => !s.isEws).length;
+  const ewsClassCount = bulkStudents.filter(s => s.isEws).length;
+  const selectedCount = selectedStudentIds.length;
 
   async function handleGenerateIndividual(e: React.FormEvent) {
     e.preventDefault();
@@ -159,6 +226,14 @@ export default function GenerateInvoicesPage() {
 
   async function handleGenerateBulk(e: React.FormEvent) {
     e.preventDefault();
+    if (selectedStudentIds.length === 0) {
+      setNotification({ 
+        type: "error", 
+        message: "No students selected! Please check at least one student in the student list below." 
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setNotification(null);
 
@@ -166,6 +241,8 @@ export default function GenerateInvoicesPage() {
       const res = await generateBulkInvoices({
         campus_id: activeCampusId,
         class_name: selectedClass,
+        section_name: selectedSection,
+        selected_student_ids: selectedStudentIds,
         billing_period: billingPeriod,
         due_date: dueDate,
         notes: notes
@@ -176,6 +253,7 @@ export default function GenerateInvoicesPage() {
           type: "success",
           message: res.message || `🎉 Bulk invoices generated successfully!`
         });
+        loadBulkStudents();
       } else {
         setNotification({ type: "error", message: res.error || "Failed to generate bulk invoices." });
       }
@@ -500,30 +578,35 @@ export default function GenerateInvoicesPage() {
         </form>
       )}
 
-      {/* TAB 2: BULK CLASS INVOICE GENERATION */}
+      {/* TAB 2: BULK CLASS INVOICE GENERATION WITH SECTION & STUDENT SELECTION / OMISSION */}
       {activeTab === "bulk" && (
-        <form onSubmit={handleGenerateBulk} className="max-w-3xl mx-auto space-y-6">
+        <form onSubmit={handleGenerateBulk} className="space-y-6">
           
+          {/* Top Controls Grid: Class, Section, Term, Due Date */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
             <div className="border-b border-stone-100 pb-4">
               <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                Bulk Class Invoice Generation
+                Bulk Class & Section Invoice Batch
               </h3>
               <p className="text-xs text-stone-400 mt-1">
-                Batch generate fee invoices across all regular students while strictly skipping EWS/RTE quota students.
+                Filter by Class and Section, then selectively include or omit individual students before generating invoices.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              {/* Class Selector */}
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Target Class / Grades</label>
+                <label className="font-bold text-stone-700 block mb-1">1. Target Class</label>
                 <select
                   value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedClass(e.target.value);
+                    setSelectedSection("All");
+                  }}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-bold text-stone-900"
                 >
-                  <option value="All">All School Classes (Nursery to Grade 12)</option>
+                  <option value="All">All School Classes</option>
                   <option value="Nursery">Nursery / Preschool</option>
                   <option value="LKG">LKG</option>
                   <option value="UKG">UKG</option>
@@ -542,8 +625,24 @@ export default function GenerateInvoicesPage() {
                 </select>
               </div>
 
+              {/* Section Selector */}
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Billing Period / Term</label>
+                <label className="font-bold text-stone-700 block mb-1">2. Target Section</label>
+                <select
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-bold text-stone-900"
+                >
+                  <option value="All">All Sections</option>
+                  {availableSections.map((sec) => (
+                    <option key={sec} value={sec}>Section {sec}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Billing Period */}
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">3. Billing Period</label>
                 <input
                   type="text"
                   value={billingPeriod}
@@ -553,47 +652,232 @@ export default function GenerateInvoicesPage() {
                 />
               </div>
 
+              {/* Due Date */}
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Due Date</label>
+                <label className="font-bold text-stone-700 block mb-1">4. Payment Due Date</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold text-stone-900"
                   required
                 />
               </div>
+            </div>
 
+            <div className="text-xs">
+              <label className="font-bold text-stone-700 block mb-1">Batch Run Notes</label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Q1 Term Fee Demand for Academic Year 2026-27"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold text-stone-900"
+              />
+            </div>
+          </div>
+
+          {/* Student Selection & Omission Table Card */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-5">
+            
+            {/* Top Table Action Bar */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-stone-100 pb-4">
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Batch Run Notes</label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold"
-                />
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-blue-600" />
+                  Select or Omit Students from Batch ({selectedCount} Selected / {nonEwsClassCount} Eligible)
+                </h3>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  Check or uncheck individual students to include or exclude them from this batch invoice run.
+                </p>
+              </div>
+
+              {/* Quick Select Buttons & Live Counters */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Filter student list..."
+                    value={studentSearchQuery}
+                    onChange={(e) => setStudentSearchQuery(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSelectAllNonEws}
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition"
+                >
+                  Select All Non-EWS ({nonEwsClassCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition"
+                >
+                  Deselect All
+                </button>
               </div>
             </div>
 
-            {/* Safeguards Summary */}
-            <div className="bg-emerald-50/60 border border-emerald-200/80 p-4 rounded-2xl space-y-2 text-xs text-emerald-950">
-              <div className="font-black flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                RTE / EWS Exemption Protection Active
-              </div>
-              <p className="text-[11px] opacity-90 leading-relaxed">
-                The bulk generator will automatically apply class-wise fee structures (Tuition, Annual, Activity, Lab) and student scholarships. All <strong>75 EWS quota students</strong> will be automatically skipped with zero fee demands generated.
-              </p>
+            {/* Live Badges Summary */}
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <span className="bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1 rounded-xl font-bold">
+                Total in Class/Section: {totalClassCount}
+              </span>
+              <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-xl font-bold">
+                ✓ Included for Billing: {selectedCount}
+              </span>
+              <span className="bg-stone-100 text-stone-700 px-3 py-1 rounded-xl font-bold">
+                ✗ Omitted from Batch: {nonEwsClassCount - selectedCount}
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-xl font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                EWS 100% Free Quota: {ewsClassCount} (Exempted)
+              </span>
             </div>
 
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Users className="w-4 h-4" />
-              {isProcessing ? "Processing Batch Invoices..." : `Generate Bulk Invoices for ${selectedClass === 'All' ? 'All Classes' : selectedClass}`}
-            </button>
+            {/* Students Table */}
+            {isLoadingStudents ? (
+              <div className="p-12 text-center text-stone-400 text-xs font-bold animate-pulse">
+                Loading students for {selectedClass} ({selectedSection})...
+              </div>
+            ) : filteredBulkStudents.length === 0 ? (
+              <div className="p-12 text-center text-stone-400 text-xs font-bold">
+                No students found for the selected Class & Section filter.
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-96 overflow-y-auto rounded-2xl border border-stone-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="p-3 w-12 text-center">Select</th>
+                      <th className="p-3 w-28">Admission No</th>
+                      <th className="p-3">Student Name</th>
+                      <th className="p-3 w-32">Class & Section</th>
+                      <th className="p-3 w-36">Category / RTE Status</th>
+                      <th className="p-3 w-28 text-right">Est. Demand</th>
+                      <th className="p-3 w-32 text-center">Batch Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {filteredBulkStudents.map((st) => {
+                      const isSelected = selectedStudentIds.includes(st.id);
+                      return (
+                        <tr 
+                          key={st.id} 
+                          className={`transition ${
+                            st.isEws 
+                              ? "bg-emerald-50/40 text-stone-500" 
+                              : isSelected 
+                                ? "bg-blue-50/40 hover:bg-blue-50/70" 
+                                : "hover:bg-stone-50 text-stone-400"
+                          }`}
+                        >
+                          {/* Checkbox Column */}
+                          <td className="p-3 text-center">
+                            {st.isEws ? (
+                              <input 
+                                type="checkbox" 
+                                disabled 
+                                checked={false}
+                                className="rounded border-stone-300 opacity-40 cursor-not-allowed" 
+                              />
+                            ) : (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleStudent(st.id, st.isEws)}
+                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-stone-300 cursor-pointer"
+                              />
+                            )}
+                          </td>
+
+                          {/* Admission No */}
+                          <td className="p-3 font-mono font-bold text-stone-800">
+                            {st.admission_no}
+                          </td>
+
+                          {/* Student Name */}
+                          <td className="p-3">
+                            <strong className={`${isSelected ? "text-stone-900" : "text-stone-600"}`}>
+                              {st.name}
+                            </strong>
+                          </td>
+
+                          {/* Class & Section */}
+                          <td className="p-3 text-stone-600 font-semibold">
+                            {st.class_name} - {st.section_name}
+                          </td>
+
+                          {/* Category / RTE Badge */}
+                          <td className="p-3">
+                            {st.isEws ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">
+                                <ShieldCheck className="w-3 h-3" /> 100% RTE Free
+                              </span>
+                            ) : (
+                              <span className="bg-stone-100 text-stone-700 font-semibold px-2 py-0.5 rounded text-[10px]">
+                                {st.category} {st.concession_percentage > 0 ? `(${st.concession_percentage}% Disc)` : ''}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Estimated Net Demand */}
+                          <td className="p-3 text-right font-mono font-bold">
+                            {st.isEws ? (
+                              <span className="text-emerald-700">₹0.00</span>
+                            ) : (
+                              <span className="text-stone-900">{formatCurrency(st.estimated_net)}</span>
+                            )}
+                          </td>
+
+                          {/* Status Badge */}
+                          <td className="p-3 text-center">
+                            {st.isEws ? (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                Exempted (EWS)
+                              </span>
+                            ) : isSelected ? (
+                              <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded">
+                                ✓ Included
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded">
+                                Omitted
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Batch Submission Bar */}
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div>
+                <div className="text-sm font-black text-stone-900">
+                  Ready to Generate Invoices for <span className="text-blue-600">{selectedCount}</span> Selected Students
+                </div>
+                <p className="text-xs text-stone-500">
+                  Class: {selectedClass} • Section: {selectedSection} • Term: {billingPeriod}
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isProcessing || selectedCount === 0}
+                className="w-full sm:w-auto px-8 py-3.5 bg-stone-900 hover:bg-stone-800 text-white font-black text-sm rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Users className="w-4 h-4" />
+                {isProcessing ? "Processing Batch..." : `Generate ${selectedCount} Invoices Now`}
+              </button>
+            </div>
+
           </div>
 
         </form>

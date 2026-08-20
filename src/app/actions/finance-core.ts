@@ -155,10 +155,87 @@ export async function generateIndividualInvoice(payload: {
   }
 }
 
+export async function getBulkTargetStudents(campusId: string, className?: string, sectionName?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    const { data: allStudents, error: stErr } = await supabase
+      .from('students')
+      .select(`
+        id, first_name, last_name, admission_no, enrollment_number, category,
+        student_academic_history (class_name, section_name, is_current_session),
+        student_fee_profiles (*)
+      `)
+      .eq('campus_id', resolvedId)
+      .order('first_name', { ascending: true });
+
+    if (stErr) throw stErr;
+
+    // Collect distinct sections
+    const sectionSet = new Set<string>();
+
+    const mapped = (allStudents || []).map((s: any) => {
+      const academic = s.student_academic_history?.find((h: any) => h.is_current_session) || s.student_academic_history?.[0] || {};
+      const profile = s.student_fee_profiles?.[0] || {};
+      const cName = academic.class_name || 'Grade 1';
+      const sName = academic.section_name || 'A';
+
+      if (className && className !== 'All') {
+        if (cName === className && sName) sectionSet.add(sName);
+      } else {
+        if (sName) sectionSet.add(sName);
+      }
+
+      const isEws = s.category === 'EWS';
+      const concessionPct = Number(profile.concession_percentage || 0);
+      const baseEst = 11500;
+      const discEst = isEws ? 11500 : (concessionPct > 0 ? Math.round((baseEst * concessionPct) / 100) : 0);
+      const netEst = isEws ? 0 : Math.max(0, baseEst - discEst);
+
+      return {
+        id: s.id,
+        first_name: s.first_name,
+        last_name: s.last_name || '',
+        name: `${s.first_name} ${s.last_name || ''}`.trim(),
+        admission_no: s.admission_no || s.enrollment_number || 'ADM-N/A',
+        class_name: cName,
+        section_name: sName,
+        category: s.category || 'General',
+        isEws,
+        concession_type: profile.concession_type || (isEws ? '100% RTE Quota' : 'None'),
+        concession_percentage: concessionPct,
+        estimated_gross: isEws ? 0 : baseEst,
+        estimated_discount: discEst,
+        estimated_net: netEst
+      };
+    });
+
+    let filtered = mapped;
+    if (className && className !== 'All') {
+      filtered = filtered.filter((s: any) => s.class_name === className);
+    }
+    if (sectionName && sectionName !== 'All') {
+      filtered = filtered.filter((s: any) => s.section_name === sectionName);
+    }
+
+    return {
+      success: true,
+      data: {
+        students: filtered,
+        available_sections: Array.from(sectionSet).sort()
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function generateBulkInvoices(payload: {
   campus_id: string;
   class_name?: string; // 'All' or specific
-  section_name?: string;
+  section_name?: string; // 'All' or specific
+  selected_student_ids?: string[]; // Array of selected student IDs
   billing_period: string;
   due_date: string;
   notes?: string;
@@ -167,7 +244,7 @@ export async function generateBulkInvoices(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedId = await resolveCampusId(supabase, payload.campus_id);
 
-    // 1. Fetch non-EWS students for the target class
+    // 1. Fetch students for the target class/section
     let studentQuery = supabase
       .from('students')
       .select(`
@@ -180,12 +257,27 @@ export async function generateBulkInvoices(payload: {
     const { data: allStudents, error: stErr } = await studentQuery;
     if (stErr) throw stErr;
 
-    // Filter students by class if specified
+    // Filter students by class, section, and selected student IDs
     const targetStudents = (allStudents || []).filter(s => {
       const academic = s.student_academic_history?.find((h: any) => h.is_current_session) || s.student_academic_history?.[0] || {};
+      
+      // Class filter
       if (payload.class_name && payload.class_name !== 'All' && academic.class_name !== payload.class_name) {
         return false;
       }
+
+      // Section filter
+      if (payload.section_name && payload.section_name !== 'All' && academic.section_name !== payload.section_name) {
+        return false;
+      }
+
+      // Specific selection filter
+      if (payload.selected_student_ids && payload.selected_student_ids.length > 0) {
+        if (!payload.selected_student_ids.includes(s.id)) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -296,7 +388,7 @@ export async function generateBulkInvoices(payload: {
     revalidatePath('/admin/finance/generate');
     return {
       success: true,
-      message: `🎉 Successfully generated ${generatedCount} invoices. Skipped ${ewsCount} EWS students (100% RTE Free Quota).`,
+      message: `🎉 Successfully generated ${generatedCount} invoices for selected students. Skipped ${ewsCount} EWS students (100% RTE Free Quota).`,
       generatedCount,
       ewsCount
     };
