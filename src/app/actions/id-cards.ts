@@ -589,3 +589,121 @@ export async function createTemporaryEscortPass(payload: {
     return { success: false, error: error.message };
   }
 }
+
+// -------------------------------------------------------------
+// 8. ADD NEW ESCORT & MAP TO STUDENT
+// -------------------------------------------------------------
+export async function addEscortToStudent(payload: {
+  studentId: string;
+  fullName: string;
+  relationship: string;
+  mobile: string;
+  photoUrl?: string;
+  idProofType?: string;
+  idProofNumber?: string;
+  isPrimary?: boolean;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const randomCode = `ESC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // 1. Insert Escort record
+    const { data: escort, error: escErr } = await supabase
+      .from('escorts')
+      .insert([{
+        escort_code: randomCode,
+        full_name: payload.fullName,
+        relationship: payload.relationship,
+        mobile: payload.mobile,
+        photo_url: payload.photoUrl || null,
+        id_proof_type: payload.idProofType || 'Aadhaar',
+        id_proof_number_masked: payload.idProofNumber ? `XXXX-XXXX-${payload.idProofNumber.slice(-4)}` : null,
+        status: 'Active',
+        valid_from: '2026-04-01',
+        valid_until: '2027-03-31'
+      }])
+      .select()
+      .single();
+
+    if (escErr) throw escErr;
+
+    // 2. Map to student
+    const { error: mapErr } = await supabase
+      .from('student_escort_mappings')
+      .insert([{
+        student_id: payload.studentId,
+        escort_id: escort.id,
+        relationship: payload.relationship,
+        is_primary: !!payload.isPrimary,
+        pickup_allowed: true
+      }]);
+
+    if (mapErr) throw mapErr;
+
+    // 3. Ensure student has active escort card
+    const { data: student } = await supabase.from('students').select('id, admission_no, campus_id').eq('id', payload.studentId).single();
+    if (student) {
+      const cleanAdm = student.admission_no || `CB10${student.id.substring(0, 2)}`;
+      const qrToken = `CBS-SEC-ESC-STU-${cleanAdm}-${student.id.substring(0, 4).toUpperCase()}`;
+
+      await supabase.from('id_cards').upsert({
+        campus_id: student.campus_id,
+        card_number: `CB-ESC-CARD-${cleanAdm}`,
+        card_type: 'Escort',
+        student_id: student.id,
+        escort_id: escort.id,
+        qr_token: qrToken,
+        template_type: 'Multi-Escort',
+        academic_session: '2026-2027',
+        issue_date: '2026-04-01',
+        expiry_date: '2027-03-31',
+        status: 'Active',
+        reprint_count: 0
+      }, { onConflict: 'card_number' });
+    }
+
+    revalidatePath('/admin/id-cards');
+    revalidatePath('/admin/id-cards/print-escorts');
+    return { success: true, message: `Successfully registered ${payload.fullName} (${payload.relationship})!`, data: escort };
+  } catch (error: any) {
+    console.error("Error adding escort:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 9. GENERATE STUDENT ID CARD INDIVIDUALLY
+// -------------------------------------------------------------
+export async function generateStudentIdCard(studentId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data: student, error } = await supabase.from('students').select('*').eq('id', studentId).single();
+    if (error || !student) throw new Error("Student not found.");
+
+    const cleanAdm = student.admission_no || `CB10${student.id.substring(0, 2)}`;
+    const qrToken = `CBS-SEC-STU-${cleanAdm}-${student.id.substring(0, 4).toUpperCase()}`;
+    const cardNum = `CB-STU-2026-${cleanAdm}`;
+
+    const { data: card, error: cardErr } = await supabase.from('id_cards').upsert({
+      campus_id: student.campus_id,
+      card_number: cardNum,
+      card_type: 'Student',
+      student_id: student.id,
+      qr_token: qrToken,
+      template_type: 'Standard',
+      academic_session: '2026-2027',
+      issue_date: '2026-04-01',
+      expiry_date: '2027-03-31',
+      status: 'Active',
+      reprint_count: 0
+    }, { onConflict: 'card_number' }).select().single();
+
+    if (cardErr) throw cardErr;
+
+    revalidatePath('/admin/id-cards');
+    revalidatePath('/admin/id-cards/print-students');
+    return { success: true, message: `Student ID Card generated for ${student.first_name}!`, data: card };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

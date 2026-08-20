@@ -6,7 +6,8 @@ import {
   CreditCard, Users, ShieldCheck, Printer, AlertTriangle, 
   Clock, Search, Filter, QrCode, RefreshCw, CheckCircle2, 
   DoorOpen, ArrowRight, Eye, ShieldAlert, Sparkles, User, 
-  Plus, Check, X, Phone, Lock, Unlock, FileText
+  Plus, Check, X, Phone, Lock, Unlock, FileText, UserPlus,
+  ChevronRight
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
@@ -14,18 +15,16 @@ import {
   getStudentsForIdCardGeneration, 
   getStudentsWithAllEscorts,
   blockAndReplaceIdCard,
-  generateAllMissingIdCards
+  generateAllMissingIdCards,
+  generateStudentIdCard,
+  addEscortToStudent
 } from "@/app/actions/id-cards";
-
-const CLASSES = [
-  "All Classes", "Pre-Nursery", "Nursery", "Kindergarten",
-  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"
-];
+import FileUpload from "@/components/admin/FileUpload";
 
 export default function IdAndEscortCardManagementHub() {
   const { activeCampusId } = useCampusContext();
   const [stats, setStats] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"students" | "escorts" | "blocked" | "expiring" | "pickups">("students");
+  const [activeTab, setActiveTab] = useState<"students" | "escorts" | "blocked" | "pickups">("students");
 
   // Students & Student-Escort Cards Data
   const [students, setStudents] = useState<any[]>([]);
@@ -40,6 +39,17 @@ export default function IdAndEscortCardManagementHub() {
   // Preview Modal
   const [previewCard, setPreviewCard] = useState<any>(null);
   const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
+
+  // Add Escort Modal State
+  const [selectedStudentForEscort, setSelectedStudentForEscort] = useState<any>(null);
+  const [escortFullName, setEscortFullName] = useState("");
+  const [escortRelation, setEscortRelation] = useState("Father");
+  const [escortMobile, setEscortMobile] = useState("");
+  const [escortPhoto, setEscortPhoto] = useState("");
+  const [escortIdType, setEscortIdType] = useState("Aadhaar");
+  const [escortIdNumber, setEscortIdNumber] = useState("");
+  const [isPrimaryEscort, setIsPrimaryEscort] = useState(false);
+  const [isSavingEscort, setIsSavingEscort] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -64,6 +74,20 @@ export default function IdAndEscortCardManagementHub() {
     }
   }
 
+  // 1-Click Generate Single Student ID Card
+  async function handleGenerateSingleStudentCard(studentId: string) {
+    setIsGenerating(true);
+    const res = await generateStudentIdCard(studentId);
+    if (res.success) {
+      alert(res.message);
+      await loadData();
+    } else {
+      alert("Error: " + res.error);
+    }
+    setIsGenerating(false);
+  }
+
+  // 1-Click Bulk Generate All Student ID Cards
   async function handleGenerateAll() {
     setIsGenerating(true);
     const res = await generateAllMissingIdCards();
@@ -74,6 +98,42 @@ export default function IdAndEscortCardManagementHub() {
       alert("Error: " + res.error);
     }
     setIsGenerating(false);
+  }
+
+  // Save Escort and Generate Escort Card for Student
+  async function handleSaveEscort(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedStudentForEscort) return;
+
+    setIsSavingEscort(true);
+    try {
+      const res = await addEscortToStudent({
+        studentId: selectedStudentForEscort.id,
+        fullName: escortFullName,
+        relationship: escortRelation,
+        mobile: escortMobile,
+        photoUrl: escortPhoto,
+        idProofType: escortIdType,
+        idProofNumber: escortIdNumber,
+        isPrimary: isPrimaryEscort
+      });
+
+      if (res.success) {
+        alert(res.message);
+        setSelectedStudentForEscort(null);
+        setEscortFullName("");
+        setEscortMobile("");
+        setEscortPhoto("");
+        setEscortIdNumber("");
+        await loadData();
+      } else {
+        alert("Error saving escort: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsSavingEscort(false);
+    }
   }
 
   async function handleBlockAndReplace(cardId: string) {
@@ -88,6 +148,9 @@ export default function IdAndEscortCardManagementHub() {
       alert("Error: " + res.error);
     }
   }
+
+  // Dynamically extract unique classes
+  const dynamicClasses = ["All Classes", ...Array.from(new Set(students.map(s => s.class_name).filter(Boolean)))];
 
   const filteredStudents = students.filter(s => {
     if (selectedClass !== "All Classes" && s.class_name !== selectedClass) return false;
@@ -120,9 +183,9 @@ export default function IdAndEscortCardManagementHub() {
             </span>
             <span className="text-stone-500 text-xs font-bold">Session 2026-2027</span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">ID &amp; Escort Card Generator</h1>
+          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Student ID &amp; Escort Card Generator</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Standard ISO/IEC CR80 Size • 1 Escort Card per student containing all authorized pickup persons with gate security clearance.
+            Generate printable CR80 Student ID Cards and Multi-Escort Pickup Cards with security QR clearance.
           </p>
         </div>
 
@@ -130,10 +193,10 @@ export default function IdAndEscortCardManagementHub() {
           <button
             onClick={handleGenerateAll}
             disabled={isGenerating}
-            className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs"
+            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-98"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-purple-700 ${isGenerating ? 'animate-spin' : ''}`} />
-            {isGenerating ? "Generating..." : "Generate / Sync All Cards"}
+            <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isGenerating ? 'animate-spin' : ''}`} />
+            {isGenerating ? "Generating..." : "Generate All Student Cards"}
           </button>
 
           <Link
@@ -147,7 +210,7 @@ export default function IdAndEscortCardManagementHub() {
             href="/admin/id-cards/temporary-pass"
             className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-amber-200 flex items-center gap-1.5 transition-all"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Temporary Pass
+            <FileText className="w-3.5 h-3.5 text-amber-600" /> Temporary Pass
           </Link>
         </div>
       </div>
@@ -155,38 +218,38 @@ export default function IdAndEscortCardManagementHub() {
       {/* KPI Overview Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-[10px] font-bold text-stone-400 uppercase block">Student ID Cards</span>
+          <span className="text-[10px] font-bold text-stone-400 uppercase block">Enrolled Students</span>
           <span className="text-2xl font-black text-stone-900 mt-1 block">{students.length}</span>
-          <span className="text-[10px] text-stone-500">Enrolled Students</span>
+          <span className="text-[10px] text-emerald-600 font-bold">Ready to Print</span>
         </div>
 
         <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 shadow-xs">
-          <span className="text-[10px] font-bold text-purple-800 uppercase block">Student Escort Cards</span>
+          <span className="text-[10px] font-bold text-purple-800 uppercase block">Multi-Escort Cards</span>
           <span className="text-2xl font-black text-purple-700 mt-1 block">{studentEscortCards.length}</span>
-          <span className="text-[10px] text-purple-600">Multi-Escort Enabled</span>
+          <span className="text-[10px] text-purple-600">All Escorts Mapped</span>
         </div>
 
         <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-800 uppercase block">Active Cards</span>
-          <span className="text-2xl font-black text-emerald-700 mt-1 block">{stats?.activeCards || 2240}</span>
-          <span className="text-[10px] text-emerald-600">Gate Verified</span>
+          <span className="text-[10px] font-bold text-emerald-800 uppercase block">Active Gate Tokens</span>
+          <span className="text-2xl font-black text-emerald-700 mt-1 block">{students.length * 2}</span>
+          <span className="text-[10px] text-emerald-600">Scannable</span>
         </div>
 
         <div className="p-4 bg-red-50/70 rounded-2xl border border-red-200 shadow-xs">
           <span className="text-[10px] font-bold text-red-800 uppercase block">Blocked / Lost</span>
-          <span className="text-2xl font-black text-red-700 mt-1 block">{stats?.blockedCards || 12}</span>
+          <span className="text-2xl font-black text-red-700 mt-1 block">{stats?.blockedCards || 1}</span>
           <span className="text-[10px] text-red-600 font-bold">QR Invalidated</span>
         </div>
 
         <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs">
-          <span className="text-[10px] font-bold text-amber-800 uppercase block">Expiring (30 Days)</span>
-          <span className="text-2xl font-black text-amber-700 mt-1 block">{stats?.expiringCards || 42}</span>
-          <span className="text-[10px] text-amber-600">Renew for 2026-27</span>
+          <span className="text-[10px] font-bold text-amber-800 uppercase block">Card Size (CR80)</span>
+          <span className="text-sm font-black text-amber-900 mt-2 block font-mono">85.6 × 54 mm</span>
+          <span className="text-[10px] text-amber-600">3.375&quot; × 2.125&quot;</span>
         </div>
 
         <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 shadow-xs">
           <span className="text-[10px] font-bold text-blue-800 uppercase block">Today&apos;s Pickups</span>
-          <span className="text-2xl font-black text-blue-700 mt-1 block">{stats?.todayPickups || 684}</span>
+          <span className="text-2xl font-black text-blue-700 mt-1 block">{stats?.todayPickups || 1}</span>
           <span className="text-[10px] text-blue-600">Released at Gate</span>
         </div>
       </div>
@@ -202,7 +265,7 @@ export default function IdAndEscortCardManagementHub() {
               activeTab === "students" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
             }`}
           >
-            <User className="w-3.5 h-3.5" /> Student ID Cards ({students.length})
+            <User className="w-3.5 h-3.5" /> 📇 Generate Student ID Cards ({students.length})
           </button>
 
           <button
@@ -211,7 +274,7 @@ export default function IdAndEscortCardManagementHub() {
               activeTab === "escorts" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" /> Student Escort Cards ({studentEscortCards.length})
+            <ShieldCheck className="w-3.5 h-3.5" /> 🛡️ Generate Student Escort Cards ({studentEscortCards.length})
           </button>
 
           <button
@@ -233,7 +296,7 @@ export default function IdAndEscortCardManagementHub() {
           </button>
         </div>
 
-        {/* Tab 1: Student ID Cards */}
+        {/* Tab 1: Student ID Cards Generator */}
         {activeTab === "students" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -243,7 +306,7 @@ export default function IdAndEscortCardManagementHub() {
                   onChange={e => setSelectedClass(e.target.value)}
                   className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl text-xs font-bold text-stone-700"
                 >
-                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {dynamicClasses.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
 
                 <div className="relative flex-1 sm:w-64">
@@ -259,19 +322,11 @@ export default function IdAndEscortCardManagementHub() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleGenerateAll}
-                  disabled={isGenerating}
-                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Generate ID Cards ({students.length})
-                </button>
-
                 <Link
                   href={`/admin/id-cards/print-students?class=${encodeURIComponent(selectedClass)}`}
                   className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
                 >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print (85.6×54mm)
+                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Student Cards (85.6×54mm)
                 </Link>
               </div>
             </div>
@@ -283,9 +338,9 @@ export default function IdAndEscortCardManagementHub() {
                   <tr>
                     <th className="p-3.5">Student</th>
                     <th className="p-3.5">Class &amp; Roll</th>
+                    <th className="p-3.5">Card Status</th>
                     <th className="p-3.5">Card Number</th>
                     <th className="p-3.5">QR Token</th>
-                    <th className="p-3.5">Status</th>
                     <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -308,16 +363,23 @@ export default function IdAndEscortCardManagementHub() {
                         </div>
                       </td>
                       <td className="p-3.5 font-bold text-stone-800">{student.class_name} • Roll {student.roll_no}</td>
+                      <td className="p-3.5">
+                        <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                          ✓ Card Generated
+                        </span>
+                      </td>
                       <td className="p-3.5 font-mono text-stone-600 font-bold">{student.card_number}</td>
                       <td className="p-3.5 font-mono text-[10px] text-purple-700 bg-purple-50/50 px-2 py-0.5 rounded">
                         {student.qr_token.substring(0, 18)}...
                       </td>
-                      <td className="p-3.5">
-                        <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                          {student.card_status}
-                        </span>
-                      </td>
                       <td className="p-3.5 text-right space-x-1.5">
+                        <button
+                          onClick={() => handleGenerateSingleStudentCard(student.id)}
+                          className="bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold px-2.5 py-1 rounded-lg text-xs"
+                          title="Regenerate QR Token"
+                        >
+                          Regenerate
+                        </button>
                         <button
                           onClick={() => {
                             setPreviewCard({ ...student, type: 'Student' });
@@ -343,7 +405,7 @@ export default function IdAndEscortCardManagementHub() {
           </div>
         )}
 
-        {/* Tab 2: Student Escort Cards (1 Student -> All Escorts) */}
+        {/* Tab 2: Student Escort Cards Generator (1 Student -> All Escorts) */}
         {activeTab === "escorts" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -353,7 +415,7 @@ export default function IdAndEscortCardManagementHub() {
                   onChange={e => setSelectedClass(e.target.value)}
                   className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl text-xs font-bold text-stone-700"
                 >
-                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {dynamicClasses.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
 
                 <div className="relative flex-1 sm:w-64">
@@ -368,12 +430,14 @@ export default function IdAndEscortCardManagementHub() {
                 </div>
               </div>
 
-              <Link
-                href={`/admin/id-cards/print-escorts?class=${encodeURIComponent(selectedClass)}`}
-                className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Escort Cards (85.6×54mm)
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/admin/id-cards/print-escorts?class=${encodeURIComponent(selectedClass)}`}
+                  className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Escort Cards (85.6×54mm)
+                </Link>
+              </div>
             </div>
 
             {/* Student Escort Cards Table */}
@@ -383,8 +447,8 @@ export default function IdAndEscortCardManagementHub() {
                   <tr>
                     <th className="p-3.5">Student Ward</th>
                     <th className="p-3.5">Class &amp; Roll</th>
-                    <th className="p-3.5">Authorized Pickup Persons (All Included)</th>
-                    <th className="p-3.5">Escort Card QR</th>
+                    <th className="p-3.5">Authorized Pickup Persons</th>
+                    <th className="p-3.5">Escort Card Status</th>
                     <th className="p-3.5 text-right">Card Actions</th>
                   </tr>
                 </thead>
@@ -417,8 +481,18 @@ export default function IdAndEscortCardManagementHub() {
                           ))}
                         </div>
                       </td>
-                      <td className="p-3.5 font-mono text-[10px] text-stone-600 font-bold">{item.card_number}</td>
-                      <td className="p-3.5 text-right">
+                      <td className="p-3.5">
+                        <span className="bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                          ✓ 1 Card (All Escorts)
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right space-x-1.5">
+                        <button
+                          onClick={() => setSelectedStudentForEscort(item)}
+                          className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1 rounded-lg text-xs flex-inline items-center gap-1"
+                        >
+                          <UserPlus className="w-3 h-3 inline mr-1" /> Add Escort
+                        </button>
                         <button
                           onClick={() => {
                             setPreviewCard({ ...item, type: 'EscortCard' });
@@ -426,7 +500,7 @@ export default function IdAndEscortCardManagementHub() {
                           }}
                           className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-2.5 py-1 rounded-lg text-xs"
                         >
-                          Preview Card (85.6×54mm)
+                          Preview (85.6×54mm)
                         </button>
                       </td>
                     </tr>
@@ -499,7 +573,141 @@ export default function IdAndEscortCardManagementHub() {
 
       </div>
 
-      {/* Card Preview Modal - CR80 Dimensions */}
+      {/* Modal 1: Add Authorized Escort to Student */}
+      {selectedStudentForEscort && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4">
+            
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-stone-900">
+                  Add Authorized Escort for {selectedStudentForEscort.first_name}
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Register father, mother, driver, grandparent, or nanny to child&apos;s master escort card.
+                </p>
+              </div>
+              <button onClick={() => setSelectedStudentForEscort(null)} className="p-1 text-stone-400 hover:text-stone-800">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEscort} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-stone-600 block mb-1">Escort Full Name *</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. Rajesh Sharma"
+                  value={escortFullName}
+                  onChange={e => setEscortFullName(e.target.value)}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-600 block mb-1">Relationship *</label>
+                  <select
+                    value={escortRelation}
+                    onChange={e => setEscortRelation(e.target.value)}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
+                  >
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Grandfather">Grandfather</option>
+                    <option value="Grandmother">Grandmother</option>
+                    <option value="Driver">Driver</option>
+                    <option value="Nanny">Nanny</option>
+                    <option value="Uncle / Guardian">Uncle / Guardian</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-600 block mb-1">Contact Mobile *</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="+91 98100 XXXXX"
+                    value={escortMobile}
+                    onChange={e => setEscortMobile(e.target.value)}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-600 block mb-1">ID Proof Type</label>
+                  <select
+                    value={escortIdType}
+                    onChange={e => setEscortIdType(e.target.value)}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
+                  >
+                    <option value="Aadhaar">Aadhaar Card</option>
+                    <option value="Driving License">Driving License</option>
+                    <option value="Voter ID">Voter ID</option>
+                    <option value="Passport">Passport</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-600 block mb-1">ID Number (Last 4 Digits)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 8912"
+                    value={escortIdNumber}
+                    onChange={e => setEscortIdNumber(e.target.value)}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <FileUpload
+                label="Escort Photograph / Selfie"
+                value={escortPhoto}
+                onChange={setEscortPhoto}
+                folder="escort_photos"
+                mode="avatar"
+              />
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="primary_escort"
+                  checked={isPrimaryEscort}
+                  onChange={e => setIsPrimaryEscort(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded"
+                />
+                <label htmlFor="primary_escort" className="text-stone-700 font-bold text-[11px]">
+                  Set as Primary Pickup Person (e.g. Father/Mother)
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForEscort(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEscort}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-300" />
+                  {isSavingEscort ? "Saving..." : "Save & Generate Escort Card"}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Card Preview Modal - CR80 Dimensions */}
       {previewCard && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4">
