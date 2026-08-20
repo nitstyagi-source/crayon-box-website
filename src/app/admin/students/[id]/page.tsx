@@ -5,7 +5,7 @@ import {
   User, FileText, HeartPulse, Bus, BookOpen, GraduationCap, 
   Clock, Phone, AlertTriangle, ShieldCheck, CheckCircle2, 
   Download, Printer, AlertCircle, Plus, RefreshCw, ChevronRight, 
-  Activity, Edit3, Trash2, X, Upload, ExternalLink, ArrowUpRight
+  Activity, Edit3, Trash2, X, Upload, ExternalLink, ArrowUpRight, ArrowRightLeft
 } from "lucide-react";
 import { 
   getStudentProfile, 
@@ -14,12 +14,16 @@ import {
   saveStudentMedicalRecord,
   uploadStudentDocument,
   deleteStudentDocument,
-  promoteStudent
+  promoteStudent,
+  transferStudentClass,
+  deleteStudentPermanently
 } from "@/app/actions/students";
+import { useRouter } from "next/navigation";
 
 export default function StudentProfileDashboard({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const studentId = resolvedParams.id;
+  const router = useRouter();
   
   const [profile, setProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -28,6 +32,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
 
   // Edit Profile Modal State
   const [editProfileModal, setEditProfileModal] = useState(false);
+  const [editSection, setEditSection] = useState<"student" | "parents">("student");
   const [profileFormData, setProfileFormData] = useState({
     first_name: "",
     middle_name: "",
@@ -41,12 +46,45 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     class_name: "",
     section_name: "",
     roll_no: "",
-    parent_name: "",
-    parent_mobile: "",
-    parent_email: "",
-    parent_occupation: "",
-    parent_type: "Father"
+
+    // Father
+    father_name: "",
+    father_mobile: "",
+    father_email: "",
+    father_occupation: "",
+    father_income: "",
+    father_qualification: "",
+    father_aadhaar: "",
+
+    // Mother
+    mother_name: "",
+    mother_mobile: "",
+    mother_email: "",
+    mother_occupation: "",
+    mother_income: "",
+    mother_qualification: "",
+    mother_aadhaar: "",
+
+    // Guardian
+    guardian_name: "",
+    guardian_mobile: "",
+    guardian_email: "",
+    guardian_occupation: "",
+
+    primary_contact: "Father"
   });
+
+  // Transfer Modal State
+  const [transferModal, setTransferModal] = useState(false);
+  const [transferData, setTransferData] = useState({
+    target_class: "Grade 1",
+    target_section: "A",
+    target_roll_no: "",
+    reason: "Section reallocation"
+  });
+
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState(false);
 
   // Document Upload Modal State
   const [uploadDocModal, setUploadDocModal] = useState(false);
@@ -91,7 +129,10 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
       setProfile(data);
 
       const currentAc = data.academic?.find((a: any) => a.is_current_session) || data.academic?.[0] || {};
-      const primaryParent = data.parents?.find((p: any) => p.is_primary_contact) || data.parents?.[0] || {};
+      const father = data.parents?.find((p: any) => p.parent_type === 'Father') || {};
+      const mother = data.parents?.find((p: any) => p.parent_type === 'Mother') || {};
+      const guardian = data.parents?.find((p: any) => p.parent_type === 'Guardian') || {};
+      const primary = data.parents?.find((p: any) => p.is_primary_contact)?.parent_type || 'Father';
 
       setProfileFormData({
         first_name: data.first_name || "",
@@ -106,14 +147,31 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         class_name: currentAc.class_name || "",
         section_name: currentAc.section_name || "",
         roll_no: currentAc.roll_no || "",
-        parent_name: primaryParent.name || "",
-        parent_mobile: primaryParent.mobile || "",
-        parent_email: primaryParent.email || "",
-        parent_occupation: primaryParent.occupation || "",
-        parent_type: primaryParent.parent_type || "Father"
+
+        father_name: father.name || "",
+        father_mobile: father.mobile || "",
+        father_email: father.email || "",
+        father_occupation: father.occupation || "",
+        father_income: father.income || "",
+        father_qualification: father.qualification || "",
+        father_aadhaar: father.aadhaar_no || "",
+
+        mother_name: mother.name || "",
+        mother_mobile: mother.mobile || "",
+        mother_email: mother.email || "",
+        mother_occupation: mother.occupation || "",
+        mother_income: mother.income || "",
+        mother_qualification: mother.qualification || "",
+        mother_aadhaar: mother.aadhaar_no || "",
+
+        guardian_name: guardian.name || "",
+        guardian_mobile: guardian.mobile || "",
+        guardian_email: guardian.email || "",
+        guardian_occupation: guardian.occupation || "",
+
+        primary_contact: primary
       });
 
-      // Pre-fill next class promotion default (e.g. Grade 1 -> Grade 2)
       const currentClassName = currentAc.class_name || "Grade 1";
       const match = currentClassName.match(/\d+/);
       const nextNum = match ? parseInt(match[0]) + 1 : 2;
@@ -125,6 +183,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         next_roll_no: currentAc.roll_no || "",
         academic_session: "2026-2027",
         remarks: `Promoted from ${currentClassName}`
+      });
+
+      setTransferData({
+        target_class: currentAc.class_name || "Grade 1",
+        target_section: currentAc.section_name === "A" ? "B" : "A",
+        target_roll_no: currentAc.roll_no || "",
+        reason: "Administrative Section Reallocation"
       });
 
       if (data.medical) {
@@ -150,6 +215,30 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
       loadProfile();
     } else {
       alert("Failed to update profile: " + res.error);
+    }
+  }
+
+  async function handleTransfer(e: React.FormEvent) {
+    e.preventDefault();
+    setIsUpdating(true);
+    const res = await transferStudentClass(studentId, transferData);
+    setIsUpdating(false);
+    if (res.success) {
+      setTransferModal(false);
+      loadProfile();
+    } else {
+      alert("Failed to transfer: " + res.error);
+    }
+  }
+
+  async function handleDeletePermanent() {
+    setIsUpdating(true);
+    const res = await deleteStudentPermanently(studentId);
+    setIsUpdating(false);
+    if (res.success) {
+      router.push("/admin/students");
+    } else {
+      alert("Failed to delete student: " + res.error);
     }
   }
 
@@ -232,7 +321,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
   const currentAcademic = profile.academic?.find((a: any) => a.is_current_session) || profile.academic?.[0] || {};
   const isFormer = ['Withdrawn', 'TC Issued', 'Suspended', 'Alumni'].includes(profile.status);
   
-  // Calculate Fee Dues
+  // Multi-parent extractions
+  const father = profile.parents?.find((p: any) => p.parent_type === 'Father');
+  const mother = profile.parents?.find((p: any) => p.parent_type === 'Mother');
+  const guardian = profile.parents?.find((p: any) => p.parent_type === 'Guardian');
+
   const totalInvoiced = profile.invoices?.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0) || 0;
   const totalPaid = profile.invoices?.reduce((acc: number, inv: any) => acc + Number(inv.amount_paid || 0), 0) || 0;
   const totalDues = Math.max(0, totalInvoiced - totalPaid);
@@ -240,7 +333,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
   const TABS = [
     { id: "overview", label: "Overview", icon: User },
     { id: "personal", label: "Personal", icon: FileText },
-    { id: "parents", label: "Parents", icon: Phone },
+    { id: "parents", label: "Parents & Guardians", icon: Phone },
     { id: "academic", label: "Academic History", icon: GraduationCap },
     { id: "fees", label: "Fees & Finance", icon: Clock },
     { id: "health", label: "Health & Clinic", icon: HeartPulse },
@@ -300,18 +393,31 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             <span>₹{totalDues.toLocaleString('en-IN')}</span>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => setEditProfileModal(true)}
-              className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <Edit3 className="w-3.5 h-3.5" /> Edit Profile
             </button>
             <button 
+              onClick={() => setTransferModal(true)}
+              className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer Class
+            </button>
+            <button 
               onClick={() => setLifecycleModal(true)}
-              className="flex-1 bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+              className="bg-stone-900 hover:bg-stone-800 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <Activity className="w-3.5 h-3.5 text-amber-400" /> Promote / TC
+            </button>
+            <button 
+              onClick={() => setDeleteModal(true)}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center"
+              title="Delete Student Record Completely"
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -347,18 +453,17 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="border border-stone-100 bg-stone-50 p-6 rounded-2xl">
                 <div className="flex justify-between items-start mb-1">
-                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Primary Guardian</p>
-                  <button onClick={() => setEditProfileModal(true)} className="text-blue-600 hover:underline text-xs font-bold">Edit</button>
+                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Primary Contact</p>
+                  <button onClick={() => { setEditSection("parents"); setEditProfileModal(true); }} className="text-blue-600 hover:underline text-xs font-bold">Edit</button>
                 </div>
-                <h3 className="text-lg font-bold text-stone-900">{profile.parents?.[0]?.name || 'N/A'}</h3>
-                <p className="text-stone-500 text-sm mt-0.5">{profile.parents?.[0]?.parent_type || 'Parent'} • {profile.parents?.[0]?.mobile || 'N/A'}</p>
-                {profile.parents?.[0]?.email && <p className="text-stone-400 text-xs mt-1">{profile.parents[0].email}</p>}
+                <h3 className="text-lg font-bold text-stone-900">{profile.parents?.find((p: any) => p.is_primary_contact)?.name || father?.name || mother?.name || 'N/A'}</h3>
+                <p className="text-stone-500 text-sm mt-0.5">{profile.parents?.find((p: any) => p.is_primary_contact)?.parent_type || 'Parent'} • {profile.parents?.find((p: any) => p.is_primary_contact)?.mobile || father?.mobile || 'N/A'}</p>
               </div>
 
               <div className="border border-stone-100 bg-stone-50 p-6 rounded-2xl">
                 <div className="flex justify-between items-start mb-1">
-                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Academic Status</p>
-                  <button onClick={() => setEditProfileModal(true)} className="text-blue-600 hover:underline text-xs font-bold">Edit</button>
+                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Academic Enrollment</p>
+                  <button onClick={() => setTransferModal(true)} className="text-blue-600 hover:underline text-xs font-bold">Shift Class</button>
                 </div>
                 <h3 className="text-lg font-bold text-stone-900">{currentAcademic.class_name || 'N/A'} {currentAcademic.section_name || ''}</h3>
                 <p className="text-stone-500 text-sm mt-0.5">Session: 2026-2027 • Status: {profile.status}</p>
@@ -371,7 +476,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                 <p className={`text-sm font-bold mt-0.5 ${totalDues > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                   {totalDues > 0 ? `₹${totalDues.toLocaleString('en-IN')} Balance Due` : 'All Fees Cleared'}
                 </p>
-                <p className="text-stone-400 text-xs mt-1">{profile.invoices?.length || 0} Total Invoices Generated</p>
+                <p className="text-stone-400 text-xs mt-1">{profile.invoices?.length || 0} Invoices Generated</p>
               </div>
             </div>
 
@@ -395,7 +500,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
           <div className="space-y-8">
             <div className="flex justify-between items-center border-b border-stone-100 pb-2">
               <h3 className="text-lg font-bold text-stone-900">Student Demographics</h3>
-              <button onClick={() => setEditProfileModal(true)} className="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <button onClick={() => { setEditSection("student"); setEditProfileModal(true); }} className="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
                 <Edit3 className="w-3.5 h-3.5" /> Edit Demographics
               </button>
             </div>
@@ -425,37 +530,93 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* 3. Parents Tab */}
+        {/* 3. Parents & Guardians Tab (Separated Father, Mother, Guardian) */}
         {activeTab === 'parents' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h3 className="text-lg font-bold text-stone-900">Guardian Contact Directory</h3>
-              <button onClick={() => setEditProfileModal(true)} className="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                <Edit3 className="w-3.5 h-3.5" /> Edit Parent Info
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">Family & Guardian Records</h3>
+                <p className="text-xs text-stone-500">Dedicated records for Father, Mother, and Local Guardian.</p>
+              </div>
+              <button onClick={() => { setEditSection("parents"); setEditProfileModal(true); }} className="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <Edit3 className="w-3.5 h-3.5" /> Edit Parents / Guardian Info
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {profile.parents && profile.parents.length > 0 ? (
-                profile.parents.map((p: any) => (
-                  <div key={p.id} className="border border-stone-200 rounded-3xl p-6 relative bg-stone-50/50">
-                    {p.is_primary_contact && (
-                      <span className="absolute top-6 right-6 bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-lg">Primary Contact</span>
-                    )}
-                    <h4 className="font-bold text-lg text-stone-900 mb-4 flex items-center gap-2">
-                      <User className="w-5 h-5 text-stone-400" /> {p.parent_type || 'Guardian'}
-                    </h4>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between border-b border-stone-100 pb-2"><span className="text-stone-500 font-medium">Full Name</span><span className="font-bold text-stone-900">{p.name}</span></div>
-                      <div className="flex justify-between border-b border-stone-100 pb-2"><span className="text-stone-500 font-medium">Mobile Number</span><span className="font-bold text-stone-900 font-mono">{p.mobile}</span></div>
-                      <div className="flex justify-between border-b border-stone-100 pb-2"><span className="text-stone-500 font-medium">Email Address</span><span className="font-bold text-stone-900">{p.email || 'N/A'}</span></div>
-                      <div className="flex justify-between"><span className="text-stone-500 font-medium">Occupation</span><span className="font-bold text-stone-900">{p.occupation || 'N/A'}</span></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Father Card */}
+              <div className="border border-stone-200 rounded-3xl p-6 relative bg-stone-50/50 flex flex-col justify-between">
+                {father?.is_primary_contact && (
+                  <span className="absolute top-5 right-5 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
+                )}
+                <div>
+                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-600" /> Father&apos;s Profile
+                  </h4>
+                  {father?.name ? (
+                    <div className="space-y-2.5 text-xs">
+                      <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{father.name}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Mobile Phone</span><span className="font-bold text-stone-900 font-mono">{father.mobile}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Email Address</span><span className="text-stone-800">{father.email || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Occupation</span><span className="text-stone-800">{father.occupation || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Annual Income</span><span className="text-stone-800">{father.income || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Qualification</span><span className="text-stone-800">{father.qualification || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Aadhaar UID</span><span className="text-stone-800 font-mono">{father.aadhaar_no || 'N/A'}</span></div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-stone-400 text-sm">No parent records found.</p>
-              )}
+                  ) : (
+                    <p className="text-stone-400 text-xs py-6 text-center">No Father record recorded.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Mother Card */}
+              <div className="border border-stone-200 rounded-3xl p-6 relative bg-stone-50/50 flex flex-col justify-between">
+                {mother?.is_primary_contact && (
+                  <span className="absolute top-5 right-5 bg-pink-100 text-pink-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
+                )}
+                <div>
+                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4 text-pink-600" /> Mother&apos;s Profile
+                  </h4>
+                  {mother?.name ? (
+                    <div className="space-y-2.5 text-xs">
+                      <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{mother.name}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Mobile Phone</span><span className="font-bold text-stone-900 font-mono">{mother.mobile || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Email Address</span><span className="text-stone-800">{mother.email || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Occupation</span><span className="text-stone-800">{mother.occupation || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Annual Income</span><span className="text-stone-800">{mother.income || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Qualification</span><span className="text-stone-800">{mother.qualification || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Aadhaar UID</span><span className="text-stone-800 font-mono">{mother.aadhaar_no || 'N/A'}</span></div>
+                    </div>
+                  ) : (
+                    <p className="text-stone-400 text-xs py-6 text-center">No Mother record recorded.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Local Guardian Card */}
+              <div className="border border-stone-200 rounded-3xl p-6 relative bg-stone-50/50 flex flex-col justify-between">
+                {guardian?.is_primary_contact && (
+                  <span className="absolute top-5 right-5 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
+                )}
+                <div>
+                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4 text-amber-600" /> Local Guardian
+                  </h4>
+                  {guardian?.name ? (
+                    <div className="space-y-2.5 text-xs">
+                      <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{guardian.name}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Mobile Phone</span><span className="font-bold text-stone-900 font-mono">{guardian.mobile}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Email Address</span><span className="text-stone-800">{guardian.email || 'N/A'}</span></div>
+                      <div><span className="text-stone-400 block font-bold">Occupation</span><span className="text-stone-800">{guardian.occupation || 'N/A'}</span></div>
+                    </div>
+                  ) : (
+                    <p className="text-stone-400 text-xs py-6 text-center">No Local Guardian recorded.</p>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -468,12 +629,20 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                 <h3 className="text-lg font-bold text-stone-900">Multi-Session Academic Progression</h3>
                 <p className="text-xs text-stone-500">Chronological history of classes, sections, and roll numbers across academic years.</p>
               </div>
-              <button 
-                onClick={() => { setSelectedAction("Promotion"); setLifecycleModal(true); }}
-                className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Next Class
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setTransferModal(true)}
+                  className="text-xs font-bold bg-stone-100 text-stone-800 border border-stone-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 hover:bg-stone-200"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" /> Shift Section / Class
+                </button>
+                <button 
+                  onClick={() => { setSelectedAction("Promotion"); setLifecycleModal(true); }}
+                  className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Next Class
+                </button>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -484,7 +653,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                     <th className="p-3.5 font-bold">Class & Grade</th>
                     <th className="p-3.5 font-bold">Section</th>
                     <th className="p-3.5 font-bold">Roll Number</th>
-                    <th className="p-3.5 font-bold text-right rounded-r-xl">Enrolled / Record Date</th>
+                    <th className="p-3.5 font-bold text-right rounded-r-xl">Record Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -776,7 +945,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               </div>
             ) : (
               <div className="text-center py-10 text-stone-400 text-sm">
-                No lifecycle events (Withdrawals, TC Issuances, Promotions) recorded yet.
+                No lifecycle events recorded yet.
               </div>
             )}
           </div>
@@ -784,116 +953,200 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
 
       </div>
 
-      {/* Modal 1: Edit Profile */}
+      {/* Modal 1: Edit Profile (Demographics + Separate Parents) */}
       {editProfileModal && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl border border-stone-100 my-8">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl border border-stone-100 my-8">
+            <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-2xl font-bold text-stone-900">Edit Student Profile</h3>
-                <p className="text-stone-500 text-xs mt-0.5">Update personal demographics, academic enrollment, and guardian contact.</p>
+                <p className="text-stone-500 text-xs mt-0.5">Modify demographics or parent contact details.</p>
               </div>
               <button onClick={() => setEditProfileModal(false)} className="p-2 text-stone-400 hover:text-stone-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Sub Tabs for Edit */}
+            <div className="flex gap-2 border-b border-stone-200 pb-3 mb-6">
+              <button
+                type="button"
+                onClick={() => setEditSection("student")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  editSection === "student" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
+              >
+                1. Student Demographics & Class
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditSection("parents")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  editSection === "parents" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
+              >
+                2. Parents & Guardian Details
+              </button>
+            </div>
+
             <form onSubmit={handleProfileUpdate} className="space-y-6">
-              {/* Section 1: Demographics */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">1. Personal Demographics</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">First Name *</label>
-                    <input required type="text" value={profileFormData.first_name} onChange={e => setProfileFormData({...profileFormData, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+              
+              {editSection === "student" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">First Name *</label>
+                      <input required type="text" value={profileFormData.first_name} onChange={e => setProfileFormData({...profileFormData, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Middle Name</label>
+                      <input type="text" value={profileFormData.middle_name} onChange={e => setProfileFormData({...profileFormData, middle_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Last Name *</label>
+                      <input required type="text" value={profileFormData.last_name} onChange={e => setProfileFormData({...profileFormData, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Middle Name</label>
-                    <input type="text" value={profileFormData.middle_name} onChange={e => setProfileFormData({...profileFormData, middle_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Last Name *</label>
-                    <input required type="text" value={profileFormData.last_name} onChange={e => setProfileFormData({...profileFormData, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Date of Birth</label>
-                    <input type="date" value={profileFormData.dob} onChange={e => setProfileFormData({...profileFormData, dob: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Date of Birth</label>
+                      <input type="date" value={profileFormData.dob} onChange={e => setProfileFormData({...profileFormData, dob: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Gender</label>
+                      <select value={profileFormData.gender} onChange={e => setProfileFormData({...profileFormData, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-medium">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Category</label>
+                      <select value={profileFormData.category} onChange={e => setProfileFormData({...profileFormData, category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-800">
+                        <option value="General">General</option>
+                        <option value="EWS">EWS (Economically Weaker Section)</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Gender</label>
-                    <select value={profileFormData.gender} onChange={e => setProfileFormData({...profileFormData, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-medium">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Category</label>
-                    <select value={profileFormData.category} onChange={e => setProfileFormData({...profileFormData, category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-800">
-                      <option value="General">General</option>
-                      <option value="EWS">EWS (Economically Weaker Section)</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Blood Group</label>
-                    <input type="text" placeholder="e.g. B+, O+, AB-" value={profileFormData.blood_group} onChange={e => setProfileFormData({...profileFormData, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Blood Group</label>
+                      <input type="text" placeholder="e.g. B+, O+, AB-" value={profileFormData.blood_group} onChange={e => setProfileFormData({...profileFormData, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Aadhaar Number</label>
+                      <input type="text" placeholder="12-digit UID" value={profileFormData.aadhaar_no} onChange={e => setProfileFormData({...profileFormData, aadhaar_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Aadhaar Number</label>
-                    <input type="text" placeholder="12-digit UID" value={profileFormData.aadhaar_no} onChange={e => setProfileFormData({...profileFormData, aadhaar_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
-                  </div>
-                </div>
-              </div>
 
-              {/* Section 2: Academic Enrollment */}
-              <div className="pt-4 border-t border-stone-100">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">2. Current Class & Section</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Class / Grade *</label>
-                    <input required type="text" placeholder="e.g. Grade 1" value={profileFormData.class_name} onChange={e => setProfileFormData({...profileFormData, class_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Section</label>
-                    <input type="text" placeholder="e.g. A" value={profileFormData.section_name} onChange={e => setProfileFormData({...profileFormData, section_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Roll Number</label>
-                    <input type="text" placeholder="e.g. 14" value={profileFormData.roll_no} onChange={e => setProfileFormData({...profileFormData, roll_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                  <div className="pt-4 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Class / Grade *</label>
+                      <input required type="text" value={profileFormData.class_name} onChange={e => setProfileFormData({...profileFormData, class_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Section</label>
+                      <input type="text" value={profileFormData.section_name} onChange={e => setProfileFormData({...profileFormData, section_name: e.target.value.toUpperCase()})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Roll Number</label>
+                      <input type="text" value={profileFormData.roll_no} onChange={e => setProfileFormData({...profileFormData, roll_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Father Details */}
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">Father&apos;s Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Name</label>
+                        <input type="text" value={profileFormData.father_name} onChange={e => setProfileFormData({...profileFormData, father_name: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone</label>
+                        <input type="text" value={profileFormData.father_mobile} onChange={e => setProfileFormData({...profileFormData, father_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
+                        <input type="email" value={profileFormData.father_email} onChange={e => setProfileFormData({...profileFormData, father_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
+                        <input type="text" value={profileFormData.father_occupation} onChange={e => setProfileFormData({...profileFormData, father_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
+                        <input type="text" value={profileFormData.father_income} onChange={e => setProfileFormData({...profileFormData, father_income: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Section 3: Parent Contact */}
-              <div className="pt-4 border-t border-stone-100">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">3. Primary Guardian Contact</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Guardian Name *</label>
-                    <input required type="text" value={profileFormData.parent_name} onChange={e => setProfileFormData({...profileFormData, parent_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                  {/* Mother Details */}
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-pink-700">Mother&apos;s Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Name</label>
+                        <input type="text" value={profileFormData.mother_name} onChange={e => setProfileFormData({...profileFormData, mother_name: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone</label>
+                        <input type="text" value={profileFormData.mother_mobile} onChange={e => setProfileFormData({...profileFormData, mother_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
+                        <input type="email" value={profileFormData.mother_email} onChange={e => setProfileFormData({...profileFormData, mother_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
+                        <input type="text" value={profileFormData.mother_occupation} onChange={e => setProfileFormData({...profileFormData, mother_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
+                        <input type="text" value={profileFormData.mother_income} onChange={e => setProfileFormData({...profileFormData, mother_income: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone *</label>
-                    <input required type="text" value={profileFormData.parent_mobile} onChange={e => setProfileFormData({...profileFormData, parent_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
+
+                  {/* Local Guardian Details */}
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700">Local Guardian (Optional)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Guardian Name</label>
+                        <input type="text" value={profileFormData.guardian_name} onChange={e => setProfileFormData({...profileFormData, guardian_name: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone</label>
+                        <input type="text" value={profileFormData.guardian_mobile} onChange={e => setProfileFormData({...profileFormData, guardian_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs font-bold text-blue-900 flex items-center justify-between">
+                    <span>Primary Communication Contact:</span>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name="p_contact" checked={profileFormData.primary_contact === "Father"} onChange={() => setProfileFormData({...profileFormData, primary_contact: "Father"})} /> Father
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name="p_contact" checked={profileFormData.primary_contact === "Mother"} onChange={() => setProfileFormData({...profileFormData, primary_contact: "Mother"})} /> Mother
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" name="p_contact" checked={profileFormData.primary_contact === "Guardian"} onChange={() => setProfileFormData({...profileFormData, primary_contact: "Guardian"})} /> Guardian
+                      </label>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
-                    <input type="email" value={profileFormData.parent_email} onChange={e => setProfileFormData({...profileFormData, parent_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
-                    <input type="text" value={profileFormData.parent_occupation} onChange={e => setProfileFormData({...profileFormData, parent_occupation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="flex gap-3 justify-end pt-4 border-t border-stone-100">
                 <button type="button" onClick={() => setEditProfileModal(false)} className="px-5 py-2.5 font-bold text-stone-500 text-sm hover:bg-stone-100 rounded-xl">Cancel</button>
@@ -906,7 +1159,115 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Modal 2: Upload Document */}
+      {/* Modal 2: Shift / Transfer Class */}
+      {transferModal && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <h3 className="text-xl font-bold text-stone-900">Shift / Transfer Class</h3>
+                <p className="text-stone-500 text-xs mt-0.5">Move student to another class or section.</p>
+              </div>
+              <button onClick={() => setTransferModal(false)} className="p-2 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleTransfer} className="space-y-4 mt-4">
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Target Class / Grade *</label>
+                <input 
+                  required
+                  type="text" 
+                  placeholder="e.g. Grade 1"
+                  value={transferData.target_class}
+                  onChange={e => setTransferData({...transferData, target_class: e.target.value})}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-900" 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Target Section *</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="e.g. B"
+                    value={transferData.target_section}
+                    onChange={e => setTransferData({...transferData, target_section: e.target.value.toUpperCase()})}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold uppercase" 
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">New Roll No.</label>
+                  <input 
+                    type="text" 
+                    placeholder="Optional"
+                    value={transferData.target_roll_no}
+                    onChange={e => setTransferData({...transferData, target_roll_no: e.target.value})}
+                    className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Reason for Transfer</label>
+                <textarea 
+                  value={transferData.reason}
+                  onChange={e => setTransferData({...transferData, reason: e.target.value})}
+                  rows={2}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm text-stone-800" 
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-stone-100">
+                <button type="button" onClick={() => setTransferModal(false)} className="px-5 py-2.5 font-bold text-stone-500 text-sm hover:bg-stone-100 rounded-xl">Cancel</button>
+                <button type="submit" disabled={isUpdating} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-50 shadow-md">
+                  {isUpdating ? "Transferring..." : "Complete Transfer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Permanent Delete Double Confirmation */}
+      {deleteModal && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-red-100 animate-in zoom-in duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-black text-stone-900 mb-2">Purge Student Record Completely?</h3>
+            <p className="text-stone-500 text-xs mb-4">
+              This will <strong>permanently delete</strong> <span className="font-bold text-stone-900">{profile.first_name} {profile.last_name}</span> (Admission No: {profile.admission_no}) and cascade-delete all invoices, ledgers, parents, medical records, and uploaded documents from the database.
+            </p>
+            <div className="p-3 bg-red-50 text-red-800 rounded-xl text-xs font-bold mb-6">
+              ⚠️ No backup or history will be retained.
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button 
+                type="button" 
+                onClick={() => setDeleteModal(false)} 
+                className="px-5 py-2.5 font-bold text-stone-500 text-sm hover:bg-stone-100 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                disabled={isUpdating}
+                onClick={handleDeletePermanent}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-50 shadow-md"
+              >
+                {isUpdating ? "Purging..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Upload Document */}
       {uploadDocModal && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200">
@@ -982,7 +1343,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Modal 3: Promotion & Lifecycle Action */}
+      {/* Modal 5: Promotion & Lifecycle Action */}
       {lifecycleModal && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200 my-8">

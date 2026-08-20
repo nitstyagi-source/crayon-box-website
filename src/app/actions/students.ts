@@ -16,12 +16,10 @@ function getSupabaseAdmin() {
   });
 }
 
-/** Validates that a string is a proper UUID */
 function isValidUUID(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
-/** Resolves a campus ID — if invalid, falls back to first real campus in DB */
 async function resolveCampusId(supabase: any, campusId: string): Promise<string> {
   if (campusId && isValidUUID(campusId)) return campusId;
   const { data } = await supabase.from('campuses').select('id').limit(1).single();
@@ -37,7 +35,7 @@ export async function getStudents(campusId: string) {
 
     const { data, error } = await supabase
       .from('students')
-      .select('*, student_academic_history(*)')
+      .select('*, student_academic_history(*), student_parents(*)')
       .eq('campus_id', resolvedCampusId)
       .order('created_at', { ascending: false });
 
@@ -98,6 +96,9 @@ export async function getStudentProfile(studentId: string) {
   }
 }
 
+/**
+ * Creates a student with separate records for Father, Mother, and Local Guardian.
+ */
 export async function createStudent(payload: any) {
   try {
     const supabase = getSupabaseAdmin();
@@ -109,7 +110,8 @@ export async function createStudent(payload: any) {
       .select('id')
       .eq('campus_id', campusId)
       .eq('is_active', true)
-      .single();
+      .limit(1)
+      .maybeSingle();
       
     let yearId = academicYear?.id;
     if (!yearId) {
@@ -126,11 +128,12 @@ export async function createStudent(payload: any) {
       .from('students')
       .insert([{
         campus_id: campusId,
-        admission_no: payload.admission_no,
-        first_name: payload.first_name,
-        last_name: payload.last_name,
+        admission_no: payload.admission_no.trim(),
+        first_name: payload.first_name.trim(),
+        middle_name: payload.middle_name?.trim() || null,
+        last_name: payload.last_name.trim(),
         dob: payload.dob || null,
-        gender: payload.gender,
+        gender: payload.gender || 'Male',
         category: payload.category || 'General',
         blood_group: payload.blood_group || null,
         nationality: payload.nationality || 'Indian',
@@ -147,27 +150,79 @@ export async function createStudent(payload: any) {
       await supabase.from('student_academic_history').insert([{
         student_id: student.id,
         academic_year_id: yearId,
-        class_name: payload.class_name || '',
-        section_name: payload.section_name || '',
+        class_name: payload.class_name || 'Grade 1',
+        section_name: payload.section_name || 'A',
         roll_no: payload.roll_no || null,
         is_current_session: true
       }]);
     }
 
-    // 4. Insert Parent
-    if (payload.parent_name) {
-      await supabase.from('student_parents').insert([{
+    // 4. Insert Parents (Father, Mother, Guardian)
+    const parentsToInsert = [];
+
+    // Father
+    if (payload.father_name || payload.parent_name) {
+      parentsToInsert.push({
         student_id: student.id,
         parent_type: 'Father',
-        name: payload.parent_name,
-        mobile: payload.parent_mobile || '',
-        email: payload.parent_email || null,
-        occupation: payload.parent_occupation || null,
-        is_primary_contact: true
-      }]);
+        name: payload.father_name || payload.parent_name,
+        mobile: payload.father_mobile || payload.parent_mobile || '',
+        email: payload.father_email || payload.parent_email || null,
+        occupation: payload.father_occupation || payload.parent_occupation || null,
+        annual_income: payload.father_income || null,
+        education: payload.father_qualification || null,
+        aadhaar_no: payload.father_aadhaar || null,
+        is_primary_contact: payload.primary_contact === 'Father' || !payload.primary_contact
+      });
     }
 
+    // Mother
+    if (payload.mother_name) {
+      parentsToInsert.push({
+        student_id: student.id,
+        parent_type: 'Mother',
+        name: payload.mother_name,
+        mobile: payload.mother_mobile || '',
+        email: payload.mother_email || null,
+        occupation: payload.mother_occupation || null,
+        annual_income: payload.mother_income || null,
+        education: payload.mother_qualification || null,
+        aadhaar_no: payload.mother_aadhaar || null,
+        is_primary_contact: payload.primary_contact === 'Mother'
+      });
+    }
+
+    // Guardian
+    if (payload.guardian_name) {
+      parentsToInsert.push({
+        student_id: student.id,
+        parent_type: 'Guardian',
+        name: payload.guardian_name,
+        mobile: payload.guardian_mobile || '',
+        email: payload.guardian_email || null,
+        occupation: payload.guardian_occupation || null,
+        annual_income: null,
+        education: null,
+        aadhaar_no: null,
+        is_primary_contact: payload.primary_contact === 'Guardian'
+      });
+    }
+
+    if (parentsToInsert.length > 0) {
+      const { error: pErr } = await supabase.from('student_parents').insert(parentsToInsert);
+      if (pErr) console.error("Error inserting parents:", pErr);
+    }
+
+    // Log Lifecycle Event
+    await supabase.from('student_lifecycle').insert([{
+      student_id: student.id,
+      action_type: 'Admission',
+      action_date: new Date().toISOString().split('T')[0],
+      remarks: `Admitted into ${payload.class_name || 'Grade 1'} - Section ${payload.section_name || 'A'}`
+    }]);
+
     revalidatePath('/admin/students');
+    revalidatePath('/admin/dashboard');
     return { success: true, data: student };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -175,8 +230,120 @@ export async function createStudent(payload: any) {
 }
 
 /**
+ * Permanently deletes a student and cascades all records completely.
+ */
+export async function deleteStudentPermanently(studentId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // 1. Delete invoice items
+    const { data: invoices } = await supabase
+      .from('student_invoices')
+      .select('id')
+      .eq('student_id', studentId);
+
+    if (invoices && invoices.length > 0) {
+      const invIds = invoices.map(i => i.id);
+      await supabase.from('student_invoice_items').delete().in('invoice_id', invIds);
+    }
+
+    // 2. Delete invoices, ledgers, and student sub-tables
+    await Promise.all([
+      supabase.from('student_invoices').delete().eq('student_id', studentId),
+      supabase.from('student_fee_ledgers').delete().eq('student_id', studentId),
+      supabase.from('student_academic_history').delete().eq('student_id', studentId),
+      supabase.from('student_parents').delete().eq('student_id', studentId),
+      supabase.from('student_addresses').delete().eq('student_id', studentId),
+      supabase.from('student_medical').delete().eq('student_id', studentId),
+      supabase.from('student_documents').delete().eq('student_id', studentId),
+      supabase.from('student_lifecycle').delete().eq('student_id', studentId)
+    ]);
+
+    // 3. Delete student root row
+    const { error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', studentId);
+
+    if (error) throw error;
+
+    revalidatePath('/admin/students');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/finance');
+    return { success: true, message: "Student record permanently deleted." };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Transfers a student directly to another Class / Section.
+ */
+export async function transferStudentClass(studentId: string, payload: {
+  target_class: string;
+  target_section: string;
+  target_roll_no?: string;
+  reason?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // 1. Fetch current class
+    const { data: currentAc } = await supabase
+      .from('student_academic_history')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('is_current_session', true)
+      .maybeSingle();
+
+    const previousInfo = currentAc ? `${currentAc.class_name} ${currentAc.section_name || ''}` : 'Unassigned';
+
+    // 2. Update active session
+    if (currentAc) {
+      await supabase
+        .from('student_academic_history')
+        .update({
+          class_name: payload.target_class.trim(),
+          section_name: payload.target_section.trim().toUpperCase() || 'A',
+          roll_no: payload.target_roll_no || null
+        })
+        .eq('id', currentAc.id);
+    } else {
+      // Find academic year
+      const { data: student } = await supabase.from('students').select('campus_id').eq('id', studentId).single();
+      const campusId = student?.campus_id || (await resolveCampusId(supabase, ''));
+      const { data: year } = await supabase.from('academic_years').select('id').eq('campus_id', campusId).limit(1).single();
+
+      await supabase.from('student_academic_history').insert([{
+        student_id: studentId,
+        academic_year_id: year?.id || null,
+        class_name: payload.target_class.trim(),
+        section_name: payload.target_section.trim().toUpperCase() || 'A',
+        roll_no: payload.target_roll_no || null,
+        is_current_session: true
+      }]);
+    }
+
+    // 3. Record lifecycle transfer event
+    await supabase.from('student_lifecycle').insert([{
+      student_id: studentId,
+      action_type: 'Transfer',
+      action_date: new Date().toISOString().split('T')[0],
+      remarks: payload.reason || `Transferred from ${previousInfo} to ${payload.target_class} Section ${payload.target_section}`
+    }]);
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath('/admin/students');
+    revalidatePath('/admin/classes');
+    revalidatePath('/admin/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Promotes a student to the next class / academic session.
- * Archives the previous class record and creates a new active academic history entry.
  */
 export async function promoteStudent(studentId: string, payload: {
   next_class: string;
@@ -188,7 +355,6 @@ export async function promoteStudent(studentId: string, payload: {
   try {
     const supabase = getSupabaseAdmin();
 
-    // 1. Fetch student to get campus_id
     const { data: student } = await supabase
       .from('students')
       .select('campus_id')
@@ -197,7 +363,6 @@ export async function promoteStudent(studentId: string, payload: {
 
     const campusId = student?.campus_id || (await resolveCampusId(supabase, ''));
 
-    // 2. Fetch or create active academic year
     let { data: academicYear } = await supabase
       .from('academic_years')
       .select('id')
@@ -216,13 +381,13 @@ export async function promoteStudent(studentId: string, payload: {
       yearId = newYear?.id;
     }
 
-    // 3. Mark existing current sessions as past
+    // 1. Mark existing current sessions as past
     await supabase
       .from('student_academic_history')
       .update({ is_current_session: false })
       .eq('student_id', studentId);
 
-    // 4. Insert new promoted class record
+    // 2. Insert new promoted class record
     const { error: insertErr } = await supabase
       .from('student_academic_history')
       .insert([{
@@ -236,13 +401,13 @@ export async function promoteStudent(studentId: string, payload: {
 
     if (insertErr) throw insertErr;
 
-    // 5. Ensure student status is Active
+    // 3. Ensure student status is Active
     await supabase
       .from('students')
       .update({ status: 'Active', updated_at: new Date().toISOString() })
       .eq('id', studentId);
 
-    // 6. Record Lifecycle Event
+    // 4. Record Lifecycle Event
     await supabase
       .from('student_lifecycle')
       .insert([{
@@ -262,12 +427,13 @@ export async function promoteStudent(studentId: string, payload: {
 }
 
 /**
- * Updates full student profile (demographics, current class/roll no, and primary parent).
+ * Updates full student profile including demographics, class, and separate Father/Mother/Guardian records.
  */
 export async function updateStudentProfile(studentId: string, payload: any) {
   try {
     const supabase = getSupabaseAdmin();
 
+    // 1. Update students table
     const { error: studentErr } = await supabase
       .from('students')
       .update({
@@ -286,6 +452,7 @@ export async function updateStudentProfile(studentId: string, payload: any) {
 
     if (studentErr) throw studentErr;
 
+    // 2. Update current academic record
     if (payload.class_name) {
       const { data: currentAc } = await supabase
         .from('student_academic_history')
@@ -303,50 +470,84 @@ export async function updateStudentProfile(studentId: string, payload: any) {
             roll_no: payload.roll_no || null
           })
           .eq('id', currentAc.id);
-      } else {
-        await supabase
-          .from('student_academic_history')
-          .insert([{
-            student_id: studentId,
-            class_name: payload.class_name,
-            section_name: payload.section_name || '',
-            roll_no: payload.roll_no || null,
-            is_current_session: true
-          }]);
       }
     }
 
-    if (payload.parent_name) {
-      const { data: currentParent } = await supabase
+    // 3. Upsert Father Record
+    if (payload.father_name) {
+      const { data: existingFather } = await supabase
         .from('student_parents')
         .select('id')
         .eq('student_id', studentId)
-        .eq('is_primary_contact', true)
+        .eq('parent_type', 'Father')
         .maybeSingle();
 
-      if (currentParent) {
-        await supabase
-          .from('student_parents')
-          .update({
-            name: payload.parent_name,
-            mobile: payload.parent_mobile || '',
-            email: payload.parent_email || null,
-            occupation: payload.parent_occupation || null,
-            parent_type: payload.parent_type || 'Father'
-          })
-          .eq('id', currentParent.id);
+      const fatherData = {
+        name: payload.father_name,
+        mobile: payload.father_mobile || '',
+        email: payload.father_email || null,
+        occupation: payload.father_occupation || null,
+        annual_income: payload.father_income || null,
+        education: payload.father_qualification || null,
+        aadhaar_no: payload.father_aadhaar || null,
+        is_primary_contact: payload.primary_contact === 'Father'
+      };
+
+      if (existingFather) {
+        await supabase.from('student_parents').update(fatherData).eq('id', existingFather.id);
       } else {
-        await supabase
-          .from('student_parents')
-          .insert([{
-            student_id: studentId,
-            name: payload.parent_name,
-            mobile: payload.parent_mobile || '',
-            email: payload.parent_email || null,
-            occupation: payload.parent_occupation || null,
-            parent_type: payload.parent_type || 'Father',
-            is_primary_contact: true
-          }]);
+        await supabase.from('student_parents').insert([{ student_id: studentId, parent_type: 'Father', ...fatherData }]);
+      }
+    }
+
+    // 4. Upsert Mother Record
+    if (payload.mother_name) {
+      const { data: existingMother } = await supabase
+        .from('student_parents')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('parent_type', 'Mother')
+        .maybeSingle();
+
+      const motherData = {
+        name: payload.mother_name,
+        mobile: payload.mother_mobile || '',
+        email: payload.mother_email || null,
+        occupation: payload.mother_occupation || null,
+        annual_income: payload.mother_income || null,
+        education: payload.mother_qualification || null,
+        aadhaar_no: payload.mother_aadhaar || null,
+        is_primary_contact: payload.primary_contact === 'Mother'
+      };
+
+      if (existingMother) {
+        await supabase.from('student_parents').update(motherData).eq('id', existingMother.id);
+      } else {
+        await supabase.from('student_parents').insert([{ student_id: studentId, parent_type: 'Mother', ...motherData }]);
+      }
+    }
+
+    // 5. Upsert Guardian Record
+    if (payload.guardian_name) {
+      const { data: existingGuardian } = await supabase
+        .from('student_parents')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('parent_type', 'Guardian')
+        .maybeSingle();
+
+      const guardianData = {
+        name: payload.guardian_name,
+        mobile: payload.guardian_mobile || '',
+        email: payload.guardian_email || null,
+        occupation: payload.guardian_occupation || null,
+        is_primary_contact: payload.primary_contact === 'Guardian'
+      };
+
+      if (existingGuardian) {
+        await supabase.from('student_parents').update(guardianData).eq('id', existingGuardian.id);
+      } else {
+        await supabase.from('student_parents').insert([{ student_id: studentId, parent_type: 'Guardian', ...guardianData }]);
       }
     }
 
@@ -480,16 +681,12 @@ export async function saveStudentMedicalRecord(studentId: string, payload: any) 
   }
 }
 
-/**
- * Real-time metrics for the Global Admin Command Center Dashboard.
- */
 export async function getDashboardMetrics(campusId: string) {
   try {
     if (!campusId) return { success: true, data: null };
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
-    // 1. Fetch Students
     const { data: students } = await supabase
       .from('students')
       .select('id, first_name, last_name, admission_no, category, status, gender, created_at, student_academic_history(class_name, is_current_session)')
@@ -500,7 +697,6 @@ export async function getDashboardMetrics(campusId: string) {
     const formerStudents = allStudents.filter(s => ['Withdrawn', 'TC Issued', 'Suspended', 'Alumni'].includes(s.status));
     const ewsStudents = activeStudents.filter(s => s.category === 'EWS');
 
-    // Class distribution
     const classMap: Record<string, number> = {};
     activeStudents.forEach(s => {
       const currentAc = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
@@ -514,12 +710,10 @@ export async function getDashboardMetrics(campusId: string) {
       pct: activeStudents.length > 0 ? Math.round((count / activeStudents.length) * 100) : 0
     }));
 
-    // 2. Fetch Admissions Applications
     const { count: admissionsCount } = await supabase
       .from('admissions_applications')
       .select('*', { count: 'exact', head: true });
 
-    // 3. Fetch Invoices & Collections
     const { data: invoices } = await supabase
       .from('student_invoices')
       .select('total_amount, amount_paid, status')

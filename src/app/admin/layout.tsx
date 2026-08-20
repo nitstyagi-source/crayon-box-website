@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: "Enquiry CRM", href: "/admin/enquiries", icon: PhoneCall },
   { name: "Master SIS", href: "/admin/students", icon: Users },
+  { name: "Classes & Sections", href: "/admin/classes", icon: GraduationCap },
   { name: "HR Command Center", href: "/admin/hr", icon: Users },
   { name: "Health Clinic", href: "/admin/health", icon: HeartPulse },
   { name: "Smart Inventory", href: "/admin/inventory", icon: Package },
