@@ -123,18 +123,29 @@ ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Admins full access
+DROP POLICY IF EXISTS "Admins full access fee_heads" ON public.fee_heads;
 CREATE POLICY "Admins full access fee_heads" ON public.fee_heads USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access fee_templates" ON public.fee_templates;
 CREATE POLICY "Admins full access fee_templates" ON public.fee_templates USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access fee_template_items" ON public.fee_template_items;
 CREATE POLICY "Admins full access fee_template_items" ON public.fee_template_items USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access fee_late_rules" ON public.fee_late_rules;
 CREATE POLICY "Admins full access fee_late_rules" ON public.fee_late_rules USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access discounts_and_waivers" ON public.discounts_and_waivers;
 CREATE POLICY "Admins full access discounts_and_waivers" ON public.discounts_and_waivers USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access payment_modes" ON public.payment_modes;
 CREATE POLICY "Admins full access payment_modes" ON public.payment_modes USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access student_fee_ledgers" ON public.student_fee_ledgers;
 CREATE POLICY "Admins full access student_fee_ledgers" ON public.student_fee_ledgers USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access refunds" ON public.refunds;
 CREATE POLICY "Admins full access refunds" ON public.refunds USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access audit_logs" ON public.audit_logs;
 CREATE POLICY "Admins full access audit_logs" ON public.audit_logs USING (auth.jwt()->>'role' = 'admin');
 
 -- Parents can view their own ledger and refunds (Mocking parent link via auth.uid() = student_id or similar, keeping it simple)
+DROP POLICY IF EXISTS "Parents view own ledger" ON public.student_fee_ledgers;
 CREATE POLICY "Parents view own ledger" ON public.student_fee_ledgers FOR SELECT USING (auth.uid() = student_id);
+DROP POLICY IF EXISTS "Parents view own refunds" ON public.refunds;
 CREATE POLICY "Parents view own refunds" ON public.refunds FOR SELECT USING (auth.uid() = student_id);
 
-EOF
+

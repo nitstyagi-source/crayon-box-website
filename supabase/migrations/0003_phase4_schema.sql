@@ -5,7 +5,7 @@
 -- ==========================================
 
 -- 1. Vehicles
-CREATE TABLE vehicles (
+CREATE TABLE IF NOT EXISTS vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
     registration_number VARCHAR(50) UNIQUE NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE vehicles (
 );
 
 -- 2. Routes
-CREATE TABLE routes (
+CREATE TABLE IF NOT EXISTS routes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
     vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
@@ -28,7 +28,7 @@ CREATE TABLE routes (
 );
 
 -- 3. Stops
-CREATE TABLE stops (
+CREATE TABLE IF NOT EXISTS stops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     route_id UUID REFERENCES routes(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE stops (
 );
 
 -- 4. Route Assignments (Mapping Students to Stops)
-CREATE TABLE route_assignments (
+CREATE TABLE IF NOT EXISTS route_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     route_id UUID REFERENCES routes(id) ON DELETE CASCADE,
     stop_id UUID REFERENCES stops(id) ON DELETE CASCADE,
@@ -50,7 +50,7 @@ CREATE TABLE route_assignments (
 );
 
 -- 5. Trip Logs
-CREATE TABLE trip_logs (
+CREATE TABLE IF NOT EXISTS trip_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     route_id UUID REFERENCES routes(id) ON DELETE CASCADE,
     trip_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -66,7 +66,7 @@ CREATE TABLE trip_logs (
 -- ==========================================
 
 -- 1. Visitors
-CREATE TABLE visitors (
+CREATE TABLE IF NOT EXISTS visitors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_number VARCHAR(20) UNIQUE NOT NULL,
     full_name VARCHAR(100),
@@ -75,7 +75,7 @@ CREATE TABLE visitors (
 );
 
 -- 2. Visitor Logs
-CREATE TABLE visitor_logs (
+CREATE TABLE IF NOT EXISTS visitor_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     visitor_id UUID REFERENCES visitors(id) ON DELETE CASCADE,
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
@@ -101,19 +101,29 @@ ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visitor_logs ENABLE ROW LEVEL SECURITY;
 
 -- Superadmins can do everything
+DROP POLICY IF EXISTS "Superadmins can manage vehicles" ON public.vehicles;
 CREATE POLICY "Superadmins can manage vehicles" ON vehicles FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage routes" ON public.routes;
 CREATE POLICY "Superadmins can manage routes" ON routes FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage stops" ON public.stops;
 CREATE POLICY "Superadmins can manage stops" ON stops FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage route assignments" ON public.route_assignments;
 CREATE POLICY "Superadmins can manage route assignments" ON route_assignments FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage trip logs" ON public.trip_logs;
 CREATE POLICY "Superadmins can manage trip logs" ON trip_logs FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage visitors" ON public.visitors;
 CREATE POLICY "Superadmins can manage visitors" ON visitors FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage visitor logs" ON public.visitor_logs;
 CREATE POLICY "Superadmins can manage visitor logs" ON visitor_logs FOR ALL USING (is_superadmin());
 
 -- Kiosks (public or anonymous) can insert visitors and logs
+DROP POLICY IF EXISTS "Anyone can insert visitors" ON public.visitors;
 CREATE POLICY "Anyone can insert visitors" ON visitors FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Anyone can insert visitor logs" ON public.visitor_logs;
 CREATE POLICY "Anyone can insert visitor logs" ON visitor_logs FOR INSERT WITH CHECK (true);
 
 -- Parents can view their own route assignments
+DROP POLICY IF EXISTS "Parents can view route assignments" ON public.route_assignments;
 CREATE POLICY "Parents can view route assignments" ON route_assignments FOR SELECT USING (
     EXISTS (SELECT 1 FROM admissions_applications WHERE id = student_id AND parent_id = auth.uid())
 );

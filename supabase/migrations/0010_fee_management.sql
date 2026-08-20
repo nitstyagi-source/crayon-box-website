@@ -76,21 +76,29 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 -- We will assume admins have auth.jwt()->>'role' = 'admin' or similar. 
 
 -- Parents should only be able to SELECT invoices and transactions linked to their parent_id
+DROP POLICY IF EXISTS "Parents can view their own invoices" ON public.invoices;
 CREATE POLICY "Parents can view their own invoices" 
     ON public.invoices FOR SELECT 
     USING (auth.uid() = parent_id);
 
+DROP POLICY IF EXISTS "Parents can view their own invoice items" ON public.invoice_items;
 CREATE POLICY "Parents can view their own invoice items" 
     ON public.invoice_items FOR SELECT 
     USING (EXISTS (SELECT 1 FROM public.invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.parent_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Parents can view their own transactions" ON public.transactions;
 CREATE POLICY "Parents can view their own transactions" 
     ON public.transactions FOR SELECT 
     USING (auth.uid() = parent_id);
 
 -- Admins full access (Mocking admin check via JWT role claim for the schema)
+DROP POLICY IF EXISTS "Admins full access fee_structures" ON public.fee_structures;
 CREATE POLICY "Admins full access fee_structures" ON public.fee_structures USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access student_fee_configs" ON public.student_fee_configs;
 CREATE POLICY "Admins full access student_fee_configs" ON public.student_fee_configs USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access invoices" ON public.invoices;
 CREATE POLICY "Admins full access invoices" ON public.invoices USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access invoice_items" ON public.invoice_items;
 CREATE POLICY "Admins full access invoice_items" ON public.invoice_items USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access transactions" ON public.transactions;
 CREATE POLICY "Admins full access transactions" ON public.transactions USING (auth.jwt()->>'role' = 'admin');

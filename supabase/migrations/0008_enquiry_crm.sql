@@ -1,6 +1,6 @@
 -- Phase 11: Enquiry CRM & Lead Migration Schema
 
-CREATE TABLE enquiries (
+CREATE TABLE IF NOT EXISTS enquiries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_name VARCHAR(255) NOT NULL,
     parent_phone VARCHAR(20) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE enquiries (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE enquiry_logs (
+CREATE TABLE IF NOT EXISTS enquiry_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     enquiry_id UUID REFERENCES enquiries(id) ON DELETE CASCADE,
     staff_id UUID REFERENCES staff(id),
@@ -35,13 +35,17 @@ ADD COLUMN enquiry_id UUID REFERENCES enquiries(id) ON DELETE SET NULL UNIQUE;
 ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE enquiry_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Superadmins can manage enquiries" ON public.enquiries;
 CREATE POLICY "Superadmins can manage enquiries" ON enquiries FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage enquiry_logs" ON public.enquiry_logs;
 CREATE POLICY "Superadmins can manage enquiry_logs" ON enquiry_logs FOR ALL USING (is_superadmin());
 
 -- Admissions staff can manage all enquiries
+DROP POLICY IF EXISTS "Admissions staff can manage enquiries" ON public.enquiries;
 CREATE POLICY "Admissions staff can manage enquiries" ON enquiries FOR ALL USING (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid()) -- Broad staff access for prototype
 );
+DROP POLICY IF EXISTS "Admissions staff can manage logs" ON public.enquiry_logs;
 CREATE POLICY "Admissions staff can manage logs" ON enquiry_logs FOR ALL USING (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid())
 );

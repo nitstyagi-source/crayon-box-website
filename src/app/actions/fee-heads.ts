@@ -5,35 +5,48 @@ import { revalidatePath } from 'next/cache';
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
 }
 
+function isValidUUID(id: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
+async function resolveCampusId(supabase: any, campusId: string): Promise<string> {
+  if (campusId && isValidUUID(campusId)) return campusId;
+  const { data } = await supabase.from('campuses').select('id').limit(1).single();
+  if (!data?.id) throw new Error("No campuses found in database.");
+  return data.id;
+}
+
 export async function getFeeHeads(campusId: string) {
   try {
+    if (!campusId) return { success: true, data: [] };
     const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
     const { data, error } = await supabase
       .from('fee_heads')
       .select('*')
-      .eq('campus_id', campusId)
+      .eq('campus_id', resolvedId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return { success: true, data };
+    return { success: true, data: data || [] };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, data: [] };
   }
 }
 
 export async function createFeeHead(campusId: string, name: string, is_mandatory: boolean, is_refundable: boolean) {
   try {
     const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
     const { data, error } = await supabase
       .from('fee_heads')
-      .insert([{ campus_id: campusId, name, is_mandatory, is_refundable }])
+      .insert([{ campus_id: resolvedId, name, is_mandatory, is_refundable }])
       .select()
       .single();
 
@@ -66,15 +79,13 @@ export async function deleteFeeHead(id: string) {
 export async function resetFinanceData(campusId: string) {
   try {
     const supabase = getSupabaseAdmin();
-    // Delete in correct order to respect foreign key constraints
-    await supabase.from('audit_logs').delete().eq('campus_id', campusId);
-    await supabase.from('refunds').delete().eq('campus_id', campusId);
-    await supabase.from('student_fee_ledgers').delete().eq('campus_id', campusId);
-    await supabase.from('discounts_and_waivers').delete().eq('campus_id', campusId);
-    await supabase.from('fee_late_rules').delete().eq('campus_id', campusId);
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    await supabase.from('student_invoice_items').delete().not('id', 'is', null);
+    await supabase.from('student_invoices').delete().eq('campus_id', resolvedId);
     await supabase.from('fee_template_items').delete().not('id', 'is', null);
-    await supabase.from('fee_templates').delete().eq('campus_id', campusId);
-    await supabase.from('fee_heads').delete().eq('campus_id', campusId);
+    await supabase.from('fee_templates').delete().eq('campus_id', resolvedId);
+    await supabase.from('fee_heads').delete().eq('campus_id', resolvedId);
 
     revalidatePath('/admin/finance');
     return { success: true, message: "Finance data reset successfully." };

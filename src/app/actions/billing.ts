@@ -5,16 +5,26 @@ import { revalidatePath } from 'next/cache';
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
 }
 
+function isValidUUID(id: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
+async function resolveCampusId(supabase: any, campusId: string): Promise<string> {
+  if (campusId && isValidUUID(campusId)) return campusId;
+  const { data } = await supabase.from('campuses').select('id').limit(1).single();
+  if (!data?.id) throw new Error("No campuses found in database.");
+  return data.id;
+}
+
 /**
  * Generate invoices for multiple students based on a Fee Template.
- * Now supports per-head due dates, discounts, and auto-late fees.
+ * Supports per-head due dates and discounts.
  */
 export async function generateInvoiceWizard(
   campusId: string, 
@@ -22,11 +32,12 @@ export async function generateInvoiceWizard(
   templateId: string,
   billingPeriod: string,
   dueDate: string,
-  discountPerHead: number, // Simplified: apply a fixed discount amount to every head for now
-  lateFeePerDay: number // Simplified: daily late fee applied to every head after due date
+  discountPerHead: number,
+  lateFeePerDay: number
 ) {
   try {
     const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
     
     // 1. Fetch Template Items
     const { data: items, error: itemsError } = await supabase
@@ -34,19 +45,19 @@ export async function generateInvoiceWizard(
       .select('*')
       .eq('template_id', templateId);
       
-    if (itemsError || !items) throw new Error("Failed to fetch template items.");
+    if (itemsError || !items || items.length === 0) throw new Error("Failed to fetch template items or template is empty.");
 
     // 2. Loop through each student and create an invoice
     for (const studentId of studentIds) {
       
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000)}`;
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
       
       let totalAmount = 0;
       let totalDiscount = 0;
       
       const invoiceItems = items.map(item => {
-        totalAmount += item.amount;
-        totalDiscount += discountPerHead; // Example simplified logic
+        totalAmount += Number(item.amount);
+        totalDiscount += Number(discountPerHead);
         return {
           fee_head_id: item.fee_head_id,
           base_amount: item.amount,
@@ -56,16 +67,21 @@ export async function generateInvoiceWizard(
         };
       });
 
+      const finalTotal = Math.max(0, totalAmount - totalDiscount);
+
       // Insert Invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from('student_invoices')
         .insert([{
-          campus_id: campusId,
+          campus_id: resolvedCampusId,
           student_id: studentId,
           invoice_number: invoiceNumber,
           billing_period: billingPeriod,
-          total_amount: totalAmount,
-          total_discount: totalDiscount
+          total_amount: finalTotal,
+          total_discount: totalDiscount,
+          total_late_fee: 0,
+          amount_paid: 0,
+          status: 'Unpaid'
         }])
         .select()
         .single();
@@ -82,7 +98,7 @@ export async function generateInvoiceWizard(
     }
 
     revalidatePath('/admin/finance/invoices');
-    return { success: true, message: `Invoices generated successfully for ${studentIds.length} student(s).` };
+    return { success: true, message: `Invoices generated for ${studentIds.length} student(s).` };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

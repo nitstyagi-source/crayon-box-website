@@ -1,5 +1,5 @@
 -- 1. Campuses (Multi-tenant foundation)
-CREATE TABLE campuses (
+CREATE TABLE IF NOT EXISTS campuses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     address TEXT,
@@ -9,7 +9,7 @@ CREATE TABLE campuses (
 );
 
 -- 2. Academic Years
-CREATE TABLE academic_years (
+CREATE TABLE IF NOT EXISTS academic_years (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
     name VARCHAR(20) NOT NULL, -- '2026-27'
@@ -19,7 +19,7 @@ CREATE TABLE academic_years (
 );
 
 -- 3. Parents (Extends Supabase Auth Users)
-CREATE TABLE parents (
+CREATE TABLE IF NOT EXISTS parents (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE parents (
 );
 
 -- 4. Admissions Applications
-CREATE TABLE admissions_applications (
+CREATE TABLE IF NOT EXISTS admissions_applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tracking_token VARCHAR(20) UNIQUE NOT NULL, -- e.g., 'APP-26-8942A' (Generated via trigger or edge function)
     campus_id UUID REFERENCES campuses(id) NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE admissions_applications (
 );
 
 -- 5. Application Documents Vault
-CREATE TABLE application_documents (
+CREATE TABLE IF NOT EXISTS application_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     application_id UUID REFERENCES admissions_applications(id) ON DELETE CASCADE,
     document_type VARCHAR(50) NOT NULL, 
@@ -61,7 +61,7 @@ CREATE TABLE application_documents (
 );
 
 -- 6. Unified Transactions Table
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_id UUID REFERENCES parents(id),
     application_id UUID REFERENCES admissions_applications(id), -- Nullable for post-admission fees

@@ -1,7 +1,7 @@
 -- Phase 6: Academic & Teacher Operations Schema
 
 -- 1. Staff (Extends auth.users for Teachers, Principals, etc.)
-CREATE TABLE staff (
+CREATE TABLE IF NOT EXISTS staff (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     campus_id UUID REFERENCES campuses(id),
     first_name VARCHAR(100) NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE staff (
 );
 
 -- 2. Classes (e.g. Grade 4 - Section A)
-CREATE TABLE classes (
+CREATE TABLE IF NOT EXISTS classes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
     academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
@@ -26,7 +26,7 @@ CREATE TABLE classes (
 );
 
 -- 3. Enrolled Students (The official roster after admission is approved)
-CREATE TABLE students (
+CREATE TABLE IF NOT EXISTS students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id),
     academic_year_id UUID REFERENCES academic_years(id),
@@ -42,7 +42,7 @@ CREATE TABLE students (
 );
 
 -- 4. Daily Attendance Logs
-CREATE TABLE attendance_logs (
+CREATE TABLE IF NOT EXISTS attendance_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
@@ -55,7 +55,7 @@ CREATE TABLE attendance_logs (
 );
 
 -- 5. Communications (Broadcast Messages)
-CREATE TABLE communications (
+CREATE TABLE IF NOT EXISTS communications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id UUID REFERENCES staff(id) ON DELETE SET NULL, -- Null if sent by system
     campus_id UUID REFERENCES campuses(id),
@@ -79,23 +79,33 @@ ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE communications ENABLE ROW LEVEL SECURITY;
 
 -- Superadmins can do everything
+DROP POLICY IF EXISTS "Superadmins can manage staff" ON public.staff;
 CREATE POLICY "Superadmins can manage staff" ON staff FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage classes" ON public.classes;
 CREATE POLICY "Superadmins can manage classes" ON classes FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage students" ON public.students;
 CREATE POLICY "Superadmins can manage students" ON students FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage attendance" ON public.attendance_logs;
 CREATE POLICY "Superadmins can manage attendance" ON attendance_logs FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage communications" ON public.communications;
 CREATE POLICY "Superadmins can manage communications" ON communications FOR ALL USING (is_superadmin());
 
 -- Staff can view their own profile and students/classes they are assigned to
+DROP POLICY IF EXISTS "Staff can view own profile" ON public.staff;
 CREATE POLICY "Staff can view own profile" ON staff FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Staff can view assigned classes" ON public.classes;
 CREATE POLICY "Staff can view assigned classes" ON classes FOR SELECT USING (auth.uid() = teacher_id OR is_superadmin());
+DROP POLICY IF EXISTS "Staff can view students in assigned classes" ON public.students;
 CREATE POLICY "Staff can view students in assigned classes" ON students FOR SELECT USING (
     EXISTS (SELECT 1 FROM classes WHERE id = students.class_id AND teacher_id = auth.uid()) OR is_superadmin()
 );
 
 -- Staff can mark attendance for their assigned classes
+DROP POLICY IF EXISTS "Staff can manage attendance for assigned classes" ON public.attendance_logs;
 CREATE POLICY "Staff can manage attendance for assigned classes" ON attendance_logs FOR ALL USING (
     EXISTS (SELECT 1 FROM classes WHERE id = attendance_logs.class_id AND teacher_id = auth.uid()) OR is_superadmin()
 );
 
 -- Staff can view communications they sent, Parents can view communications targeted at them
+DROP POLICY IF EXISTS "Staff can view own communications" ON public.communications;
 CREATE POLICY "Staff can view own communications" ON communications FOR SELECT USING (auth.uid() = sender_id OR is_superadmin());

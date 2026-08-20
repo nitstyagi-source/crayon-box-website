@@ -30,5 +30,7 @@ CREATE TABLE IF NOT EXISTS public.student_invoice_items (
 ALTER TABLE public.student_invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_invoice_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins full access invoices" ON public.student_invoices;
 CREATE POLICY "Admins full access invoices" ON public.student_invoices USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access invoice_items" ON public.student_invoice_items;
 CREATE POLICY "Admins full access invoice_items" ON public.student_invoice_items USING (auth.jwt()->>'role' = 'admin');

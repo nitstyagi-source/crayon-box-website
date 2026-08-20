@@ -7,18 +7,17 @@ import { motion } from "framer-motion";
 export default function AdminDashboard() {
   const { activeCampus } = useCampusContext();
 
-  // Simulated metrics that would change based on activeCampus
-  const isAll = activeCampus?.id === "ALL";
-  const enrollments = isAll ? "2,845" : "1,420";
-  const admissions = isAll ? "342" : "185";
-  const collections = isAll ? "4.2M" : "2.1M";
+  const campusName = activeCampus?.name || "Main Campus";
+  const enrollments = "2,845";
+  const admissions = "342";
+  const collections = "4.2M";
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-bold text-slate-900">Global Command Center</h1>
-        <div className="text-sm text-slate-500 font-medium">Reporting Context: <span className="text-blue-600 font-bold">{activeCampus?.name}</span></div>
+        <div className="text-sm text-slate-500 font-medium">Reporting Context: <span className="text-blue-600 font-bold">{campusName}</span></div>
       </div>
 
       {/* Top KPI Strip */}

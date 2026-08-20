@@ -128,10 +128,17 @@ ALTER TABLE public.student_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_lifecycle ENABLE ROW LEVEL SECURITY;
 
 -- Basic Admin Policies
+DROP POLICY IF EXISTS "Admins full access students" ON public.students;
 CREATE POLICY "Admins full access students" ON public.students USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access academic_history" ON public.student_academic_history;
 CREATE POLICY "Admins full access academic_history" ON public.student_academic_history USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access parents" ON public.student_parents;
 CREATE POLICY "Admins full access parents" ON public.student_parents USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access addresses" ON public.student_addresses;
 CREATE POLICY "Admins full access addresses" ON public.student_addresses USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access medical" ON public.student_medical;
 CREATE POLICY "Admins full access medical" ON public.student_medical USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access documents" ON public.student_documents;
 CREATE POLICY "Admins full access documents" ON public.student_documents USING (auth.jwt()->>'role' = 'admin');
+DROP POLICY IF EXISTS "Admins full access lifecycle" ON public.student_lifecycle;
 CREATE POLICY "Admins full access lifecycle" ON public.student_lifecycle USING (auth.jwt()->>'role' = 'admin');

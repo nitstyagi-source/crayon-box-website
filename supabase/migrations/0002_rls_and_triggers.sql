@@ -1,7 +1,7 @@
 -- Phase 5: RLS Policies and Tracking Token Trigger
 
 -- 1. Create Super Admins table
-CREATE TABLE superadmins (
+CREATE TABLE IF NOT EXISTS superadmins (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -27,15 +27,21 @@ ALTER TABLE superadmins ENABLE ROW LEVEL SECURITY;
 -- 3. RLS Policies
 
 -- Campuses: Anyone can view, only superadmins can edit
+DROP POLICY IF EXISTS "Anyone can view campuses" ON public.campuses;
 CREATE POLICY "Anyone can view campuses" ON campuses FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Superadmins can manage campuses" ON public.campuses;
 CREATE POLICY "Superadmins can manage campuses" ON campuses FOR ALL USING (is_superadmin());
 
 -- Academic Years: Anyone can view, only superadmins can edit
+DROP POLICY IF EXISTS "Anyone can view academic years" ON public.academic_years;
 CREATE POLICY "Anyone can view academic years" ON academic_years FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Superadmins can manage academic years" ON public.academic_years;
 CREATE POLICY "Superadmins can manage academic years" ON academic_years FOR ALL USING (is_superadmin());
 
 -- Parents: Parents can manage their own profile, superadmins can manage all
+DROP POLICY IF EXISTS "Parents can manage own profile" ON public.parents;
 CREATE POLICY "Parents can manage own profile" ON parents FOR ALL USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Superadmins can manage parents" ON public.parents;
 CREATE POLICY "Superadmins can manage parents" ON parents FOR ALL USING (is_superadmin());
 
 -- Admissions Applications: 
@@ -48,23 +54,33 @@ CREATE POLICY "Superadmins can manage parents" ON parents FOR ALL USING (is_supe
 -- Let's make `parent_id` NULLABLE in admissions_applications to allow public submissions.
 ALTER TABLE admissions_applications ALTER COLUMN parent_id DROP NOT NULL;
 
+DROP POLICY IF EXISTS "Anyone can insert applications" ON public.admissions_applications;
 CREATE POLICY "Anyone can insert applications" ON admissions_applications FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Parents can view own applications" ON public.admissions_applications;
 CREATE POLICY "Parents can view own applications" ON admissions_applications FOR SELECT USING (auth.uid() = parent_id);
+DROP POLICY IF EXISTS "Parents can update own draft applications" ON public.admissions_applications;
 CREATE POLICY "Parents can update own draft applications" ON admissions_applications FOR UPDATE USING (auth.uid() = parent_id);
+DROP POLICY IF EXISTS "Superadmins can manage applications" ON public.admissions_applications;
 CREATE POLICY "Superadmins can manage applications" ON admissions_applications FOR ALL USING (is_superadmin());
 
 -- Application Documents
+DROP POLICY IF EXISTS "Anyone can insert documents" ON public.application_documents;
 CREATE POLICY "Anyone can insert documents" ON application_documents FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Parents can view own documents" ON public.application_documents;
 CREATE POLICY "Parents can view own documents" ON application_documents FOR SELECT USING (
     EXISTS (SELECT 1 FROM admissions_applications WHERE id = application_id AND parent_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Superadmins can manage documents" ON public.application_documents;
 CREATE POLICY "Superadmins can manage documents" ON application_documents FOR ALL USING (is_superadmin());
 
 -- Transactions
+DROP POLICY IF EXISTS "Parents can view own transactions" ON public.transactions;
 CREATE POLICY "Parents can view own transactions" ON transactions FOR SELECT USING (auth.uid() = parent_id);
+DROP POLICY IF EXISTS "Superadmins can manage transactions" ON public.transactions;
 CREATE POLICY "Superadmins can manage transactions" ON transactions FOR ALL USING (is_superadmin());
 
 -- Superadmins
+DROP POLICY IF EXISTS "Superadmins can view superadmins" ON public.superadmins;
 CREATE POLICY "Superadmins can view superadmins" ON superadmins FOR SELECT USING (is_superadmin());
 
 -- 4. Tracking Token Auto-Generator

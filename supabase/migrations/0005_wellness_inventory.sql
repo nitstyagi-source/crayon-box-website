@@ -4,7 +4,7 @@
 -- MODULE 10: HEALTH & CLINIC
 -- ==========================================
 
-CREATE TABLE health_profiles (
+CREATE TABLE IF NOT EXISTS health_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE UNIQUE,
     blood_group VARCHAR(10),
@@ -18,7 +18,7 @@ CREATE TABLE health_profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE medical_logs (
+CREATE TABLE IF NOT EXISTS medical_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     logged_by UUID REFERENCES staff(id), -- Nurse or Teacher
@@ -37,7 +37,7 @@ CREATE TABLE medical_logs (
 -- MODULE 3: DAYCARE & DIGITAL DIARY
 -- ==========================================
 
-CREATE TABLE daycare_logs (
+CREATE TABLE IF NOT EXISTS daycare_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     logged_by UUID REFERENCES staff(id),
@@ -51,7 +51,7 @@ CREATE TABLE daycare_logs (
 -- MODULE 15: HRMS & PAYROLL
 -- ==========================================
 
-CREATE TABLE leave_requests (
+CREATE TABLE IF NOT EXISTS leave_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id UUID REFERENCES staff(id) ON DELETE CASCADE,
     leave_type VARCHAR(50) NOT NULL, -- Sick, Casual, Earned, Maternity
@@ -63,7 +63,7 @@ CREATE TABLE leave_requests (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE staff_attendance (
+CREATE TABLE IF NOT EXISTS staff_attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id UUID REFERENCES staff(id) ON DELETE CASCADE,
     date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -73,7 +73,7 @@ CREATE TABLE staff_attendance (
     UNIQUE(staff_id, date)
 );
 
-CREATE TABLE payroll_ledgers (
+CREATE TABLE IF NOT EXISTS payroll_ledgers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     staff_id UUID REFERENCES staff(id) ON DELETE CASCADE,
     month VARCHAR(20) NOT NULL, -- e.g., 'August 2026'
@@ -92,7 +92,7 @@ CREATE TABLE payroll_ledgers (
 -- MODULE 13: SMART INVENTORY
 -- ==========================================
 
-CREATE TABLE assets (
+CREATE TABLE IF NOT EXISTS assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campus_id UUID REFERENCES campuses(id) ON DELETE CASCADE,
     category VARCHAR(50) NOT NULL, -- Library Book, IT Equipment, Lab Gear
@@ -105,7 +105,7 @@ CREATE TABLE assets (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE asset_checkouts (
+CREATE TABLE IF NOT EXISTS asset_checkouts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
     assigned_to_student UUID REFERENCES students(id), -- Nullable if assigned to staff
@@ -130,40 +130,59 @@ ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE asset_checkouts ENABLE ROW LEVEL SECURITY;
 
 -- Superadmins
+DROP POLICY IF EXISTS "Superadmins can manage health_profiles" ON public.health_profiles;
 CREATE POLICY "Superadmins can manage health_profiles" ON health_profiles FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage medical_logs" ON public.medical_logs;
 CREATE POLICY "Superadmins can manage medical_logs" ON medical_logs FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage daycare_logs" ON public.daycare_logs;
 CREATE POLICY "Superadmins can manage daycare_logs" ON daycare_logs FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage leave_requests" ON public.leave_requests;
 CREATE POLICY "Superadmins can manage leave_requests" ON leave_requests FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage staff_attendance" ON public.staff_attendance;
 CREATE POLICY "Superadmins can manage staff_attendance" ON staff_attendance FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage payroll_ledgers" ON public.payroll_ledgers;
 CREATE POLICY "Superadmins can manage payroll_ledgers" ON payroll_ledgers FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage assets" ON public.assets;
 CREATE POLICY "Superadmins can manage assets" ON assets FOR ALL USING (is_superadmin());
+DROP POLICY IF EXISTS "Superadmins can manage asset_checkouts" ON public.asset_checkouts;
 CREATE POLICY "Superadmins can manage asset_checkouts" ON asset_checkouts FOR ALL USING (is_superadmin());
 
 -- Parents (Strict RLS for Privacy)
+DROP POLICY IF EXISTS "Parents can view own child health profile" ON public.health_profiles;
 CREATE POLICY "Parents can view own child health profile" ON health_profiles FOR SELECT USING (
     EXISTS (SELECT 1 FROM students WHERE id = student_id AND parent_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Parents can view own child medical logs" ON public.medical_logs;
 CREATE POLICY "Parents can view own child medical logs" ON medical_logs FOR SELECT USING (
     EXISTS (SELECT 1 FROM students WHERE id = student_id AND parent_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Parents can view own child daycare logs" ON public.daycare_logs;
 CREATE POLICY "Parents can view own child daycare logs" ON daycare_logs FOR SELECT USING (
     EXISTS (SELECT 1 FROM students WHERE id = student_id AND parent_id = auth.uid())
 );
 
 -- Staff Policies
+DROP POLICY IF EXISTS "Nurses and admins can insert medical logs" ON public.medical_logs;
 CREATE POLICY "Nurses and admins can insert medical logs" ON medical_logs FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid())
 );
+DROP POLICY IF EXISTS "Teachers can insert daycare logs" ON public.daycare_logs;
 CREATE POLICY "Teachers can insert daycare logs" ON daycare_logs FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid())
 );
+DROP POLICY IF EXISTS "Staff can view own leave requests" ON public.leave_requests;
 CREATE POLICY "Staff can view own leave requests" ON leave_requests FOR SELECT USING (staff_id = auth.uid());
+DROP POLICY IF EXISTS "Staff can insert own leave requests" ON public.leave_requests;
 CREATE POLICY "Staff can insert own leave requests" ON leave_requests FOR INSERT WITH CHECK (staff_id = auth.uid());
+DROP POLICY IF EXISTS "Staff can view own attendance" ON public.staff_attendance;
 CREATE POLICY "Staff can view own attendance" ON staff_attendance FOR SELECT USING (staff_id = auth.uid());
+DROP POLICY IF EXISTS "Staff can view own payroll" ON public.payroll_ledgers;
 CREATE POLICY "Staff can view own payroll" ON payroll_ledgers FOR SELECT USING (staff_id = auth.uid());
 
 -- Assets: Anyone can view available assets, only staff/admins can checkout
+DROP POLICY IF EXISTS "Anyone can view assets" ON public.assets;
 CREATE POLICY "Anyone can view assets" ON assets FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Staff can checkout assets" ON public.asset_checkouts;
 CREATE POLICY "Staff can checkout assets" ON asset_checkouts FOR ALL USING (
     EXISTS (SELECT 1 FROM staff WHERE id = auth.uid())
 );

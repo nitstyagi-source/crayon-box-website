@@ -1,7 +1,15 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
 
 // Define the Zod schema for Admissions
 const admissionsSchema = z.object({
@@ -18,7 +26,7 @@ const admissionsSchema = z.object({
 });
 
 export async function submitAdmissionApplication(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   // Extract and validate data
   const rawData = {
@@ -42,10 +50,19 @@ export async function submitAdmissionApplication(formData: FormData) {
 
   const data = parsed.data;
 
-  // In a real scenario, we would lookup campus and academic year dynamically.
-  // For now, use the default seeded UUIDs.
-  const campusId = '11111111-1111-1111-1111-111111111111';
-  const academicYearId = '22222222-2222-2222-2222-222222222222';
+  // Dynamically resolve the primary campus and active academic year
+  const { data: primaryCampus } = await supabase.from('campuses').select('id').limit(1).single();
+  if (!primaryCampus?.id) return { success: false, message: "No campus found. Please contact admin." };
+  const campusId = primaryCampus.id;
+
+  const { data: activeYear } = await supabase
+    .from('academic_years')
+    .select('id')
+    .eq('campus_id', campusId)
+    .eq('is_active', true)
+    .limit(1)
+    .single();
+  const academicYearId = activeYear?.id || null;
 
   // 1. Insert into admissions_applications
   // We leave parent_id null for now because the user is not authenticated.
@@ -77,7 +94,7 @@ export async function submitAdmissionApplication(formData: FormData) {
 }
 
 export async function approveApplicationAndProvisionParent(applicationId: string, parentEmail: string, parentFirstName: string, parentLastName: string) {
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   // Create Auth User
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({

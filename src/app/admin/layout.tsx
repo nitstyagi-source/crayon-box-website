@@ -68,19 +68,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <header className="bg-white border-b border-slate-200 h-16 shrink-0 flex items-center justify-between px-6 z-10 shadow-sm">
           
           <div className="flex items-center gap-6">
-            {/* Campus Switcher */}
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
-              <Building2 className="w-4 h-4 text-slate-500" />
-              <select 
-                className="bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 cursor-pointer"
-                value={activeCampusId}
-                onChange={(e) => setActiveCampusId(e.target.value)}
-              >
-                {campuses.map(camp => (
-                  <option key={camp.id} value={camp.id}>{camp.name}</option>
-                ))}
-              </select>
-            </div>
+            {/* Campus Switcher Removed per user request */}
 
             {/* Global Search (Command Palette Simulation) */}
             <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 w-64 text-slate-400 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
