@@ -180,7 +180,7 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
     const { data: staffList } = await supabase.from('staff').select('id, first_name, last_name, designation, subjects_taught, department').eq('campus_id', resolvedCampusId);
     const teachers = (staffList || []).filter((s: any) => s.first_name);
 
-    // Standard Period Templates with dedicated 1-Hour Sports & Activity Block (8:00 AM - 2:30 PM)
+    // Standard Period Templates: Period 1-7 (40 min each), Short Break (30 min), Sports (50 min), Assembly & Dispersal (15 min each)
     const PRIMARY_PERIODS = [
       { num: 0, label: "Morning Assembly & Mindfulness", start: "08:00 AM", end: "08:15 AM", dur: 15, break_type: "Assembly" },
       { num: 1, label: "Period 1", start: "08:15 AM", end: "08:55 AM", dur: 40, break_type: "None" },
@@ -190,8 +190,8 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
       { num: 5, label: "Short Break / Tiffin", start: "10:55 AM", end: "11:25 AM", dur: 30, break_type: "Short Break" },
       { num: 6, label: "Period 5", start: "11:25 AM", end: "12:05 PM", dur: 40, break_type: "None" },
       { num: 7, label: "Period 6", start: "12:05 PM", end: "12:45 PM", dur: 40, break_type: "None" },
-      { num: 8, label: "Period 7", start: "12:45 PM", end: "01:15 PM", dur: 30, break_type: "None" },
-      { num: 9, label: "Sports & Co-Curricular Activity (1 Hour)", start: "01:15 PM", end: "02:15 PM", dur: 60, break_type: "None" },
+      { num: 8, label: "Period 7", start: "12:45 PM", end: "01:25 PM", dur: 40, break_type: "None" },
+      { num: 9, label: "Sports & Co-Curricular Activity (50 Min)", start: "01:25 PM", end: "02:15 PM", dur: 50, break_type: "None" },
       { num: 10, label: "Dispersal / Diary / Closing", start: "02:15 PM", end: "02:30 PM", dur: 15, break_type: "Dispersal" }
     ];
 
