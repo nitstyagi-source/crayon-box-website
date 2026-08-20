@@ -73,7 +73,7 @@ export async function getStudentProfile(studentId: string) {
       supabase.from('student_parents').select('*').eq('student_id', studentId),
       supabase.from('student_addresses').select('*').eq('student_id', studentId),
       supabase.from('student_medical').select('*').eq('student_id', studentId).maybeSingle(),
-      supabase.from('student_documents').select('*').eq('student_id', studentId),
+      supabase.from('student_documents').select('*').eq('student_id', studentId).order('uploaded_at', { ascending: false }),
       supabase.from('student_lifecycle').select('*').eq('student_id', studentId).order('action_date', { ascending: false }),
       supabase.from('student_invoices').select('*, student_invoice_items(*)').eq('student_id', studentId).order('created_at', { ascending: false }),
       supabase.from('student_fee_ledgers').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
@@ -174,24 +174,175 @@ export async function createStudent(payload: any) {
   }
 }
 
+/**
+ * Updates full student profile (demographics, current class/roll no, and primary parent).
+ */
+export async function updateStudentProfile(studentId: string, payload: any) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // 1. Update students table
+    const { error: studentErr } = await supabase
+      .from('students')
+      .update({
+        first_name: payload.first_name,
+        middle_name: payload.middle_name || null,
+        last_name: payload.last_name,
+        dob: payload.dob || null,
+        gender: payload.gender,
+        category: payload.category || 'General',
+        blood_group: payload.blood_group || null,
+        nationality: payload.nationality || 'Indian',
+        aadhaar_no: payload.aadhaar_no || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', studentId);
+
+    if (studentErr) throw studentErr;
+
+    // 2. Update current academic record
+    if (payload.class_name) {
+      const { data: currentAc } = await supabase
+        .from('student_academic_history')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('is_current_session', true)
+        .maybeSingle();
+
+      if (currentAc) {
+        await supabase
+          .from('student_academic_history')
+          .update({
+            class_name: payload.class_name,
+            section_name: payload.section_name || '',
+            roll_no: payload.roll_no || null
+          })
+          .eq('id', currentAc.id);
+      } else {
+        await supabase
+          .from('student_academic_history')
+          .insert([{
+            student_id: studentId,
+            class_name: payload.class_name,
+            section_name: payload.section_name || '',
+            roll_no: payload.roll_no || null,
+            is_current_session: true
+          }]);
+      }
+    }
+
+    // 3. Update primary parent
+    if (payload.parent_name) {
+      const { data: currentParent } = await supabase
+        .from('student_parents')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('is_primary_contact', true)
+        .maybeSingle();
+
+      if (currentParent) {
+        await supabase
+          .from('student_parents')
+          .update({
+            name: payload.parent_name,
+            mobile: payload.parent_mobile || '',
+            email: payload.parent_email || null,
+            occupation: payload.parent_occupation || null,
+            parent_type: payload.parent_type || 'Father'
+          })
+          .eq('id', currentParent.id);
+      } else {
+        await supabase
+          .from('student_parents')
+          .insert([{
+            student_id: studentId,
+            name: payload.parent_name,
+            mobile: payload.parent_mobile || '',
+            email: payload.parent_email || null,
+            occupation: payload.parent_occupation || null,
+            parent_type: payload.parent_type || 'Father',
+            is_primary_contact: true
+          }]);
+      }
+    }
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath('/admin/students');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Uploads/attaches a new document to the student's Document Vault.
+ */
+export async function uploadStudentDocument(studentId: string, payload: {
+  document_type: string;
+  document_no?: string;
+  file_url: string;
+  verification_status?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+      .from('student_documents')
+      .insert([{
+        student_id: studentId,
+        document_type: payload.document_type,
+        document_no: payload.document_no || null,
+        file_url: payload.file_url || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        verification_status: payload.verification_status || 'Verified',
+        uploaded_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath(`/admin/students/${studentId}`);
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Deletes a document from the student's vault.
+ */
+export async function deleteStudentDocument(documentId: string, studentId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('student_documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (error) throw error;
+
+    revalidatePath(`/admin/students/${studentId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function updateStudentLifecycleStatus(studentId: string, actionType: string, reason?: string) {
   try {
     const supabase = getSupabaseAdmin();
 
-    // Map action to status
     let status = 'Active';
     if (actionType === 'Withdrawal') status = 'Withdrawn';
     else if (actionType === 'TC_Issued') status = 'TC Issued';
     else if (actionType === 'Promotion') status = 'Promoted';
     else if (actionType === 'Suspension') status = 'Suspended';
 
-    // 1. Update status on students table
     await supabase
       .from('students')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', studentId);
 
-    // 2. Insert lifecycle event
     await supabase
       .from('student_lifecycle')
       .insert([{
