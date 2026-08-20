@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   FilePlus, Users, User, Search, Plus, Trash2, CheckCircle2, 
   AlertCircle, ShieldCheck, DollarSign, Calendar, Clock, ArrowRight,
   Sparkles, RefreshCw, Layers, ShieldAlert, CheckSquare, Square,
-  Filter, UserCheck, UserX, Info
+  Filter, UserCheck, UserX, Info, Eye, Printer, Edit3, Save
 } from "lucide-react";
 import Link from "next/link";
 import { useCampusContext } from "@/components/providers/CampusProvider";
@@ -14,8 +14,10 @@ import {
   generateIndividualInvoice, 
   generateBulkInvoices,
   getFeeHeads,
+  saveFeeHead,
   getBulkTargetStudents
 } from "@/app/actions/finance-core";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function GenerateInvoicesPage() {
   const { activeCampusId } = useCampusContext();
@@ -28,6 +30,24 @@ export default function GenerateInvoicesPage() {
   const [availableHeads, setAvailableHeads] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Preview Modal State
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const previewPrintRef = useRef<HTMLDivElement>(null);
+
+  // Fee Heads Management State
+  const [headsModalOpen, setHeadsModalOpen] = useState(false);
+  const [editingHead, setEditingHead] = useState<any>(null);
+  const [headFormOpen, setHeadFormOpen] = useState(false);
+  const [headFormData, setHeadFormData] = useState({
+    id: "",
+    name: "",
+    code: "",
+    category: "Academic",
+    description: "",
+    is_active: true
+  });
+  const [isSavingHead, setIsSavingHead] = useState(false);
 
   // Individual Form State
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,6 +93,85 @@ export default function GenerateInvoicesPage() {
     } catch (e) {
       console.error("Error loading fee heads:", e);
     }
+  }
+
+  function handleOpenAddHead() {
+    setEditingHead(null);
+    setHeadFormData({
+      id: "",
+      name: "",
+      code: "",
+      category: "Academic",
+      description: "",
+      is_active: true
+    });
+    setHeadFormOpen(true);
+  }
+
+  function handleOpenEditHead(head: any) {
+    setEditingHead(head);
+    setHeadFormData({
+      id: head.id,
+      name: head.name,
+      code: head.code || head.name.slice(0, 3).toUpperCase(),
+      category: head.category || "Academic",
+      description: head.description || "",
+      is_active: head.is_active ?? true
+    });
+    setHeadFormOpen(true);
+  }
+
+  async function handleSaveHead(e: React.FormEvent) {
+    e.preventDefault();
+    if (!headFormData.name.trim()) {
+      alert("Please provide a Fee Head Name.");
+      return;
+    }
+
+    setIsSavingHead(true);
+    try {
+      const res = await saveFeeHead({
+        campus_id: activeCampusId,
+        id: headFormData.id || undefined,
+        name: headFormData.name.trim(),
+        code: headFormData.code.trim().toUpperCase() || headFormData.name.slice(0, 3).toUpperCase(),
+        category: headFormData.category,
+        description: headFormData.description,
+        is_active: headFormData.is_active
+      });
+
+      if (res.success) {
+        alert(`🎉 Fee Head "${headFormData.name}" saved successfully!`);
+        setHeadFormOpen(false);
+        loadFeeHeads();
+      } else {
+        alert("Failed to save fee head: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsSavingHead(false);
+    }
+  }
+
+  function handleOpenPreview() {
+    if (!selectedStudent) {
+      setNotification({ type: "error", message: "Please search and select a student first to preview the invoice." });
+      return;
+    }
+    if (selectedStudent.isEws) {
+      setNotification({ 
+        type: "error", 
+        message: "❌ EWS / RTE students cannot be invoiced. Under Section 12(1)(c) of RTE Act, they are 100% fee-exempted." 
+      });
+      return;
+    }
+    if (invoiceItems.length === 0) {
+      setNotification({ type: "error", message: "Please add at least one fee head to the invoice." });
+      return;
+    }
+    setNotification(null);
+    setPreviewModalOpen(true);
   }
 
   async function loadBulkStudents() {
@@ -283,7 +382,14 @@ export default function GenerateInvoicesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setHeadsModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold rounded-xl transition border border-purple-200 shadow-xs"
+          >
+            <DollarSign className="w-3.5 h-3.5" /> Manage Fee Heads
+          </button>
           <Link
             href="/admin/finance/invoices"
             className="flex items-center gap-1.5 px-4 py-2.5 bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
@@ -563,14 +669,25 @@ export default function GenerateInvoicesPage() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isProcessing || !selectedStudent || selectedStudent?.isEws}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <FilePlus className="w-4 h-4" />
-                {isProcessing ? "Generating Invoice..." : `Generate Individual Invoice (${formatCurrency(netPayableAmount)})`}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleOpenPreview}
+                  disabled={isProcessing || !selectedStudent || selectedStudent?.isEws}
+                  className="flex-1 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-2xl transition border border-stone-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  Preview Final Invoice
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing || !selectedStudent || selectedStudent?.isEws}
+                  className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <FilePlus className="w-4 h-4" />
+                  {isProcessing ? "Generating Invoice..." : `Generate Invoice (${formatCurrency(netPayableAmount)})`}
+                </button>
+              </div>
             </div>
 
           </div>
@@ -881,6 +998,370 @@ export default function GenerateInvoicesPage() {
           </div>
 
         </form>
+      )}
+
+      {/* 👁️ HIGH-FIDELITY A5 INVOICE DEMAND NOTE PREVIEW MODAL */}
+      {previewModalOpen && selectedStudent && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                  Live Preview
+                </span>
+                <h3 className="text-lg font-black text-stone-900 mt-1">Invoice Demand Slip Preview</h3>
+              </div>
+              <button 
+                onClick={() => setPreviewModalOpen(false)} 
+                className="text-stone-400 hover:text-stone-900 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* A5 Printable Invoice Slip Container */}
+            <div 
+              ref={previewPrintRef} 
+              className="bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-3.5 text-xs font-sans max-w-[148mm] mx-auto"
+            >
+              {/* School Header (Official details, no branch info) */}
+              <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+                <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                <p className="text-[10px] font-bold text-stone-700">
+                  School ID: 1253481 • UDISE Code: 07124100151
+                </p>
+                <p className="text-[9.5px] text-stone-500">
+                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                </p>
+                <div className="pt-1.5 flex justify-center">
+                  <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                    FEE DEMAND INVOICE
+                  </span>
+                </div>
+              </div>
+
+              {/* Student & Invoice Meta Details */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
+                <div>
+                  <span className="text-stone-400">Student Name:</span> <strong className="text-stone-900">{selectedStudent.name}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{selectedStudent.admissionNo}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{selectedStudent.className} {selectedStudent.sectionName}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Parent / Guardian:</span> <strong className="text-stone-900">{selectedStudent.parentName || 'Parent'}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Billing Period:</span> <strong className="text-stone-900 font-semibold">{billingPeriod}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Payment Due Date:</span> <strong className="text-red-700 font-bold">{dueDate}</strong>
+                </div>
+              </div>
+
+              {/* Itemized Fee Breakdown Table */}
+              <div className="border border-stone-200 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-stone-100/70 text-stone-600 font-bold border-b border-stone-200">
+                    <tr>
+                      <th className="p-2">Fee Head</th>
+                      <th className="p-2 text-right">Gross Amount</th>
+                      <th className="p-2 text-right">Discount</th>
+                      <th className="p-2 text-right">Net Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {invoiceItems.map((item, idx) => {
+                      const net = Math.max(0, Number(item.base_amount || 0) - Number(item.discount_amount || 0));
+                      return (
+                        <tr key={idx}>
+                          <td className="p-2 font-semibold text-stone-800">{item.fee_head_name}</td>
+                          <td className="p-2 text-right font-mono text-stone-600">{formatCurrency(item.base_amount)}</td>
+                          <td className="p-2 text-right font-mono text-purple-700">
+                            {item.discount_amount > 0 ? `- ${formatCurrency(item.discount_amount)}` : '—'}
+                          </td>
+                          <td className="p-2 text-right font-mono font-bold text-stone-900">{formatCurrency(net)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Breakdown */}
+              <div className="border-t border-stone-200 pt-2 space-y-1 text-[11px]">
+                <div className="flex justify-between text-stone-600">
+                  <span>Gross Invoice Total:</span>
+                  <span className="font-mono">{formatCurrency(totalBaseAmount)}</span>
+                </div>
+                {totalDiscountAmount > 0 && (
+                  <div className="flex justify-between text-purple-700 font-semibold">
+                    <span>Total Individual Head Discounts:</span>
+                    <span className="font-mono">- {formatCurrency(totalDiscountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-black text-stone-900 pt-1.5 border-t border-dashed border-stone-200">
+                  <span>Net Demand Payable:</span>
+                  <span className="text-blue-600 font-mono">{formatCurrency(netPayableAmount)}</span>
+                </div>
+              </div>
+
+              {/* Signatory & Notes */}
+              <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-500">
+                <div>
+                  <p>Authorized Signatory: <strong className="text-stone-800">Accounts Department</strong></p>
+                  <p className="italic text-stone-400">Payable online via parent portal or at reception fee counter.</p>
+                </div>
+                <div className="text-right font-mono text-[9px] text-stone-400">
+                  DUE: {dueDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(false)}
+                className="w-full sm:w-auto px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Back to Edit
+              </button>
+
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewPrintRef.current) {
+                      printIsolatedElement(previewPrintRef.current, `Invoice-Preview-${selectedStudent.admissionNo}`);
+                    } else {
+                      window.print();
+                    }
+                  }}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print Slip
+                </button>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={async (e) => {
+                    setPreviewModalOpen(false);
+                    await handleGenerateIndividual(e as any);
+                  }}
+                  className="flex-1 sm:flex-initial px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <FilePlus className="w-3.5 h-3.5" />
+                  {isProcessing ? "Generating..." : `Confirm & Generate Now (${formatCurrency(netPayableAmount)})`}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 📋 FEE HEADS MASTER MANAGEMENT MODAL */}
+      {headsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-purple-600" />
+                  Invoice Fee Heads Master
+                </h3>
+                <p className="text-xs text-stone-400">Add, edit, or configure recurring and one-time billing fee heads.</p>
+              </div>
+              <button 
+                onClick={() => setHeadsModalOpen(false)} 
+                className="text-stone-400 hover:text-stone-900 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Top Action */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-stone-500">
+                Total Registered Fee Heads: {availableHeads.length}
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenAddHead}
+                className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add New Fee Head
+              </button>
+            </div>
+
+            {/* Fee Heads Table */}
+            <div className="border border-stone-200 rounded-2xl overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200">
+                  <tr>
+                    <th className="p-3 w-16">Code</th>
+                    <th className="p-3">Head Name</th>
+                    <th className="p-3 w-28">Category</th>
+                    <th className="p-3">Description</th>
+                    <th className="p-3 w-16 text-center">Status</th>
+                    <th className="p-3 w-16 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {availableHeads.map((head) => (
+                    <tr key={head.id} className="hover:bg-stone-50/60 transition">
+                      <td className="p-3 font-mono font-bold text-purple-800">
+                        {head.code || head.name.slice(0, 3).toUpperCase()}
+                      </td>
+                      <td className="p-3 font-bold text-stone-900">
+                        {head.name}
+                      </td>
+                      <td className="p-3">
+                        <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[10px] font-semibold">
+                          {head.category || 'Academic'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-stone-500 text-[11px] truncate max-w-xs">
+                        {head.description || '—'}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full ${
+                          head.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          {head.is_active !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditHead(head)}
+                          className="p-1.5 text-stone-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          title="Edit Head"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setHeadsModalOpen(false)}
+                className="px-5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Fee Head Sub-Modal Form */}
+      {headFormOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-purple-600" />
+                {editingHead ? "Edit Fee Head" : "Add New Fee Head"}
+              </h3>
+              <button onClick={() => setHeadFormOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveHead} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Fee Head Name *</label>
+                <input
+                  type="text"
+                  value={headFormData.name}
+                  onChange={(e) => setHeadFormData({ ...headFormData, name: e.target.value })}
+                  placeholder="e.g. Science Lab Fee, Smart Class, Robotics"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Head Code</label>
+                  <input
+                    type="text"
+                    value={headFormData.code}
+                    onChange={(e) => setHeadFormData({ ...headFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. SCI, ROB"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-bold text-purple-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Category</label>
+                  <select
+                    value={headFormData.category}
+                    onChange={(e) => setHeadFormData({ ...headFormData, category: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-stone-900"
+                  >
+                    <option value="Academic">Academic</option>
+                    <option value="Auxiliary">Auxiliary</option>
+                    <option value="Transport">Transport</option>
+                    <option value="One-Time">One-Time</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Description</label>
+                <textarea
+                  value={headFormData.description}
+                  onChange={(e) => setHeadFormData({ ...headFormData, description: e.target.value })}
+                  placeholder="e.g. Charges for specialized AI, coding & practicals"
+                  rows={2}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="head_is_active_gen"
+                  checked={headFormData.is_active}
+                  onChange={(e) => setHeadFormData({ ...headFormData, is_active: e.target.checked })}
+                  className="w-4 h-4 text-purple-600 rounded border-stone-300"
+                />
+                <label htmlFor="head_is_active_gen" className="font-bold text-stone-700 cursor-pointer">
+                  Head is Active & Available for Invoicing
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setHeadFormOpen(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingHead}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {isSavingHead ? "Saving..." : editingHead ? "Update Head" : "Create Head"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

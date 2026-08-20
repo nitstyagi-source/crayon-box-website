@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCampusContext } from "@/components/providers/CampusProvider";
-import { getInvoices, updateIndividualInvoice } from "@/app/actions/finance-core";
+import { getInvoices, updateIndividualInvoice, getFeeHeads, saveFeeHead } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function InvoicesModule() {
@@ -31,10 +31,29 @@ export default function InvoicesModule() {
   }>>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Fee Heads Management State
+  const [headsModalOpen, setHeadsModalOpen] = useState(false);
+  const [feeHeads, setFeeHeads] = useState<any[]>([]);
+  const [isLoadingHeads, setIsLoadingHeads] = useState(false);
+  const [editingHead, setEditingHead] = useState<any>(null);
+  const [headFormOpen, setHeadFormOpen] = useState(false);
+  const [headFormData, setHeadFormData] = useState({
+    id: "",
+    name: "",
+    code: "",
+    category: "Academic",
+    description: "",
+    is_active: true
+  });
+  const [isSavingHead, setIsSavingHead] = useState(false);
+
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeCampusId) loadData();
+    if (activeCampusId) {
+      loadData();
+      loadHeads();
+    }
   }, [activeCampusId]);
 
   async function loadData() {
@@ -46,6 +65,77 @@ export default function InvoicesModule() {
       console.error("Error loading invoices:", e);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadHeads() {
+    setIsLoadingHeads(true);
+    try {
+      const res = await getFeeHeads(activeCampusId);
+      if (res.success) setFeeHeads(res.data || []);
+    } catch (e) {
+      console.error("Error loading fee heads:", e);
+    } finally {
+      setIsLoadingHeads(false);
+    }
+  }
+
+  function handleOpenAddHead() {
+    setEditingHead(null);
+    setHeadFormData({
+      id: "",
+      name: "",
+      code: "",
+      category: "Academic",
+      description: "",
+      is_active: true
+    });
+    setHeadFormOpen(true);
+  }
+
+  function handleOpenEditHead(head: any) {
+    setEditingHead(head);
+    setHeadFormData({
+      id: head.id,
+      name: head.name,
+      code: head.code || head.name.slice(0, 3).toUpperCase(),
+      category: head.category || "Academic",
+      description: head.description || "",
+      is_active: head.is_active ?? true
+    });
+    setHeadFormOpen(true);
+  }
+
+  async function handleSaveHead(e: React.FormEvent) {
+    e.preventDefault();
+    if (!headFormData.name.trim()) {
+      alert("Please provide a Fee Head Name.");
+      return;
+    }
+
+    setIsSavingHead(true);
+    try {
+      const res = await saveFeeHead({
+        campus_id: activeCampusId,
+        id: headFormData.id || undefined,
+        name: headFormData.name.trim(),
+        code: headFormData.code.trim().toUpperCase() || headFormData.name.slice(0, 3).toUpperCase(),
+        category: headFormData.category,
+        description: headFormData.description,
+        is_active: headFormData.is_active
+      });
+
+      if (res.success) {
+        alert(`🎉 Fee Head "${headFormData.name}" saved successfully!`);
+        setHeadFormOpen(false);
+        loadHeads();
+      } else {
+        alert("Failed to save fee head: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsSavingHead(false);
     }
   }
 
@@ -175,7 +265,13 @@ export default function InvoicesModule() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setHeadsModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold rounded-xl transition border border-purple-200 shadow-xs"
+          >
+            <DollarSign className="w-3.5 h-3.5" /> Manage Invoice Heads
+          </button>
           <Link
             href="/admin/finance/generate"
             className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
@@ -654,6 +750,209 @@ export default function InvoicesModule() {
                 Print Demand Slip
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {headsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-purple-600" />
+                  Invoice Fee Heads Master
+                </h3>
+                <p className="text-xs text-stone-400">Add, edit, or categorize recurring and one-time billing heads.</p>
+              </div>
+              <button 
+                onClick={() => setHeadsModalOpen(false)} 
+                className="text-stone-400 hover:text-stone-900 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Top Action */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-stone-500">
+                Total Registered Fee Heads: {feeHeads.length}
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenAddHead}
+                className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add New Fee Head
+              </button>
+            </div>
+
+            {/* Fee Heads Table */}
+            {isLoadingHeads ? (
+              <div className="p-8 text-center text-xs text-stone-400 font-bold animate-pulse">
+                Loading Fee Heads...
+              </div>
+            ) : (
+              <div className="border border-stone-200 rounded-2xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 text-stone-500 font-bold border-b border-stone-200">
+                    <tr>
+                      <th className="p-3 w-16">Code</th>
+                      <th className="p-3">Head Name</th>
+                      <th className="p-3 w-28">Category</th>
+                      <th className="p-3">Description</th>
+                      <th className="p-3 w-16 text-center">Status</th>
+                      <th className="p-3 w-16 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {feeHeads.map((head) => (
+                      <tr key={head.id} className="hover:bg-stone-50/60 transition">
+                        <td className="p-3 font-mono font-bold text-purple-800">
+                          {head.code || head.name.slice(0, 3).toUpperCase()}
+                        </td>
+                        <td className="p-3 font-bold text-stone-900">
+                          {head.name}
+                        </td>
+                        <td className="p-3">
+                          <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[10px] font-semibold">
+                            {head.category || 'Academic'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-stone-500 text-[11px] truncate max-w-xs">
+                          {head.description || '—'}
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full ${
+                            head.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'
+                          }`}>
+                            {head.is_active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditHead(head)}
+                            className="p-1.5 text-stone-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit Head"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setHeadsModalOpen(false)}
+                className="px-5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Fee Head Sub-Modal Form */}
+      {headFormOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-purple-600" />
+                {editingHead ? "Edit Fee Head" : "Add New Fee Head"}
+              </h3>
+              <button onClick={() => setHeadFormOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveHead} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Fee Head Name *</label>
+                <input
+                  type="text"
+                  value={headFormData.name}
+                  onChange={(e) => setHeadFormData({ ...headFormData, name: e.target.value })}
+                  placeholder="e.g. Science Lab Fee, Smart Class, Robotics"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Head Code</label>
+                  <input
+                    type="text"
+                    value={headFormData.code}
+                    onChange={(e) => setHeadFormData({ ...headFormData, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. SCI, ROB"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-bold text-purple-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Category</label>
+                  <select
+                    value={headFormData.category}
+                    onChange={(e) => setHeadFormData({ ...headFormData, category: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-stone-900"
+                  >
+                    <option value="Academic">Academic</option>
+                    <option value="Auxiliary">Auxiliary</option>
+                    <option value="Transport">Transport</option>
+                    <option value="One-Time">One-Time</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Description</label>
+                <textarea
+                  value={headFormData.description}
+                  onChange={(e) => setHeadFormData({ ...headFormData, description: e.target.value })}
+                  placeholder="e.g. Charges for specialized AI, coding & chemistry practicals"
+                  rows={2}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="head_is_active"
+                  checked={headFormData.is_active}
+                  onChange={(e) => setHeadFormData({ ...headFormData, is_active: e.target.checked })}
+                  className="w-4 h-4 text-purple-600 rounded border-stone-300"
+                />
+                <label htmlFor="head_is_active" className="font-bold text-stone-700 cursor-pointer">
+                  Head is Active & Available for Invoicing
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setHeadFormOpen(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingHead}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {isSavingHead ? "Saving..." : editingHead ? "Update Head" : "Create Head"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
