@@ -11,6 +11,7 @@ import {
   saveSyllabusDocument, deleteSyllabusDocument,
   getSyllabusRevisions, saveSyllabusRevision
 } from "@/app/actions/syllabus-core";
+import PdfUploader from "@/components/ui/PdfUploader";
 
 export default function SyllabusResourcesPage() {
   const { activeCampusId } = useCampusContext();
@@ -415,17 +416,14 @@ export default function SyllabusResourcesPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold text-stone-700 block mb-1">File URL / Download Link *</label>
-                <input
-                  type="text"
-                  placeholder="https://example.com/document.pdf"
-                  value={docForm.file_url}
-                  onChange={(e) => setDocForm({ ...docForm, file_url: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-semibold text-stone-900"
-                  required
-                />
-              </div>
+              {/* UNIVERSAL PDF UPLOADER */}
+              <PdfUploader
+                label="PDF Document File *"
+                helperText="Upload Annual Syllabus, Curriculum, Worksheet or Question Bank (PDF)"
+                initialUrl={docForm.file_url}
+                onPdfUploaded={(data) => setDocForm({ ...docForm, file_url: data.fileUrl })}
+                onPdfRemoved={() => setDocForm({ ...docForm, file_url: "" })}
+              />
 
               <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
                 <button type="button" onClick={() => setDocModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">

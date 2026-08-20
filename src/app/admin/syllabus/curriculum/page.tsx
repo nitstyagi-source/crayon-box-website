@@ -15,6 +15,7 @@ import {
   saveSyllabusChapter, deleteSyllabusChapter,
   saveSyllabusTopic, deleteSyllabusTopic
 } from "@/app/actions/syllabus-core";
+import PdfUploader from "@/components/ui/PdfUploader";
 
 function CurriculumMasterContent() {
   const { activeCampusId } = useCampusContext();
@@ -1075,6 +1076,15 @@ function CurriculumMasterContent() {
                   />
                 </div>
               </div>
+
+              {/* UNIVERSAL PDF UPLOADER FOR CHAPTER E-BOOK / WORKSHEETS */}
+              <PdfUploader
+                label="Attach Chapter Notes / Practice Worksheet (PDF)"
+                helperText="Upload PDF resource for this chapter"
+                initialUrl={chapterForm.reference_material}
+                onPdfUploaded={(data) => setChapterForm({ ...chapterForm, reference_material: data.fileUrl })}
+                onPdfRemoved={() => setChapterForm({ ...chapterForm, reference_material: "" })}
+              />
 
               <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
                 <button type="button" onClick={() => setChapterModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">

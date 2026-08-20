@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, BookOpen, Calendar, BookMarked, 
-  AlertTriangle, FileQuestion, FolderDown, BarChart2
+  AlertTriangle, FileQuestion, FolderDown, BarChart2, Printer
 } from "lucide-react";
 
 const SYLLABUS_NAV = [
@@ -14,7 +14,8 @@ const SYLLABUS_NAV = [
   { name: "Teacher Diary & Periods", href: "/admin/syllabus/teaching", icon: BookMarked },
   { name: "Catch-Up & Remedials", href: "/admin/syllabus/remedial", icon: AlertTriangle },
   { name: "Exam Blueprints", href: "/admin/syllabus/exams", icon: FileQuestion },
-  { name: "Resources & Documents", href: "/admin/syllabus/resources", icon: FolderDown },
+  { name: "Question Paper Generator", href: "/admin/syllabus/question-papers", icon: Printer },
+  { name: "Resources & PDFs", href: "/admin/syllabus/resources", icon: FolderDown },
   { name: "Variance & Reports", href: "/admin/syllabus/reports", icon: BarChart2 },
 ];
 

@@ -1133,3 +1133,324 @@ export async function saveSyllabusRevision(payload: {
     return { success: false, error: error.message };
   }
 }
+
+// -------------------------------------------------------------
+// 11. QUESTION BANK MASTER
+// -------------------------------------------------------------
+export async function getQuestionBank(
+  campusId: string, 
+  subjectId?: string, 
+  chapterId?: string,
+  questionType?: string,
+  difficulty?: string
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    let query = supabase
+      .from('syllabus_question_bank')
+      .select(`
+        id, subject_id, chapter_id, question_type, marks, question_text,
+        options, correct_answer, marking_scheme, difficulty, blooms_level,
+        pdf_attachment_url, created_by, created_at,
+        academic_subjects (id, name, class_name, code),
+        syllabus_chapters (id, chapter_number, chapter_name)
+      `)
+      .eq('campus_id', resolvedCampusId);
+
+    if (subjectId && subjectId !== 'All') query = query.eq('subject_id', subjectId);
+    if (chapterId && chapterId !== 'All') query = query.eq('chapter_id', chapterId);
+    if (questionType && questionType !== 'All') query = query.eq('question_type', questionType);
+    if (difficulty && difficulty !== 'All') query = query.eq('difficulty', difficulty);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveQuestionBankItem(payload: {
+  id?: string;
+  campus_id: string;
+  subject_id: string;
+  chapter_id?: string | null;
+  question_type: string;
+  marks: number;
+  question_text: string;
+  options?: any;
+  correct_answer?: string;
+  marking_scheme?: string;
+  difficulty?: string;
+  blooms_level?: string;
+  pdf_attachment_url?: string;
+  created_by?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload.campus_id);
+
+    const record: any = {
+      campus_id: resolvedCampusId,
+      subject_id: payload.subject_id,
+      chapter_id: payload.chapter_id || null,
+      question_type: payload.question_type || 'ShortAnswer',
+      marks: payload.marks || 1,
+      question_text: payload.question_text,
+      options: payload.options || [],
+      correct_answer: payload.correct_answer || '',
+      marking_scheme: payload.marking_scheme || '',
+      difficulty: payload.difficulty || 'Medium',
+      blooms_level: payload.blooms_level || 'Understand',
+      pdf_attachment_url: payload.pdf_attachment_url || null,
+      created_by: payload.created_by || 'Faculty'
+    };
+
+    let result;
+    if (payload.id) {
+      const { data, error } = await supabase
+        .from('syllabus_question_bank')
+        .update(record)
+        .eq('id', payload.id)
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    } else {
+      const { data, error } = await supabase
+        .from('syllabus_question_bank')
+        .insert([record])
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    }
+
+    revalidatePath('/admin/syllabus/question-papers');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteQuestionBankItem(id: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from('syllabus_question_bank').delete().eq('id', id);
+    if (error) throw error;
+    revalidatePath('/admin/syllabus/question-papers');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 12. QUESTION PAPER GENERATOR & ARCHIVE
+// -------------------------------------------------------------
+export async function getGeneratedPapers(
+  campusId: string, 
+  session = '2026-2027', 
+  className?: string, 
+  subjectId?: string
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    let query = supabase
+      .from('syllabus_generated_papers')
+      .select(`
+        id, academic_session, class_name, subject_id, exam_title,
+        max_marks, duration_minutes, general_instructions, sections,
+        marking_scheme, pdf_url, status, created_by, created_at,
+        academic_subjects (id, name, class_name, code)
+      `)
+      .eq('campus_id', resolvedCampusId)
+      .eq('academic_session', session);
+
+    if (className && className !== 'All') query = query.eq('class_name', className);
+    if (subjectId && subjectId !== 'All') query = query.eq('subject_id', subjectId);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getGeneratedPaperById(id: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('syllabus_generated_papers')
+      .select(`
+        id, academic_session, class_name, subject_id, exam_title,
+        max_marks, duration_minutes, general_instructions, sections,
+        marking_scheme, pdf_url, status, created_by, created_at,
+        academic_subjects (id, name, class_name, code)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveGeneratedPaper(payload: {
+  id?: string;
+  campus_id: string;
+  academic_session?: string;
+  class_name: string;
+  subject_id: string;
+  exam_title: string;
+  max_marks: number;
+  duration_minutes: number;
+  general_instructions: string[];
+  sections: any[];
+  marking_scheme?: any[];
+  pdf_url?: string;
+  status?: string;
+  created_by?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload.campus_id);
+
+    const record: any = {
+      campus_id: resolvedCampusId,
+      academic_session: payload.academic_session || '2026-2027',
+      class_name: payload.class_name,
+      subject_id: payload.subject_id,
+      exam_title: payload.exam_title,
+      max_marks: payload.max_marks || 80,
+      duration_minutes: payload.duration_minutes || 180,
+      general_instructions: payload.general_instructions || [],
+      sections: payload.sections || [],
+      marking_scheme: payload.marking_scheme || [],
+      pdf_url: payload.pdf_url || null,
+      status: payload.status || 'Published',
+      created_by: payload.created_by || 'Faculty'
+    };
+
+    let result;
+    if (payload.id) {
+      const { data, error } = await supabase
+        .from('syllabus_generated_papers')
+        .update(record)
+        .eq('id', payload.id)
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    } else {
+      const { data, error } = await supabase
+        .from('syllabus_generated_papers')
+        .insert([record])
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    }
+
+    revalidatePath('/admin/syllabus/question-papers');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteGeneratedPaper(id: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from('syllabus_generated_papers').delete().eq('id', id);
+    if (error) throw error;
+    revalidatePath('/admin/syllabus/question-papers');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 13. UNIVERSAL UPLOADED PDF STORE
+// -------------------------------------------------------------
+export async function saveUploadedPdfDocument(payload: {
+  campus_id: string;
+  module_name: string; // 'syllabus' | 'homework' | 'question_paper' | 'chapter_notes' | 'worksheet'
+  entity_id?: string;
+  file_name: string;
+  file_size?: number;
+  file_url: string;
+  mime_type?: string;
+  uploaded_by?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload.campus_id);
+
+    const record = {
+      campus_id: resolvedCampusId,
+      module_name: payload.module_name,
+      entity_id: payload.entity_id || null,
+      file_name: payload.file_name,
+      file_size: payload.file_size || 0,
+      file_url: payload.file_url,
+      mime_type: payload.mime_type || 'application/pdf',
+      uploaded_by: payload.uploaded_by || 'Staff'
+    };
+
+    const { data, error } = await supabase
+      .from('uploaded_pdf_documents')
+      .insert([record])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getUploadedPdfDocuments(campusId: string, moduleName?: string, entityId?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    let query = supabase
+      .from('uploaded_pdf_documents')
+      .select('*')
+      .eq('campus_id', resolvedCampusId);
+
+    if (moduleName) query = query.eq('module_name', moduleName);
+    if (entityId) query = query.eq('entity_id', entityId);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteUploadedPdfDocument(id: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from('uploaded_pdf_documents').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

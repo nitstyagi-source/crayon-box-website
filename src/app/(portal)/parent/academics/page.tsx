@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAcademicSubjects, getExamBlueprints, getTeachingDiaryLogs } from "@/app/actions/syllabus-core";
+import PdfUploader from "@/components/ui/PdfUploader";
 
 export default function AcademicsHub() {
   const { activeSibling } = useSiblingContext();
@@ -133,9 +134,9 @@ export default function AcademicsHub() {
               Recent Homework & Classroom Diary
             </h2>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {recentLogs.slice(0, 3).map((log) => (
-                <div key={log.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2 text-xs">
+                <div key={log.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-3 text-xs">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-bold text-slate-900">{log.academic_subjects?.name}</span>
@@ -157,6 +158,17 @@ export default function AcademicsHub() {
                       <strong>Classwork:</strong> {log.classwork}
                     </div>
                   )}
+
+                  {/* Student Homework PDF Upload */}
+                  <div className="pt-1">
+                    <PdfUploader
+                      label="Upload Completed Homework PDF"
+                      helperText="Drag and drop completed worksheet or scanned homework PDF"
+                      onPdfUploaded={(data) => {
+                        alert(`🎉 Homework "${data.fileName}" uploaded successfully for teacher appraisal!`);
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
