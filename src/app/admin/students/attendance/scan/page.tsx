@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { 
@@ -20,6 +20,14 @@ const GRADES = [
 ];
 
 export default function TeacherQRScannerTerminal() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-stone-400 font-bold text-xs animate-pulse">Loading QR Scanner Terminal...</div>}>
+      <TeacherQRScannerContent />
+    </Suspense>
+  );
+}
+
+function TeacherQRScannerContent() {
   const searchParams = useSearchParams();
   const initialGrade = searchParams.get("grade") || "Grade 3";
   const initialSection = searchParams.get("section") || "B";
