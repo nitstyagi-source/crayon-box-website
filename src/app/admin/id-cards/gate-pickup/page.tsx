@@ -5,7 +5,7 @@ import Link from "next/link";
 import { 
   DoorOpen, ArrowLeft, Camera, QrCode, CheckCircle2, 
   XCircle, AlertTriangle, ShieldCheck, User, Phone, 
-  Send, Sparkles, Check, X, ShieldAlert, Clock
+  Send, Sparkles, Check, X, ShieldAlert, Clock, CheckCheck
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { verifyEscortQROnGate, recordStudentPickupRelease } from "@/app/actions/id-cards";
@@ -34,16 +34,16 @@ export default function GatePickupSecurityTerminal() {
     }
   }
 
-  async function handleRelease(studentId: string, escortId?: string, cardId?: string) {
+  async function handleRelease(studentId: string, escort: any, cardId?: string) {
     setIsReleasing(true);
     try {
       const res = await recordStudentPickupRelease({
         studentId,
-        escortId,
+        escortId: escort?.id,
         cardId,
         gateNumber: "Main Gate 1",
         securityStaffName: "Subedar Jaswant Singh (Security Head)",
-        remarks: "Verified via Escort QR Scan on Gate Terminal."
+        remarks: `Released to verified authorized escort: ${escort?.full_name} (${escort?.relationship})`
       });
 
       if (res.success) {
@@ -66,7 +66,7 @@ export default function GatePickupSecurityTerminal() {
     <div className="min-h-screen bg-stone-900 text-white p-4 sm:p-8 flex flex-col items-center justify-center font-sans">
       
       {/* Top Bar */}
-      <div className="w-full max-w-2xl mb-4 flex justify-between items-center">
+      <div className="w-full max-w-3xl mb-4 flex justify-between items-center">
         <Link 
           href="/admin/id-cards"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-400 hover:text-white bg-stone-800 border border-stone-700 px-3.5 py-2 rounded-xl transition-all"
@@ -82,7 +82,7 @@ export default function GatePickupSecurityTerminal() {
       </div>
 
       {/* Main Terminal Box */}
-      <div className="w-full max-w-2xl bg-stone-950 rounded-3xl border border-stone-800 shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
+      <div className="w-full max-w-3xl bg-stone-950 rounded-3xl border border-stone-800 shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
         
         {/* Scanner Input & Viewfinder Header */}
         {!verificationResult ? (
@@ -90,11 +90,11 @@ export default function GatePickupSecurityTerminal() {
             
             <div className="space-y-1">
               <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-widest">
-                DISMISSAL &amp; PICKUP CLEARANCE
+                DISMISSAL &amp; STUDENT ESCORT CLEARANCE
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">Scan Escort / Parent QR Card</h2>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Scan Student Escort Card</h2>
               <p className="text-stone-400 text-xs sm:text-sm max-w-md mx-auto">
-                Position the authorized escort physical card in front of scanner or enter barcode token.
+                Scan the student&apos;s master escort card QR to view all authorized pickup persons.
               </p>
             </div>
 
@@ -102,7 +102,7 @@ export default function GatePickupSecurityTerminal() {
             <div className="relative aspect-16/9 max-w-md mx-auto bg-stone-900 rounded-2xl border-2 border-dashed border-emerald-500/60 flex flex-col items-center justify-center p-6 overflow-hidden">
               <div className="absolute inset-x-0 h-0.5 bg-emerald-400 shadow-[0_0_15px_#34d399] animate-bounce"></div>
               <QrCode className="w-16 h-16 text-stone-700 mb-2" />
-              <p className="text-xs text-stone-400 font-bold">Scanning for secure encrypted tokens...</p>
+              <p className="text-xs text-stone-400 font-bold">Scanning for student escort token...</p>
             </div>
 
             {/* Direct Token / Barcode Gun Input */}
@@ -110,7 +110,7 @@ export default function GatePickupSecurityTerminal() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Scan or paste token here..."
+                  placeholder="Scan QR or enter token..."
                   value={qrInput}
                   onChange={e => setQrInput(e.target.value)}
                   onKeyDown={e => {
@@ -127,13 +127,13 @@ export default function GatePickupSecurityTerminal() {
                 </button>
               </div>
 
-              {/* 1-Click Quick Demos */}
+              {/* Quick 1-Click Test Buttons for Demo */}
               <div className="pt-3 border-t border-stone-800/80 flex flex-wrap justify-center gap-2">
                 <button
-                  onClick={() => handleScanSubmit("CBS-SEC-ESC-ESC-2026-0001-ESC1")}
+                  onClick={() => handleScanSubmit("CBS-SEC-ESC-STU-CB101-STUD")}
                   className="text-[10px] font-bold bg-stone-800 hover:bg-stone-700 text-emerald-400 px-3 py-1.5 rounded-lg border border-stone-700"
                 >
-                  Demo: Scan Rajesh Sharma (Father)
+                  Demo: Scan Aarav Sharma&apos;s Escort Card
                 </button>
                 <button
                   onClick={() => handleScanSubmit("CBS-SEC-BLOCKED-TOKEN-9999")}
@@ -164,7 +164,7 @@ export default function GatePickupSecurityTerminal() {
                 )}
                 <div>
                   <h3 className={`text-lg font-black ${verificationResult.isAuthorized ? "text-emerald-400" : "text-red-400"}`}>
-                    {verificationResult.isAuthorized ? "AUTHORIZED PICKUP ESCORT" : "PICKUP BLOCKED / SECURITY ALERT"}
+                    {verificationResult.isAuthorized ? "STUDENT ESCORT CARD VERIFIED" : "PICKUP BLOCKED / SECURITY ALERT"}
                   </h3>
                   <p className="text-xs text-stone-400">{verificationResult.message}</p>
                 </div>
@@ -178,83 +178,90 @@ export default function GatePickupSecurityTerminal() {
               </button>
             </div>
 
-            {/* AUTHORIZED HUD VIEW */}
-            {verificationResult.isAuthorized && verificationResult.escort && (
-              <div className="space-y-5">
+            {/* AUTHORIZED HUD: STUDENT PROFILE + ALL AUTHORIZED ESCORTS */}
+            {verificationResult.isAuthorized && verificationResult.student && (
+              <div className="space-y-6">
                 
-                {/* Escort Info Card */}
-                <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
+                {/* Student Profile Header Card */}
+                <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-emerald-500 shrink-0">
-                      {verificationResult.escort.photo_url ? (
-                        <img src={verificationResult.escort.photo_url} alt="" className="w-full h-full object-cover" />
+                      {verificationResult.student.photo_url ? (
+                        <img src={verificationResult.student.photo_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-stone-800 flex items-center justify-center text-stone-400 font-bold text-lg">
-                          {verificationResult.escort.full_name[0]}
+                        <div className="w-full h-full bg-purple-900 text-purple-200 flex items-center justify-center font-bold text-lg">
+                          {verificationResult.student.first_name[0]}
                         </div>
                       )}
                     </div>
 
                     <div>
                       <span className="text-[10px] font-mono text-emerald-400 uppercase font-black">
-                        ESCORT: {verificationResult.escort.escort_code}
+                        STUDENT WARD
                       </span>
-                      <h4 className="text-base font-black text-white">{verificationResult.escort.full_name}</h4>
+                      <h4 className="text-base font-black text-white">
+                        {verificationResult.student.first_name} {verificationResult.student.last_name || ''}
+                      </h4>
                       <p className="text-xs text-stone-400">
-                        Relationship: <span className="font-bold text-white">{verificationResult.escort.relationship}</span> • {verificationResult.escort.mobile}
+                        Adm: <span className="font-mono font-bold text-white">{verificationResult.student.admission_no || 'CB1042'}</span> • Parent Phone: {verificationResult.student.parent_phone}
                       </p>
                     </div>
                   </div>
 
-                  <span className="bg-emerald-500/20 text-emerald-400 text-xs font-black px-3 py-1 rounded-xl border border-emerald-500/40">
-                    Card Valid
-                  </span>
+                  <div className="text-right">
+                    <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1 rounded-xl border border-emerald-500/40 block">
+                      ✓ Present in School Today
+                    </span>
+                    <span className="text-[10px] text-stone-400 mt-1 block">Gate In: {verificationResult.student.inTime || '07:52 AM'}</span>
+                  </div>
                 </div>
 
-                {/* Authorized Student(s) Presence Matrix */}
+                {/* ALL AUTHORIZED PICKUP PERSONS LIST */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-black text-stone-400 uppercase tracking-wider">
-                    Authorized Student(s) to Release:
-                  </h4>
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-black text-stone-400 uppercase tracking-wider">
+                      Authorized Pickup Persons ({verificationResult.authorizedEscorts?.length || 0} Registered):
+                    </h4>
+                    <span className="text-[11px] text-amber-400 font-bold">
+                      Match face with the person at the gate →
+                    </span>
+                  </div>
 
-                  {(verificationResult.authorizedStudents || []).map((student: any) => (
-                    <div 
-                      key={student.id}
-                      className="bg-stone-900 p-4 rounded-2xl border border-stone-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden border border-stone-700 shrink-0">
-                          {student.photo_url ? (
-                            <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-purple-900 text-purple-200 flex items-center justify-center font-bold">
-                              {student.first_name[0]}
-                            </div>
-                          )}
-                        </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(verificationResult.authorizedEscorts || []).map((escort: any) => (
+                      <div 
+                        key={escort.id}
+                        className="bg-stone-900 hover:bg-stone-850 p-4 rounded-2xl border border-stone-800 flex flex-col justify-between gap-3 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-16 rounded-xl overflow-hidden border-2 border-stone-700 shrink-0 bg-stone-800 flex items-center justify-center">
+                            {escort.photo_url ? (
+                              <img src={escort.photo_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-6 h-6 text-stone-400" />
+                            )}
+                          </div>
 
-                        <div>
-                          <h5 className="font-black text-sm text-white">{student.first_name} {student.last_name || ''}</h5>
-                          <p className="text-xs text-stone-400">Adm: {student.admission_no || 'CB1042'}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> In School Today ({student.inTime || '07:52 AM'})
+                          <div className="min-w-0 flex-1">
+                            <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                              {escort.relationship}
                             </span>
+                            <h5 className="font-black text-sm text-white mt-1 truncate">{escort.full_name}</h5>
+                            <p className="text-[11px] font-mono text-stone-400 truncate">{escort.mobile}</p>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Release Student Action */}
-                      <button
-                        onClick={() => handleRelease(student.id, verificationResult.escort.id, verificationResult.card?.id)}
-                        disabled={isReleasing}
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-6 py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-98"
-                      >
-                        <ShieldCheck className="w-4 h-4 text-amber-300" />
-                        {isReleasing ? "Releasing..." : "RELEASE STUDENT"}
-                      </button>
-                    </div>
-                  ))}
+                        {/* Release To This Person Button */}
+                        <button
+                          onClick={() => handleRelease(verificationResult.student.id, escort, verificationResult.card?.id)}
+                          disabled={isReleasing}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" /> Release to {escort.full_name.split(' ')[0]} ({escort.relationship})
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
               </div>
