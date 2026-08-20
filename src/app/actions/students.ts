@@ -65,7 +65,8 @@ export async function getStudentProfile(studentId: string) {
       { data: documents },
       { data: lifecycle },
       { data: invoices },
-      { data: ledgers }
+      { data: ledgers },
+      { data: siblingsData }
     ] = await Promise.all([
       supabase.from('student_academic_history').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
       supabase.from('student_parents').select('*').eq('student_id', studentId),
@@ -74,8 +75,46 @@ export async function getStudentProfile(studentId: string) {
       supabase.from('student_documents').select('*').eq('student_id', studentId).order('uploaded_at', { ascending: false }),
       supabase.from('student_lifecycle').select('*').eq('student_id', studentId).order('action_date', { ascending: false }),
       supabase.from('student_invoices').select('*, student_invoice_items(*)').eq('student_id', studentId).order('created_at', { ascending: false }),
-      supabase.from('student_fee_ledgers').select('*').eq('student_id', studentId).order('created_at', { ascending: false })
+      supabase.from('student_fee_ledgers').select('*').eq('student_id', studentId).order('created_at', { ascending: false }),
+      supabase.from('student_siblings').select(`
+        id,
+        relationship,
+        sibling_student_id,
+        sibling:students!student_siblings_sibling_student_id_fkey(
+          id, admission_no, first_name, last_name, photo_url, status,
+          student_academic_history(class_name, section_name, is_current_session)
+        )
+      `).eq('student_id', studentId)
     ]);
+
+    // Auto-detect potential siblings matching parent phone numbers
+    const parentMobiles = (parents || []).map((p: any) => p.mobile).filter((m: any) => m && String(m).trim().length >= 8);
+    const existingSiblingIds = new Set((siblingsData || []).map((s: any) => s.sibling_student_id));
+    let suggestedSiblings: any[] = [];
+
+    if (parentMobiles.length > 0) {
+      const { data: matchParents } = await supabase
+        .from('student_parents')
+        .select(`
+          student_id,
+          student:students(
+            id, admission_no, first_name, last_name, photo_url, status,
+            student_academic_history(class_name, section_name, is_current_session)
+          )
+        `)
+        .in('mobile', parentMobiles)
+        .neq('student_id', studentId);
+
+      if (matchParents && matchParents.length > 0) {
+        const uniqueMap = new Map();
+        matchParents.forEach((mp: any) => {
+          if (mp.student && !existingSiblingIds.has(mp.student.id) && !uniqueMap.has(mp.student.id)) {
+            uniqueMap.set(mp.student.id, mp.student);
+          }
+        });
+        suggestedSiblings = Array.from(uniqueMap.values());
+      }
+    }
 
     return { 
       success: true, 
@@ -88,7 +127,9 @@ export async function getStudentProfile(studentId: string) {
         documents: documents || [],
         lifecycle: lifecycle || [],
         invoices: invoices || [],
-        ledgers: ledgers || []
+        ledgers: ledgers || [],
+        siblings: siblingsData || [],
+        suggestedSiblings: suggestedSiblings || []
       }
     };
   } catch (error: any) {
@@ -128,6 +169,10 @@ export async function createStudent(payload: any) {
     const aadhaar = payload.aadhaar_no && String(payload.aadhaar_no).trim() !== "" ? String(payload.aadhaar_no).trim() : null;
     const bloodGroup = payload.blood_group && String(payload.blood_group).trim() !== "" ? String(payload.blood_group).trim() : null;
     const penNo = payload.pen_no && String(payload.pen_no).trim() !== "" ? String(payload.pen_no).trim() : null;
+    const photoUrl = payload.photo_url && String(payload.photo_url).trim() !== "" ? String(payload.photo_url).trim() : null;
+    const transportMode = payload.transport_mode || 'Self';
+    const transportRoute = payload.transport_route || null;
+    const transportPickup = payload.transport_pickup_point || null;
 
     const { data: student, error: studentError } = await supabase
       .from('students')
@@ -144,6 +189,10 @@ export async function createStudent(payload: any) {
         nationality: payload.nationality || 'Indian',
         aadhaar_no: aadhaar,
         pen_no: penNo,
+        photo_url: photoUrl,
+        transport_mode: transportMode,
+        transport_route: transportRoute,
+        transport_pickup_point: transportPickup,
         status: 'Active',
       }])
       .select()
@@ -178,6 +227,7 @@ export async function createStudent(payload: any) {
         annual_income: payload.father_income || null,
         education: payload.father_qualification || null,
         aadhaar_no: payload.father_aadhaar || null,
+        photo_url: payload.father_photo_url || null,
         is_primary_contact: payload.primary_contact === 'Father' || !payload.primary_contact
       });
     }
@@ -194,6 +244,7 @@ export async function createStudent(payload: any) {
         annual_income: payload.mother_income || null,
         education: payload.mother_qualification || null,
         aadhaar_no: payload.mother_aadhaar || null,
+        photo_url: payload.mother_photo_url || null,
         is_primary_contact: payload.primary_contact === 'Mother'
       });
     }
@@ -210,6 +261,7 @@ export async function createStudent(payload: any) {
         annual_income: null,
         education: null,
         aadhaar_no: null,
+        photo_url: payload.guardian_photo_url || null,
         is_primary_contact: payload.primary_contact === 'Guardian'
       });
     }
@@ -217,6 +269,15 @@ export async function createStudent(payload: any) {
     if (parentsToInsert.length > 0) {
       const { error: pErr } = await supabase.from('student_parents').insert(parentsToInsert);
       if (pErr) console.error("Error inserting parents:", pErr);
+    }
+
+    // 5. Link Sibling if provided
+    if (payload.sibling_id && String(payload.sibling_id).trim() !== "") {
+      try {
+        await linkStudentSibling(student.id, payload.sibling_id, payload.sibling_relationship || 'Sibling');
+      } catch (e) {
+        console.error("Error linking sibling during creation:", e);
+      }
     }
 
     // Log Lifecycle Event
@@ -441,6 +502,10 @@ export async function updateStudentProfile(studentId: string, payload: any) {
 
     // 1. Update students table
     const penNo = payload.pen_no !== undefined ? (payload.pen_no && String(payload.pen_no).trim() !== "" ? String(payload.pen_no).trim() : null) : undefined;
+    const photoUrl = payload.photo_url !== undefined ? (payload.photo_url && String(payload.photo_url).trim() !== "" ? String(payload.photo_url).trim() : null) : undefined;
+    const transportMode = payload.transport_mode !== undefined ? payload.transport_mode : undefined;
+    const transportRoute = payload.transport_route !== undefined ? payload.transport_route : undefined;
+    const transportPickup = payload.transport_pickup_point !== undefined ? payload.transport_pickup_point : undefined;
     
     const updateData: any = {
       first_name: payload.first_name,
@@ -455,9 +520,11 @@ export async function updateStudentProfile(studentId: string, payload: any) {
       updated_at: new Date().toISOString()
     };
 
-    if (penNo !== undefined) {
-      updateData.pen_no = penNo;
-    }
+    if (penNo !== undefined) updateData.pen_no = penNo;
+    if (photoUrl !== undefined) updateData.photo_url = photoUrl;
+    if (transportMode !== undefined) updateData.transport_mode = transportMode;
+    if (transportRoute !== undefined) updateData.transport_route = transportRoute;
+    if (transportPickup !== undefined) updateData.transport_pickup_point = transportPickup;
 
     const { error: studentErr } = await supabase
       .from('students')
@@ -487,6 +554,14 @@ export async function updateStudentProfile(studentId: string, payload: any) {
       }
     }
 
+    // Synchronize primary contact flag if provided
+    if (payload.primary_contact) {
+      await supabase
+        .from('student_parents')
+        .update({ is_primary_contact: false })
+        .eq('student_id', studentId);
+    }
+
     // 3. Upsert Father Record
     if (payload.father_name) {
       const { data: existingFather } = await supabase
@@ -496,7 +571,7 @@ export async function updateStudentProfile(studentId: string, payload: any) {
         .eq('parent_type', 'Father')
         .maybeSingle();
 
-      const fatherData = {
+      const fatherData: any = {
         name: payload.father_name,
         mobile: payload.father_mobile || '',
         email: payload.father_email || null,
@@ -506,6 +581,10 @@ export async function updateStudentProfile(studentId: string, payload: any) {
         aadhaar_no: payload.father_aadhaar || null,
         is_primary_contact: payload.primary_contact === 'Father'
       };
+
+      if (payload.father_photo_url !== undefined) {
+        fatherData.photo_url = payload.father_photo_url || null;
+      }
 
       if (existingFather) {
         await supabase.from('student_parents').update(fatherData).eq('id', existingFather.id);
@@ -523,7 +602,7 @@ export async function updateStudentProfile(studentId: string, payload: any) {
         .eq('parent_type', 'Mother')
         .maybeSingle();
 
-      const motherData = {
+      const motherData: any = {
         name: payload.mother_name,
         mobile: payload.mother_mobile || '',
         email: payload.mother_email || null,
@@ -533,6 +612,10 @@ export async function updateStudentProfile(studentId: string, payload: any) {
         aadhaar_no: payload.mother_aadhaar || null,
         is_primary_contact: payload.primary_contact === 'Mother'
       };
+
+      if (payload.mother_photo_url !== undefined) {
+        motherData.photo_url = payload.mother_photo_url || null;
+      }
 
       if (existingMother) {
         await supabase.from('student_parents').update(motherData).eq('id', existingMother.id);
@@ -550,13 +633,17 @@ export async function updateStudentProfile(studentId: string, payload: any) {
         .eq('parent_type', 'Guardian')
         .maybeSingle();
 
-      const guardianData = {
+      const guardianData: any = {
         name: payload.guardian_name,
         mobile: payload.guardian_mobile || '',
         email: payload.guardian_email || null,
         occupation: payload.guardian_occupation || null,
         is_primary_contact: payload.primary_contact === 'Guardian'
       };
+
+      if (payload.guardian_photo_url !== undefined) {
+        guardianData.photo_url = payload.guardian_photo_url || null;
+      }
 
       if (existingGuardian) {
         await supabase.from('student_parents').update(guardianData).eq('id', existingGuardian.id);
@@ -568,6 +655,87 @@ export async function updateStudentProfile(studentId: string, payload: any) {
     revalidatePath(`/admin/students/${studentId}`);
     revalidatePath('/admin/students');
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Links two students as siblings bidirectionally.
+ */
+export async function linkStudentSibling(studentId: string, siblingStudentId: string, relationship = 'Sibling') {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (studentId === siblingStudentId) {
+      return { success: false, error: "Cannot link a student as their own sibling." };
+    }
+
+    await Promise.all([
+      supabase.from('student_siblings').upsert({
+        student_id: studentId,
+        sibling_student_id: siblingStudentId,
+        relationship
+      }, { onConflict: 'student_id, sibling_student_id' }),
+      supabase.from('student_siblings').upsert({
+        student_id: siblingStudentId,
+        sibling_student_id: studentId,
+        relationship
+      }, { onConflict: 'student_id, sibling_student_id' })
+    ]);
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath(`/admin/students/${siblingStudentId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Unlinks sibling relationship bidirectionally.
+ */
+export async function unlinkStudentSibling(studentId: string, siblingStudentId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    await Promise.all([
+      supabase.from('student_siblings').delete().eq('student_id', studentId).eq('sibling_student_id', siblingStudentId),
+      supabase.from('student_siblings').delete().eq('student_id', siblingStudentId).eq('sibling_student_id', studentId)
+    ]);
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath(`/admin/students/${siblingStudentId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Search students to link as sibling.
+ */
+export async function searchPotentialSiblings(query: string, excludeStudentId?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    let q = supabase
+      .from('students')
+      .select(`
+        id, admission_no, first_name, last_name, photo_url, status,
+        student_academic_history(class_name, section_name, is_current_session)
+      `)
+      .order('first_name', { ascending: true })
+      .limit(15);
+
+    if (excludeStudentId) {
+      q = q.neq('id', excludeStudentId);
+    }
+    if (query && query.trim()) {
+      const term = query.trim();
+      q = q.or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,admission_no.ilike.%${term}%`);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+    return { success: true, data: data || [] };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

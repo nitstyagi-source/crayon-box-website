@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   Users, Search, Plus, Filter, Download, GraduationCap, X, 
   UserMinus, UserCheck, Sparkles, Trash2, AlertTriangle, ChevronRight,
-  Phone, User, Printer, FileText
+  Phone, User, Printer, FileText, Bus, Footprints, Camera, Image as ImageIcon, Link as LinkIcon
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getStudents, createStudent, deleteStudentPermanently } from "@/app/actions/students";
@@ -37,6 +37,11 @@ export default function StudentsDirectory() {
     blood_group: "",
     aadhaar_no: "",
     nationality: "Indian",
+    photo_url: "",
+    transport_mode: "Self",
+    transport_route: "",
+    transport_pickup_point: "",
+    sibling_id: "",
     class_name: "Grade 1",
     section_name: "A",
     roll_no: "",
@@ -49,6 +54,7 @@ export default function StudentsDirectory() {
     father_income: "",
     father_qualification: "",
     father_aadhaar: "",
+    father_photo_url: "",
 
     // Mother
     mother_name: "",
@@ -58,12 +64,14 @@ export default function StudentsDirectory() {
     mother_income: "",
     mother_qualification: "",
     mother_aadhaar: "",
+    mother_photo_url: "",
 
     // Guardian
     guardian_name: "",
     guardian_mobile: "",
     guardian_email: "",
     guardian_occupation: "",
+    guardian_photo_url: "",
 
     // Primary
     primary_contact: "Father"
@@ -107,10 +115,11 @@ export default function StudentsDirectory() {
       setFormData({
         admission_no: "", pen_no: "", first_name: "", middle_name: "", last_name: "", dob: "", gender: "Male",
         category: "General", blood_group: "", aadhaar_no: "", nationality: "Indian",
+        photo_url: "", transport_mode: "Self", transport_route: "", transport_pickup_point: "", sibling_id: "",
         class_name: "Grade 1", section_name: "A", roll_no: "",
-        father_name: "", father_mobile: "", father_email: "", father_occupation: "", father_income: "", father_qualification: "", father_aadhaar: "",
-        mother_name: "", mother_mobile: "", mother_email: "", mother_occupation: "", mother_income: "", mother_qualification: "", mother_aadhaar: "",
-        guardian_name: "", guardian_mobile: "", guardian_email: "", guardian_occupation: "",
+        father_name: "", father_mobile: "", father_email: "", father_occupation: "", father_income: "", father_qualification: "", father_aadhaar: "", father_photo_url: "",
+        mother_name: "", mother_mobile: "", mother_email: "", mother_occupation: "", mother_income: "", mother_qualification: "", mother_aadhaar: "", mother_photo_url: "",
+        guardian_name: "", guardian_mobile: "", guardian_email: "", guardian_occupation: "", guardian_photo_url: "",
         primary_contact: "Father"
       });
       setRegTab("student");
@@ -146,7 +155,9 @@ export default function StudentsDirectory() {
     const matchSearch = s.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       s.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.admission_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.pen_no && s.pen_no.toLowerCase().includes(searchTerm.toLowerCase()));
+      (s.pen_no && s.pen_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.transport_mode && s.transport_mode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.transport_route && s.transport_route.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchClass = classFilter === "All" || currentAc?.class_name === classFilter;
     return matchSearch && matchClass;
   });
@@ -158,7 +169,7 @@ export default function StudentsDirectory() {
 
   function exportCSV() {
     if (filteredStudents.length === 0) return;
-    const headers = ["Admission No", "PEN (Permanent Education No)", "First Name", "Last Name", "DOB", "Gender", "Category", "Class", "Section", "Status"];
+    const headers = ["Admission No", "PEN (Permanent Education No)", "First Name", "Last Name", "DOB", "Gender", "Category", "Class", "Section", "Transport Mode", "Route", "Status"];
     const rows = filteredStudents.map(s => {
       const ac = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
       return [
@@ -171,6 +182,8 @@ export default function StudentsDirectory() {
         s.category || "General",
         `"${ac?.class_name || 'N/A'}"`,
         `"${ac?.section_name || ''}"`,
+        `"${s.transport_mode || 'Self'}"`,
+        `"${s.transport_route || 'N/A'}"`,
         s.status
       ];
     });
@@ -334,11 +347,19 @@ export default function StudentsDirectory() {
                     }`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                            isFormer ? 'bg-stone-200 text-stone-600' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            {student.first_name[0]}{student.last_name[0]}
-                          </div>
+                          {student.photo_url ? (
+                            <img 
+                              src={student.photo_url} 
+                              alt={`${student.first_name}`} 
+                              className="w-10 h-10 rounded-full object-cover shadow-sm border border-stone-200"
+                            />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                              isFormer ? 'bg-stone-200 text-stone-600' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {student.first_name[0]}{student.last_name[0]}
+                            </div>
+                          )}
                           <div>
                             <p className="font-bold text-stone-900">{student.first_name} {student.middle_name || ''} {student.last_name}</p>
                             <p className="text-xs text-stone-400">DOB: {student.dob || 'N/A'}</p>
@@ -354,7 +375,18 @@ export default function StudentsDirectory() {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                            <GraduationCap className="w-4 h-4 text-stone-400" />
-                           <span className="font-bold text-stone-800">{currentAcademic?.class_name || "N/A"} {currentAcademic?.section_name || ""}</span>
+                           <span className="font-bold text-stone-800 text-sm">{currentAcademic?.class_name || "N/A"} {currentAcademic?.section_name || ""}</span>
+                        </div>
+                        <div className="mt-1">
+                          {student.transport_mode === 'School Transport' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                              <Bus className="w-3 h-3 text-purple-600" /> School Bus {student.transport_route ? `(${student.transport_route})` : ''}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md">
+                              <Footprints className="w-3 h-3 text-stone-400" /> Self / Own
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="p-4 text-xs">
@@ -501,6 +533,27 @@ export default function StudentsDirectory() {
                     </div>
                   </div>
 
+                  {/* Student Photo & Demographics */}
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-white border-2 border-stone-300 shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+                      {formData.photo_url ? (
+                        <img src={formData.photo_url} alt="Student Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-stone-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 w-full">
+                      <label className="text-xs font-bold text-stone-700 block mb-1">Student Passport Photo URL</label>
+                      <input 
+                        type="url" 
+                        placeholder="https://example.com/student-photo.jpg (or image URL)" 
+                        value={formData.photo_url} 
+                        onChange={e => setFormData({...formData, photo_url: e.target.value})} 
+                        className="w-full border border-stone-200 p-2 rounded-xl text-xs bg-white" 
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                       <label className="text-xs font-bold text-stone-500 block mb-1">Permanent Education No. (PEN)</label>
@@ -519,92 +572,73 @@ export default function StudentsDirectory() {
                       <input type="text" placeholder="Optional" value={formData.roll_no} onChange={e => setFormData({...formData, roll_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Tab 2: Father Details */}
-              {regTab === "father" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Full Name *</label>
-                      <input type="text" value={formData.father_name} onChange={e => setFormData({...formData, father_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="Enter father's name" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Mobile Phone *</label>
-                      <input type="text" value={formData.father_mobile} onChange={e => setFormData({...formData, father_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" placeholder="10-digit mobile" />
-                    </div>
-                  </div>
+                  {/* Daily Commute & Sibling Section */}
+                  <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-blue-900 block mb-1 flex items-center gap-1.5">
+                          <Bus className="w-3.5 h-3.5 text-blue-600" /> Commute & Transport Mode *
+                        </label>
+                        <select 
+                          value={formData.transport_mode} 
+                          onChange={e => setFormData({...formData, transport_mode: e.target.value})} 
+                          className="w-full border border-blue-200 p-2.5 rounded-xl text-xs font-bold text-stone-800 bg-white"
+                        >
+                          <option value="Self">Self / Parent Drop (Comming on Own)</option>
+                          <option value="School Transport">School Transport (School Bus / Van)</option>
+                          <option value="Private Van">Private Van / Pool</option>
+                        </select>
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
-                      <input type="email" value={formData.father_email} onChange={e => setFormData({...formData, father_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
+                      <div>
+                        <label className="text-xs font-bold text-blue-900 block mb-1 flex items-center gap-1.5">
+                          <LinkIcon className="w-3.5 h-3.5 text-blue-600" /> Sibling in School (Optional)
+                        </label>
+                        <select 
+                          value={formData.sibling_id} 
+                          onChange={e => setFormData({...formData, sibling_id: e.target.value})} 
+                          className="w-full border border-blue-200 p-2.5 rounded-xl text-xs bg-white text-stone-800"
+                        >
+                          <option value="">No sibling selected</option>
+                          {students.map(st => (
+                            <option key={st.id} value={st.id}>
+                              {st.first_name} {st.last_name} ({st.admission_no})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
-                      <input type="text" value={formData.father_occupation} onChange={e => setFormData({...formData, father_occupation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. Software Engineer, Business" />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
-                      <input type="text" value={formData.father_income} onChange={e => setFormData({...formData, father_income: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. ₹8,00,000" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Highest Qualification</label>
-                      <input type="text" value={formData.father_qualification} onChange={e => setFormData({...formData, father_qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. B.Tech, MBA" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Aadhaar No</label>
-                      <input type="text" value={formData.father_aadhaar} onChange={e => setFormData({...formData, father_aadhaar: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Mother Details */}
-              {regTab === "mother" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Full Name</label>
-                      <input type="text" value={formData.mother_name} onChange={e => setFormData({...formData, mother_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="Enter mother's name" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Mobile Phone</label>
-                      <input type="text" value={formData.mother_mobile} onChange={e => setFormData({...formData, mother_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
-                      <input type="email" value={formData.mother_email} onChange={e => setFormData({...formData, mother_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
-                      <input type="text" value={formData.mother_occupation} onChange={e => setFormData({...formData, mother_occupation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" placeholder="e.g. Teacher, Homemaker" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Annual Income</label>
-                      <input type="text" value={formData.mother_income} onChange={e => setFormData({...formData, mother_income: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Qualification</label>
-                      <input type="text" value={formData.mother_qualification} onChange={e => setFormData({...formData, mother_qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Aadhaar</label>
-                      <input type="text" value={formData.mother_aadhaar} onChange={e => setFormData({...formData, mother_aadhaar: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
-                    </div>
+                    {formData.transport_mode === "School Transport" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-blue-200/60">
+                        <div>
+                          <label className="text-[11px] font-bold text-blue-800 uppercase block mb-1">Route / Bus Number *</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Route 4 (Bus No. 12)" 
+                            value={formData.transport_route} 
+                            onChange={e => setFormData({...formData, transport_route: e.target.value})} 
+                            className="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-blue-800 uppercase block mb-1">Pickup / Drop Point</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Shastri Park Main Gate" 
+                            value={formData.transport_pickup_point} 
+                            onChange={e => setFormData({...formData, transport_pickup_point: e.target.value})} 
+                            className="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white" 
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
+
 
               {/* Tab 4: Guardian Details */}
               {regTab === "guardian" && (

@@ -5,7 +5,8 @@ import {
   User, FileText, HeartPulse, Bus, BookOpen, GraduationCap, 
   Clock, Phone, AlertTriangle, ShieldCheck, CheckCircle2, 
   Download, Printer, AlertCircle, Plus, RefreshCw, ChevronRight, 
-  Activity, Edit3, Trash2, X, Upload, ExternalLink, ArrowUpRight, ArrowRightLeft
+  Activity, Edit3, Trash2, X, Upload, ExternalLink, ArrowUpRight, ArrowRightLeft,
+  Camera, Footprints, Users2, Link2, Unlink, Sparkles, Image as ImageIcon, Search
 } from "lucide-react";
 import { 
   getStudentProfile, 
@@ -18,7 +19,10 @@ import {
   transferStudentClass,
   deleteStudentPermanently,
   saveStudentAddress,
-  deleteStudentAddress
+  deleteStudentAddress,
+  linkStudentSibling,
+  unlinkStudentSibling,
+  searchPotentialSiblings
 } from "@/app/actions/students";
 import { useRouter } from "next/navigation";
 import TransferCertificateModal from "@/components/admin/TransferCertificateModal";
@@ -47,6 +51,10 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     nationality: "Indian",
     aadhaar_no: "",
     pen_no: "",
+    photo_url: "",
+    transport_mode: "Self",
+    transport_route: "",
+    transport_pickup_point: "",
     class_name: "",
     section_name: "",
     roll_no: "",
@@ -59,6 +67,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     father_income: "",
     father_qualification: "",
     father_aadhaar: "",
+    father_photo_url: "",
 
     // Mother
     mother_name: "",
@@ -68,15 +77,24 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     mother_income: "",
     mother_qualification: "",
     mother_aadhaar: "",
+    mother_photo_url: "",
 
     // Guardian
     guardian_name: "",
     guardian_mobile: "",
     guardian_email: "",
     guardian_occupation: "",
+    guardian_photo_url: "",
 
     primary_contact: "Father"
   });
+
+  // Sibling Linking Modal State
+  const [siblingModal, setSiblingModal] = useState(false);
+  const [siblingSearch, setSiblingSearch] = useState("");
+  const [siblingResults, setSiblingResults] = useState<any[]>([]);
+  const [siblingRel, setSiblingRel] = useState("Brother");
+  const [isSearchingSibling, setIsSearchingSibling] = useState(false);
 
   // Transfer Modal State
   const [transferModal, setTransferModal] = useState(false);
@@ -162,6 +180,10 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         nationality: data.nationality || "Indian",
         aadhaar_no: data.aadhaar_no || "",
         pen_no: data.pen_no || "",
+        photo_url: data.photo_url || "",
+        transport_mode: data.transport_mode || "Self",
+        transport_route: data.transport_route || "",
+        transport_pickup_point: data.transport_pickup_point || "",
         class_name: currentAc.class_name || "",
         section_name: currentAc.section_name || "",
         roll_no: currentAc.roll_no || "",
@@ -173,6 +195,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         father_income: father.income || "",
         father_qualification: father.qualification || "",
         father_aadhaar: father.aadhaar_no || "",
+        father_photo_url: father.photo_url || "",
 
         mother_name: mother.name || "",
         mother_mobile: mother.mobile || "",
@@ -181,11 +204,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         mother_income: mother.income || "",
         mother_qualification: mother.qualification || "",
         mother_aadhaar: mother.aadhaar_no || "",
+        mother_photo_url: mother.photo_url || "",
 
         guardian_name: guardian.name || "",
         guardian_mobile: guardian.mobile || "",
         guardian_email: guardian.email || "",
         guardian_occupation: guardian.occupation || "",
+        guardian_photo_url: guardian.photo_url || "",
 
         primary_contact: primary
       });
@@ -372,6 +397,46 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     }
   }
 
+  async function handleSearchSiblings(term: string) {
+    setSiblingSearch(term);
+    if (!term || term.trim().length < 2) {
+      setSiblingResults([]);
+      return;
+    }
+    setIsSearchingSibling(true);
+    const res = await searchPotentialSiblings(term, studentId);
+    setIsSearchingSibling(false);
+    if (res.success) {
+      setSiblingResults(res.data || []);
+    }
+  }
+
+  async function handleLinkSibling(siblingStudentId: string, rel: string) {
+    setIsUpdating(true);
+    const res = await linkStudentSibling(studentId, siblingStudentId, rel);
+    setIsUpdating(false);
+    if (res.success) {
+      setSiblingModal(false);
+      setSiblingSearch("");
+      setSiblingResults([]);
+      loadProfile();
+    } else {
+      alert("Failed to link sibling: " + res.error);
+    }
+  }
+
+  async function handleUnlinkSibling(siblingStudentId: string) {
+    if (!confirm("Are you sure you want to unlink this sibling relationship?")) return;
+    setIsUpdating(true);
+    const res = await unlinkStudentSibling(studentId, siblingStudentId);
+    setIsUpdating(false);
+    if (res.success) {
+      loadProfile();
+    } else {
+      alert("Failed to unlink sibling: " + res.error);
+    }
+  }
+
   if (isLoading) return <div className="p-12 text-center font-bold text-stone-500">Loading 360° student profile...</div>;
   if (!profile) return <div className="p-12 text-center font-bold text-red-500">Student not found.</div>;
 
@@ -405,15 +470,33 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
       <div className={`rounded-3xl p-6 md:p-8 border shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6 ${
         isFormer ? 'bg-stone-100 border-stone-300' : 'bg-white border-stone-200'
       }`}>
-        <div className={`w-24 h-24 rounded-full flex items-center justify-center font-black text-3xl shrink-0 shadow-inner ${
-          isFormer ? 'bg-stone-300 text-stone-700' : 'bg-blue-100 text-blue-600'
-        }`}>
-          {profile.first_name[0]}{profile.last_name[0]}
+        <div className="relative group shrink-0">
+          {profile.photo_url ? (
+            <img 
+              src={profile.photo_url} 
+              alt={`${profile.first_name}`} 
+              className="w-24 h-24 rounded-2xl object-cover shadow-md border-2 border-stone-200"
+            />
+          ) : (
+            <div className={`w-24 h-24 rounded-2xl flex items-center justify-center font-black text-3xl shadow-inner ${
+              isFormer ? 'bg-stone-300 text-stone-700' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {profile.first_name[0]}{profile.last_name[0]}
+            </div>
+          )}
+          <button 
+            onClick={() => { setEditSection("student"); setEditProfileModal(true); }}
+            className="absolute -bottom-1 -right-1 bg-stone-900 text-white p-1.5 rounded-lg shadow hover:bg-stone-800 transition-all"
+            title="Edit Photo"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
         </div>
+
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
             <h1 className="text-3xl font-black text-stone-900">{profile.first_name} {profile.middle_name || ''} {profile.last_name}</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
                 isFormer 
                   ? 'bg-stone-300 text-stone-800'
@@ -423,12 +506,31 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               }`}>
                 {profile.status}
               </span>
+
+              {/* Transport Badge */}
+              {profile.transport_mode === 'School Transport' ? (
+                <span className="bg-purple-100 text-purple-800 border border-purple-200 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                  <Bus className="w-3.5 h-3.5 text-purple-600" /> School Bus {profile.transport_route ? `(${profile.transport_route})` : ''}
+                </span>
+              ) : (
+                <span className="bg-stone-100 text-stone-700 border border-stone-200 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                  <Footprints className="w-3.5 h-3.5 text-stone-500" /> Self / Parent Drop
+                </span>
+              )}
+
+              {/* Sibling Badge */}
+              {profile.siblings && profile.siblings.length > 0 ? (
+                <span className="bg-indigo-100 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                  <Users2 className="w-3.5 h-3.5 text-indigo-600" /> {profile.siblings.length} Sibling{profile.siblings.length > 1 ? 's' : ''} in School
+                </span>
+              ) : null}
+
               {profile.category === 'EWS' ? (
-                <span className="bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-0.5 rounded-lg text-xs font-bold shadow-sm">
+                <span className="bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
                   EWS Category
                 </span>
               ) : (
-                <span className="bg-stone-100 text-stone-600 px-2.5 py-0.5 rounded-lg text-xs font-bold">
+                <span className="bg-stone-100 text-stone-600 px-2.5 py-1 rounded-lg text-xs font-bold">
                   General
                 </span>
               )}
@@ -548,6 +650,179 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               </div>
             </div>
 
+            {/* Commute & Daily Transport Card */}
+            <div className="p-6 rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-indigo-50/40">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-blue-600 text-white">
+                    <Bus className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-stone-900 text-base">Daily Commute & School Transport</h3>
+                    <p className="text-xs text-stone-500">Tracking child pickup/drop arrangements and school bus allocation.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setEditSection("student"); setEditProfileModal(true); }} 
+                  className="bg-white hover:bg-stone-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Change Transport
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-blue-100">
+                  <span className="text-stone-400 text-[10px] font-bold uppercase block">Commute Mode</span>
+                  <span className="text-stone-900 font-bold text-sm flex items-center gap-1.5 mt-0.5">
+                    {profile.transport_mode === 'School Transport' ? (
+                      <span className="text-purple-700 font-black flex items-center gap-1"><Bus className="w-4 h-4" /> School Transport</span>
+                    ) : (
+                      <span className="text-stone-700 flex items-center gap-1"><Footprints className="w-4 h-4 text-stone-400" /> Self / Coming on Own</span>
+                    )}
+                  </span>
+                </div>
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-blue-100">
+                  <span className="text-stone-400 text-[10px] font-bold uppercase block">Bus Route / Vehicle No.</span>
+                  <span className="text-stone-900 font-mono font-bold text-sm block mt-0.5">{profile.transport_route || 'N/A'}</span>
+                </div>
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-blue-100">
+                  <span className="text-stone-400 text-[10px] font-bold uppercase block">Pickup / Drop Point</span>
+                  <span className="text-stone-900 font-bold text-sm block mt-0.5">{profile.transport_pickup_point || 'Parent Drop at Main Gate'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Siblings in School Interactive Hub */}
+            <div className="p-6 rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-600 text-white">
+                    <Users2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
+                      Siblings in School
+                      {profile.siblings?.length > 0 && (
+                        <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                          {profile.siblings.length}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-stone-500">Brothers, sisters, and twins currently enrolled at Crayon Box School.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSiblingModal(true)} 
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Link Sibling
+                </button>
+              </div>
+
+              {/* Sibling Suggestions Banner */}
+              {profile.suggestedSiblings && profile.suggestedSiblings.length > 0 && (
+                <div className="mb-4 p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                  <div className="flex items-center gap-2 text-amber-900 font-bold text-xs mb-2">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>Potential Sibling(s) Auto-Detected by Matching Parent Mobile Phone:</span>
+                  </div>
+                  <div className="space-y-2">
+                    {profile.suggestedSiblings.map((sug: any) => {
+                      const sugAc = sug.student_academic_history?.find((a: any) => a.is_current_session) || sug.student_academic_history?.[0];
+                      return (
+                        <div key={sug.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-amber-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            {sug.photo_url ? (
+                              <img src={sug.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                                {sug.first_name[0]}{sug.last_name[0]}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-bold text-stone-900">{sug.first_name} {sug.last_name} <span className="font-normal text-stone-500 font-mono">({sug.admission_no})</span></p>
+                              <p className="text-[11px] text-stone-500">{sugAc?.class_name || 'Enrolled'} {sugAc?.section_name || ''}</p>
+                            </div>
+                          </div>
+                          <button 
+                            disabled={isUpdating}
+                            onClick={() => handleLinkSibling(sug.id, 'Sibling')}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm"
+                          >
+                            Confirm & Link
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Linked Siblings Grid */}
+              {profile.siblings && profile.siblings.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {profile.siblings.map((sib: any) => {
+                    const siblingStudent = sib.sibling;
+                    if (!siblingStudent) return null;
+                    const sibAc = siblingStudent.student_academic_history?.find((a: any) => a.is_current_session) || siblingStudent.student_academic_history?.[0];
+                    return (
+                      <div key={sib.id} className="bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {siblingStudent.photo_url ? (
+                            <img 
+                              src={siblingStudent.photo_url} 
+                              alt={`${siblingStudent.first_name}`} 
+                              className="w-12 h-12 rounded-xl object-cover border border-stone-200" 
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base">
+                              {siblingStudent.first_name[0]}{siblingStudent.last_name[0]}
+                            </div>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-stone-900 text-sm">{siblingStudent.first_name} {siblingStudent.last_name}</h4>
+                              <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-indigo-100">
+                                {sib.relationship || 'Sibling'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-stone-500 mt-0.5">
+                              {sibAc?.class_name || 'Class N/A'} {sibAc?.section_name || ''} • Adm: <span className="font-mono">{siblingStudent.admission_no}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => router.push(`/admin/students/${siblingStudent.id}`)}
+                            className="bg-stone-100 hover:bg-stone-200 text-stone-700 p-2 rounded-xl text-xs font-bold flex items-center gap-1"
+                            title="Open Sibling Profile"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            disabled={isUpdating}
+                            onClick={() => handleUnlinkSibling(siblingStudent.id)}
+                            className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors"
+                            title="Unlink Sibling"
+                          >
+                            <Unlink className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-white/60 rounded-2xl border border-dashed border-indigo-200">
+                  <p className="text-stone-500 text-xs">No siblings currently linked for this student.</p>
+                  <button onClick={() => setSiblingModal(true)} className="mt-1 text-xs font-bold text-indigo-600 hover:underline">
+                    Click to link a brother or sister enrolled in school
+                  </button>
+                </div>
+              )}
+            </div>
+
             {profile.medical?.allergies && (
               <div className="border border-red-200 bg-red-50 p-5 rounded-2xl flex items-start gap-4">
                 <AlertTriangle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
@@ -581,6 +856,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               <div><p className="text-stone-400 text-xs font-bold uppercase">Category</p><p className="font-bold text-stone-900 mt-1">{profile.category || 'General'}</p></div>
               <div><p className="text-stone-400 text-xs font-bold uppercase">Nationality</p><p className="font-bold text-stone-900 mt-1">{profile.nationality || 'Indian'}</p></div>
               <div><p className="text-stone-400 text-xs font-bold uppercase">Aadhaar UID</p><p className="font-bold text-stone-900 font-mono mt-1">{profile.aadhaar_no || 'Not Provided'}</p></div>
+              <div><p className="text-stone-400 text-xs font-bold uppercase">Commute Mode</p><p className="font-bold text-stone-900 mt-1">{profile.transport_mode || 'Self'}</p></div>
             </div>
 
             <div>
@@ -599,13 +875,13 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   {profile.addresses.map((addr: any) => (
                     <div key={addr.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex justify-between items-start">
                       <div>
-                        <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">{addr.address_type}</span>
-                        <p className="font-bold text-stone-800 mt-2 text-sm">{addr.street}</p>
-                        <p className="text-xs text-stone-500">{addr.city}, {addr.state} - {addr.pin_code}</p>
+                        <span className="text-[10px] font-bold uppercase bg-stone-200 text-stone-700 px-2 py-0.5 rounded">{addr.address_type || 'Residential'}</span>
+                        <p className="font-bold text-stone-800 text-sm mt-1">{addr.street}</p>
+                        <p className="text-stone-500 text-xs">{addr.city}, {addr.state} - <span className="font-mono font-bold">{addr.pin_code}</span></p>
                       </div>
                       <button 
                         onClick={() => handleDeleteAddress(addr.id)}
-                        className="p-1.5 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg"
                         title="Delete Address"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -629,7 +905,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-stone-900">Family & Guardian Records</h3>
-                <p className="text-xs text-stone-500">Dedicated records for Father, Mother, and Local Guardian.</p>
+                <p className="text-xs text-stone-500">Dedicated records and photographs for Father, Mother, and Local Guardian.</p>
               </div>
               <button onClick={() => { setEditSection("parents"); setEditProfileModal(true); }} className="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
                 <Edit3 className="w-3.5 h-3.5" /> Edit Parents / Guardian Info
@@ -644,9 +920,19 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   <span className="absolute top-5 right-5 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
                 )}
                 <div>
-                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
-                    <User className="w-4 h-4 text-blue-600" /> Father&apos;s Profile
-                  </h4>
+                  <div className="flex items-center gap-3 mb-4">
+                    {father?.photo_url ? (
+                      <img src={father.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border border-blue-200 shadow-sm" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                        <User className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-bold text-base text-stone-900">Father&apos;s Profile</h4>
+                      <p className="text-stone-400 text-xs">Paternal Record</p>
+                    </div>
+                  </div>
                   {father?.name ? (
                     <div className="space-y-2.5 text-xs">
                       <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{father.name}</span></div>
@@ -669,9 +955,19 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   <span className="absolute top-5 right-5 bg-pink-100 text-pink-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
                 )}
                 <div>
-                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
-                    <User className="w-4 h-4 text-pink-600" /> Mother&apos;s Profile
-                  </h4>
+                  <div className="flex items-center gap-3 mb-4">
+                    {mother?.photo_url ? (
+                      <img src={mother.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border border-pink-200 shadow-sm" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-sm">
+                        <User className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-bold text-base text-stone-900">Mother&apos;s Profile</h4>
+                      <p className="text-stone-400 text-xs">Maternal Record</p>
+                    </div>
+                  </div>
                   {mother?.name ? (
                     <div className="space-y-2.5 text-xs">
                       <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{mother.name}</span></div>
@@ -694,9 +990,19 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   <span className="absolute top-5 right-5 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">Primary</span>
                 )}
                 <div>
-                  <h4 className="font-bold text-base text-stone-900 mb-4 flex items-center gap-2">
-                    <User className="w-4 h-4 text-amber-600" /> Local Guardian
-                  </h4>
+                  <div className="flex items-center gap-3 mb-4">
+                    {guardian?.photo_url ? (
+                      <img src={guardian.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border border-amber-200 shadow-sm" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                        <User className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-bold text-base text-stone-900">Local Guardian</h4>
+                      <p className="text-stone-400 text-xs">Emergency Caretaker</p>
+                    </div>
+                  </div>
                   {guardian?.name ? (
                     <div className="space-y-2.5 text-xs">
                       <div><span className="text-stone-400 block font-bold">Full Name</span><span className="font-bold text-stone-900 text-sm">{guardian.name}</span></div>
@@ -1094,6 +1400,27 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               
               {editSection === "student" ? (
                 <div className="space-y-4">
+                  {/* Photo Preview & Input */}
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white border-2 border-stone-300 shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+                      {profileFormData.photo_url ? (
+                        <img src={profileFormData.photo_url} alt="Student Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-stone-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 w-full">
+                      <label className="text-xs font-bold text-stone-700 block mb-1">Student Passport Photo URL</label>
+                      <input 
+                        type="url" 
+                        placeholder="https://example.com/student-photo.jpg (or image link)" 
+                        value={profileFormData.photo_url} 
+                        onChange={e => setProfileFormData({...profileFormData, photo_url: e.target.value})} 
+                        className="w-full border border-stone-200 p-2 rounded-xl text-xs bg-white" 
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs font-bold text-stone-500 block mb-1">First Name *</label>
@@ -1160,6 +1487,47 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                       <input type="text" value={profileFormData.roll_no} onChange={e => setProfileFormData({...profileFormData, roll_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" />
                     </div>
                   </div>
+
+                  {/* Commute & Transport Section */}
+                  <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                      <Bus className="w-3.5 h-3.5 text-blue-600" /> Commute & Transport Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-stone-600 block mb-1">Transport Mode</label>
+                        <select 
+                          value={profileFormData.transport_mode} 
+                          onChange={e => setProfileFormData({...profileFormData, transport_mode: e.target.value})} 
+                          className="w-full border border-blue-200 p-2 rounded-xl text-xs font-bold text-stone-800 bg-white"
+                        >
+                          <option value="Self">Self / Parent Drop (Coming on Own)</option>
+                          <option value="School Transport">School Transport (School Bus / Van)</option>
+                          <option value="Private Van">Private Van / Pool</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-600 block mb-1">Route / Bus Number</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Route 4 (Bus No. 12)" 
+                          value={profileFormData.transport_route} 
+                          onChange={e => setProfileFormData({...profileFormData, transport_route: e.target.value})} 
+                          className="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-600 block mb-1">Pickup / Drop Point</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Shastri Park Main Gate" 
+                          value={profileFormData.transport_pickup_point} 
+                          onChange={e => setProfileFormData({...profileFormData, transport_pickup_point: e.target.value})} 
+                          className="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white" 
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -1176,11 +1544,17 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <input type="text" value={profileFormData.father_mobile} onChange={e => setProfileFormData({...profileFormData, father_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
                         <input type="email" value={profileFormData.father_email} onChange={e => setProfileFormData({...profileFormData, father_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                       </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Father&apos;s Photo URL</label>
+                        <input type="url" placeholder="https://example.com/father.jpg" value={profileFormData.father_photo_url} onChange={e => setProfileFormData({...profileFormData, father_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
                         <input type="text" value={profileFormData.father_occupation} onChange={e => setProfileFormData({...profileFormData, father_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
@@ -1205,11 +1579,17 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <input type="text" value={profileFormData.mother_mobile} onChange={e => setProfileFormData({...profileFormData, mother_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Email Address</label>
                         <input type="email" value={profileFormData.mother_email} onChange={e => setProfileFormData({...profileFormData, mother_email: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                       </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-500 block mb-1">Mother&apos;s Photo URL</label>
+                        <input type="url" placeholder="https://example.com/mother.jpg" value={profileFormData.mother_photo_url} onChange={e => setProfileFormData({...profileFormData, mother_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-bold text-stone-500 block mb-1">Occupation</label>
                         <input type="text" value={profileFormData.mother_occupation} onChange={e => setProfileFormData({...profileFormData, mother_occupation: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
@@ -1233,6 +1613,10 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                         <label className="text-xs font-bold text-stone-500 block mb-1">Mobile Phone</label>
                         <input type="text" value={profileFormData.guardian_mobile} onChange={e => setProfileFormData({...profileFormData, guardian_mobile: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm font-mono bg-white" />
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Guardian Photo URL</label>
+                      <input type="url" placeholder="https://example.com/guardian.jpg" value={profileFormData.guardian_photo_url} onChange={e => setProfileFormData({...profileFormData, guardian_photo_url: e.target.value})} className="w-full border border-stone-200 p-2 rounded-xl text-sm bg-white" />
                     </div>
                   </div>
 
@@ -1647,6 +2031,105 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 8: Link Sibling Search */}
+      {siblingModal && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-xl font-black text-stone-900 flex items-center gap-2">
+                  <Users2 className="w-5 h-5 text-indigo-600" /> Link Sibling in School
+                </h3>
+                <p className="text-stone-500 text-xs mt-0.5">Search and connect a brother, sister, or twin enrolled in school.</p>
+              </div>
+              <button onClick={() => setSiblingModal(false)} className="p-2 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Relationship</label>
+                <select 
+                  value={siblingRel} 
+                  onChange={e => setSiblingRel(e.target.value)}
+                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-800"
+                >
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Twin Brother">Twin Brother</option>
+                  <option value="Twin Sister">Twin Sister</option>
+                  <option value="Sibling">Sibling</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Search Student (Name or Admission No)</label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                  <input 
+                    type="text" 
+                    placeholder="Type name or ADM number..." 
+                    value={siblingSearch}
+                    onChange={e => handleSearchSiblings(e.target.value)}
+                    className="w-full border border-stone-200 pl-9 pr-4 py-2.5 rounded-xl text-sm"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-60 overflow-y-auto divide-y divide-stone-100 border border-stone-100 rounded-2xl bg-stone-50/50">
+                {isSearchingSibling ? (
+                  <p className="p-4 text-xs text-center text-stone-400 font-bold">Searching student database...</p>
+                ) : siblingResults.length > 0 ? (
+                  siblingResults.map(s => {
+                    const sAc = s.student_academic_history?.find((a: any) => a.is_current_session) || s.student_academic_history?.[0];
+                    return (
+                      <div key={s.id} className="p-3 flex items-center justify-between hover:bg-white transition-colors">
+                        <div className="flex items-center gap-3">
+                          {s.photo_url ? (
+                            <img src={s.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                              {s.first_name[0]}{s.last_name[0]}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-xs font-bold text-stone-900">{s.first_name} {s.last_name}</p>
+                            <p className="text-[11px] text-stone-500">{sAc?.class_name || 'Enrolled'} {sAc?.section_name || ''} • Adm: <span className="font-mono">{s.admission_no}</span></p>
+                          </div>
+                        </div>
+                        <button 
+                          disabled={isUpdating}
+                          onClick={() => handleLinkSibling(s.id, siblingRel)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm"
+                        >
+                          Link
+                        </button>
+                      </div>
+                    );
+                  })
+                ) : siblingSearch.trim().length >= 2 ? (
+                  <p className="p-4 text-xs text-center text-stone-400">No matching enrolled students found.</p>
+                ) : (
+                  <p className="p-4 text-xs text-center text-stone-400">Type at least 2 characters to search students.</p>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setSiblingModal(false)}
+                  className="px-4 py-2 font-bold text-stone-500 text-xs hover:bg-stone-100 rounded-xl"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
