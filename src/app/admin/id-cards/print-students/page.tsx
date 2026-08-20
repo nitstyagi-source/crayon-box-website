@@ -207,7 +207,7 @@ function StudentIdCardBatchPrintContent() {
                   <div className="w-full px-[2mm] pb-[1.5mm] pt-[1mm] flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
                     <div className="text-left text-[4pt] text-stone-500 leading-tight">
                       <p className="font-black text-stone-800 uppercase tracking-tighter">Main Campus</p>
-                      <p className="font-mono text-stone-500">Ph: {student.parent_phone || '+91 98100 81008'}</p>
+                      <p className="font-mono text-stone-500">Ph: {student.parent_phone || '+91 98111 02008'}</p>
                       <span className="text-emerald-700 font-bold text-[3.8pt]">✓ Gate Verified</span>
                     </div>
 
@@ -237,7 +237,7 @@ function StudentIdCardBatchPrintContent() {
                     <div className="bg-stone-50 p-[1.5mm] rounded-[1.2mm] border border-stone-200 space-y-[0.6mm]">
                       <p><span className="font-bold text-stone-400">STUDENT:</span> <span className="font-black text-stone-900">{student.first_name} {student.last_name || ''}</span></p>
                       <p><span className="font-bold text-stone-400">TRANSPORT:</span> <span className="font-bold text-stone-800">{student.transport_route}</span></p>
-                      <p><span className="font-bold text-stone-400">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98100 81008</span></p>
+                      <p><span className="font-bold text-stone-400">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98111 02008</span></p>
                     </div>
 
                     <div className="space-y-[0.8mm] text-[4.5pt] text-stone-500 pt-[0.5mm]">

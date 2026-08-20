@@ -874,7 +874,7 @@ export default function IdAndEscortCardManagementHub() {
                         <div className="bg-stone-50 p-1.5 rounded border border-stone-200 space-y-0.5">
                           <p><span className="font-bold text-stone-400 text-[6px]">STUDENT:</span> <span className="font-black text-stone-900">{previewCard.first_name} {previewCard.last_name || ''}</span></p>
                           <p><span className="font-bold text-stone-400 text-[6px]">TRANSPORT:</span> <span className="font-bold text-stone-800">{previewCard.transport_route}</span></p>
-                          <p><span className="font-bold text-stone-400 text-[6px]">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98100 81008</span></p>
+                          <p><span className="font-bold text-stone-400 text-[6px]">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98111 02008</span></p>
                         </div>
                         <p className="text-[6.5px] text-stone-500 pt-0.5">
                           1. This card must be worn by the student at all times during school &amp; transit.

@@ -266,40 +266,74 @@ export default function PayFeesPage() {
           </div>
         )}
 
-        {/* Step 3: Payment Success & Printable Receipt */}
+        {/* Step 3: Payment Success & Printable A5 Receipt */}
         {receipt && (
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-stone-100 max-w-2xl mx-auto animate-in zoom-in duration-300">
-            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-10 h-10" />
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h2 className="text-3xl font-serif font-bold text-stone-900 text-center mb-1">Fee Payment Successful!</h2>
+            <h2 className="text-2xl font-serif font-bold text-stone-900 text-center mb-1">Fee Payment Successful!</h2>
             <p className="text-stone-500 text-xs font-mono text-center mb-6">Receipt No: {receipt.receiptNumber}</p>
             
-            {/* Printable Receipt Body */}
-            <div id="printable-receipt" className="bg-stone-50 rounded-2xl p-6 border border-stone-200 mb-8 space-y-4 text-sm">
-              <div className="flex justify-between border-b border-stone-200 pb-3">
-                <span className="text-stone-500">Student Name</span>
-                <span className="font-bold text-stone-900">{receipt.studentName}</span>
+            {/* A5 Printable Receipt Body */}
+            <div id="printable-receipt" className="bg-white rounded-2xl p-6 border border-stone-200 mb-8 space-y-3.5 text-xs max-w-[148mm] mx-auto">
+              <style jsx global>{`
+                @media print {
+                  @page {
+                    size: A5 portrait;
+                    margin: 6mm;
+                  }
+                  body {
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                  }
+                }
+              `}</style>
+
+              <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+                <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h3>
+                <p className="text-[10px] font-bold text-stone-700">
+                  School ID: 1253481 • UDISE Code: 07124100151
+                </p>
+                <p className="text-[9.5px] text-stone-500">
+                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                </p>
+                <div className="pt-1.5 flex justify-center">
+                  <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                    FEE RECEIPT
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between border-b border-stone-200 pb-3">
-                <span className="text-stone-500">Admission No.</span>
-                <span className="font-mono font-bold text-stone-900">{receipt.admissionNo}</span>
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
+                <div>
+                  <span className="text-stone-400">Student Name:</span> <strong className="text-stone-900">{receipt.studentName}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{receipt.admissionNo}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{receipt.className}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Invoice Ref:</span> <strong className="text-stone-900 font-mono">{receipt.invoiceNumber}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Payment Gateway:</span> <strong className="text-stone-900">Razorpay Online</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Transaction Ref:</span> <strong className="text-stone-900 font-mono text-[9.5px]">{receipt.transactionId}</strong>
+                </div>
               </div>
-              <div className="flex justify-between border-b border-stone-200 pb-3">
-                <span className="text-stone-500">Class & Section</span>
-                <span className="font-bold text-stone-900">{receipt.className}</span>
+
+              <div className="border-t border-b border-stone-200 py-2.5 flex justify-between items-center text-sm font-black text-stone-900">
+                <span>Total Amount Paid:</span>
+                <span className="text-emerald-700 text-base font-mono">₹{Number(receipt.amountPaid).toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between border-b border-stone-200 pb-3">
-                <span className="text-stone-500">Invoice Number</span>
-                <span className="font-mono text-stone-800">{receipt.invoiceNumber}</span>
-              </div>
-              <div className="flex justify-between border-b border-stone-200 pb-3">
-                <span className="text-stone-500">Transaction ID</span>
-                <span className="font-mono text-xs text-stone-600">{receipt.transactionId}</span>
-              </div>
-              <div className="flex justify-between pt-2">
-                <span className="text-base font-bold text-stone-900">Total Amount Paid</span>
-                <span className="text-xl font-black text-green-700">₹{Number(receipt.amountPaid).toLocaleString('en-IN')}</span>
+
+              <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-400">
+                <p className="italic">This is a valid system-generated online fee payment receipt.</p>
+                <p>Status: <strong className="text-emerald-600">Verified Paid</strong></p>
               </div>
             </div>
 
@@ -308,7 +342,7 @@ export default function PayFeesPage() {
                 onClick={() => window.print()}
                 className="flex items-center justify-center gap-2 bg-stone-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-stone-800 transition-colors text-sm shadow-md"
               >
-                <Printer className="w-4 h-4" /> Print Receipt
+                <Printer className="w-4 h-4" /> Print A5 Receipt
               </button>
               <button 
                 onClick={() => { setReceipt(null); setAccountData(null); setStudentId(""); }}

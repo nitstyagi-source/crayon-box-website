@@ -127,7 +127,7 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
         qr_token: defaultQr,
         card_status: card?.status || 'Active',
         expiry_date: card?.expiry_date || '2027-03-31',
-        parent_phone: parentMap[s.id] || '+91 98100 81008',
+        parent_phone: parentMap[s.id] || '+91 9811102008',
         transport_route: s.transport_route || 'Route #04 (Burari Main)',
         has_generated_card: !!card
       };

@@ -69,24 +69,65 @@ export default function ParentFeePortal() {
       {/* Payment Success Receipt Screen */}
       {receipt ? (
         <div className="bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-stone-100 max-w-xl mx-auto text-center animate-in zoom-in duration-300">
-          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-black text-stone-900">Fee Payment Successful!</h2>
           <p className="text-xs text-stone-500 font-mono mt-1 mb-6">Receipt #{receipt.receiptNumber}</p>
 
-          <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 text-left text-sm space-y-3 mb-6">
-            <div className="flex justify-between border-b border-stone-200 pb-2">
-              <span className="text-stone-500">Student:</span>
-              <span className="font-bold text-stone-900">{receipt.studentName} ({receipt.admissionNo})</span>
+          {/* A5 Printable Receipt Body */}
+          <div className="bg-white rounded-2xl p-6 border border-stone-200 text-left text-xs space-y-3 mb-6 max-w-[148mm] mx-auto">
+            <style jsx global>{`
+              @media print {
+                @page {
+                  size: A5 portrait;
+                  margin: 6mm;
+                }
+                body {
+                  print-color-adjust: exact;
+                  -webkit-print-color-adjust: exact;
+                }
+              }
+            `}</style>
+
+            <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+              <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h3>
+              <p className="text-[10px] font-bold text-stone-700">
+                School ID: 1253481 • UDISE Code: 07124100151
+              </p>
+              <p className="text-[9.5px] text-stone-500">
+                Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+              </p>
+              <div className="pt-1.5 flex justify-center">
+                <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                  FEE RECEIPT
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between border-b border-stone-200 pb-2">
-              <span className="text-stone-500">Billing Term:</span>
-              <span className="font-bold text-stone-800">{receipt.billingPeriod}</span>
+
+            <div className="grid grid-cols-2 gap-2 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
+              <div>
+                <span className="text-stone-400">Student:</span> <strong className="text-stone-900">{receipt.studentName}</strong>
+              </div>
+              <div>
+                <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{receipt.admissionNo}</strong>
+              </div>
+              <div>
+                <span className="text-stone-400">Billing Term:</span> <strong className="text-stone-900">{receipt.billingPeriod}</strong>
+              </div>
+              <div>
+                <span className="text-stone-400">Payment Mode:</span> <strong className="text-stone-900">Razorpay Online</strong>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Amount Paid:</span>
-              <span className="font-black text-green-700 text-base">₹{Number(receipt.amountPaid).toLocaleString('en-IN')}</span>
+
+            <div className="border-t border-b border-stone-200 py-2.5 flex justify-between items-center text-sm font-black text-stone-900">
+              <span>Amount Paid:</span>
+              <span className="font-black text-emerald-700 text-base font-mono">₹{Number(receipt.amountPaid).toLocaleString('en-IN')}</span>
+            </div>
+
+            <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-400">
+              <p className="italic">Valid system-generated online payment receipt.</p>
+              <p>Status: <strong className="text-emerald-600">Settled & Paid</strong></p>
             </div>
           </div>
 
@@ -95,7 +136,7 @@ export default function ParentFeePortal() {
               onClick={() => window.print()}
               className="bg-stone-900 text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-stone-800 flex items-center gap-2"
             >
-              <Printer className="w-4 h-4" /> Print Receipt
+              <Printer className="w-4 h-4" /> Print A5 Receipt
             </button>
             <button 
               onClick={() => setReceipt(null)}

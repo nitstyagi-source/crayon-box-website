@@ -127,7 +127,7 @@ export default function StudentIdCardsPage() {
                     <span className="font-bold text-stone-400">Blood Group:</span> <span className="font-bold text-red-600">{student.blood_group || 'O+'}</span>
                   </p>
                   <p className="text-stone-600 truncate">
-                    <span className="font-bold text-stone-400">Emergency:</span> <span className="font-mono font-bold text-stone-800">{student.parent_phone || '+91 98100 81008'}</span>
+                    <span className="font-bold text-stone-400">Emergency:</span> <span className="font-mono font-bold text-stone-800">{student.parent_phone || '+91 98111 02008'}</span>
                   </p>
                 </div>
 

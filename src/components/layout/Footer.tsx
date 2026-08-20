@@ -86,16 +86,19 @@ export default async function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                 <span className="text-sm leading-relaxed text-blue-200">
-                  {globalData.contact?.address || "123 Education Boulevard, Knowledge Park, Cityville, 10001"}
+                  {globalData.contact?.address || "Burari, Sant Nagar, Delhi - 110084"}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-accent shrink-0" />
-                <span className="text-sm text-blue-200">{globalData.contact?.phone || "+1 (555) 123-4567"}</span>
+                <span className="text-sm text-blue-200">{globalData.contact?.phone || "9811102008"}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-accent shrink-0" />
-                <span className="text-sm text-blue-200">{globalData.contact?.email || "admissions@crayonbox.edu"}</span>
+                <span className="text-sm text-blue-200">{globalData.contact?.email || "crayonboxdelhi@gmail.com"}</span>
+              </li>
+              <li className="text-xs text-blue-300/80 font-mono">
+                School ID: 1253481 • UDISE: 07124100151
               </li>
             </ul>
             

@@ -273,64 +273,98 @@ export default function OfficialReceiptsHubPage() {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-stone-900">Official Fee Receipt</h3>
+                <h3 className="text-lg font-black text-stone-900">Fee Receipt</h3>
                 <p className="text-xs text-stone-400">{selectedReceipt.receipt_no}</p>
               </div>
               <button onClick={() => setSelectedReceipt(null)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
-            {/* Printable Content */}
-            <div ref={printModalRef} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4 text-xs font-sans">
-              <div className="flex justify-between items-start border-b border-stone-100 pb-3">
-                <div>
-                  <h2 className="text-base font-black text-stone-900">CRAYON BOX SCHOOL</h2>
-                  <p className="text-[10px] text-stone-500">Main Campus • CB-AFF-2026 • New Delhi</p>
-                  <p className="text-[10px] text-stone-400">Tel: +91 98100 81008 • accounts@crayonboxschool.com</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-black text-stone-900 bg-stone-100 px-2 py-1 rounded-md">
-                    {selectedReceipt.receipt_no}
-                  </span>
-                  <p className="text-[10px] text-stone-400 mt-1">Date: {selectedReceipt.receipt_date}</p>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                    selectedReceipt.status === 'Cancelled' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                  }`}>
-                    {selectedReceipt.status}
+            {/* A5 Printable Fee Receipt Slip */}
+            <div 
+              ref={printModalRef} 
+              className="bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-3.5 text-xs font-sans max-w-[148mm] mx-auto print:p-0 print:border-none print:max-w-none"
+            >
+              {/* Print specific A5 CSS */}
+              <style jsx global>{`
+                @media print {
+                  @page {
+                    size: A5 portrait;
+                    margin: 6mm;
+                  }
+                  body {
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                  }
+                }
+              `}</style>
+
+              {/* School Header */}
+              <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+                <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                <p className="text-[10px] font-bold text-stone-700">
+                  School ID: 1253481 • UDISE Code: 07124100151
+                </p>
+                <p className="text-[9.5px] text-stone-500">
+                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                </p>
+                <div className="pt-1.5 flex justify-center">
+                  <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                    FEE RECEIPT
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              {/* Receipt & Student Details */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
                 <div>
-                  <span className="text-stone-400">Student:</span> <strong className="text-stone-800">{selectedReceipt.student_name}</strong>
+                  <span className="text-stone-400">Receipt No:</span> <strong className="text-stone-900 font-mono">{selectedReceipt.receipt_no}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-800">{selectedReceipt.admission_no}</strong>
+                  <span className="text-stone-400">Date:</span> <strong className="text-stone-900 font-mono">{selectedReceipt.receipt_date}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-800">{selectedReceipt.class_name} {selectedReceipt.section_name}</strong>
+                  <span className="text-stone-400">Student Name:</span> <strong className="text-stone-900">{selectedReceipt.student_name}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Parent Name:</span> <strong className="text-stone-800">{selectedReceipt.parent_name}</strong>
+                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{selectedReceipt.admission_no}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{selectedReceipt.class_name} {selectedReceipt.section_name}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Parent / Guardian:</span> <strong className="text-stone-900">{selectedReceipt.parent_name}</strong>
                 </div>
               </div>
 
-              <div className="border-t border-b border-stone-100 py-3 space-y-1.5 text-[11px]">
+              {/* Financial Summary */}
+              <div className="border-t border-b border-stone-200 py-2.5 space-y-1.5 text-[11px]">
                 <div className="flex justify-between">
-                  <span>Payment Mode:</span>
-                  <strong className="text-stone-900">{selectedReceipt.payment_mode} ({selectedReceipt.transaction_ref || 'N/A'})</strong>
+                  <span className="text-stone-600">Payment Mode / Ref:</span>
+                  <strong className="text-stone-900">{selectedReceipt.payment_mode} ({selectedReceipt.transaction_ref || 'Counter POS'})</strong>
                 </div>
                 <div className="flex justify-between text-stone-600">
-                  <span>Total Bill Demand:</span>
+                  <span>Total Session Demand:</span>
                   <span>{formatCurrency(selectedReceipt.total_amount_due)}</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-emerald-700 pt-1 border-t border-dashed border-stone-200">
+                {Number(selectedReceipt.concession_amount) > 0 && (
+                  <div className="flex justify-between text-purple-700">
+                    <span>Concession Applied:</span>
+                    <span>- {formatCurrency(selectedReceipt.concession_amount)}</span>
+                  </div>
+                )}
+                {Number(selectedReceipt.late_fee_amount) > 0 && (
+                  <div className="flex justify-between text-red-700">
+                    <span>Late Fee Penalty:</span>
+                    <span>+ {formatCurrency(selectedReceipt.late_fee_amount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-black text-stone-900 pt-1.5 border-t border-dashed border-stone-200">
                   <span>Total Amount Paid:</span>
-                  <span>{formatCurrency(selectedReceipt.net_amount_paid)}</span>
+                  <span className="text-emerald-700 font-mono">{formatCurrency(selectedReceipt.net_amount_paid)}</span>
                 </div>
-                <div className="flex justify-between text-stone-500">
-                  <span>Remaining Balance:</span>
-                  <span className="font-bold text-amber-600">{formatCurrency(selectedReceipt.remaining_balance)}</span>
+                <div className="flex justify-between text-stone-500 text-[10.5px]">
+                  <span>Remaining Balance Due:</span>
+                  <span className="font-bold text-amber-600 font-mono">{formatCurrency(selectedReceipt.remaining_balance)}</span>
                 </div>
               </div>
 
@@ -342,16 +376,17 @@ export default function OfficialReceiptsHubPage() {
                 </div>
               )}
 
-              <div className="flex justify-between items-end pt-2 text-[10px] text-stone-400">
-                <div>
-                  <p>Cashier: {selectedReceipt.collected_by || 'Accounts Desk'}</p>
-                  <p className="italic">This is a system-generated electronic receipt.</p>
+              {/* Footer & Signatory */}
+              <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-500">
+                <div className="space-y-0.5">
+                  <p>Cashier / In-Charge: <strong className="text-stone-800">{selectedReceipt.collected_by || 'Accounts Desk'}</strong></p>
+                  <p className="italic text-stone-400">This is a valid computer-generated fee receipt.</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-stone-100 rounded-lg border border-stone-200 flex items-center justify-center mx-auto text-stone-400">
-                    <QrCode className="w-8 h-8" />
+                  <div className="w-10 h-10 bg-stone-100 rounded-lg border border-stone-200 flex items-center justify-center mx-auto text-stone-400">
+                    <QrCode className="w-7 h-7" />
                   </div>
-                  <span className="text-[8px] font-mono">Scan to Verify</span>
+                  <span className="text-[7.5px] font-mono block mt-0.5">Scan to Verify</span>
                 </div>
               </div>
             </div>

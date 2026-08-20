@@ -151,7 +151,7 @@ export default function StudentJourneyTrackingPage() {
               
               <div className="pt-2 border-t border-stone-200 text-left text-[11px] space-y-1 text-stone-600">
                 <p><span className="font-bold">Transport Mode:</span> School Bus Route #04</p>
-                <p><span className="font-bold">Emergency Contact:</span> {selectedStudent.parent_phone || '+91 98100 81008'}</p>
+                <p><span className="font-bold">Emergency Contact:</span> {selectedStudent.parent_phone || '+91 98111 02008'}</p>
               </div>
             </div>
           )}

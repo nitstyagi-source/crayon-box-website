@@ -533,46 +533,69 @@ export default function InvoicesModule() {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-stone-900">Official Fee Demand Note</h3>
+                <h3 className="text-lg font-black text-stone-900">Fee Demand Invoice</h3>
                 <p className="text-xs text-stone-400">{selectedInvoice.invoice_number}</p>
               </div>
               <button onClick={() => setPrintModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
-            <div ref={printRef} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4 text-xs font-sans">
-              <div className="flex justify-between items-start border-b border-stone-100 pb-3">
-                <div>
-                  <h2 className="text-base font-black text-stone-900">CRAYON BOX SCHOOL</h2>
-                  <p className="text-[10px] text-stone-500">Main Campus • CB-AFF-2026 • New Delhi</p>
-                  <p className="text-[10px] text-stone-400">Tel: +91 98100 81008 • accounts@crayonboxschool.com</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-black text-stone-900 bg-stone-100 px-2 py-1 rounded-md">
-                    {selectedInvoice.invoice_number}
-                  </span>
-                  <p className="text-[10px] text-stone-400 mt-1">Due: {selectedInvoice.due_date || '2026-04-10'}</p>
-                  <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                    {selectedInvoice.status}
+            {/* A5 Printable Demand Note */}
+            <div 
+              ref={printRef} 
+              className="bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-3.5 text-xs font-sans max-w-[148mm] mx-auto print:p-0 print:border-none print:max-w-none"
+            >
+              {/* Print specific A5 CSS */}
+              <style jsx global>{`
+                @media print {
+                  @page {
+                    size: A5 portrait;
+                    margin: 6mm;
+                  }
+                  body {
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                  }
+                }
+              `}</style>
+
+              {/* School Header */}
+              <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
+                <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                <p className="text-[10px] font-bold text-stone-700">
+                  School ID: 1253481 • UDISE Code: 07124100151
+                </p>
+                <p className="text-[9.5px] text-stone-500">
+                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                </p>
+                <div className="pt-1.5 flex justify-center">
+                  <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                    FEE DEMAND INVOICE
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
                 <div>
-                  <span className="text-stone-400">Student:</span> <strong className="text-stone-800">{selectedInvoice.student_name || selectedInvoice.students?.first_name}</strong>
+                  <span className="text-stone-400">Invoice No:</span> <strong className="text-stone-900 font-mono">{selectedInvoice.invoice_number}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-800">{selectedInvoice.admission_no || selectedInvoice.students?.admission_no}</strong>
+                  <span className="text-stone-400">Due Date:</span> <strong className="text-stone-900 font-mono">{selectedInvoice.due_date || '2026-04-10'}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Class:</span> <strong className="text-stone-800">{selectedInvoice.class_name} {selectedInvoice.section_name}</strong>
+                  <span className="text-stone-400">Student:</span> <strong className="text-stone-900">{selectedInvoice.student_name || selectedInvoice.students?.first_name}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Billing Period:</span> <strong className="text-stone-800">{selectedInvoice.billing_period}</strong>
+                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{selectedInvoice.admission_no || selectedInvoice.students?.admission_no}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{selectedInvoice.class_name} {selectedInvoice.section_name}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-400">Billing Period:</span> <strong className="text-stone-900">{selectedInvoice.billing_period}</strong>
                 </div>
               </div>
 
-              <div className="border-t border-b border-stone-100 py-3 space-y-1.5 text-[11px]">
+              <div className="border-t border-b border-stone-200 py-2.5 space-y-1.5 text-[11px]">
                 <div className="flex justify-between">
                   <span>Gross Tuition & Annual Charges:</span>
                   <strong className="text-stone-900">{formatCurrency(selectedInvoice.total_amount)}</strong>
@@ -590,19 +613,19 @@ export default function InvoicesModule() {
                   </div>
                 )}
                 <div className="flex justify-between text-emerald-700">
-                  <span>Amount Paid:</span>
+                  <span>Amount Paid So Far:</span>
                   <span>- {formatCurrency(selectedInvoice.amount_paid || 0)}</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-amber-700 pt-1 border-t border-dashed border-stone-200">
+                <div className="flex justify-between text-sm font-black text-stone-900 pt-1.5 border-t border-dashed border-stone-200">
                   <span>Net Payable Amount:</span>
-                  <span>{formatCurrency(Math.max(0, Number(selectedInvoice.total_amount || 0) + Number(selectedInvoice.total_late_fee || 0) - Number(selectedInvoice.total_discount || 0) - Number(selectedInvoice.amount_paid || 0)))}</span>
+                  <span className="text-blue-600 font-mono">{formatCurrency(Math.max(0, Number(selectedInvoice.total_amount || 0) + Number(selectedInvoice.total_late_fee || 0) - Number(selectedInvoice.total_discount || 0) - Number(selectedInvoice.amount_paid || 0)))}</span>
                 </div>
               </div>
 
-              <div className="flex justify-between items-end pt-2 text-[10px] text-stone-400">
+              <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-500">
                 <div>
-                  <p>Authorized Signatory: Accounts Department</p>
-                  <p className="italic">Payable online via parent portal or at reception fee desk.</p>
+                  <p>Authorized Signatory: <strong className="text-stone-800">Accounts Department</strong></p>
+                  <p className="italic text-stone-400">Payable online via parent portal or at reception fee counter.</p>
                 </div>
               </div>
             </div>
