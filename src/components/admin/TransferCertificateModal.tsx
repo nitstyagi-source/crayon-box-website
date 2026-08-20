@@ -73,13 +73,77 @@ export default function TransferCertificateModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
+    <div className="tc-print-backdrop fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      
+      {/* Embedded Print Isolation Styles */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 6mm 10mm;
+          }
+
+          /* Hide entire main document & all surrounding elements */
+          body {
+            background: white !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* Unhide only the TC Certificate and its children */
+          .tc-print-backdrop,
+          .tc-print-backdrop * {
+            visibility: visible !important;
+          }
+
+          .tc-print-backdrop {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+
+          .tc-no-print {
+            display: none !important;
+          }
+
+          #printable-tc-certificate {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 8px 16px !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            box-sizing: border-box !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
       
       {/* Modal Container */}
       <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-4xl my-auto overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:h-auto print:border-none print:shadow-none print:w-full print:rounded-none">
         
         {/* Modal Top Action Bar (Hidden during Print) */}
-        <div className="bg-stone-900 text-white p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 shrink-0 print:hidden">
+        <div className="tc-no-print bg-stone-900 text-white p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600 rounded-xl text-white">
               <FileText className="w-5 h-5" />
@@ -128,7 +192,7 @@ export default function TransferCertificateModal({
           
           {/* EDIT FORM VIEW */}
           {activeView === "edit" && (
-            <div className="max-w-2xl mx-auto bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 print:hidden">
+            <div className="tc-no-print max-w-2xl mx-auto bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b border-stone-100 pb-3">
                 <h4 className="font-bold text-stone-900 text-sm">Customize Certificate Fields</h4>
                 <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">Live Synced</span>
@@ -291,41 +355,39 @@ export default function TransferCertificateModal({
 
           {/* OFFICIAL CERTIFICATE A4 CANVAS */}
           <div
+            id="printable-tc-certificate"
             ref={printRef}
-            className={`mx-auto bg-white shadow-xl border border-stone-200 text-slate-900 p-8 sm:p-12 relative flex flex-col justify-between print:shadow-none print:border-none print:p-8 print:m-0 print:w-full print:h-[100vh] ${
+            className={`mx-auto bg-white shadow-xl border border-stone-200 text-slate-900 p-6 sm:p-10 relative flex flex-col justify-between ${
               activeView === "edit" ? "hidden" : "block"
             }`}
-            style={{ width: "100%", maxWidth: "800px", minHeight: "1050px" }}
+            style={{ width: "100%", maxWidth: "800px", minHeight: "1000px" }}
           >
             
             {/* Top Certificate Content */}
             <div>
               {/* Official Header */}
-              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-4">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-3 mb-3">
+                <div className="flex items-center gap-3">
                   {/* School Logo */}
-                  <div className="w-16 h-16 relative shrink-0">
-                    <Image
-                      src="/logo-transparent.png"
+                  <div className="w-14 h-14 relative shrink-0">
+                    <img
+                      src="/logo.png"
                       alt="Crayon Box School Logo"
-                      width={64}
-                      height={64}
-                      className="object-contain"
-                      priority
+                      className="w-14 h-14 object-contain"
                     />
                   </div>
                   <div>
                     <h1 className="text-2xl sm:text-3xl font-black tracking-wider text-slate-900 uppercase font-sans">
                       C R A Y O N &nbsp; B O X
                     </h1>
-                    <p className="text-sm font-bold tracking-[0.25em] text-slate-700 uppercase -mt-0.5">
+                    <p className="text-xs font-bold tracking-[0.25em] text-slate-700 uppercase -mt-0.5">
                       S C H O O L
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right flex flex-col items-end">
-                  <span className="bg-slate-900 text-white text-[9px] font-black tracking-widest px-3 py-1 uppercase rounded-sm mb-1 inline-block">
+                  <span className="bg-slate-900 text-white text-[9px] font-black tracking-widest px-2.5 py-1 uppercase rounded-sm mb-1 inline-block">
                     MANAGED BY VANI EDUCATIONAL TRUST
                   </span>
                   <span className="text-[10px] font-bold text-slate-700 tracking-wider uppercase">
@@ -335,7 +397,7 @@ export default function TransferCertificateModal({
               </div>
 
               {/* Reference & Date Bar */}
-              <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-4 px-1">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-800 mb-3 px-1">
                 <div>
                   REF NO. <span className="font-mono underline underline-offset-4 font-black">{tcData.ref_no}</span>
                 </div>
@@ -345,14 +407,14 @@ export default function TransferCertificateModal({
               </div>
 
               {/* Document Title */}
-              <div className="text-center my-5">
-                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-slate-900 border-b-2 border-t-2 border-slate-900 py-1.5 inline-block px-8">
+              <div className="text-center my-3">
+                <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-slate-900 border-b-2 border-t-2 border-slate-900 py-1 inline-block px-8">
                   SCHOOL LEAVING CERTIFICATE
                 </h2>
               </div>
 
               {/* 17 Form Fields */}
-              <div className="space-y-2.5 text-xs sm:text-[13px] leading-relaxed text-slate-900 mt-6 font-medium">
+              <div className="space-y-1.5 text-xs sm:text-[12.5px] leading-relaxed text-slate-900 mt-4 font-medium">
                 
                 <div className="flex items-baseline">
                   <span className="font-bold w-[48%] shrink-0">1. Name of School & I.D:</span>
@@ -442,8 +504,8 @@ export default function TransferCertificateModal({
               </div>
 
               {/* Signatures Row */}
-              <div className="mt-14 pt-4 flex justify-between items-end text-xs font-bold text-slate-900">
-                <div className="space-y-12">
+              <div className="mt-10 pt-2 flex justify-between items-end text-xs font-bold text-slate-900">
+                <div className="space-y-8">
                   <p>Checked By: <span className="font-normal font-serif italic text-slate-700">...............................</span></p>
                   <div>
                     <div className="w-36 border-t-2 border-slate-900 mb-1"></div>
@@ -451,8 +513,8 @@ export default function TransferCertificateModal({
                   </div>
                 </div>
 
-                <div className="text-right space-y-12">
-                  <div className="h-6"></div>
+                <div className="text-right space-y-8">
+                  <div className="h-4"></div>
                   <div>
                     <div className="w-36 border-t-2 border-slate-900 mb-1 ml-auto"></div>
                     <p className="font-black uppercase tracking-wider text-[11px]">{tcData.principal}</p>
@@ -462,13 +524,13 @@ export default function TransferCertificateModal({
             </div>
 
             {/* Official School Footer */}
-            <div className="mt-8 pt-4 border-t-2 border-slate-900 text-[10px] text-slate-800 flex justify-between items-end relative">
+            <div className="mt-6 pt-3 border-t-2 border-slate-900 text-[10px] text-slate-800 flex justify-between items-end relative">
               
               {/* Left Contact */}
               <div className="space-y-0.5 font-medium">
                 <p><span className="font-bold">Tel.</span> +91 9811102008</p>
-                <p>info@crayonboxpreschool.in</p>
-                <p className="text-blue-700 font-bold">www.crayonboxpreschool.in</p>
+                <p>info@crayonboxschool.com</p>
+                <p className="text-blue-700 font-bold">www.crayonboxschool.com</p>
               </div>
 
               {/* Right Address */}
@@ -483,7 +545,7 @@ export default function TransferCertificateModal({
         </div>
 
         {/* Modal Footer (Hidden during Print) */}
-        <div className="p-4 bg-white border-t border-stone-200 flex justify-between items-center print:hidden">
+        <div className="tc-no-print p-4 bg-white border-t border-stone-200 flex justify-between items-center">
           <p className="text-xs text-stone-500 font-medium">
             Permanent record will be updated to <strong className="text-stone-800">TC Issued</strong> upon printing.
           </p>
