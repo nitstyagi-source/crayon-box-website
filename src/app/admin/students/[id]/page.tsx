@@ -5,7 +5,7 @@ import {
   User, FileText, HeartPulse, Bus, BookOpen, GraduationCap, 
   Clock, Phone, AlertTriangle, ShieldCheck, CheckCircle2, 
   Download, Printer, AlertCircle, Plus, RefreshCw, ChevronRight, 
-  Activity, Edit3, Trash2, X, Upload, ExternalLink
+  Activity, Edit3, Trash2, X, Upload, ExternalLink, ArrowUpRight
 } from "lucide-react";
 import { 
   getStudentProfile, 
@@ -13,7 +13,8 @@ import {
   updateStudentLifecycleStatus, 
   saveStudentMedicalRecord,
   uploadStudentDocument,
-  deleteStudentDocument
+  deleteStudentDocument,
+  promoteStudent
 } from "@/app/actions/students";
 
 export default function StudentProfileDashboard({ params }: { params: Promise<{ id: string }> }) {
@@ -56,9 +57,16 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     verification_status: "Verified"
   });
 
-  // Lifecycle Modal State
+  // Lifecycle / Promotion Modal State
   const [lifecycleModal, setLifecycleModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState("Promotion");
+  const [promotionData, setPromotionData] = useState({
+    next_class: "",
+    next_section: "A",
+    next_roll_no: "",
+    academic_session: "2026-2027",
+    remarks: ""
+  });
   const [actionReason, setActionReason] = useState("");
 
   // Medical Edit State
@@ -103,6 +111,20 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         parent_email: primaryParent.email || "",
         parent_occupation: primaryParent.occupation || "",
         parent_type: primaryParent.parent_type || "Father"
+      });
+
+      // Pre-fill next class promotion default (e.g. Grade 1 -> Grade 2)
+      const currentClassName = currentAc.class_name || "Grade 1";
+      const match = currentClassName.match(/\d+/);
+      const nextNum = match ? parseInt(match[0]) + 1 : 2;
+      const suggestedNext = currentClassName.includes("Grade") ? `Grade ${nextNum}` : `Class ${nextNum}`;
+
+      setPromotionData({
+        next_class: suggestedNext,
+        next_section: currentAc.section_name || "A",
+        next_roll_no: currentAc.roll_no || "",
+        academic_session: "2026-2027",
+        remarks: `Promoted from ${currentClassName}`
       });
 
       if (data.medical) {
@@ -168,14 +190,26 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
   async function handleLifecycleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsUpdating(true);
-    const res = await updateStudentLifecycleStatus(studentId, selectedAction, actionReason);
-    setIsUpdating(false);
-    if (res.success) {
-      setLifecycleModal(false);
-      setActionReason("");
-      loadProfile();
+
+    if (selectedAction === "Promotion") {
+      const res = await promoteStudent(studentId, promotionData);
+      setIsUpdating(false);
+      if (res.success) {
+        setLifecycleModal(false);
+        loadProfile();
+      } else {
+        alert("Failed to promote student: " + res.error);
+      }
     } else {
-      alert("Failed to update lifecycle: " + res.error);
+      const res = await updateStudentLifecycleStatus(studentId, selectedAction, actionReason);
+      setIsUpdating(false);
+      if (res.success) {
+        setLifecycleModal(false);
+        setActionReason("");
+        loadProfile();
+      } else {
+        alert("Failed to update lifecycle: " + res.error);
+      }
     }
   }
 
@@ -196,6 +230,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
   if (!profile) return <div className="p-12 text-center font-bold text-red-500">Student not found.</div>;
 
   const currentAcademic = profile.academic?.find((a: any) => a.is_current_session) || profile.academic?.[0] || {};
+  const isFormer = ['Withdrawn', 'TC Issued', 'Suspended', 'Alumni'].includes(profile.status);
   
   // Calculate Fee Dues
   const totalInvoiced = profile.invoices?.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0) || 0;
@@ -217,8 +252,12 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
     <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto font-sans">
       
       {/* Universal 360° Header Card */}
-      <div className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6">
-        <div className="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-3xl shrink-0 shadow-inner">
+      <div className={`rounded-3xl p-6 md:p-8 border shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6 ${
+        isFormer ? 'bg-stone-100 border-stone-300' : 'bg-white border-stone-200'
+      }`}>
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center font-black text-3xl shrink-0 shadow-inner ${
+          isFormer ? 'bg-stone-300 text-stone-700' : 'bg-blue-100 text-blue-600'
+        }`}>
           {profile.first_name[0]}{profile.last_name[0]}
         </div>
         <div className="flex-1">
@@ -226,7 +265,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
             <h1 className="text-3xl font-black text-stone-900">{profile.first_name} {profile.middle_name || ''} {profile.last_name}</h1>
             <div className="flex items-center gap-2">
               <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                profile.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-600'
+                isFormer 
+                  ? 'bg-stone-300 text-stone-800'
+                  : profile.status === 'Active' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-blue-100 text-blue-700'
               }`}>
                 {profile.status}
               </span>
@@ -268,7 +311,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               onClick={() => setLifecycleModal(true)}
               className="flex-1 bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
-              <Activity className="w-3.5 h-3.5 text-amber-400" /> Action
+              <Activity className="w-3.5 h-3.5 text-amber-400" /> Promote / TC
             </button>
           </div>
         </div>
@@ -421,9 +464,15 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         {activeTab === 'academic' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h3 className="text-lg font-bold text-stone-900">Session & Class History</h3>
-              <button onClick={() => setEditProfileModal(true)} className="text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-xl hover:bg-blue-100">
-                Update Class / Roll No
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">Multi-Session Academic Progression</h3>
+                <p className="text-xs text-stone-500">Chronological history of classes, sections, and roll numbers across academic years.</p>
+              </div>
+              <button 
+                onClick={() => { setSelectedAction("Promotion"); setLifecycleModal(true); }}
+                className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Next Class
               </button>
             </div>
             
@@ -431,28 +480,28 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-stone-50 text-stone-500 text-xs uppercase tracking-wider">
-                    <th className="p-3.5 font-bold rounded-l-xl">Academic Session</th>
-                    <th className="p-3.5 font-bold">Class & Section</th>
+                    <th className="p-3.5 font-bold rounded-l-xl">Status</th>
+                    <th className="p-3.5 font-bold">Class & Grade</th>
+                    <th className="p-3.5 font-bold">Section</th>
                     <th className="p-3.5 font-bold">Roll Number</th>
-                    <th className="p-3.5 font-bold">Status</th>
-                    <th className="p-3.5 font-bold text-right rounded-r-xl">Enrolled Date</th>
+                    <th className="p-3.5 font-bold text-right rounded-r-xl">Enrolled / Record Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {profile.academic?.map((ac: any) => (
-                    <tr key={ac.id} className="hover:bg-stone-50">
-                      <td className="p-3.5 font-bold text-stone-900">2026-2027</td>
-                      <td className="p-3.5 font-bold text-blue-700">{ac.class_name} {ac.section_name || ''}</td>
-                      <td className="p-3.5 font-mono text-stone-700">{ac.roll_no || 'N/A'}</td>
+                    <tr key={ac.id} className={ac.is_current_session ? "bg-blue-50/40 hover:bg-blue-50/60" : "hover:bg-stone-50 opacity-80"}>
                       <td className="p-3.5">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-                          ac.is_current_session ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-600'
+                          ac.is_current_session ? 'bg-green-100 text-green-700' : 'bg-stone-200 text-stone-600'
                         }`}>
-                          {ac.is_current_session ? 'Current Session' : 'Past Session'}
+                          {ac.is_current_session ? 'Current Active Class' : 'Previous Class'}
                         </span>
                       </td>
+                      <td className="p-3.5 font-bold text-stone-900">{ac.class_name}</td>
+                      <td className="p-3.5 font-bold text-stone-700">{ac.section_name || 'A'}</td>
+                      <td className="p-3.5 font-mono text-stone-700">{ac.roll_no || 'Unassigned'}</td>
                       <td className="p-3.5 text-right text-stone-500 text-xs">
-                        {ac.created_at ? new Date(ac.created_at).toLocaleDateString() : 'N/A'}
+                        {ac.created_at ? new Date(ac.created_at).toLocaleDateString() : 'Active'}
                       </td>
                     </tr>
                   ))}
@@ -701,7 +750,10 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         {activeTab === 'lifecycle' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h3 className="text-lg font-bold text-stone-900">Student Lifecycle & TC Registry</h3>
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">Student Lifecycle & TC Registry</h3>
+                <p className="text-xs text-stone-500">Official log of class promotions, school withdrawals, and TC issuances.</p>
+              </div>
               <button 
                 onClick={() => setLifecycleModal(true)}
                 className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold"
@@ -716,7 +768,7 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                   <div key={ev.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex justify-between items-center">
                     <div>
                       <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-mono">{ev.action_type}</span>
-                      <p className="font-bold text-stone-800 text-sm mt-1">{ev.reason || 'Status modification'}</p>
+                      <p className="font-bold text-stone-800 text-sm mt-1">{ev.remarks || ev.reason || 'Status modification'}</p>
                     </div>
                     <span className="text-xs text-stone-400 font-medium">{ev.action_date || 'Recent'}</span>
                   </div>
@@ -930,39 +982,99 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Modal 3: Lifecycle Action */}
+      {/* Modal 3: Promotion & Lifecycle Action */}
       {lifecycleModal && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-stone-900 mb-2">Change Student Lifecycle Status</h3>
-            <p className="text-stone-500 text-xs mb-6">Record a formal status change in the official school register.</p>
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 animate-in zoom-in duration-200 my-8">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xl font-bold text-stone-900">
+                {selectedAction === "Promotion" ? "Promote to Next Class" : "Change Lifecycle Status"}
+              </h3>
+              <button onClick={() => setLifecycleModal(false)} className="p-2 text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-stone-500 text-xs mb-6">
+              {selectedAction === "Promotion" 
+                ? "Promoting moves the student's active enrollment to the next class and archives the past session."
+                : "Record school withdrawal, TC issuance, or disciplinary actions. Withdrawn / TC students are moved to the Former Students list."}
+            </p>
 
             <form onSubmit={handleLifecycleSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-stone-500 block mb-1">Action Type</label>
+                <label className="text-xs font-bold text-stone-500 block mb-1">Action Type *</label>
                 <select 
                   value={selectedAction} 
                   onChange={e => setSelectedAction(e.target.value)}
                   className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-stone-800"
                 >
-                  <option value="Promotion">Promote to Next Grade</option>
-                  <option value="TC_Issued">Issue Transfer Certificate (TC)</option>
-                  <option value="Withdrawal">Student Withdrawal</option>
-                  <option value="Suspension">Disciplinary Suspension</option>
+                  <option value="Promotion">🎓 Promote to Next Class</option>
+                  <option value="TC_Issued">📜 Issue Transfer Certificate (TC)</option>
+                  <option value="Withdrawal">🚪 Student Withdrawal (Left School)</option>
+                  <option value="Suspension">⚠️ Disciplinary Suspension</option>
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-stone-500 block mb-1">Official Reason / Remarks</label>
-                <textarea 
-                  required
-                  value={actionReason}
-                  onChange={e => setActionReason(e.target.value)}
-                  placeholder="Enter reason for TC or promotion details..."
-                  className="w-full border border-stone-200 p-2.5 rounded-xl text-sm text-stone-800"
-                  rows={3}
-                />
-              </div>
+              {selectedAction === "Promotion" ? (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-stone-500 block mb-1">Promoted Class / Grade *</label>
+                    <input 
+                      required
+                      type="text" 
+                      placeholder="e.g. Grade 2" 
+                      value={promotionData.next_class}
+                      onChange={e => setPromotionData({...promotionData, next_class: e.target.value})}
+                      className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold text-blue-700" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">Section</label>
+                      <input 
+                        type="text" 
+                        value={promotionData.next_section}
+                        onChange={e => setPromotionData({...promotionData, next_section: e.target.value})}
+                        className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-bold" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 block mb-1">New Roll No.</label>
+                      <input 
+                        type="text" 
+                        placeholder="Optional"
+                        value={promotionData.next_roll_no}
+                        onChange={e => setPromotionData({...promotionData, next_roll_no: e.target.value})}
+                        className="w-full border border-stone-200 p-2.5 rounded-xl text-sm font-mono" 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-stone-500 block mb-1">Academic Session</label>
+                    <input 
+                      type="text" 
+                      value={promotionData.academic_session}
+                      onChange={e => setPromotionData({...promotionData, academic_session: e.target.value})}
+                      className="w-full border border-stone-200 p-2.5 rounded-xl text-sm" 
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="text-xs font-bold text-stone-500 block mb-1">Reason / Remarks / TC Details *</label>
+                  <textarea 
+                    required
+                    value={actionReason}
+                    onChange={e => setActionReason(e.target.value)}
+                    placeholder="Enter reason for leaving, TC certificate number, or relocation details..."
+                    className="w-full border border-stone-200 p-2.5 rounded-xl text-sm text-stone-800"
+                    rows={3}
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3 justify-end pt-4 border-t border-stone-100">
                 <button 
@@ -975,9 +1087,11 @@ export default function StudentProfileDashboard({ params }: { params: Promise<{ 
                 <button 
                   type="submit" 
                   disabled={isUpdating}
-                  className="bg-stone-900 hover:bg-stone-800 text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-50"
+                  className={`text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-50 shadow-md ${
+                    selectedAction === "Promotion" ? "bg-blue-600 hover:bg-blue-700" : "bg-stone-900 hover:bg-stone-800"
+                  }`}
                 >
-                  {isUpdating ? "Saving..." : "Apply Status"}
+                  {isUpdating ? "Processing..." : selectedAction === "Promotion" ? "Promote Student" : "Apply & Move"}
                 </button>
               </div>
             </form>

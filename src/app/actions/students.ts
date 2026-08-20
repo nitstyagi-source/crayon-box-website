@@ -39,7 +39,7 @@ export async function getStudents(campusId: string) {
       .from('students')
       .select('*, student_academic_history(*)')
       .eq('campus_id', resolvedCampusId)
-      .order('first_name', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return { success: true, data: data || [] };
@@ -175,13 +175,99 @@ export async function createStudent(payload: any) {
 }
 
 /**
+ * Promotes a student to the next class / academic session.
+ * Archives the previous class record and creates a new active academic history entry.
+ */
+export async function promoteStudent(studentId: string, payload: {
+  next_class: string;
+  next_section?: string;
+  next_roll_no?: string;
+  academic_session?: string;
+  remarks?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // 1. Fetch student to get campus_id
+    const { data: student } = await supabase
+      .from('students')
+      .select('campus_id')
+      .eq('id', studentId)
+      .single();
+
+    const campusId = student?.campus_id || (await resolveCampusId(supabase, ''));
+
+    // 2. Fetch or create active academic year
+    let { data: academicYear } = await supabase
+      .from('academic_years')
+      .select('id')
+      .eq('campus_id', campusId)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+
+    let yearId = academicYear?.id;
+    if (!yearId) {
+      const { data: newYear } = await supabase
+        .from('academic_years')
+        .insert([{ campus_id: campusId, name: payload.academic_session || '2026-2027', start_date: '2026-04-01', end_date: '2027-03-31', is_active: true }])
+        .select()
+        .single();
+      yearId = newYear?.id;
+    }
+
+    // 3. Mark existing current sessions as past
+    await supabase
+      .from('student_academic_history')
+      .update({ is_current_session: false })
+      .eq('student_id', studentId);
+
+    // 4. Insert new promoted class record
+    const { error: insertErr } = await supabase
+      .from('student_academic_history')
+      .insert([{
+        student_id: studentId,
+        academic_year_id: yearId,
+        class_name: payload.next_class,
+        section_name: payload.next_section || 'A',
+        roll_no: payload.next_roll_no || null,
+        is_current_session: true
+      }]);
+
+    if (insertErr) throw insertErr;
+
+    // 5. Ensure student status is Active
+    await supabase
+      .from('students')
+      .update({ status: 'Active', updated_at: new Date().toISOString() })
+      .eq('id', studentId);
+
+    // 6. Record Lifecycle Event
+    await supabase
+      .from('student_lifecycle')
+      .insert([{
+        student_id: studentId,
+        action_type: 'Promotion',
+        action_date: new Date().toISOString().split('T')[0],
+        remarks: payload.remarks || `Promoted to ${payload.next_class} (${payload.academic_session || '2026-2027'})`
+      }]);
+
+    revalidatePath(`/admin/students/${studentId}`);
+    revalidatePath('/admin/students');
+    revalidatePath('/admin/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Updates full student profile (demographics, current class/roll no, and primary parent).
  */
 export async function updateStudentProfile(studentId: string, payload: any) {
   try {
     const supabase = getSupabaseAdmin();
 
-    // 1. Update students table
     const { error: studentErr } = await supabase
       .from('students')
       .update({
@@ -200,7 +286,6 @@ export async function updateStudentProfile(studentId: string, payload: any) {
 
     if (studentErr) throw studentErr;
 
-    // 2. Update current academic record
     if (payload.class_name) {
       const { data: currentAc } = await supabase
         .from('student_academic_history')
@@ -231,7 +316,6 @@ export async function updateStudentProfile(studentId: string, payload: any) {
       }
     }
 
-    // 3. Update primary parent
     if (payload.parent_name) {
       const { data: currentParent } = await supabase
         .from('student_parents')
@@ -274,9 +358,6 @@ export async function updateStudentProfile(studentId: string, payload: any) {
   }
 }
 
-/**
- * Uploads/attaches a new document to the student's Document Vault.
- */
 export async function uploadStudentDocument(studentId: string, payload: {
   document_type: string;
   document_no?: string;
@@ -308,9 +389,6 @@ export async function uploadStudentDocument(studentId: string, payload: {
   }
 }
 
-/**
- * Deletes a document from the student's vault.
- */
 export async function deleteStudentDocument(documentId: string, studentId: string) {
   try {
     const supabase = getSupabaseAdmin();
@@ -349,11 +427,12 @@ export async function updateStudentLifecycleStatus(studentId: string, actionType
         student_id: studentId,
         action_type: actionType,
         action_date: new Date().toISOString().split('T')[0],
-        reason: reason || `Status changed to ${status}`,
+        remarks: reason || `Status changed to ${status}`,
       }]);
 
     revalidatePath(`/admin/students/${studentId}`);
     revalidatePath('/admin/students');
+    revalidatePath('/admin/dashboard');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -396,6 +475,89 @@ export async function saveStudentMedicalRecord(studentId: string, payload: any) 
 
     revalidatePath(`/admin/students/${studentId}`);
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Real-time metrics for the Global Admin Command Center Dashboard.
+ */
+export async function getDashboardMetrics(campusId: string) {
+  try {
+    if (!campusId) return { success: true, data: null };
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    // 1. Fetch Students
+    const { data: students } = await supabase
+      .from('students')
+      .select('id, first_name, last_name, admission_no, category, status, gender, created_at, student_academic_history(class_name, is_current_session)')
+      .eq('campus_id', resolvedCampusId);
+
+    const allStudents = students || [];
+    const activeStudents = allStudents.filter(s => s.status === 'Active' || s.status === 'Promoted');
+    const formerStudents = allStudents.filter(s => ['Withdrawn', 'TC Issued', 'Suspended', 'Alumni'].includes(s.status));
+    const ewsStudents = activeStudents.filter(s => s.category === 'EWS');
+
+    // Class distribution
+    const classMap: Record<string, number> = {};
+    activeStudents.forEach(s => {
+      const currentAc = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
+      const className = currentAc?.class_name || 'Unassigned';
+      classMap[className] = (classMap[className] || 0) + 1;
+    });
+
+    const classDistribution = Object.entries(classMap).map(([name, count]) => ({
+      name,
+      count,
+      pct: activeStudents.length > 0 ? Math.round((count / activeStudents.length) * 100) : 0
+    }));
+
+    // 2. Fetch Admissions Applications
+    const { count: admissionsCount } = await supabase
+      .from('admissions_applications')
+      .select('*', { count: 'exact', head: true });
+
+    // 3. Fetch Invoices & Collections
+    const { data: invoices } = await supabase
+      .from('student_invoices')
+      .select('total_amount, amount_paid, status')
+      .eq('campus_id', resolvedCampusId);
+
+    let totalCollections = 0;
+    let totalPending = 0;
+    (invoices || []).forEach(inv => {
+      totalCollections += Number(inv.amount_paid || 0);
+      if (inv.status !== 'Paid') {
+        totalPending += (Number(inv.total_amount || 0) - Number(inv.amount_paid || 0));
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        totalEnrollments: activeStudents.length,
+        formerStudentsCount: formerStudents.length,
+        ewsCount: ewsStudents.length,
+        admissionsCount: admissionsCount || 0,
+        totalCollections,
+        totalPending,
+        classDistribution,
+        recentStudents: allStudents.slice(0, 5).map(s => {
+          const ac = (s.student_academic_history as any[])?.find((a: any) => a.is_current_session) || (s.student_academic_history as any[])?.[0];
+          return {
+            id: s.id,
+            name: `${s.first_name} ${s.last_name}`,
+            admissionNo: s.admission_no,
+            className: ac?.class_name || 'N/A',
+            category: s.category,
+            status: s.status,
+            createdAt: s.created_at
+          };
+        })
+      }
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
