@@ -153,6 +153,8 @@ export async function getAcademicSubjects(campusId: string, session = '2026-2027
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
+    const FOUNDATIONAL_CLASSES = ['Nursery', 'LKG', 'UKG', 'Grade 1', 'Grade 2'];
+
     let query = supabase
       .from('academic_subjects')
       .select(`
@@ -165,9 +167,33 @@ export async function getAcademicSubjects(campusId: string, session = '2026-2027
 
     if (className && className !== 'All') {
       query = query.eq('class_name', className);
-    }
-    if (teacherName && teacherName !== 'All') {
-      query = query.ilike('teacher_name', `%${teacherName}%`);
+      
+      // If it's a foundational class (Nursery to Class 2), Mother Teacher has access to ALL subjects of that class!
+      // Otherwise for higher grades, filter strictly by teacher name if provided.
+      if (!FOUNDATIONAL_CLASSES.includes(className)) {
+        if (teacherName && teacherName !== 'All') {
+          query = query.ilike('teacher_name', `%${teacherName}%`);
+        }
+      }
+    } else if (teacherName && teacherName !== 'All') {
+      // Global query by teacher: Find which foundational classes this teacher teaches
+      const { data: teacherSubs } = await supabase
+        .from('academic_subjects')
+        .select('class_name')
+        .eq('campus_id', resolvedCampusId)
+        .eq('academic_session', session)
+        .ilike('teacher_name', `%${teacherName}%`);
+
+      const teacherFoundationalGrades = Array.from(
+        new Set((teacherSubs || []).map((s: any) => s.class_name).filter((c: string) => FOUNDATIONAL_CLASSES.includes(c)))
+      );
+
+      if (teacherFoundationalGrades.length > 0) {
+        // Teacher is a Mother Teacher in these foundational grades (gets ALL subjects in them) + specific subjects in other grades
+        query = query.or(`class_name.in.(${teacherFoundationalGrades.join(',')}),teacher_name.ilike.%${teacherName}%`);
+      } else {
+        query = query.ilike('teacher_name', `%${teacherName}%`);
+      }
     }
 
     const { data, error } = await query.order('class_name').order('name');

@@ -5,7 +5,8 @@ import {
   Printer, Plus, Edit3, Trash2, BookOpen, Layers, 
   CheckCircle2, FileText, Download, Sparkles, Filter, 
   ChevronDown, ChevronRight, Eye, Save, HelpCircle, 
-  Award, Copy, ArrowUp, ArrowDown, FileQuestion, Upload
+  Award, Copy, ArrowUp, ArrowDown, FileQuestion, Upload,
+  Palette, Star, Smile, Heart, CheckSquare, Compass
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
@@ -44,9 +45,16 @@ interface PaperFormState {
   status: string;
 }
 
+const FOUNDATIONAL_CLASSES = ["Nursery", "LKG", "UKG", "Grade 1", "Grade 2"];
+const ALL_CLASSES = [
+  "Nursery", "LKG", "UKG", 
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", 
+  "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"
+];
+
 export default function QuestionPaperGeneratorPage() {
   const { activeCampusId } = useCampusContext();
-  const [activeTab, setActiveTab] = useState<"generator" | "bank">("generator");
+  const [activeTab, setActiveTab] = useState<"generator" | "worksheets" | "bank">("generator");
   const [selectedClass, setSelectedClass] = useState("Grade 5");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
   const [selectedTeacher, setSelectedTeacher] = useState("All");
@@ -85,7 +93,7 @@ export default function QuestionPaperGeneratorPage() {
   const [activePreviewPaper, setActivePreviewPaper] = useState<any>(null);
   const [showMarkingScheme, setShowMarkingScheme] = useState(false);
 
-  // Paper Designer Form
+  // Paper / Worksheet Designer Form
   const [paperForm, setPaperForm] = useState<PaperFormState>({
     class_name: "Grade 5",
     subject_id: "",
@@ -169,6 +177,8 @@ export default function QuestionPaperGeneratorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
+
+  const isMotherTeacherClass = FOUNDATIONAL_CLASSES.includes(selectedClass);
 
   useEffect(() => {
     loadTeachers();
@@ -268,11 +278,10 @@ export default function QuestionPaperGeneratorPage() {
   // --- Question Bank Actions ---
   function openAddQuestion() {
     setEditingQItem(null);
-    const firstCh = fullSyllabus?.units?.[0]?.chapters?.[0] || fullSyllabus?.unassignedChapters?.[0];
     setQForm({
-      subject_id: selectedSubjectId || subjects[0]?.id || "",
-      chapter_id: firstCh?.id || "",
-      question_type: "MCQ",
+      subject_id: selectedSubjectId || (subjects[0]?.id || ""),
+      chapter_id: "",
+      question_type: isMotherTeacherClass ? "ShortAnswer" : "MCQ",
       marks: 1,
       question_text: "",
       option_a: "",
@@ -290,17 +299,16 @@ export default function QuestionPaperGeneratorPage() {
 
   function openEditQuestion(q: any) {
     setEditingQItem(q);
-    const opts = q.options || [];
     setQForm({
       subject_id: q.subject_id,
       chapter_id: q.chapter_id || "",
       question_type: q.question_type || "MCQ",
       marks: q.marks || 1,
-      question_text: q.question_text,
-      option_a: opts[0] || "",
-      option_b: opts[1] || "",
-      option_c: opts[2] || "",
-      option_d: opts[3] || "",
+      question_text: q.question_text || "",
+      option_a: q.options?.[0] || "",
+      option_b: q.options?.[1] || "",
+      option_c: q.options?.[2] || "",
+      option_d: q.options?.[3] || "",
       correct_answer: q.correct_answer || "",
       marking_scheme: q.marking_scheme || "",
       difficulty: q.difficulty || "Medium",
@@ -310,10 +318,10 @@ export default function QuestionPaperGeneratorPage() {
     setQBankModalOpen(true);
   }
 
-  async function handleSaveQuestion(e: React.FormEvent) {
+  async function handleSaveQuestionBankItem(e: React.FormEvent) {
     e.preventDefault();
     if (!qForm.subject_id || !qForm.question_text) {
-      alert("Please enter subject and question text.");
+      alert("Please fill in Subject and Question text.");
       return;
     }
 
@@ -339,15 +347,15 @@ export default function QuestionPaperGeneratorPage() {
         marking_scheme: qForm.marking_scheme,
         difficulty: qForm.difficulty,
         blooms_level: qForm.blooms_level,
-        pdf_attachment_url: qForm.pdf_attachment_url,
-        created_by: "Faculty"
+        pdf_attachment_url: qForm.pdf_attachment_url || undefined,
+        created_by: selectedTeacher !== "All" ? selectedTeacher : "Academic Staff"
       });
 
       if (res.success) {
         setQBankModalOpen(false);
         loadQuestionBank();
       } else {
-        alert("Error saving question: " + res.error);
+        alert("Error: " + res.error);
       }
     } finally {
       setIsSaving(false);
@@ -355,58 +363,104 @@ export default function QuestionPaperGeneratorPage() {
   }
 
   async function handleDeleteQuestion(id: string) {
-    if (!confirm("Delete this question from question bank?")) return;
+    if (!confirm("Delete this question from the bank?")) return;
     const res = await deleteQuestionBankItem(id);
     if (res.success) loadQuestionBank();
   }
 
   // --- Paper Designer Actions ---
-  function openNewPaperDesigner() {
+  function openNewPaperDesigner(isWorksheet = false) {
     setEditingPaperId(null);
-    setPaperForm({
-      class_name: selectedClass,
-      subject_id: selectedSubjectId || subjects[0]?.id || "",
-      exam_title: "Periodic Assessment / Examination 2026-27",
-      max_marks: 80,
-      duration_minutes: 180,
-      general_instructions: [
-        "This question paper contains 5 sections: A, B, C, D and E.",
-        "Section A comprises MCQs of 1 mark each.",
-        "Section B comprises Short Answer questions of 2 marks each.",
-        "Section C comprises Short Answer questions of 3 marks each.",
-        "Section D comprises Long Answer questions of 5 marks each with internal choice.",
-        "Section E comprises Case Study / Competency based questions of 4 marks each.",
-        "All questions are compulsory. There is no overall choice, however internal choice is provided.",
-        "Use of calculators or digital devices is strictly prohibited."
-      ],
-      sections: [
-        {
-          section_name: "SECTION A — Objective & MCQs",
-          instructions: "1 mark each.",
-          marks_per_question: 1,
-          questions: []
-        },
-        {
-          section_name: "SECTION B — Short Answer Type I",
-          instructions: "2 marks each.",
-          marks_per_question: 2,
-          questions: []
-        },
-        {
-          section_name: "SECTION C — Short Answer Type II",
-          instructions: "3 marks each.",
-          marks_per_question: 3,
-          questions: []
-        },
-        {
-          section_name: "SECTION D — Long Answer",
-          instructions: "5 marks each.",
-          marks_per_question: 5,
-          questions: []
-        }
-      ],
-      status: "Published"
-    });
+    const defSubId = selectedSubjectId || (subjects[0]?.id || "");
+    
+    if (isWorksheet || isMotherTeacherClass) {
+      // Early childhood Worksheet format
+      setPaperForm({
+        class_name: selectedClass,
+        subject_id: defSubId,
+        exam_title: `${selectedClass} Activity & Skill Evaluation Worksheet`,
+        max_marks: 25,
+        duration_minutes: 60,
+        general_instructions: [
+          "Encourage the child to hold the crayon/pencil independently.",
+          "Read instructions clearly and cheerfully to the student.",
+          "Teacher grading includes star rubric for concept mastery and fine motor skills."
+        ],
+        sections: [
+          {
+            section_name: "ACTIVITY 1: Tracing & Line Patterns",
+            instructions: "Trace along the dotted lines neatly with your crayon.",
+            marks_per_question: 5,
+            questions: [
+              { q_num: 1, text: "Trace the path to connect the honeybee to the flower: 🐝 ~ ~ ~ ~ 🌸", marks: 5 }
+            ]
+          },
+          {
+            section_name: "ACTIVITY 2: Match & Circle the Correct Object",
+            instructions: "Draw lines to match the pictures with their correct sound/partner.",
+            marks_per_question: 5,
+            questions: [
+              { q_num: 2, text: "Match Column A with Column B:\n(a) 🍎 Apple  ➔  [  ] B\n(b) ⚽ Ball   ➔  [  ] A\n(c) 🐱 Cat    ➔  [  ] D\n(d) 🦆 Duck   ➔  [  ] C", marks: 5 }
+            ]
+          },
+          {
+            section_name: "ACTIVITY 3: Count & Write in the Star Box",
+            instructions: "Count the objects and write the number in the star ⭐.",
+            marks_per_question: 5,
+            questions: [
+              { q_num: 3, text: "Count the balloons: 🎈 🎈 🎈 🎈 ➔ [      ]", marks: 5 }
+            ]
+          }
+        ],
+        status: "Published"
+      });
+    } else {
+      // Standard CBSE Examination format
+      setPaperForm({
+        class_name: selectedClass,
+        subject_id: defSubId,
+        exam_title: "Periodic Assessment / Examination 2026-27",
+        max_marks: 80,
+        duration_minutes: 180,
+        general_instructions: [
+          "This question paper contains 5 sections: A, B, C, D and E.",
+          "Section A comprises MCQs of 1 mark each.",
+          "Section B comprises Short Answer questions of 2 marks each.",
+          "Section C comprises Short Answer questions of 3 marks each.",
+          "Section D comprises Long Answer questions of 5 marks each with internal choice.",
+          "Section E comprises Case Study / Competency based questions of 4 marks each.",
+          "All questions are compulsory. There is no overall choice, however internal choice is provided.",
+          "Use of calculators or digital devices is strictly prohibited."
+        ],
+        sections: [
+          {
+            section_name: "SECTION A — OBJECTIVE & MCQS",
+            instructions: "1 mark each",
+            marks_per_question: 1,
+            questions: []
+          },
+          {
+            section_name: "SECTION B — SHORT ANSWER TYPE I",
+            instructions: "2 marks each",
+            marks_per_question: 2,
+            questions: []
+          },
+          {
+            section_name: "SECTION C — SHORT ANSWER TYPE II",
+            instructions: "3 marks each",
+            marks_per_question: 3,
+            questions: []
+          },
+          {
+            section_name: "SECTION D — LONG ANSWER",
+            instructions: "5 marks each",
+            marks_per_question: 5,
+            questions: []
+          }
+        ],
+        status: "Published"
+      });
+    }
     setPaperModalOpen(true);
   }
 
@@ -416,8 +470,8 @@ export default function QuestionPaperGeneratorPage() {
       class_name: paper.class_name,
       subject_id: paper.subject_id,
       exam_title: paper.exam_title,
-      max_marks: paper.max_marks || 80,
-      duration_minutes: paper.duration_minutes || 180,
+      max_marks: paper.max_marks,
+      duration_minutes: paper.duration_minutes,
       general_instructions: paper.general_instructions || [],
       sections: paper.sections || [],
       status: paper.status || "Published"
@@ -426,14 +480,14 @@ export default function QuestionPaperGeneratorPage() {
   }
 
   function addSectionToPaper() {
-    const nextLetter = String.fromCharCode(65 + paperForm.sections.length);
+    const secLetter = String.fromCharCode(65 + paperForm.sections.length);
     setPaperForm({
       ...paperForm,
       sections: [
         ...paperForm.sections,
         {
-          section_name: `SECTION ${nextLetter} — Custom Questions`,
-          instructions: "Solve all questions.",
+          section_name: isMotherTeacherClass ? `ACTIVITY ${paperForm.sections.length + 1}: Skill Practice` : `SECTION ${secLetter} — Questions`,
+          instructions: isMotherTeacherClass ? "Complete the activity neatly." : "Answer all questions.",
           marks_per_question: 2,
           questions: []
         }
@@ -441,52 +495,48 @@ export default function QuestionPaperGeneratorPage() {
     });
   }
 
-  function removeSectionFromPaper(idx: number) {
+  function addCustomQuestionToSection(secIdx: number) {
+    const totalQCount = paperForm.sections.reduce((sum, s) => sum + s.questions.length, 0) + 1;
     const updated = [...paperForm.sections];
-    updated.splice(idx, 1);
-    setPaperForm({ ...paperForm, sections: updated });
-  }
-
-  function addQuestionToSection(sectionIdx: number) {
-    const updated = [...paperForm.sections];
-    const s = updated[sectionIdx];
-    const totalQCount = updated.reduce((sum, sec) => sum + sec.questions.length, 0) + 1;
-    s.questions.push({
+    updated[secIdx].questions.push({
       q_num: totalQCount,
-      text: "",
-      marks: s.marks_per_question || 1,
-      options: s.marks_per_question === 1 ? ["(A) ", "(B) ", "(C) ", "(D) "] : []
+      text: isMotherTeacherClass ? "Trace and write: ____________________" : "State and explain...",
+      marks: updated[secIdx].marks_per_question || (isMotherTeacherClass ? 5 : 2),
+      options: []
     });
     setPaperForm({ ...paperForm, sections: updated });
   }
 
-  function openBankPickerForSection(secIdx: number) {
+  function openQuestionPicker(secIdx: number) {
     setTargetSectionIndex(secIdx);
     setPickerModalOpen(true);
   }
 
-  function insertBankQuestionToSection(q: any) {
+  function insertQuestionFromBank(bankItem: any) {
     const updated = [...paperForm.sections];
-    const s = updated[targetSectionIndex];
-    const totalQCount = updated.reduce((sum, sec) => sum + sec.questions.length, 0) + 1;
-
-    s.questions.push({
+    const totalQCount = paperForm.sections.reduce((sum, s) => sum + s.questions.length, 0) + 1;
+    updated[targetSectionIndex].questions.push({
       q_num: totalQCount,
-      text: q.question_text,
-      marks: q.marks || s.marks_per_question || 1,
-      options: q.options || [],
-      correct_answer: q.correct_answer,
-      marking_scheme: q.marking_scheme
+      text: bankItem.question_text,
+      marks: bankItem.marks,
+      options: bankItem.options || [],
+      correct_answer: bankItem.correct_answer,
+      marking_scheme: bankItem.marking_scheme
     });
-
     setPaperForm({ ...paperForm, sections: updated });
-    alert("✓ Question inserted into " + s.section_name);
+    setPickerModalOpen(false);
+  }
+
+  function removeQuestionFromSection(secIdx: number, qIdx: number) {
+    const updated = [...paperForm.sections];
+    updated[secIdx].questions.splice(qIdx, 1);
+    setPaperForm({ ...paperForm, sections: updated });
   }
 
   async function handleSavePaper(e: React.FormEvent) {
     e.preventDefault();
     if (!paperForm.subject_id || !paperForm.exam_title) {
-      alert("Please enter subject and exam title.");
+      alert("Please fill in Subject and Exam Title.");
       return;
     }
 
@@ -504,7 +554,7 @@ export default function QuestionPaperGeneratorPage() {
         general_instructions: paperForm.general_instructions,
         sections: paperForm.sections,
         status: paperForm.status,
-        created_by: "Academic Dean & Teachers"
+        created_by: isMotherTeacherClass ? `Mother Teacher (${selectedTeacher !== "All" ? selectedTeacher : "Class Faculty"})` : "Academic Dean & Teachers"
       });
 
       if (res.success) {
@@ -520,7 +570,7 @@ export default function QuestionPaperGeneratorPage() {
   }
 
   async function handleDeletePaper(id: string) {
-    if (!confirm("Delete this generated question paper?")) return;
+    if (!confirm("Delete this generated paper/worksheet?")) return;
     const res = await deleteGeneratedPaper(id);
     if (res.success) {
       loadGeneratedPapers();
@@ -539,9 +589,62 @@ export default function QuestionPaperGeneratorPage() {
 
   const currentSubjectObj = subjects.find(s => s.id === selectedSubjectId);
 
+  // Filter out empty sections for clean printing
+  const nonEmptySections = (activePreviewPaper?.sections || []).filter((s: any) => s.questions && s.questions.length > 0);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
       
+      {/* GLOBAL PRINT ISOLATION STYLES */}
+      <style jsx global>{`
+        @media print {
+          /* Hide EVERYTHING on the entire webpage */
+          body * {
+            visibility: hidden !important;
+          }
+          
+          /* Show ONLY the printable paper container */
+          #printable-exam-sheet,
+          #printable-exam-sheet * {
+            visibility: visible !important;
+          }
+
+          #printable-exam-sheet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 8mm 12mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+            color: black !important;
+            font-size: 14pt !important;
+            line-height: 1.4 !important;
+          }
+
+          .print\\:hidden,
+          header,
+          nav,
+          aside,
+          button,
+          .no-print {
+            display: none !important;
+          }
+
+          @page {
+            size: A4 portrait;
+            margin: 10mm 12mm;
+          }
+
+          .page-break-inside-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
+
       {/* Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
@@ -550,14 +653,14 @@ export default function QuestionPaperGeneratorPage() {
               Examinations & Assessment Suite
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Standard CBSE / ICSE Question Paper Engine</span>
+            <span className="text-stone-500 text-xs font-bold">Standard CBSE Question Papers & Foundational Worksheets</span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
             <Printer className="w-8 h-8 text-amber-600" />
-            Standard Question Paper Generator & Bank
+            Standard Question Paper & Worksheet Studio
           </h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Assemble, formulate, and print standardized examination question papers and model answer keys with school headers.
+            Assemble, formulate, and print standardized examination question papers and early childhood activity worksheets with large, student-friendly fonts.
           </p>
         </div>
 
@@ -601,12 +704,16 @@ export default function QuestionPaperGeneratorPage() {
             <select
               value={selectedClass}
               onChange={(e) => {
-                setSelectedClass(e.target.value);
+                const c = e.target.value;
+                setSelectedClass(c);
                 setSelectedSubjectId("");
+                if (FOUNDATIONAL_CLASSES.includes(c)) {
+                  setActiveTab("worksheets");
+                }
               }}
               className="bg-transparent text-xs font-black text-stone-800 focus:outline-none"
             >
-              {["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"].map(c => (
+              {ALL_CLASSES.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
@@ -614,30 +721,79 @@ export default function QuestionPaperGeneratorPage() {
 
           <button
             type="button"
-            onClick={activeTab === "generator" ? openNewPaperDesigner : openAddQuestion}
+            onClick={() => openNewPaperDesigner(isMotherTeacherClass)}
             className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition"
           >
             <Plus className="w-4 h-4" /> 
-            {activeTab === "generator" ? "Design Question Paper" : "Add Question to Bank"}
+            {isMotherTeacherClass ? "Create Foundational Worksheet" : "Design Question Paper"}
           </button>
         </div>
       </div>
 
+      {/* MOTHER TEACHER BANNER FOR NURSERY TO CLASS 2 */}
+      {isMotherTeacherClass && (
+        <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-amber-50 border border-purple-200 p-4 sm:p-5 rounded-3xl shadow-xs flex items-center justify-between gap-4 print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shrink-0">
+              👩‍🏫
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-purple-900">
+                  Mother Teacher Concept Active
+                </span>
+                <span className="bg-purple-200/70 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                  {selectedClass}
+                </span>
+              </div>
+              <p className="text-xs text-purple-950/80 mt-0.5 font-medium">
+                For <strong>{selectedClass}</strong>, exams are conducted in <strong>Worksheet / Activity Evaluation Format</strong>. Mother Teachers have access to all subjects of this class to create cross-curricular worksheets.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => openNewPaperDesigner(true)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 hidden sm:flex items-center gap-1.5"
+          >
+            <Palette className="w-4 h-4" /> New {selectedClass} Worksheet
+          </button>
+        </div>
+      )}
+
       {/* Tabs Header */}
       <div className="flex items-center gap-2 border-b border-stone-200 pb-2 print:hidden">
+        
+        {/* Tab 1: Standard Question Papers (Grade 3 - 10) */}
         <button
           type="button"
           onClick={() => setActiveTab("generator")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
             activeTab === "generator" 
-              ? "bg-white text-stone-900 shadow-xs border border-stone-200" 
+              ? "bg-white text-stone-900 shadow-xs border border-stone-200 ring-2 ring-amber-500/20" 
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
           <Printer className="w-4 h-4 text-amber-600" />
-          <span>Question Paper Generator & Print View ({generatedPapers.length})</span>
+          <span>Question Paper Studio (Grade 3–10)</span>
         </button>
 
+        {/* Tab 2: Early Years Worksheet Studio (Nursery - Class 2) */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("worksheets")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
+            activeTab === "worksheets" 
+              ? "bg-white text-purple-900 shadow-xs border border-purple-200 ring-2 ring-purple-500/20" 
+              : "text-stone-500 hover:text-stone-900"
+          }`}
+        >
+          <Palette className="w-4 h-4 text-purple-600" />
+          <span>Early Years Worksheets (Nursery–Class 2) 🎨</span>
+        </button>
+
+        {/* Tab 3: Question Bank */}
         <button
           type="button"
           onClick={() => setActiveTab("bank")}
@@ -647,19 +803,21 @@ export default function QuestionPaperGeneratorPage() {
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
-          <BookOpen className="w-4 h-4 text-purple-600" />
-          <span>Question Bank Master & PDF Uploads ({questionBank.length})</span>
+          <BookOpen className="w-4 h-4 text-emerald-600" />
+          <span>Question & Activity Bank Master ({questionBank.length})</span>
         </button>
       </div>
 
-      {/* TAB 1: QUESTION PAPER GENERATOR & PRINT VIEW */}
-      {activeTab === "generator" && (
+      {/* ========================================================================= */}
+      {/* TAB 1 & TAB 2: QUESTION PAPER & FOUNDATIONAL WORKSHEET VIEW */}
+      {/* ========================================================================= */}
+      {(activeTab === "generator" || activeTab === "worksheets") && (
         <div className="space-y-6">
           
           {/* Top Paper Selector Bar */}
           <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-stone-400">Select Paper:</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-bold text-stone-400">Select Document:</span>
               <select
                 value={activePreviewPaper?.id || ""}
                 onChange={(e) => {
@@ -674,9 +832,13 @@ export default function QuestionPaperGeneratorPage() {
                   </option>
                 ))}
               </select>
+
+              <span className="text-xs font-mono font-bold bg-stone-100 text-stone-600 px-2 py-1 rounded">
+                Total Papers: {generatedPapers.length}
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setShowMarkingScheme(!showMarkingScheme)}
@@ -686,7 +848,7 @@ export default function QuestionPaperGeneratorPage() {
                     : "bg-stone-100 text-stone-700 border-stone-200 hover:bg-stone-200"
                 }`}
               >
-                {showMarkingScheme ? "🔑 View Question Paper" : "🔑 View Marking Scheme / Answer Key"}
+                {showMarkingScheme ? "🔑 View Student Paper" : "🔑 View Marking Key"}
               </button>
 
               {activePreviewPaper && (
@@ -695,7 +857,7 @@ export default function QuestionPaperGeneratorPage() {
                     type="button"
                     onClick={() => openEditPaperDesigner(activePreviewPaper)}
                     className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition"
-                    title="Edit Question Paper"
+                    title="Edit Document"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -703,7 +865,7 @@ export default function QuestionPaperGeneratorPage() {
                     type="button"
                     onClick={() => handleDeletePaper(activePreviewPaper.id)}
                     className="p-2 bg-stone-100 hover:bg-red-100 text-red-600 rounded-xl transition"
-                    title="Delete Paper"
+                    title="Delete Document"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -713,116 +875,117 @@ export default function QuestionPaperGeneratorPage() {
               <button
                 type="button"
                 onClick={handlePrintPaper}
-                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+                className="px-5 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
               >
-                <Printer className="w-4 h-4" /> Print (A4 Format)
+                <Printer className="w-4 h-4 text-amber-400" /> Print (Full A4 Format)
               </button>
             </div>
           </div>
 
-          {/* OFFICIAL CBSE/ICSE STANDARDIZED PRINTABLE EXAMINATION SHEET */}
+          {/* DOCUMENT PREVIEW CONTAINER (ISOLATED FOR A4 PRINTING) */}
           {activePreviewPaper ? (
             <div 
+              id="printable-exam-sheet"
               ref={printAreaRef}
-              className="bg-white rounded-3xl border border-stone-300 shadow-lg p-8 sm:p-12 max-w-4xl mx-auto text-stone-900 font-serif space-y-6 print:shadow-none print:border-none print:p-0 print:m-0"
+              className="bg-white rounded-3xl border border-stone-300 shadow-xl p-8 sm:p-14 max-w-4xl mx-auto text-stone-950 space-y-7"
             >
               
-              {/* Header Box */}
-              <div className="text-center border-b-2 border-stone-900 pb-4 space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider font-sans">
+              {/* 1. OFFICIAL SCHOOL HEADER */}
+              <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1.5">
+                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider font-sans text-stone-950">
                   CRAYON BOX SCHOOL
                 </h1>
-                <p className="text-xs font-sans font-bold text-stone-600 uppercase tracking-widest">
+                <p className="text-xs sm:text-sm font-sans font-bold text-stone-700 tracking-wide">
                   Affiliated to CBSE, New Delhi • School ID: 1253481 • UDISE: 07124100151
                 </p>
-                <div className="pt-2 text-sm sm:text-base font-black font-sans uppercase tracking-tight text-stone-900">
+                <div className="pt-1.5 text-base sm:text-lg font-black font-sans uppercase tracking-tight text-stone-900">
                   {activePreviewPaper.exam_title} • SESSION {activePreviewPaper.academic_session}
                 </div>
               </div>
 
-              {/* Student Candidate & Exam Meta Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-sans font-bold border-b border-stone-300 pb-3">
+              {/* 2. CANDIDATE & META GRID */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm font-sans font-bold border-b border-stone-300 pb-4 bg-stone-50/50 p-4 rounded-2xl">
                 <div>
-                  <span className="text-stone-500 block text-[10px]">CLASS / GRADE:</span>
-                  <strong className="text-stone-900 text-sm">{activePreviewPaper.class_name}</strong>
+                  <span className="text-stone-500 block text-[11px]">CLASS / GRADE:</span>
+                  <strong className="text-stone-900 text-base">{activePreviewPaper.class_name}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-500 block text-[10px]">SUBJECT:</span>
-                  <strong className="text-stone-900 text-sm">{activePreviewPaper.academic_subjects?.name}</strong>
+                  <span className="text-stone-500 block text-[11px]">SUBJECT:</span>
+                  <strong className="text-stone-900 text-base">{activePreviewPaper.academic_subjects?.name || "Integrated"}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-500 block text-[10px]">MAXIMUM MARKS:</span>
-                  <strong className="text-stone-900 text-sm font-mono">{activePreviewPaper.max_marks} MARKS</strong>
+                  <span className="text-stone-500 block text-[11px]">MAX MARKS:</span>
+                  <strong className="text-stone-900 text-base font-mono">{activePreviewPaper.max_marks} MARKS</strong>
                 </div>
                 <div>
-                  <span className="text-stone-500 block text-[10px]">TIME ALLOWED:</span>
-                  <strong className="text-stone-900 text-sm font-mono">{Math.floor(activePreviewPaper.duration_minutes / 60)} Hours ({activePreviewPaper.duration_minutes} Mins)</strong>
+                  <span className="text-stone-500 block text-[11px]">TIME ALLOWED:</span>
+                  <strong className="text-stone-900 text-base font-mono">{activePreviewPaper.duration_minutes} Minutes</strong>
                 </div>
               </div>
 
-              {/* Candidate Details Line */}
-              <div className="grid grid-cols-2 gap-4 text-xs font-sans border-b border-stone-300 pb-3">
-                <div className="border border-stone-400 rounded-lg p-2 flex items-center justify-between">
-                  <span className="text-stone-500 font-bold">Roll Number:</span>
+              {/* 3. STUDENT NAME & ROLL NO. BOXES */}
+              <div className="grid grid-cols-2 gap-4 text-sm font-sans border-b border-stone-300 pb-4">
+                <div className="border border-stone-400 rounded-xl p-3 flex items-center justify-between">
+                  <span className="text-stone-700 font-bold">Roll Number:</span>
                   <span className="font-mono text-stone-400">________________________</span>
                 </div>
-                <div className="border border-stone-400 rounded-lg p-2 flex items-center justify-between">
-                  <span className="text-stone-500 font-bold">Student Name:</span>
+                <div className="border border-stone-400 rounded-xl p-3 flex items-center justify-between">
+                  <span className="text-stone-700 font-bold">Student Name:</span>
                   <span className="font-mono text-stone-400">________________________</span>
                 </div>
               </div>
 
-              {/* General Instructions */}
-              <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs font-sans space-y-1.5">
-                <strong className="block text-stone-900 uppercase tracking-wider text-[11px]">General Instructions:</strong>
-                <ol className="list-decimal pl-5 space-y-0.5 text-stone-700 text-[11.5px]">
+              {/* 4. GENERAL INSTRUCTIONS */}
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs sm:text-sm font-sans space-y-1.5">
+                <strong className="block text-stone-900 uppercase tracking-wider text-xs font-black">General Instructions:</strong>
+                <ol className="list-decimal pl-5 space-y-1 text-stone-800 text-xs sm:text-sm font-medium">
                   {(activePreviewPaper.general_instructions || []).map((inst: string, idx: number) => (
                     <li key={idx}>{inst}</li>
                   ))}
                 </ol>
               </div>
 
-              {/* SECTIONS & QUESTIONS */}
-              <div className="space-y-8 pt-4">
-                {(activePreviewPaper.sections || []).map((sec: any, sIdx: number) => (
-                  <div key={sIdx} className="space-y-4">
+              {/* 5. SECTIONS & LARGE READABLE QUESTIONS */}
+              <div className="space-y-10 pt-4">
+                {nonEmptySections.map((sec: any, sIdx: number) => (
+                  <div key={sIdx} className="space-y-5 page-break-inside-avoid">
                     
                     {/* Section Header */}
-                    <div className="border-b-2 border-stone-800 pb-1 flex justify-between items-baseline font-sans">
+                    <div className="border-b-2 border-stone-900 pb-1.5 flex justify-between items-baseline font-sans">
                       <div>
-                        <h3 className="font-black text-sm uppercase tracking-wider text-stone-900">
+                        <h3 className="font-black text-base sm:text-lg uppercase tracking-wider text-stone-950">
                           {sec.section_name}
                         </h3>
                         {sec.instructions && (
-                          <p className="text-[11px] text-stone-500 italic font-serif">{sec.instructions}</p>
+                          <p className="text-xs sm:text-sm text-stone-600 italic font-serif mt-0.5">{sec.instructions}</p>
                         )}
                       </div>
-                      <span className="text-xs font-mono font-bold text-stone-700">
+                      <span className="text-sm font-mono font-black text-stone-900 bg-stone-100 px-3 py-0.5 rounded-md">
                         {sec.questions?.reduce((sum: number, q: any) => sum + (q.marks || sec.marks_per_question || 1), 0)} Marks
                       </span>
                     </div>
 
                     {/* Questions in Section */}
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                       {(sec.questions || []).map((q: any, qIdx: number) => (
-                        <div key={qIdx} className="space-y-2 text-sm leading-relaxed">
+                        <div key={qIdx} className="space-y-3 leading-relaxed page-break-inside-avoid">
                           
                           {/* Question Text & Marks */}
                           <div className="flex justify-between items-start gap-4">
-                            <div className="space-y-1">
-                              <span className="font-sans font-black mr-2">Q{q.q_num || qIdx + 1}.</span>
-                              <span className="text-stone-900 whitespace-pre-line">{q.text}</span>
+                            <div className="space-y-1.5 flex-1">
+                              <span className="font-sans font-black text-base sm:text-lg text-stone-950 mr-2">Q{q.q_num || qIdx + 1}.</span>
+                              <span className="text-stone-950 text-base sm:text-lg font-medium whitespace-pre-line leading-relaxed">{q.text}</span>
                             </div>
-                            <span className="font-sans font-bold font-mono text-stone-900 shrink-0 text-xs bg-stone-100 px-2 py-0.5 rounded">
+                            <span className="font-sans font-black font-mono text-stone-950 shrink-0 text-sm sm:text-base bg-stone-100 px-2.5 py-1 rounded-md border border-stone-300">
                               [{q.marks || sec.marks_per_question || 1}]
                             </span>
                           </div>
 
                           {/* Multiple Choice Options */}
                           {q.options && q.options.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-6 pt-1 text-xs font-sans font-medium text-stone-800">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-8 pt-1 text-sm sm:text-base font-sans font-semibold text-stone-900">
                               {q.options.map((opt: string, optIdx: number) => (
-                                <div key={optIdx} className="flex items-center gap-1.5">
+                                <div key={optIdx} className="flex items-center gap-2">
                                   <span>{opt}</span>
                                 </div>
                               ))}
@@ -831,18 +994,18 @@ export default function QuestionPaperGeneratorPage() {
 
                           {/* Internal Choice (OR Question) */}
                           {q.or_choice && (
-                            <div className="pt-2 pl-6 space-y-1 text-xs italic font-sans border-l-2 border-stone-300 ml-2">
-                              <span className="font-black uppercase tracking-wider text-stone-700 not-italic block">OR</span>
-                              <p className="text-stone-800 whitespace-pre-line not-italic">{q.or_choice}</p>
+                            <div className="pt-3 pl-8 space-y-2 text-sm sm:text-base italic font-sans border-l-4 border-stone-400 ml-4">
+                              <span className="font-black uppercase tracking-wider text-stone-900 not-italic block text-sm">OR</span>
+                              <p className="text-stone-950 whitespace-pre-line not-italic font-medium">{q.or_choice}</p>
                             </div>
                           )}
 
                           {/* Marking Scheme Answer Key Preview (If toggled) */}
                           {showMarkingScheme && (q.correct_answer || q.marking_scheme) && (
-                            <div className="mt-2 p-3 bg-purple-50 rounded-xl border border-purple-200 text-xs font-sans text-purple-950 space-y-1">
-                              <strong className="block text-purple-900 font-bold">🔑 Model Solution & Marking Scheme:</strong>
+                            <div className="mt-3 p-4 bg-purple-50 rounded-2xl border border-purple-200 text-xs sm:text-sm font-sans text-purple-950 space-y-1.5 print:hidden">
+                              <strong className="block text-purple-900 font-black text-xs uppercase tracking-wide">🔑 Model Solution & Marking Scheme:</strong>
                               {q.correct_answer && <div><strong>Correct Answer:</strong> {q.correct_answer}</div>}
-                              {q.marking_scheme && <div className="text-[11px] text-purple-800">{q.marking_scheme}</div>}
+                              {q.marking_scheme && <div className="text-xs text-purple-900 font-medium">{q.marking_scheme}</div>}
                             </div>
                           )}
 
@@ -854,24 +1017,71 @@ export default function QuestionPaperGeneratorPage() {
                 ))}
               </div>
 
-              {/* Examination Footer */}
-              <div className="pt-8 border-t border-stone-300 text-center text-xs font-sans font-bold text-stone-400 uppercase tracking-widest">
-                *** END OF QUESTION PAPER — ALL THE BEST ***
+              {/* 6. FOUNDATIONAL WORKSHEET STAR & SMILEY EVALUATION RUBRIC (FOR NURSERY - GRADE 2) */}
+              {isMotherTeacherClass && (
+                <div className="mt-10 pt-6 border-2 border-dashed border-stone-400 rounded-3xl p-6 bg-amber-50/40 space-y-4 page-break-inside-avoid">
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                    <span className="font-sans font-black text-sm uppercase tracking-wider text-amber-900 flex items-center gap-2">
+                      ⭐ Mother Teacher Foundational Assessment Rubric
+                    </span>
+                    <span className="text-xs font-bold text-amber-800">Grade: {selectedClass}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+                    <div className="border border-amber-200 bg-white p-3 rounded-xl space-y-1">
+                      <strong className="text-stone-900 block font-bold">1. Concept Mastery & Understanding:</strong>
+                      <div className="flex items-center gap-1 text-amber-500 text-base">
+                        <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                        <span className="text-[10px] text-stone-500 font-medium ml-2">(Circle Stars)</span>
+                      </div>
+                    </div>
+
+                    <div className="border border-amber-200 bg-white p-3 rounded-xl space-y-1">
+                      <strong className="text-stone-900 block font-bold">2. Fine Motor Grip & Neatness:</strong>
+                      <div className="flex items-center gap-1 text-amber-500 text-base">
+                        <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                        <span className="text-[10px] text-stone-500 font-medium ml-2">(Circle Stars)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs font-sans pt-2">
+                    <div>
+                      <span className="text-stone-500 font-bold block mb-1">Teacher's Encouraging Remark:</span>
+                      <div className="border-b border-stone-400 h-6"></div>
+                    </div>
+                    <div>
+                      <span className="text-stone-500 font-bold block mb-1">Teacher's Signature & Date:</span>
+                      <div className="border-b border-stone-400 h-6"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 7. EXAMINATION FOOTER */}
+              <div className="pt-10 border-t-2 border-stone-300 text-center text-xs font-sans font-bold text-stone-500 uppercase tracking-widest">
+                *** {isMotherTeacherClass ? "WELL DONE! KEEP SHINING ⭐" : "END OF QUESTION PAPER — ALL THE BEST"} ***
               </div>
 
             </div>
           ) : (
-            <div className="bg-white p-12 text-center rounded-3xl border border-stone-200 shadow-xs space-y-3">
+            <div className="bg-white p-14 text-center rounded-3xl border border-stone-200 shadow-xs space-y-3">
               <Printer className="w-12 h-12 text-stone-300 mx-auto" />
-              <h3 className="text-base font-black text-stone-900">No Question Papers Created</h3>
-              <p className="text-xs text-stone-500">Click "Design Question Paper" to construct your first examination sheet.</p>
+              <h3 className="text-base font-black text-stone-900">
+                {isMotherTeacherClass ? `No Worksheets Created for ${selectedClass}` : "No Question Papers Found"}
+              </h3>
+              <p className="text-xs text-stone-500">
+                Click "{isMotherTeacherClass ? "Create Foundational Worksheet" : "Design Question Paper"}" to assemble a new document.
+              </p>
             </div>
           )}
 
         </div>
       )}
 
-      {/* TAB 2: QUESTION BANK MASTER */}
+      {/* ========================================================================= */}
+      {/* TAB 3: QUESTION & ACTIVITY BANK MASTER */}
+      {/* ========================================================================= */}
       {activeTab === "bank" && (
         <div className="space-y-6">
           
@@ -898,7 +1108,7 @@ export default function QuestionPaperGeneratorPage() {
                 >
                   <option value="All">All Types</option>
                   <option value="MCQ">MCQs (1M)</option>
-                  <option value="ShortAnswer">Short Answer (2-3M)</option>
+                  <option value="ShortAnswer">Short Answer / Activity (2-3M)</option>
                   <option value="LongAnswer">Long Answer (5M)</option>
                   <option value="CaseStudy">Case Study (4M)</option>
                 </select>
@@ -912,7 +1122,7 @@ export default function QuestionPaperGeneratorPage() {
                   className="bg-transparent text-xs font-bold text-stone-800 focus:outline-none"
                 >
                   <option value="All">All Levels</option>
-                  <option value="Easy">Easy</option>
+                  <option value="Easy">Easy / Foundational</option>
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
                 </select>
@@ -922,9 +1132,9 @@ export default function QuestionPaperGeneratorPage() {
             <button
               type="button"
               onClick={openAddQuestion}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" /> Add Question to Bank
+              <Plus className="w-4 h-4" /> Add Item to Bank
             </button>
           </div>
 
@@ -934,14 +1144,14 @@ export default function QuestionPaperGeneratorPage() {
               <div className="bg-white p-12 text-center rounded-3xl border border-stone-200 shadow-xs space-y-3">
                 <BookOpen className="w-12 h-12 text-stone-300 mx-auto" />
                 <h3 className="text-base font-black text-stone-900">Question Bank is Empty</h3>
-                <p className="text-xs text-stone-500">Add questions with options, step-wise marking schemes, and PDF attachments.</p>
+                <p className="text-xs text-stone-500">Add questions or early years tracing/matching activities with options and model answers.</p>
               </div>
             ) : (
               questionBank.map((q) => (
-                <div key={q.id} className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-3 hover:border-purple-200 transition">
+                <div key={q.id} className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-3 hover:border-emerald-200 transition">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="bg-purple-100 text-purple-900 font-black text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-md">
+                      <span className="bg-emerald-100 text-emerald-900 font-black text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-md">
                         {q.question_type} • {q.marks} Mark{q.marks > 1 ? 's' : ''}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
@@ -950,295 +1160,79 @@ export default function QuestionPaperGeneratorPage() {
                       }`}>
                         {q.difficulty}
                       </span>
-                      <span className="text-[10px] text-stone-400 font-bold">
-                        Bloom: {q.blooms_level}
-                      </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => openEditQuestion(q)} className="p-1.5 text-stone-400 hover:text-stone-800 transition">
-                        <Edit3 className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditQuestion(q)}
+                        className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg transition"
+                      >
+                        <Edit3 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteQuestion(q.id)} className="p-1.5 text-stone-400 hover:text-red-600 transition">
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <p className="text-sm font-semibold text-stone-900 whitespace-pre-line">
-                    {q.question_text}
-                  </p>
+                  <p className="text-sm font-semibold text-stone-900 whitespace-pre-line">{q.question_text}</p>
 
-                  {/* Options */}
                   {q.options && q.options.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-100 text-xs">
+                    <div className="grid grid-cols-2 gap-2 text-xs text-stone-700 bg-stone-50 p-3 rounded-xl">
                       {q.options.map((opt: string, idx: number) => (
-                        <div key={idx} className="text-stone-700">{opt}</div>
+                        <div key={idx}>{opt}</div>
                       ))}
                     </div>
                   )}
 
-                  {/* Answer & Marking Scheme */}
-                  <div className="bg-purple-50/50 p-3 rounded-2xl border border-purple-100 text-xs text-purple-950 space-y-1">
-                    {q.correct_answer && <div><strong>Correct Answer:</strong> {q.correct_answer}</div>}
-                    {q.marking_scheme && <div className="text-[11px] text-purple-800"><strong>Marking Scheme:</strong> {q.marking_scheme}</div>}
-                  </div>
-
-                  {/* PDF Attachment (If any) */}
-                  {q.pdf_attachment_url && (
-                    <div className="pt-1">
-                      <a
-                        href={q.pdf_attachment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 font-bold hover:underline"
-                      >
-                        <FileText className="w-3.5 h-3.5" /> View Attached Question PDF / Diagram
-                      </a>
+                  {q.correct_answer && (
+                    <div className="text-xs bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl text-emerald-900">
+                      <strong>Correct Answer:</strong> {q.correct_answer}
                     </div>
                   )}
-
-                  <div className="flex justify-between items-center text-[10.5px] text-stone-400 pt-1 border-t border-stone-100">
-                    <span>Subject: <strong>{q.academic_subjects?.name} ({q.academic_subjects?.class_name})</strong></span>
-                    <span>Chapter: <strong>{q.syllabus_chapters?.chapter_name || 'General'}</strong></span>
-                  </div>
                 </div>
               ))
             )}
           </div>
-
         </div>
       )}
 
-      {/* --- MODAL 1: ADD / EDIT QUESTION TO BANK (WITH PDF UPLOADER) --- */}
-      {qBankModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h3 className="text-lg font-black text-stone-900">
-                {editingQItem ? "Edit Question in Bank" : "Add Question to Question Bank"}
-              </h3>
-              <button onClick={() => setQBankModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
-            </div>
-
-            <form onSubmit={handleSaveQuestion} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Subject *</label>
-                  <select
-                    value={qForm.subject_id}
-                    onChange={(e) => setQForm({ ...qForm, subject_id: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                    required
-                  >
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class_name})</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Chapter Master</label>
-                  <select
-                    value={qForm.chapter_id}
-                    onChange={(e) => setQForm({ ...qForm, chapter_id: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                  >
-                    <option value="">-- All Chapters / General --</option>
-                    {allChapters.map(ch => (
-                      <option key={ch.id} value={ch.id}>
-                        Ch {ch.chapter_number}: {ch.chapter_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Question Type</label>
-                  <select
-                    value={qForm.question_type}
-                    onChange={(e) => {
-                      const t = e.target.value;
-                      const marksMap: any = { MCQ: 1, FillBlanks: 1, VeryShort: 1, ShortAnswer: 2, LongAnswer: 5, CaseStudy: 4 };
-                      setQForm({ ...qForm, question_type: t, marks: marksMap[t] || 1 });
-                    }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                  >
-                    <option value="MCQ">Multiple Choice (MCQ)</option>
-                    <option value="FillBlanks">Fill in the Blanks</option>
-                    <option value="VeryShort">Very Short (1 Mark)</option>
-                    <option value="ShortAnswer">Short Answer (2-3 Marks)</option>
-                    <option value="LongAnswer">Long Answer (5 Marks)</option>
-                    <option value="CaseStudy">Case Study (4 Marks)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Marks</label>
-                  <input
-                    type="number"
-                    value={qForm.marks}
-                    onChange={(e) => setQForm({ ...qForm, marks: Number(e.target.value) })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-bold text-stone-900"
-                    min="1"
-                    max="10"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Difficulty Level</label>
-                  <select
-                    value={qForm.difficulty}
-                    onChange={(e) => setQForm({ ...qForm, difficulty: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                  >
-                    <option value="Easy">Easy</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Hard">Hard</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-stone-700 block mb-1">Question Statement / Text *</label>
-                <textarea
-                  placeholder="Enter the complete question text, scenario or problem..."
-                  value={qForm.question_text}
-                  onChange={(e) => setQForm({ ...qForm, question_text: e.target.value })}
-                  rows={3}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
-                  required
-                />
-              </div>
-
-              {/* MCQ Options (If MCQ) */}
-              {qForm.question_type === "MCQ" && (
-                <div className="space-y-2 bg-stone-50 p-3 rounded-2xl border border-stone-200">
-                  <label className="font-bold text-stone-700 block text-xs">MCQ Options:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Option A"
-                      value={qForm.option_a}
-                      onChange={(e) => setQForm({ ...qForm, option_a: e.target.value })}
-                      className="bg-white border border-stone-200 rounded-xl p-2 font-medium"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Option B"
-                      value={qForm.option_b}
-                      onChange={(e) => setQForm({ ...qForm, option_b: e.target.value })}
-                      className="bg-white border border-stone-200 rounded-xl p-2 font-medium"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Option C"
-                      value={qForm.option_c}
-                      onChange={(e) => setQForm({ ...qForm, option_c: e.target.value })}
-                      className="bg-white border border-stone-200 rounded-xl p-2 font-medium"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Option D"
-                      value={qForm.option_d}
-                      onChange={(e) => setQForm({ ...qForm, option_d: e.target.value })}
-                      className="bg-white border border-stone-200 rounded-xl p-2 font-medium"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Correct Answer</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. (B) 10 Lakhs"
-                    value={qForm.correct_answer}
-                    onChange={(e) => setQForm({ ...qForm, correct_answer: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold text-stone-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Bloom's Taxonomy Level</label>
-                  <select
-                    value={qForm.blooms_level}
-                    onChange={(e) => setQForm({ ...qForm, blooms_level: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                  >
-                    <option value="Remember">Remember</option>
-                    <option value="Understand">Understand</option>
-                    <option value="Apply">Apply</option>
-                    <option value="Analyse">Analyse</option>
-                    <option value="Evaluate">Evaluate</option>
-                    <option value="Create">Create</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-stone-700 block mb-1">Marking Scheme / Step Marks Breakdown</label>
-                <textarea
-                  placeholder="e.g. 1 mark for formula, 1 mark for calculation, 1 mark for unit"
-                  value={qForm.marking_scheme}
-                  onChange={(e) => setQForm({ ...qForm, marking_scheme: e.target.value })}
-                  rows={2}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
-                />
-              </div>
-
-              {/* UNIVERSAL PDF UPLOADER FOR QUESTION ATTACHMENTS */}
-              <PdfUploader
-                label="Attach Reference Diagram or Question Worksheet (PDF)"
-                helperText="Upload PDF for diagrams, geometry sheets, or passages"
-                initialUrl={qForm.pdf_attachment_url}
-                onPdfUploaded={(data) => setQForm({ ...qForm, pdf_attachment_url: data.fileUrl })}
-                onPdfRemoved={() => setQForm({ ...qForm, pdf_attachment_url: "" })}
-              />
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
-                <button type="button" onClick={() => setQBankModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isSaving} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs">
-                  {isSaving ? "Saving..." : editingQItem ? "Update Question" : "Save Question to Bank"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL 2: QUESTION PAPER DESIGNER & BLUEPRINT BUILDER --- */}
+      {/* ========================================================================= */}
+      {/* MODAL 1: QUESTION PAPER & WORKSHEET DESIGNER MODAL */}
+      {/* ========================================================================= */}
       {paperModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-6 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
-                  Examination Paper Designer
+                  {isMotherTeacherClass ? "Early Childhood Worksheet Designer" : "Standard Examination Designer"}
                 </span>
-                <h3 className="text-lg font-black text-stone-900 mt-1">
-                  {editingPaperId ? "Edit Examination Question Paper" : "Design New Question Paper"}
+                <h3 className="text-xl font-black text-stone-900 mt-1">
+                  {editingPaperId ? "Edit Examination / Worksheet" : isMotherTeacherClass ? `Design ${selectedClass} Activity Worksheet` : "Design Standard CBSE Question Paper"}
                 </h3>
               </div>
               <button onClick={() => setPaperModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
-            <form onSubmit={handleSavePaper} className="space-y-4 text-xs">
+            <form onSubmit={handleSavePaper} className="space-y-6 text-xs">
+              
+              {/* Paper Meta */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="font-bold text-stone-700 block mb-1">Exam Title *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Mid-Term Examination 2026-27"
-                    value={paperForm.exam_title}
-                    onChange={(e) => setPaperForm({ ...paperForm, exam_title: e.target.value })}
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Class / Grade *</label>
+                  <select
+                    value={paperForm.class_name}
+                    onChange={(e) => setPaperForm({ ...paperForm, class_name: e.target.value })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                    required
-                  />
+                  >
+                    {ALL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
 
                 <div>
@@ -1249,228 +1243,274 @@ export default function QuestionPaperGeneratorPage() {
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
                     required
                   >
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.class_name})</option>)}
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Document Title *</label>
+                  <input
+                    type="text"
+                    value={paperForm.exam_title}
+                    onChange={(e) => setPaperForm({ ...paperForm, exam_title: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
+                    required
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Maximum Marks</label>
+                  <label className="font-bold text-stone-700 block mb-1">Max Marks *</label>
                   <input
                     type="number"
                     value={paperForm.max_marks}
                     onChange={(e) => setPaperForm({ ...paperForm, max_marks: Number(e.target.value) })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-bold text-stone-900"
-                    min="10"
-                    max="100"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Duration (Minutes)</label>
+                  <label className="font-bold text-stone-700 block mb-1">Duration (Minutes) *</label>
                   <input
                     type="number"
                     value={paperForm.duration_minutes}
                     onChange={(e) => setPaperForm({ ...paperForm, duration_minutes: Number(e.target.value) })}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono font-bold text-stone-900"
-                    min="30"
-                    max="300"
                     required
                   />
                 </div>
-
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">Status</label>
-                  <select
-                    value={paperForm.status}
-                    onChange={(e) => setPaperForm({ ...paperForm, status: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
-                  >
-                    <option value="Published">Published</option>
-                    <option value="Draft">Draft</option>
-                  </select>
-                </div>
               </div>
 
-              {/* Sections & Questions Builder */}
+              {/* Sections Builder */}
               <div className="space-y-4 pt-2 border-t border-stone-100">
                 <div className="flex justify-between items-center">
-                  <span className="font-black text-stone-900 text-sm">
-                    Paper Sections & Question Layout ({paperForm.sections.length} Sections)
-                  </span>
+                  <h4 className="text-sm font-black text-stone-900 uppercase tracking-wide">
+                    {isMotherTeacherClass ? "Worksheet Activity Sections" : "Question Paper Sections"}
+                  </h4>
                   <button
                     type="button"
                     onClick={addSectionToPaper}
-                    className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs transition"
+                    className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl flex items-center gap-1"
                   >
-                    + Add Section
+                    <Plus className="w-3.5 h-3.5" /> Add Section
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {paperForm.sections.map((sec, secIdx) => (
-                    <div key={secIdx} className="bg-stone-50/70 p-4 sm:p-5 rounded-2xl border border-stone-200 space-y-3">
-                      <div className="flex justify-between items-center gap-3 border-b border-stone-200 pb-2">
-                        <input
-                          type="text"
-                          value={sec.section_name}
-                          onChange={(e) => {
-                            const updated = [...paperForm.sections];
-                            updated[secIdx].section_name = e.target.value;
-                            setPaperForm({ ...paperForm, sections: updated });
-                          }}
-                          className="font-black text-stone-900 bg-transparent border-b border-dashed border-stone-300 focus:outline-none text-xs sm:text-sm flex-1"
-                        />
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openBankPickerForSection(secIdx)}
-                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-bold rounded-lg text-[11px]"
-                          >
-                            + Bank Question
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addQuestionToSection(secIdx)}
-                            className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 font-bold rounded-lg text-[11px]"
-                          >
-                            + Custom Question
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeSectionFromPaper(secIdx)}
-                            className="p-1 text-stone-400 hover:text-red-600"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Questions in Section */}
-                      <div className="space-y-2.5">
-                        {sec.questions.map((q: any, qIdx: number) => (
-                          <div key={qIdx} className="bg-white p-3 rounded-xl border border-stone-200 space-y-2">
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="font-bold text-stone-400 shrink-0">Q{q.q_num || qIdx + 1}.</span>
-                              <textarea
-                                value={q.text}
-                                onChange={(e) => {
-                                  const updated = [...paperForm.sections];
-                                  updated[secIdx].questions[qIdx].text = e.target.value;
-                                  setPaperForm({ ...paperForm, sections: updated });
-                                }}
-                                placeholder="Enter question statement..."
-                                rows={2}
-                                className="w-full bg-stone-50/50 border border-stone-100 rounded-lg p-1.5 font-medium text-stone-900 text-xs"
-                              />
-                              <input
-                                type="number"
-                                value={q.marks}
-                                onChange={(e) => {
-                                  const updated = [...paperForm.sections];
-                                  updated[secIdx].questions[qIdx].marks = Number(e.target.value);
-                                  setPaperForm({ ...paperForm, sections: updated });
-                                }}
-                                className="w-12 bg-stone-50 border border-stone-200 rounded-lg p-1 font-mono font-bold text-center text-xs"
-                                min="1"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...paperForm.sections];
-                                  updated[secIdx].questions.splice(qIdx, 1);
-                                  setPaperForm({ ...paperForm, sections: updated });
-                                }}
-                                className="p-1 text-stone-300 hover:text-red-600"
-                              >
-                                ✕
-                              </button>
-                            </div>
-
-                            {/* Options if provided */}
-                            {q.options && q.options.length > 0 && (
-                              <div className="grid grid-cols-2 gap-1.5 pl-6 text-[11px]">
-                                {q.options.map((opt: string, optIdx: number) => (
-                                  <input
-                                    key={optIdx}
-                                    type="text"
-                                    value={opt}
-                                    onChange={(e) => {
-                                      const updated = [...paperForm.sections];
-                                      const currentQ = updated[secIdx]?.questions?.[qIdx];
-                                      if (currentQ && currentQ.options) {
-                                        const newOpts = [...currentQ.options];
-                                        newOpts[optIdx] = e.target.value;
-                                        currentQ.options = newOpts;
-                                        setPaperForm({ ...paperForm, sections: updated });
-                                      }
-                                    }}
-                                    className="bg-stone-50 border border-stone-200 rounded-lg p-1"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                {paperForm.sections.map((sec, secIdx) => (
+                  <div key={secIdx} className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-center gap-3">
+                      <input
+                        type="text"
+                        value={sec.section_name}
+                        onChange={(e) => {
+                          const updated = [...paperForm.sections];
+                          updated[secIdx].section_name = e.target.value;
+                          setPaperForm({ ...paperForm, sections: updated });
+                        }}
+                        className="font-bold text-stone-900 bg-white border border-stone-200 rounded-lg px-2 py-1 text-xs flex-1"
+                      />
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openQuestionPicker(secIdx)}
+                          className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-[11px]"
+                        >
+                          + Pick from Bank
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addCustomQuestionToSection(secIdx)}
+                          className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg text-[11px]"
+                        >
+                          + Add Question
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Questions in Section */}
+                    <div className="space-y-2">
+                      {sec.questions.map((q, qIdx) => (
+                        <div key={qIdx} className="bg-white border border-stone-200 rounded-xl p-3 space-y-2">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="font-bold text-stone-700 mt-1">Q{q.q_num}:</span>
+                            <textarea
+                              rows={2}
+                              value={q.text}
+                              onChange={(e) => {
+                                const updated = [...paperForm.sections];
+                                updated[secIdx].questions[qIdx].text = e.target.value;
+                                setPaperForm({ ...paperForm, sections: updated });
+                              }}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 font-medium text-stone-900 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={q.marks}
+                              onChange={(e) => {
+                                const updated = [...paperForm.sections];
+                                updated[secIdx].questions[qIdx].marks = Number(e.target.value);
+                                setPaperForm({ ...paperForm, sections: updated });
+                              }}
+                              className="w-12 bg-stone-50 border border-stone-200 rounded-lg p-1 text-center font-mono font-bold text-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeQuestionFromSection(secIdx, qIdx)}
+                              className="text-red-500 hover:text-red-700 p-1"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+              <div className="flex justify-end gap-2 pt-4 border-t border-stone-100">
                 <button type="button" onClick={() => setPaperModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">
                   Cancel
                 </button>
-                <button type="submit" disabled={isSaving} className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-black rounded-xl shadow-xs">
-                  {isSaving ? "Saving Paper..." : editingPaperId ? "Update Question Paper" : "Generate Examination Paper"}
+                <button type="submit" disabled={isSaving} className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-xs transition">
+                  {isSaving ? "Saving..." : "Save Examination Sheet"}
                 </button>
               </div>
+
             </form>
           </div>
         </div>
       )}
 
-      {/* --- MODAL 3: QUESTION BANK PICKER DRAWER --- */}
+      {/* ========================================================================= */}
+      {/* MODAL 2: QUESTION BANK DRAWER PICKER */}
+      {/* ========================================================================= */}
       {pickerModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <h3 className="text-base font-black text-stone-900">
-                Insert Question from Bank into {paperForm.sections[targetSectionIndex]?.section_name}
+                Select Question / Activity from Bank
               </h3>
               <button onClick={() => setPickerModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
 
             <div className="space-y-3">
-              {questionBank.map((q) => (
-                <div key={q.id} className="p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-2 text-xs flex justify-between items-center gap-3">
+              {questionBank.map((item) => (
+                <div key={item.id} className="p-3 bg-stone-50 hover:bg-purple-50/60 rounded-xl border border-stone-200 flex justify-between items-center gap-3 transition">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="bg-purple-100 text-purple-900 font-bold text-[10px] px-2 py-0.5 rounded">
-                        {q.question_type} • {q.marks}M
-                      </span>
-                      <span className="text-stone-400 font-bold">{q.difficulty}</span>
-                    </div>
-                    <p className="font-semibold text-stone-800">{q.question_text}</p>
+                    <span className="text-[10px] font-bold bg-stone-200 px-1.5 py-0.5 rounded mr-2">
+                      {item.question_type} • {item.marks}M
+                    </span>
+                    <span className="text-xs font-semibold text-stone-900">{item.question_text}</span>
                   </div>
-
                   <button
                     type="button"
-                    onClick={() => {
-                      insertBankQuestionToSection(q);
-                      setPickerModalOpen(false);
-                    }}
-                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs shrink-0"
+                    onClick={() => insertQuestionFromBank(item)}
+                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shrink-0"
                   >
                     + Insert
                   </button>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: ADD/EDIT QUESTION BANK ITEM MODAL */}
+      {/* ========================================================================= */}
+      {qBankModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <h3 className="text-lg font-black text-stone-900">
+                {editingQItem ? "Edit Question Item" : "Add Item to Question Bank"}
+              </h3>
+              <button onClick={() => setQBankModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveQuestionBankItem} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Subject *</label>
+                  <select
+                    value={qForm.subject_id}
+                    onChange={(e) => setQForm({ ...qForm, subject_id: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
+                    required
+                  >
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Type *</label>
+                  <select
+                    value={qForm.question_type}
+                    onChange={(e) => setQForm({ ...qForm, question_type: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-bold text-stone-900"
+                  >
+                    <option value="MCQ">MCQ (1 Mark)</option>
+                    <option value="ShortAnswer">Short Answer / Worksheet Activity</option>
+                    <option value="LongAnswer">Long Answer (5 Marks)</option>
+                    <option value="CaseStudy">Case Study / Passage</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Question / Activity Prompt *</label>
+                <textarea
+                  rows={3}
+                  value={qForm.question_text}
+                  onChange={(e) => setQForm({ ...qForm, question_text: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900"
+                  required
+                />
+              </div>
+
+              {qForm.question_type === "MCQ" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" placeholder="Option A" value={qForm.option_a} onChange={(e) => setQForm({ ...qForm, option_a: e.target.value })} className="bg-stone-50 border border-stone-200 rounded-xl p-2" />
+                  <input type="text" placeholder="Option B" value={qForm.option_b} onChange={(e) => setQForm({ ...qForm, option_b: e.target.value })} className="bg-stone-50 border border-stone-200 rounded-xl p-2" />
+                  <input type="text" placeholder="Option C" value={qForm.option_c} onChange={(e) => setQForm({ ...qForm, option_c: e.target.value })} className="bg-stone-50 border border-stone-200 rounded-xl p-2" />
+                  <input type="text" placeholder="Option D" value={qForm.option_d} onChange={(e) => setQForm({ ...qForm, option_d: e.target.value })} className="bg-stone-50 border border-stone-200 rounded-xl p-2" />
+                </div>
+              )}
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Model Answer / Solution</label>
+                <input
+                  type="text"
+                  value={qForm.correct_answer}
+                  onChange={(e) => setQForm({ ...qForm, correct_answer: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900"
+                />
+              </div>
+
+              {/* Attach Reference Diagram / PDF */}
+              <PdfUploader
+                label="Attach Reference Diagram / Passage PDF (Optional)"
+                helperText="Upload reference PDF for this question"
+                initialUrl={qForm.pdf_attachment_url}
+                onPdfUploaded={(data) => setQForm({ ...qForm, pdf_attachment_url: data.fileUrl })}
+                onPdfRemoved={() => setQForm({ ...qForm, pdf_attachment_url: "" })}
+              />
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button type="button" onClick={() => setQBankModalOpen(false)} className="px-4 py-2 bg-stone-100 text-stone-700 font-bold rounded-xl">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSaving} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition">
+                  {isSaving ? "Saving..." : "Save to Bank"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
