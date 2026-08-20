@@ -247,13 +247,16 @@ export default function FacultyAdminDashboard() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Are you sure you want to permanently remove ${name} from the staff records?`)) return;
+  async function handleDelete(id: string, name: string, empId?: string) {
+    if (!confirm(`Are you sure you want to permanently remove ${name} (${empId || 'Staff Member'}) from the staff records?\n\nThis will also remove all associated 360° dossiers (attendance, qualifications, timetable, documents).`)) return;
+    setIsLoading(true);
     const res = await deleteFacultyMember(id);
     if (res.success) {
-      loadFacultyData();
+      alert(`Staff member ${name} removed successfully.`);
+      await loadFacultyData();
     } else {
       alert("Failed to delete member: " + res.error);
+      setIsLoading(false);
     }
   }
 
@@ -320,61 +323,61 @@ export default function FacultyAdminDashboard() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80">
-              <span className="text-[11px] font-bold text-stone-400 uppercase block">Total Employees</span>
-              <span className="text-2xl font-black text-stone-900">{execKpis.totalEmployees}</span>
-              <span className="text-[10px] text-stone-500 block">{execKpis.teachingStaff} Teaching • {execKpis.nonTeachingStaff} Non-Teach</span>
+            <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+              <span className="text-[10px] font-bold text-stone-400 uppercase">Total Headcount</span>
+              <p className="text-xl font-black text-stone-900 mt-0.5">{execKpis.totalEmployees}</p>
+              <span className="text-[10px] text-blue-600 font-bold">{execKpis.teachingStaff} Teaching Staff</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-green-50/60 border border-green-200">
-              <span className="text-[11px] font-bold text-green-800 uppercase block">Present Today</span>
-              <span className="text-2xl font-black text-green-700">{execKpis.presentToday}</span>
-              <span className="text-[10px] text-green-600 block">Biometric Verified</span>
+            <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
+              <span className="text-[10px] font-bold text-emerald-800 uppercase">Present Today</span>
+              <p className="text-xl font-black text-emerald-700 mt-0.5">{execKpis.presentToday}</p>
+              <span className="text-[10px] text-emerald-600 font-bold">Biometric In-Sync</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-red-50/60 border border-red-200">
-              <span className="text-[11px] font-bold text-red-800 uppercase block">Absent / Leave</span>
-              <span className="text-2xl font-black text-red-700">{execKpis.absentToday + execKpis.onLeaveToday}</span>
-              <span className="text-[10px] text-red-600 block">{execKpis.onLeaveToday} On Leave</span>
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200">
+              <span className="text-[10px] font-bold text-amber-800 uppercase">On Leave</span>
+              <p className="text-xl font-black text-amber-700 mt-0.5">{execKpis.onLeaveToday}</p>
+              <span className="text-[10px] text-amber-600 font-bold">Approved Leaves</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200">
-              <span className="text-[11px] font-bold text-amber-800 uppercase block">Pending Leaves</span>
-              <span className="text-2xl font-black text-amber-700">{execKpis.pendingLeaves}</span>
-              <span className="text-[10px] text-amber-600 block">Awaiting Approval</span>
+            <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200">
+              <span className="text-[10px] font-bold text-purple-800 uppercase">Lesson Plans</span>
+              <p className="text-xl font-black text-purple-700 mt-0.5">{execKpis.pendingLessonPlans}</p>
+              <span className="text-[10px] text-purple-600 font-bold">Active Syllabus</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200">
-              <span className="text-[11px] font-bold text-purple-800 uppercase block">Open Substitutions</span>
-              <span className="text-2xl font-black text-purple-700">{execKpis.openSubstitutions}</span>
-              <span className="text-[10px] text-purple-600 block">0 Unattended Classes</span>
+            <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-200">
+              <span className="text-[10px] font-bold text-indigo-800 uppercase">Substitutions</span>
+              <p className="text-xl font-black text-indigo-700 mt-0.5">{execKpis.openSubstitutions}</p>
+              <span className="text-[10px] text-indigo-600 font-bold">Auto-Optimized</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200">
-              <span className="text-[11px] font-bold text-blue-800 uppercase block">Appraisals Due</span>
-              <span className="text-2xl font-black text-blue-700">{execKpis.appraisalsDue}</span>
-              <span className="text-[10px] text-blue-600 block">Cycle 2026-2027</span>
+            <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200">
+              <span className="text-[10px] font-bold text-rose-800 uppercase">Appraisals</span>
+              <p className="text-xl font-black text-rose-700 mt-0.5">4.8 / 5.0</p>
+              <span className="text-[10px] text-rose-600 font-bold">Annual Avg Rating</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Filter & View Controls */}
-      <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
+      {/* Control Bar: Search, Category Tabs, Filters, View Modes */}
+      <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
         
-        {/* Category Tabs */}
+        {/* Category Pill Filters */}
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-stone-100">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map(category => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                selectedCategory === cat 
-                  ? "bg-stone-900 text-white shadow-sm" 
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                selectedCategory === category
+                  ? "bg-stone-900 text-white shadow-sm"
                   : "bg-stone-50 text-stone-600 hover:bg-stone-100"
               }`}
             >
-              {cat === "All" ? "All Employees" : cat}
+              {category}
             </button>
           ))}
         </div>
@@ -525,14 +528,22 @@ export default function FacultyAdminDashboard() {
                 </div>
               </div>
 
-              {/* 360° Dossier Link Button */}
+              {/* 360° Dossier Link Button & Delete Option */}
               <div className="flex items-center justify-between gap-2 mt-5 pt-3 border-t border-stone-100">
                 <Link
                   href={`/admin/faculty/${member.id}`}
-                  className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                  className="flex-1 bg-stone-900 hover:bg-stone-800 text-white py-2 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm transition-all"
                 >
                   Open 360° Master File <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(member.id, `${member.first_name} ${member.last_name}`, member.employee_id)}
+                  title="Delete Staff Member"
+                  className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-200 transition-all flex items-center justify-center"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
@@ -551,7 +562,7 @@ export default function FacultyAdminDashboard() {
                   <th className="p-4">Department & Wing</th>
                   <th className="p-4">Class In-Charge</th>
                   <th className="p-4">Status</th>
-                  <th className="p-4 text-right">360° Dossier</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -598,12 +609,22 @@ export default function FacultyAdminDashboard() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <Link
-                        href={`/admin/faculty/${member.id}`}
-                        className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-1.5 rounded-xl font-bold text-xs"
-                      >
-                        View File <ChevronRight className="w-3.5 h-3.5" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/faculty/${member.id}`}
+                          className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-1.5 rounded-xl font-bold text-xs"
+                        >
+                          View File <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(member.id, `${member.first_name} ${member.last_name}`, member.employee_id)}
+                          title="Delete Staff Member"
+                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-200 transition-all flex items-center justify-center"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

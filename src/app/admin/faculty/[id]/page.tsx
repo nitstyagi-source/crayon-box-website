@@ -26,6 +26,7 @@ import {
   issueStaffAsset, 
   returnStaffAsset 
 } from "@/app/actions/faculty-enterprise";
+import { deleteFacultyMember } from "@/app/actions/faculty";
 import FileUpload from "@/components/admin/FileUpload";
 
 export default function FacultyProfile360Page() {
@@ -227,6 +228,20 @@ export default function FacultyProfile360Page() {
     }
   }
 
+  async function handleDeleteMember() {
+    if (!staff) return;
+    const name = `${staff.first_name} ${staff.last_name}`;
+    if (!confirm(`Are you sure you want to permanently delete ${name} (${staff.employee_id || 'Employee'})?\n\nThis will remove all associated 360° master records (attendance, qualifications, timetable, documents). This action cannot be undone.`)) return;
+
+    const res = await deleteFacultyMember(staffId);
+    if (res.success) {
+      alert(`Staff member ${name} deleted successfully.`);
+      router.push('/admin/faculty');
+    } else {
+      alert("Failed to delete staff member: " + res.error);
+    }
+  }
+
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       
@@ -245,6 +260,12 @@ export default function FacultyProfile360Page() {
             className="bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
           >
             <Printer className="w-3.5 h-3.5" /> Print Master Dossier
+          </button>
+          <button 
+            onClick={handleDeleteMember}
+            className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete Staff Member
           </button>
         </div>
       </div>

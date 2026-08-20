@@ -285,6 +285,27 @@ export async function deleteFacultyMember(id: string) {
     if (!id) throw new Error("Faculty ID is required.");
     const supabase = getSupabaseAdmin();
 
+    // 1. Delete relational child records first to ensure referential integrity
+    await Promise.allSettled([
+      supabase.from('staff_timetable').delete().eq('staff_id', id),
+      supabase.from('staff_lesson_plans').delete().eq('staff_id', id),
+      supabase.from('staff_student_marks').delete().eq('staff_id', id),
+      supabase.from('staff_appraisals').delete().eq('staff_id', id),
+      supabase.from('staff_trainings').delete().eq('staff_id', id),
+      supabase.from('staff_assets').delete().eq('staff_id', id),
+      supabase.from('staff_exits').delete().eq('staff_id', id),
+      supabase.from('staff_leaves').delete().eq('staff_id', id),
+      supabase.from('staff_leave_balances').delete().eq('staff_id', id),
+      supabase.from('staff_documents').delete().eq('staff_id', id),
+      supabase.from('staff_qualifications').delete().eq('staff_id', id),
+      supabase.from('staff_emergency_contacts').delete().eq('staff_id', id),
+      supabase.from('staff_addresses').delete().eq('staff_id', id),
+      supabase.from('staff_substitutions').delete().or(`absent_staff_id.eq.${id},substitute_staff_id.eq.${id}`),
+      supabase.from('staff_attendance').delete().eq('staff_id', id),
+      supabase.from('staff_attendance_logs').delete().eq('staff_id', id)
+    ]);
+
+    // 2. Delete parent staff record
     const { error } = await supabase
       .from('staff')
       .delete()
@@ -293,6 +314,8 @@ export async function deleteFacultyMember(id: string) {
     if (error) throw error;
 
     revalidatePath('/admin/faculty');
+    revalidatePath('/admin/hr/attendance');
+    revalidatePath('/admin/hr/payroll');
     revalidatePath('/faculty');
 
     return { success: true };
