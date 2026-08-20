@@ -1522,3 +1522,113 @@ export async function sendFeeReminderNotification(payload: {
     return { success: false, error: error.message };
   }
 }
+
+// -------------------------------------------------------------
+// 11. FINANCE & INSTITUTIONAL SETTINGS
+// -------------------------------------------------------------
+export async function getFinanceSettings(campusId: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, campusId);
+
+    const { data: campus, error } = await supabase
+      .from('campuses')
+      .select('*')
+      .eq('id', resolvedId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    return {
+      success: true,
+      data: {
+        institution_name: campus?.name || 'Crayon Box School',
+        school_id: campus?.school_id || '1253481',
+        udise_code: campus?.udise_code || '07124100151',
+        contact_phone: campus?.contact_phone || '9811102008',
+        contact_email: campus?.contact_email || 'crayonboxdelhi@gmail.com',
+        address: campus?.address || 'Burari, Sant Nagar, Delhi - 110084',
+        receipt_prefix: 'CBS-REC-',
+        invoice_prefix: 'INV-2026-',
+        default_due_day: 10,
+        late_fee_per_day: 25,
+        max_late_fee: 500,
+        currency_symbol: '₹',
+        paper_format: 'A5 (148 x 210 mm) - 1 Page Standard',
+        allow_partial_admin: true,
+        allow_partial_parent: false,
+        enforce_rte_exemption: true
+      }
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      data: {
+        institution_name: 'Crayon Box School',
+        school_id: '1253481',
+        udise_code: '07124100151',
+        contact_phone: '9811102008',
+        contact_email: 'crayonboxdelhi@gmail.com',
+        address: 'Burari, Sant Nagar, Delhi - 110084',
+        receipt_prefix: 'CBS-REC-',
+        invoice_prefix: 'INV-2026-',
+        default_due_day: 10,
+        late_fee_per_day: 25,
+        max_late_fee: 500,
+        currency_symbol: '₹',
+        paper_format: 'A5 (148 x 210 mm) - 1 Page Standard',
+        allow_partial_admin: true,
+        allow_partial_parent: false,
+        enforce_rte_exemption: true
+      }
+    };
+  }
+}
+
+export async function saveFinanceSettings(payload: {
+  campus_id: string;
+  institution_name: string;
+  school_id: string;
+  udise_code: string;
+  contact_phone: string;
+  contact_email: string;
+  address: string;
+  receipt_prefix?: string;
+  invoice_prefix?: string;
+  default_due_day?: number;
+  late_fee_per_day?: number;
+  max_late_fee?: number;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+
+    const { data, error } = await supabase
+      .from('campuses')
+      .update({
+        name: payload.institution_name,
+        school_id: payload.school_id,
+        udise_code: payload.udise_code,
+        contact_phone: payload.contact_phone,
+        contact_email: payload.contact_email,
+        address: payload.address
+      })
+      .eq('id', resolvedId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance/settings');
+    revalidatePath('/admin/finance/invoices');
+    revalidatePath('/admin/finance/receipts');
+    revalidatePath('/admin/finance/generate');
+    revalidatePath('/admin/finance/collections');
+
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
