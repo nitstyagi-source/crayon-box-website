@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { 
-  Printer, ArrowLeft, User, QrCode, ShieldCheck, Phone, Sparkles 
+  Printer, ArrowLeft, User, QrCode, ShieldCheck, Phone, Sparkles, Shield
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getStudentsWithAllEscorts } from "@/app/actions/id-cards";
@@ -57,11 +57,11 @@ function EscortCardBatchPrintContent() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Print Batch: Student Escort Cards</h1>
             <span className="bg-purple-100 text-purple-900 font-mono text-[11px] font-black px-2.5 py-0.5 rounded-md">
-              Vertical CR80 • 54 mm × 85.6 mm (2.125&quot; × 3.375&quot;)
+              Premium Vertical CR80 • 54 mm × 85.6 mm
             </span>
           </div>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Standard ISO/IEC Vertical Format • 1 Card per student containing all authorized pickup escorts.
+            High-Definition Multi-Escort Clearance Card with Security QR and Full Authorized Roster.
           </p>
         </div>
 
@@ -106,62 +106,80 @@ function EscortCardBatchPrintContent() {
           return (
             <div key={item.id} className="flex flex-wrap gap-3 print:gap-2 print:break-inside-avoid print:page-break-inside-avoid">
               
-              {/* FRONT SIDE - VERTICAL CR80 (54mm x 85.6mm) */}
+              {/* FRONT SIDE - PREMIUM VERTICAL CR80 (54mm x 85.6mm) */}
               {(layoutMode === "front" || layoutMode === "both") && (
                 <div 
-                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between items-center text-center relative overflow-hidden print:shadow-none print:border-stone-900"
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-md flex flex-col justify-between items-center text-center relative overflow-hidden print:shadow-none print:border-stone-900"
                   style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
+                  {/* Decorative Background Texture */}
+                  <div className="absolute inset-0 bg-radial-[at_50%_0%] from-purple-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+
                   {/* Top Header */}
-                  <div className="w-full border-b border-stone-900 pb-[1mm] flex flex-col items-center">
-                    <div className="flex items-center gap-1">
-                      <div className="w-[5mm] h-[5mm] rounded-[1mm] bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[6pt]">
-                        CBS
+                  <div className="w-full bg-linear-to-r from-purple-950 via-indigo-950 to-purple-950 text-white px-[2mm] pt-[2mm] pb-[1.5mm] relative shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[6pt] shadow-xs shrink-0">
+                          CBS
+                        </div>
+                        <div className="text-left leading-none">
+                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight">Crayon Box</h3>
+                          <p className="text-[4.2pt] text-amber-300 font-bold uppercase tracking-wider">Escort Pass</p>
+                        </div>
                       </div>
-                      <h3 className="font-black text-[7pt] text-stone-900 uppercase tracking-tight">Crayon Box School</h3>
+                      <span className="bg-amber-400 text-stone-950 font-black text-[4.5pt] px-[1.5mm] py-[0.3mm] rounded-full uppercase tracking-tight shadow-xs">
+                        2026-27
+                      </span>
                     </div>
-                    <span className="bg-purple-100 text-purple-900 font-bold px-[2mm] py-[0.2mm] rounded-[1mm] text-[4.5pt] uppercase tracking-wider mt-[0.3mm] border border-purple-200">
-                      Authorized Escort Card • 2026-27
-                    </span>
+
+                    <div className="w-full h-[0.4mm] bg-linear-to-r from-amber-400/20 via-amber-400 to-amber-400/20 mt-[1mm]"></div>
                   </div>
 
-                  {/* Student Photo (Portrait Box) */}
-                  <div className="w-[24mm] h-[28mm] rounded-[2mm] border-2 border-stone-900 overflow-hidden my-[1mm] bg-stone-100 flex items-center justify-center shrink-0 shadow-xs">
-                    {item.photo_url ? (
-                      <img src={item.photo_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-[10mm] h-[10mm] text-stone-400" />
-                    )}
+                  {/* Student Photo Frame */}
+                  <div className="my-[1mm] relative shrink-0">
+                    <div className="w-[24mm] h-[28mm] rounded-[2mm] border-2 border-stone-900 overflow-hidden bg-stone-100 flex items-center justify-center shadow-xs">
+                      {item.photo_url ? (
+                        <img src={item.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-[10mm] h-[10mm] text-stone-400" />
+                      )}
+                    </div>
+                    <div className="absolute -bottom-[1mm] inset-x-0 flex justify-center">
+                      <span className="bg-purple-950 text-amber-300 font-bold text-[4.5pt] px-[2mm] py-[0.2mm] rounded-full uppercase tracking-wider border border-amber-400/50 shadow-xs">
+                        STUDENT WARD
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Student Info Details */}
-                  <div className="w-full leading-tight space-y-[0.5mm]">
-                    <h4 className="font-black text-[8.5pt] text-stone-900 uppercase truncate">
+                  {/* Student Details */}
+                  <div className="w-full px-[2mm] leading-tight space-y-[0.5mm]">
+                    <h4 className="font-black text-[8.5pt] text-stone-900 uppercase truncate tracking-tight">
                       {item.first_name} {item.last_name || ''}
                     </h4>
 
                     <div className="flex justify-center items-center gap-[1mm] text-[5.2pt]">
-                      <span className="bg-stone-100 text-stone-800 font-mono font-bold px-[1.5mm] py-[0.2mm] rounded border border-stone-300">
-                        Adm: {cleanAdm}
+                      <span className="bg-stone-100 text-stone-900 font-mono font-black px-[1.5mm] py-[0.3mm] rounded border border-stone-300">
+                        ADM: {cleanAdm}
                       </span>
-                      <span className="bg-purple-50 text-purple-900 font-bold px-[1.5mm] py-[0.2mm] rounded border border-purple-200">
+                      <span className="bg-purple-50 text-purple-950 font-black px-[1.5mm] py-[0.3mm] rounded border border-purple-200 uppercase">
                         {item.class_name}-{item.section_name}
                       </span>
                     </div>
 
-                    <p className="text-[4.8pt] font-bold text-purple-800 pt-[0.3mm]">
+                    <p className="text-[4.8pt] font-black text-purple-900 pt-[0.3mm]">
                       ✓ {escortsList.length} Authorized Escorts Registered
                     </p>
                   </div>
 
-                  {/* Scannable High-Contrast Master QR Code */}
-                  <div className="flex items-center justify-between w-full pt-[1mm] border-t border-stone-200">
-                    <div className="text-left text-[4pt] text-stone-500 leading-none">
-                      <p className="font-bold text-stone-700">Gate Clearance</p>
-                      <p className="text-stone-400 mt-[0.3mm]">Valid: 31 Mar 2027</p>
+                  {/* Bottom Gate Clearance Bar */}
+                  <div className="w-full px-[2mm] pb-[1.5mm] pt-[1mm] flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
+                    <div className="text-left text-[4pt] text-stone-500 leading-tight">
+                      <p className="font-black text-stone-800 uppercase tracking-tighter">Gate Security</p>
+                      <p className="text-emerald-700 font-bold text-[3.8pt]">✓ Authorized Clearance</p>
+                      <p className="text-stone-400 text-[3.5pt]">Valid: 31 Mar 2027</p>
                     </div>
 
-                    <div className="w-[13mm] h-[13mm] bg-white border border-stone-800 rounded-[1mm] p-[0.5mm] shrink-0 flex items-center justify-center">
+                    <div className="w-[12mm] h-[12mm] bg-white border border-stone-800 rounded-[1mm] p-[0.6mm] shrink-0 flex items-center justify-center shadow-xs">
                       <svg className="w-full h-full" viewBox="0 0 100 100" fill="currentColor">
                         <path d="M0 0h30v30H0zm5 5v20h20V5zm5 5h10v10H10zM70 0h30v30H70zm5 5v20h20V5zm5 5h10v10H80zM0 70h30v30H0zm5 5v20h20V75zm5 5h10v10H10zM40 10h10v10H40zm10 20h10v10H50zm-10 20h20v10H40zm30 10h10v20H70zm10 10h10v10H80zm-40 10h20v10H40zm20 10h10v10H60zm20 0h10v10H80z" />
                       </svg>
@@ -173,49 +191,49 @@ function EscortCardBatchPrintContent() {
               {/* BACK SIDE - ALL AUTHORIZED ESCORTS (54mm x 85.6mm) */}
               {(layoutMode === "back" || layoutMode === "both") && (
                 <div 
-                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2mm] flex flex-col justify-between text-left relative overflow-hidden print:shadow-none print:border-stone-900"
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-md p-[2.5mm] flex flex-col justify-between text-left relative overflow-hidden print:shadow-none print:border-stone-900"
                   style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
-                  {/* Header */}
-                  <div className="border-b border-stone-900 pb-[0.5mm] text-center">
-                    <span className="font-black text-[5.8pt] text-stone-900 uppercase">
-                      Authorized Escorts for {item.first_name}
+                  {/* Top Header */}
+                  <div className="border-b border-stone-900 pb-[0.8mm] text-center">
+                    <span className="font-black text-[6pt] text-stone-900 uppercase tracking-tight">
+                      Authorized Pickup Escorts
                     </span>
-                    <p className="text-[4pt] font-mono text-stone-400">{item.card_number}</p>
+                    <p className="text-[4.2pt] font-mono text-purple-800 font-bold">{item.card_number}</p>
                   </div>
 
-                  {/* Vertical Escort Roster (Stacked Roster of 4 Escorts) */}
-                  <div className="space-y-[1mm] py-[0.5mm] flex-1">
+                  {/* Vertical Escort Roster */}
+                  <div className="space-y-[1mm] py-[0.8mm] flex-1">
                     {escortsList.slice(0, 4).map((esc: any, eIdx: number) => (
-                      <div key={esc.id || eIdx} className="bg-stone-50 border border-stone-200 rounded-[1mm] p-[0.8mm] flex items-center gap-[1.2mm]">
-                        <div className="w-[6mm] h-[8mm] rounded-[0.5mm] border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center">
+                      <div key={esc.id || eIdx} className="bg-stone-50/90 border border-stone-200 rounded-[1.2mm] p-[0.8mm] flex items-center gap-[1.2mm]">
+                        <div className="w-[6mm] h-[8mm] rounded-[0.8mm] border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center shadow-xs">
                           {esc.photo_url ? (
                             <img src={esc.photo_url} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <User className="w-[3mm] h-[3mm] text-stone-400" />
+                            <User className="w-[3.5mm] h-[3.5mm] text-stone-400" />
                           )}
                         </div>
 
                         <div className="min-w-0 flex-1 leading-none">
                           <p className="font-black text-[5.2pt] text-stone-900 truncate">{esc.full_name}</p>
-                          <span className="text-[4.2pt] font-bold text-purple-700 bg-purple-50 px-1 py-0.1 rounded inline-block mt-[0.2mm]">
+                          <span className="text-[4.2pt] font-black text-purple-900 bg-purple-100 px-1 py-0.2 rounded inline-block mt-[0.3mm] uppercase">
                             {esc.relationship}
                           </span>
-                          <p className="text-[4pt] font-mono text-stone-500 truncate mt-[0.2mm]">{esc.mobile}</p>
+                          <p className="text-[4pt] font-mono text-stone-600 truncate mt-[0.3mm] font-bold">{esc.mobile}</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {/* Security Terms & Signature */}
-                  <div className="border-t border-stone-300 pt-[0.6mm] flex justify-between items-end text-[4pt] text-stone-500">
+                  <div className="border-t border-stone-300 pt-[0.8mm] flex justify-between items-end text-[4pt] text-stone-500 shrink-0">
                     <div className="leading-none space-y-[0.3mm]">
-                      <p className="font-bold text-stone-700">1. Released only to pictured persons.</p>
-                      <p>2. Emergency: 1-day pass required.</p>
+                      <p className="font-black text-stone-800 uppercase">1. Only pictured persons authorized.</p>
+                      <p>2. Emergency: 1-day pass via portal.</p>
                     </div>
                     <div className="text-center shrink-0">
-                      <div className="w-[12mm] border-b border-stone-900 mb-[0.3mm]"></div>
-                      <span className="font-bold text-stone-800 text-[3.8pt] block">Principal Sign</span>
+                      <div className="w-[12mm] border-b border-stone-900 mb-[0.4mm]"></div>
+                      <span className="font-bold text-stone-800 text-[3.8pt] block uppercase">Principal</span>
                     </div>
                   </div>
                 </div>

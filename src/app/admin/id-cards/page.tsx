@@ -752,79 +752,107 @@ export default function IdAndEscortCardManagementHub() {
             {/* Render Vertical CR80 Card Preview */}
             <div className="flex justify-center py-2">
               <div 
-                className="border-2 border-stone-900 rounded-[3.18mm] p-[3.5mm] bg-white shadow-xl flex flex-col justify-between items-center text-center"
+                className="border-2 border-stone-900 rounded-[3.18mm] bg-white shadow-2xl flex flex-col justify-between items-center text-center relative overflow-hidden"
                 style={{ width: "216px", height: "342px", boxSizing: "border-box" }}
               >
+                {/* Subtle Watermark */}
+                <div className="absolute inset-0 bg-radial-[at_50%_0%] from-amber-500/5 via-transparent to-purple-900/5 pointer-events-none"></div>
+
                 {previewSide === 'front' ? (
-                  /* Front Side (Vertical) */
+                  /* Front Side (Vertical Premium) */
                   <>
-                    <div className="w-full border-b border-stone-900 pb-1 flex flex-col items-center">
-                      <div className="flex items-center gap-1">
-                        <div className="w-5 h-5 rounded bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[8px]">
-                          CBS
+                    {/* Header Banner */}
+                    <div className="w-full bg-linear-to-r from-stone-900 via-indigo-950 to-stone-900 text-white px-2 pt-2 pb-1.5 shrink-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <div className="w-5 h-5 rounded bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[8px] shadow-xs shrink-0">
+                            CBS
+                          </div>
+                          <div className="text-left leading-tight">
+                            <h4 className="font-black text-[9px] text-white uppercase tracking-tight">Crayon Box</h4>
+                            <p className="text-[6px] text-amber-300 font-bold uppercase tracking-wider">
+                              {previewCard.type === 'Student' ? 'Student ID Card' : 'Escort Pass'}
+                            </p>
+                          </div>
                         </div>
-                        <h4 className="font-black text-[10px] text-stone-900 uppercase">Crayon Box School</h4>
+                        <span className="bg-amber-400 text-stone-950 font-black text-[7px] px-1.5 py-0.2 rounded-full uppercase">
+                          2026-27
+                        </span>
                       </div>
-                      <p className="text-[7px] text-stone-500 uppercase font-bold mt-0.5">
-                        {previewCard.type === 'Student' ? 'Student ID Card • 2026-2027' : 'Authorized Escort Card'}
-                      </p>
+                      <div className="w-full h-0.5 bg-linear-to-r from-amber-400/20 via-amber-400 to-amber-400/20 mt-1"></div>
                     </div>
 
-                    <div className="w-24 h-28 rounded-lg border-2 border-stone-900 overflow-hidden my-1 bg-stone-100 flex items-center justify-center shrink-0">
-                      {previewCard.photo_url ? (
-                        <img src={previewCard.photo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-8 h-8 text-stone-400" />
-                      )}
+                    {/* Photo Box */}
+                    <div className="my-1 relative shrink-0">
+                      <div className="w-22 h-26 rounded-lg border-2 border-stone-900 overflow-hidden bg-stone-100 flex items-center justify-center shadow-xs">
+                        {previewCard.photo_url ? (
+                          <img src={previewCard.photo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-8 h-8 text-stone-400" />
+                        )}
+                      </div>
+                      <div className="absolute -bottom-1 inset-x-0 flex justify-center">
+                        <span className="bg-stone-900 text-amber-300 font-bold text-[6px] px-2 py-0.2 rounded-full uppercase tracking-wider border border-amber-400/50">
+                          {previewCard.type === 'Student' ? 'STUDENT' : 'STUDENT WARD'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="w-full space-y-0.5 leading-tight">
-                      <h4 className="font-black text-[11px] text-stone-900 uppercase truncate">
+                    {/* Info Details */}
+                    <div className="w-full px-2 space-y-0.5 leading-tight">
+                      <h4 className="font-black text-[11px] text-stone-900 uppercase truncate tracking-tight">
                         {previewCard.first_name} {previewCard.last_name || ''}
                       </h4>
 
-                      <span className="inline-block bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded text-[8px] border border-purple-200">
-                        {previewCard.class_name}-{previewCard.section_name || 'A'}
-                      </span>
+                      <div>
+                        <span className="inline-block bg-indigo-50 text-indigo-950 font-black px-2 py-0.5 rounded text-[8px] border border-indigo-200 uppercase">
+                          {previewCard.class_name} • SEC {previewCard.section_name || 'A'}
+                        </span>
+                      </div>
 
-                      <div className="grid grid-cols-2 gap-1 bg-stone-50 rounded p-1 text-[7px] text-stone-700 border border-stone-200 text-left mt-0.5">
+                      <div className="grid grid-cols-2 gap-1 bg-stone-50/90 rounded p-1 text-[7px] text-stone-700 border border-stone-200 text-left mt-0.5">
                         <div>
-                          <span className="text-stone-400 block font-bold">Adm No:</span>
-                          <span className="font-mono font-bold text-stone-900">{previewCard.admission_no}</span>
+                          <span className="text-stone-400 block font-bold text-[6px]">ADMISSION NO</span>
+                          <span className="font-mono font-black text-stone-900">{previewCard.admission_no}</span>
                         </div>
                         <div>
-                          <span className="text-stone-400 block font-bold">Roll / Blood:</span>
-                          <span className="font-bold text-stone-900">{previewCard.roll_no || '1'} • <span className="text-red-600 font-bold">{previewCard.blood_group || 'O+'}</span></span>
+                          <span className="text-stone-400 block font-bold text-[6px]">ROLL / BLOOD</span>
+                          <span className="font-bold text-stone-900">
+                            #{previewCard.roll_no || '1'} • <span className="text-red-600 font-black">{previewCard.blood_group || 'O+'}</span>
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between w-full pt-1 border-t border-stone-200">
-                      <div className="text-left text-[6px] text-stone-400 leading-none">
-                        <p className="font-bold text-stone-600">Burari Campus</p>
-                        <p className="mt-0.5">Valid: 31 Mar 2027</p>
+                    {/* Bottom Security Bar */}
+                    <div className="w-full px-2 pb-1.5 pt-1 flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
+                      <div className="text-left text-[6px] text-stone-500 leading-tight">
+                        <p className="font-black text-stone-800 uppercase">Main Campus</p>
+                        <p className="text-emerald-700 font-bold text-[5.5px]">✓ Gate Verified</p>
+                        <p className="text-stone-400 text-[5px]">Valid: 31 Mar 2027</p>
                       </div>
 
-                      <div className="w-10 h-10 bg-white border border-stone-800 rounded p-0.5 shrink-0 flex items-center justify-center">
-                        <QrCode className="w-7 h-7 text-stone-900" />
+                      <div className="w-9 h-9 bg-white border border-stone-800 rounded p-0.5 shrink-0 flex items-center justify-center shadow-xs">
+                        <QrCode className="w-6 h-6 text-stone-900" />
                       </div>
                     </div>
                   </>
                 ) : (
-                  /* Back Side (Vertical) */
+                  /* Back Side (Vertical Premium) */
                   <>
-                    <div className="w-full border-b border-stone-900 pb-0.5 text-center">
-                      <h5 className="font-black text-[9px] text-stone-900 uppercase">
-                        {previewCard.type === 'EscortCard' ? `Authorized Escorts for ${previewCard.first_name}` : 'Emergency & Security Protocol'}
+                    {/* Header */}
+                    <div className="w-full border-b border-stone-900 pb-1 text-center pt-2 px-2">
+                      <h5 className="font-black text-[8px] text-stone-900 uppercase tracking-tight">
+                        {previewCard.type === 'EscortCard' ? 'Authorized Pickup Escorts' : 'Emergency & Security Protocol'}
                       </h5>
-                      <p className="text-[6px] font-mono text-stone-400">{previewCard.card_number}</p>
+                      <p className="text-[6px] font-mono text-purple-800 font-bold">{previewCard.card_number}</p>
                     </div>
 
                     {previewCard.type === 'EscortCard' && previewCard.escorts ? (
-                      <div className="space-y-1 w-full py-1 flex-1">
+                      <div className="space-y-1 w-full px-2 py-1 flex-1">
                         {previewCard.escorts.slice(0, 4).map((e: any, idx: number) => (
-                          <div key={idx} className="bg-stone-50 border border-stone-200 rounded p-1 flex items-center gap-1.5 text-left">
-                            <div className="w-6 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center">
+                          <div key={idx} className="bg-stone-50/90 border border-stone-200 rounded p-1 flex items-center gap-1.5 text-left">
+                            <div className="w-5 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center shadow-xs">
                               {e.photo_url ? (
                                 <img src={e.photo_url} alt="" className="w-full h-full object-cover" />
                               ) : (
@@ -832,30 +860,37 @@ export default function IdAndEscortCardManagementHub() {
                               )}
                             </div>
                             <div className="min-w-0 flex-1 leading-none text-[7px]">
-                              <p className="font-bold text-stone-900 truncate">{e.full_name}</p>
-                              <span className="text-[6px] font-bold text-purple-700 bg-purple-50 px-1 py-0.2 rounded inline-block mt-0.5">
+                              <p className="font-black text-stone-900 truncate">{e.full_name}</p>
+                              <span className="text-[6px] font-black text-purple-900 bg-purple-100 px-1 py-0.2 rounded inline-block mt-0.5 uppercase">
                                 {e.relationship}
                               </span>
-                              <p className="text-[6px] font-mono text-stone-400 truncate mt-0.5">{e.mobile}</p>
+                              <p className="text-[6px] font-mono text-stone-600 truncate mt-0.5 font-bold">{e.mobile}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="space-y-1 text-[8px] text-stone-600 flex-1 leading-tight py-1 text-left w-full">
-                        <div className="bg-stone-50 p-1.5 rounded border border-stone-200 text-[7.5px]">
-                          <p><span className="font-bold text-stone-800">Helpline:</span> +91 98100 81008</p>
-                          <p><span className="font-bold text-stone-800">Transport:</span> Route #04 (Burari Main)</p>
+                      <div className="space-y-1 text-[7.5px] text-stone-600 flex-1 leading-tight py-1 text-left w-full px-2">
+                        <div className="bg-stone-50 p-1.5 rounded border border-stone-200 space-y-0.5">
+                          <p><span className="font-bold text-stone-400 text-[6px]">STUDENT:</span> <span className="font-black text-stone-900">{previewCard.first_name} {previewCard.last_name || ''}</span></p>
+                          <p><span className="font-bold text-stone-400 text-[6px]">TRANSPORT:</span> <span className="font-bold text-stone-800">{previewCard.transport_route}</span></p>
+                          <p><span className="font-bold text-stone-400 text-[6px]">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98100 81008</span></p>
                         </div>
-                        <p className="text-[7px] text-stone-500 pt-0.5">
+                        <p className="text-[6.5px] text-stone-500 pt-0.5">
                           1. This card must be worn by the student at all times during school &amp; transit.
                         </p>
                       </div>
                     )}
 
-                    <div className="border-t border-stone-300 pt-1 flex justify-between items-end text-[7px] w-full">
-                      <span className="text-stone-500 text-[6px]">www.crayonboxschool.com</span>
-                      <span className="font-bold text-stone-800 text-[7px]">Principal Sign</span>
+                    <div className="border-t border-stone-300 pt-1 pb-1 px-2 flex justify-between items-end text-[6.5px] w-full shrink-0">
+                      <div className="text-left">
+                        <span className="text-stone-900 font-black block text-[6px]">www.crayonboxschool.com</span>
+                        <span className="text-stone-400 text-[5px]">Valid: 31 Mar 2027</span>
+                      </div>
+                      <div className="text-center shrink-0">
+                        <div className="w-12 border-b border-stone-900 mb-0.5"></div>
+                        <span className="font-bold text-stone-800 text-[5.5px] block uppercase">Principal</span>
+                      </div>
                     </div>
                   </>
                 )}

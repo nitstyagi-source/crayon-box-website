@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { 
-  Printer, ArrowLeft, User, QrCode, Sparkles, RefreshCw, CheckCircle2 
+  Printer, ArrowLeft, User, QrCode, Sparkles, RefreshCw, 
+  Shield, Phone, Heart, Bus, CheckCircle2, Award
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getStudentsForIdCardGeneration, generateAllMissingIdCards } from "@/app/actions/id-cards";
@@ -71,11 +72,11 @@ function StudentIdCardBatchPrintContent() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Print Batch: Student ID Cards</h1>
             <span className="bg-amber-100 text-amber-900 font-mono text-[11px] font-black px-2.5 py-0.5 rounded-md">
-              Vertical CR80 • 54 mm × 85.6 mm (2.125&quot; × 3.375&quot;)
+              Premium Vertical CR80 • 54 mm × 85.6 mm
             </span>
           </div>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Standard ISO/IEC Vertical Lanyard ID Format • Printing {students.length} student cards for {classFilter}.
+            High-Definition Vertical Identity Card with Gold Crest, Photo Frame, and Security QR.
           </p>
         </div>
 
@@ -128,66 +129,89 @@ function StudentIdCardBatchPrintContent() {
           return (
             <div key={student.id} className="flex flex-wrap gap-3 print:gap-2 print:break-inside-avoid print:page-break-inside-avoid">
               
-              {/* FRONT SIDE - VERTICAL CR80 (54mm x 85.6mm) */}
+              {/* FRONT SIDE - PREMIUM VERTICAL CR80 (54mm x 85.6mm) */}
               {(layoutMode === "front" || layoutMode === "both") && (
                 <div 
-                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between items-center text-center relative overflow-hidden print:shadow-none print:border-stone-900"
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-md flex flex-col justify-between items-center text-center relative overflow-hidden print:shadow-none print:border-stone-900"
                   style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
-                  {/* Top Lanyard Header */}
-                  <div className="w-full border-b border-stone-900 pb-[1mm] flex flex-col items-center">
-                    <div className="flex items-center gap-1">
-                      <div className="w-[5mm] h-[5mm] rounded-[1mm] bg-stone-900 text-amber-400 flex items-center justify-center font-black text-[6pt]">
-                        CBS
+                  {/* Decorative Background Pattern */}
+                  <div className="absolute inset-0 bg-radial-[at_50%_0%] from-amber-500/5 via-transparent to-purple-900/5 pointer-events-none"></div>
+
+                  {/* Top Premium Navy & Gold Header */}
+                  <div className="w-full bg-linear-to-r from-stone-900 via-indigo-950 to-stone-900 text-white px-[2mm] pt-[2mm] pb-[1.5mm] relative shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[6pt] shadow-xs shrink-0">
+                          CBS
+                        </div>
+                        <div className="text-left leading-none">
+                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight">Crayon Box</h3>
+                          <p className="text-[4.2pt] text-amber-300 font-bold uppercase tracking-wider">School • Delhi</p>
+                        </div>
                       </div>
-                      <h3 className="font-black text-[7pt] text-stone-900 uppercase tracking-tight">Crayon Box School</h3>
+                      <span className="bg-amber-400 text-stone-950 font-black text-[4.5pt] px-[1.5mm] py-[0.3mm] rounded-full uppercase tracking-tight shadow-xs">
+                        2026-27
+                      </span>
                     </div>
-                    <p className="text-[4.5pt] font-bold text-stone-500 uppercase tracking-wider mt-[0.2mm]">
-                      Student ID Card • 2026-2027
-                    </p>
+
+                    {/* Gold Hairline Divider */}
+                    <div className="w-full h-[0.4mm] bg-linear-to-r from-amber-400/20 via-amber-400 to-amber-400/20 mt-[1mm]"></div>
                   </div>
 
-                  {/* Student Photograph (Portrait Box) */}
-                  <div className="w-[24mm] h-[28mm] rounded-[2mm] border-2 border-stone-900 overflow-hidden my-[1mm] bg-stone-100 flex items-center justify-center shrink-0 shadow-xs">
-                    {student.photo_url ? (
-                      <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-[10mm] h-[10mm] text-stone-400" />
-                    )}
+                  {/* Student Photograph Frame */}
+                  <div className="my-[1mm] relative shrink-0">
+                    <div className="w-[24mm] h-[28mm] rounded-[2mm] border-2 border-stone-900 overflow-hidden bg-stone-100 flex items-center justify-center shadow-xs">
+                      {student.photo_url ? (
+                        <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-[10mm] h-[10mm] text-stone-400" />
+                      )}
+                    </div>
+                    {/* Student Status Badge */}
+                    <div className="absolute -bottom-[1mm] inset-x-0 flex justify-center">
+                      <span className="bg-stone-900 text-amber-300 font-bold text-[4.5pt] px-[2mm] py-[0.2mm] rounded-full uppercase tracking-wider border border-amber-400/50 shadow-xs">
+                        STUDENT
+                      </span>
+                    </div>
                   </div>
 
                   {/* Student Info Details */}
-                  <div className="w-full leading-tight space-y-[0.6mm]">
-                    <h4 className="font-black text-[8.5pt] text-stone-900 uppercase truncate">
+                  <div className="w-full px-[2mm] leading-tight space-y-[0.6mm]">
+                    <h4 className="font-black text-[8.5pt] text-stone-900 uppercase truncate tracking-tight">
                       {student.first_name} {student.last_name || ''}
                     </h4>
 
                     <div>
-                      <span className="inline-block bg-purple-100 text-purple-900 font-bold px-[2mm] py-[0.3mm] rounded-[1mm] text-[5.5pt] border border-purple-200">
-                        {student.class_name} - {student.section_name}
+                      <span className="inline-block bg-indigo-50 text-indigo-950 font-black px-[2.5mm] py-[0.4mm] rounded-[1mm] text-[5.5pt] border border-indigo-200 uppercase tracking-wide">
+                        {student.class_name} • SEC {student.section_name}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-[1mm] bg-stone-50 rounded-[1mm] p-[1mm] text-[5pt] text-stone-700 border border-stone-200 text-left mt-[0.5mm]">
+                    {/* 2-Column Info Grid */}
+                    <div className="grid grid-cols-2 gap-[1mm] bg-stone-50/90 rounded-[1.2mm] p-[1.2mm] text-[5pt] text-stone-700 border border-stone-200 text-left mt-[0.6mm]">
                       <div>
-                        <span className="font-bold text-stone-400 block">Adm No:</span>
+                        <span className="font-bold text-stone-400 block text-[4.2pt]">ADMISSION NO</span>
                         <span className="font-mono font-black text-stone-900">{cleanAdm}</span>
                       </div>
                       <div>
-                        <span className="font-bold text-stone-400 block">Roll / Blood:</span>
-                        <span className="font-bold text-stone-900">{student.roll_no || `${idx + 1}`} • <span className="text-red-600 font-black">{student.blood_group || 'O+'}</span></span>
+                        <span className="font-bold text-stone-400 block text-[4.2pt]">ROLL / BLOOD</span>
+                        <span className="font-bold text-stone-900">
+                          #{student.roll_no || `${idx + 1}`} • <span className="text-red-600 font-black">{student.blood_group || 'O+'}</span>
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Scannable High-Contrast QR Code */}
-                  <div className="flex items-center justify-between w-full pt-[1mm] border-t border-stone-200">
-                    <div className="text-left text-[4pt] text-stone-500 leading-none">
-                      <p className="font-bold text-stone-700">Burari Campus</p>
-                      <p className="font-mono text-stone-400 mt-[0.3mm]">Ph: {student.parent_phone || '+91 98100 81008'}</p>
+                  {/* Bottom Security QR Code & Footer */}
+                  <div className="w-full px-[2mm] pb-[1.5mm] pt-[1mm] flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
+                    <div className="text-left text-[4pt] text-stone-500 leading-tight">
+                      <p className="font-black text-stone-800 uppercase tracking-tighter">Main Campus</p>
+                      <p className="font-mono text-stone-500">Ph: {student.parent_phone || '+91 98100 81008'}</p>
+                      <span className="text-emerald-700 font-bold text-[3.8pt]">✓ Gate Verified</span>
                     </div>
 
-                    <div className="w-[13mm] h-[13mm] bg-white border border-stone-800 rounded-[1mm] p-[0.5mm] shrink-0 flex items-center justify-center">
+                    <div className="w-[12mm] h-[12mm] bg-white border border-stone-800 rounded-[1mm] p-[0.6mm] shrink-0 flex items-center justify-center shadow-xs">
                       <svg className="w-full h-full" viewBox="0 0 100 100" fill="currentColor">
                         <path d="M0 0h30v30H0zm5 5v20h20V5zm5 5h10v10H10zM70 0h30v30H70zm5 5v20h20V5zm5 5h10v10H80zM0 70h30v30H0zm5 5v20h20V75zm5 5h10v10H10zM40 10h10v10H40zm10 20h10v10H50zm-10 20h20v10H40zm30 10h10v20H70zm10 10h10v10H80zm-40 10h20v10H40zm20 10h10v10H60zm20 0h10v10H80z" />
                       </svg>
@@ -196,40 +220,43 @@ function StudentIdCardBatchPrintContent() {
                 </div>
               )}
 
-              {/* BACK SIDE - VERTICAL CR80 (54mm x 85.6mm) */}
+              {/* BACK SIDE - PREMIUM VERTICAL CR80 (54mm x 85.6mm) */}
               {(layoutMode === "back" || layoutMode === "both") && (
                 <div 
-                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-sm p-[2.5mm] flex flex-col justify-between text-left relative overflow-hidden print:shadow-none print:border-stone-900"
+                  className="cr80-vertical-card bg-white rounded-[3.18mm] border border-stone-800 shadow-md p-[2.5mm] flex flex-col justify-between text-left relative overflow-hidden print:shadow-none print:border-stone-900"
                   style={{ width: "54mm", height: "85.6mm", boxSizing: "border-box" }}
                 >
-                  <div className="border-b border-stone-900 pb-[0.8mm] text-center">
-                    <span className="font-black text-[6pt] text-stone-900 uppercase">Emergency &amp; Security Protocol</span>
-                    <p className="text-[4.5pt] font-mono text-stone-400">{student.card_number}</p>
+                  {/* Top Header */}
+                  <div className="border-b border-stone-900 pb-[1mm] text-center">
+                    <span className="font-black text-[6.2pt] text-stone-900 uppercase tracking-tight">Emergency &amp; Security Protocol</span>
+                    <p className="text-[4.5pt] font-mono text-purple-800 font-bold">{student.card_number}</p>
                   </div>
 
-                  <div className="space-y-[1mm] text-[5pt] text-stone-600 flex-1 py-[1.5mm] leading-tight">
-                    <div className="bg-stone-50 p-[1mm] rounded-[1mm] border border-stone-200">
-                      <p><span className="font-bold text-stone-700">Student:</span> {student.first_name} {student.last_name || ''}</p>
-                      <p><span className="font-bold text-stone-700">Transport:</span> {student.transport_route}</p>
-                      <p><span className="font-bold text-stone-700">Helpline:</span> +91 98100 81008</p>
+                  {/* Info Box */}
+                  <div className="space-y-[1.2mm] text-[5pt] text-stone-600 flex-1 py-[1.5mm] leading-tight">
+                    <div className="bg-stone-50 p-[1.5mm] rounded-[1.2mm] border border-stone-200 space-y-[0.6mm]">
+                      <p><span className="font-bold text-stone-400">STUDENT:</span> <span className="font-black text-stone-900">{student.first_name} {student.last_name || ''}</span></p>
+                      <p><span className="font-bold text-stone-400">TRANSPORT:</span> <span className="font-bold text-stone-800">{student.transport_route}</span></p>
+                      <p><span className="font-bold text-stone-400">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98100 81008</span></p>
                     </div>
 
                     <div className="space-y-[0.8mm] text-[4.5pt] text-stone-500 pt-[0.5mm]">
-                      <p className="font-bold text-stone-700">TERMS OF USE:</p>
-                      <p>1. This card must be worn by the student at all times during school hours &amp; transit.</p>
-                      <p>2. Non-transferable identity credential.</p>
-                      <p>3. If found, please return to Crayon Box School Reception, Burari, Delhi - 110084.</p>
+                      <p className="font-black text-stone-800 uppercase tracking-tight">CARD REGULATIONS:</p>
+                      <p>1. This credential is the property of Crayon Box School and must be worn daily.</p>
+                      <p>2. Non-transferable security token.</p>
+                      <p>3. If found, please return to Crayon Box School, Burari, Delhi - 110084.</p>
                     </div>
                   </div>
 
-                  <div className="border-t border-stone-300 pt-[1mm] flex justify-between items-end text-[4.5pt]">
+                  {/* Signature & Seal Footer */}
+                  <div className="border-t border-stone-300 pt-[1.2mm] flex justify-between items-end text-[4.5pt] shrink-0">
                     <div>
-                      <span className="text-stone-800 font-bold block">www.crayonboxschool.com</span>
-                      <span className="text-[3.8pt] text-stone-400">Valid: 31 Mar 2027</span>
+                      <span className="text-stone-900 font-black block">www.crayonboxschool.com</span>
+                      <span className="text-[3.8pt] text-stone-400">Valid Until: 31 Mar 2027</span>
                     </div>
                     <div className="text-center shrink-0">
-                      <div className="w-[14mm] border-b border-stone-900 mb-[0.4mm]"></div>
-                      <span className="font-bold text-stone-800 text-[4pt] block">Principal Sign</span>
+                      <div className="w-[14mm] border-b border-stone-900 mb-[0.5mm]"></div>
+                      <span className="font-bold text-stone-800 text-[4.2pt] block uppercase">Principal</span>
                     </div>
                   </div>
                 </div>
