@@ -9,6 +9,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   const navigation = [
     { name: "Dashboard", href: "/staff/dashboard", icon: BookOpen },
+    { name: "My Subjects & Syllabus", href: "/staff/academics", icon: BookOpen },
     { name: "My Classes", href: "/staff/classes", icon: Users },
     { name: "Attendance", href: "/staff/attendance", icon: CheckSquare },
     { name: "Communications", href: "/staff/communications", icon: MessageSquare },

@@ -8,12 +8,14 @@ import {
   Sparkles, Filter, ChevronRight, ShieldAlert, BookMarked, FileQuestion
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
-import { getSyllabusDashboard, logTeachingPeriod, saveCatchUpPlan } from "@/app/actions/syllabus-core";
+import { getSyllabusDashboard, logTeachingPeriod, saveCatchUpPlan, getDistinctTeachers } from "@/app/actions/syllabus-core";
 
 export default function SyllabusDashboardPage() {
   const { activeCampusId } = useCampusContext();
   const [selectedClass, setSelectedClass] = useState("All");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
+  const [selectedTeacher, setSelectedTeacher] = useState("All");
+  const [teacherList, setTeacherList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
 
@@ -53,13 +55,33 @@ export default function SyllabusDashboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    loadTeachers();
+  }, [activeCampusId, selectedSession]);
+
+  useEffect(() => {
     loadDashboard();
-  }, [activeCampusId, selectedClass, selectedSession]);
+  }, [activeCampusId, selectedClass, selectedSession, selectedTeacher]);
+
+  async function loadTeachers() {
+    try {
+      const res = await getDistinctTeachers(activeCampusId, selectedSession);
+      if (res.success && res.data) {
+        setTeacherList(res.data);
+      }
+    } catch (e) {
+      console.error("Error loading teachers:", e);
+    }
+  }
 
   async function loadDashboard() {
     setIsLoading(true);
     try {
-      const res = await getSyllabusDashboard(activeCampusId, selectedSession, selectedClass);
+      const res = await getSyllabusDashboard(
+        activeCampusId, 
+        selectedSession, 
+        selectedClass, 
+        selectedTeacher !== "All" ? selectedTeacher : undefined
+      );
       if (res.success && res.data) {
         setDashboardData(res.data);
       }
@@ -177,8 +199,42 @@ export default function SyllabusDashboardPage() {
           </p>
         </div>
 
-        {/* Global Class & Session Filters */}
+        {/* Global Class, Session & Teacher Perspective Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          
+          {/* Academic Session Selector */}
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-stone-400 font-bold">Session:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
+            >
+              <option value="2026-2027">2026–2027 (Active)</option>
+              <option value="2025-2026">2025–2026 (Archived)</option>
+              <option value="2024-2025">2024–2025 (Archived)</option>
+              <option value="2027-2028">2027–2028 (Upcoming)</option>
+            </select>
+          </div>
+
+          {/* Teacher Subject Access Filter */}
+          <div className="flex items-center gap-2 bg-purple-50/70 border border-purple-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-purple-700 font-bold">Teacher Access:</span>
+            <select
+              value={selectedTeacher}
+              onChange={(e) => setSelectedTeacher(e.target.value)}
+              className="bg-transparent text-xs font-black text-purple-950 focus:outline-none max-w-[180px] truncate"
+            >
+              <option value="All">👑 Admin View (All Subjects)</option>
+              {teacherList.map(t => (
+                <option key={t.teacher_name} value={t.teacher_name}>
+                  👨‍🏫 {t.teacher_name} ({t.subjects.length} Sub)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Class Filter */}
           <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
             <Filter className="w-3.5 h-3.5 text-stone-400" />
             <select

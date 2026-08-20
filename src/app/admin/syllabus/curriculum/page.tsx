@@ -13,7 +13,8 @@ import {
   saveAcademicSubject, deleteAcademicSubject,
   saveSyllabusUnit, deleteSyllabusUnit,
   saveSyllabusChapter, deleteSyllabusChapter,
-  saveSyllabusTopic, deleteSyllabusTopic
+  saveSyllabusTopic, deleteSyllabusTopic,
+  getDistinctTeachers
 } from "@/app/actions/syllabus-core";
 import PdfUploader from "@/components/ui/PdfUploader";
 
@@ -24,6 +25,8 @@ function CurriculumMasterContent() {
 
   const [selectedClass, setSelectedClass] = useState("Grade 5");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
+  const [selectedTeacher, setSelectedTeacher] = useState("All");
+  const [teacherList, setTeacherList] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState<string>("");
   const [fullSyllabus, setFullSyllabus] = useState<any>(null);
@@ -91,8 +94,12 @@ function CurriculumMasterContent() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    loadTeachers();
+  }, [activeCampusId, selectedSession]);
+
+  useEffect(() => {
     loadSubjects();
-  }, [activeCampusId, selectedClass, selectedSession]);
+  }, [activeCampusId, selectedClass, selectedSession, selectedTeacher]);
 
   useEffect(() => {
     if (activeSubjectId) {
@@ -100,16 +107,32 @@ function CurriculumMasterContent() {
     }
   }, [activeSubjectId]);
 
+  async function loadTeachers() {
+    try {
+      const res = await getDistinctTeachers(activeCampusId, selectedSession);
+      if (res.success && res.data) setTeacherList(res.data);
+    } catch (e) {
+      console.error("Error loading teachers:", e);
+    }
+  }
+
   async function loadSubjects() {
     setIsLoading(true);
     try {
-      const res = await getAcademicSubjects(activeCampusId, selectedSession, selectedClass);
+      const res = await getAcademicSubjects(
+        activeCampusId, 
+        selectedSession, 
+        selectedClass, 
+        selectedTeacher !== "All" ? selectedTeacher : undefined
+      );
       if (res.success && res.data) {
         setSubjects(res.data);
         if (querySubjectId && res.data.some((s: any) => s.id === querySubjectId)) {
           setActiveSubjectId(querySubjectId);
-        } else if (res.data.length > 0 && !activeSubjectId) {
+        } else if (res.data.length > 0) {
           setActiveSubjectId(res.data[0].id);
+        } else {
+          setActiveSubjectId("");
         }
       }
     } catch (e) {
@@ -425,9 +448,49 @@ function CurriculumMasterContent() {
           </p>
         </div>
 
-        {/* Grade Selector & Add Subject */}
+        {/* Grade, Session, Teacher & Add Subject Controls */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-2">
+          
+          {/* Academic Session Selector */}
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-stone-400 font-bold">Session:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => {
+                setSelectedSession(e.target.value);
+                setActiveSubjectId("");
+              }}
+              className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
+            >
+              <option value="2026-2027">2026–2027 (Active)</option>
+              <option value="2025-2026">2025–2026 (Archived)</option>
+              <option value="2024-2025">2024–2025 (Archived)</option>
+              <option value="2027-2028">2027–2028 (Upcoming)</option>
+            </select>
+          </div>
+
+          {/* Teacher Subject Access Filter */}
+          <div className="flex items-center gap-2 bg-purple-50/70 border border-purple-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-purple-700 font-bold">Teacher Access:</span>
+            <select
+              value={selectedTeacher}
+              onChange={(e) => {
+                setSelectedTeacher(e.target.value);
+                setActiveSubjectId("");
+              }}
+              className="bg-transparent text-xs font-black text-purple-950 focus:outline-none max-w-[180px] truncate"
+            >
+              <option value="All">👑 Admin View (All Subjects)</option>
+              {teacherList.map(t => (
+                <option key={t.teacher_name} value={t.teacher_name}>
+                  👨‍🏫 {t.teacher_name} ({t.subjects.length} Sub)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Grade Selector */}
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
             <span className="text-xs text-stone-400 font-bold">Class:</span>
             <select
               value={selectedClass}
@@ -448,7 +511,7 @@ function CurriculumMasterContent() {
             onClick={openAddSubject}
             className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition"
           >
-            <Plus className="w-4 h-4" /> Add Subject to {selectedClass}
+            <Plus className="w-4 h-4" /> Add Subject
           </button>
         </div>
       </div>

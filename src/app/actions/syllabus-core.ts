@@ -25,7 +25,7 @@ async function resolveCampusId(supabase: any, campusId: string): Promise<string>
 // -------------------------------------------------------------
 // 1. EXECUTIVE DASHBOARD & OVERVIEW
 // -------------------------------------------------------------
-export async function getSyllabusDashboard(campusId: string, session = '2026-2027', className?: string) {
+export async function getSyllabusDashboard(campusId: string, session = '2026-2027', className?: string, teacherName?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -45,6 +45,9 @@ export async function getSyllabusDashboard(campusId: string, session = '2026-202
 
     if (className && className !== 'All') {
       subjectQuery = subjectQuery.eq('class_name', className);
+    }
+    if (teacherName && teacherName !== 'All') {
+      subjectQuery = subjectQuery.ilike('teacher_name', `%${teacherName}%`);
     }
 
     const { data: subjects, error: subError } = await subjectQuery.order('class_name').order('name');
@@ -89,20 +92,29 @@ export async function getSyllabusDashboard(campusId: string, session = '2026-202
     });
 
     // Fetch active catchup plans
-    const { data: catchupPlans } = await supabase
+    let catchupQuery = supabase
       .from('syllabus_catchup_plans')
       .select('*, academic_subjects(name, class_name), syllabus_chapters(chapter_name)')
       .eq('campus_id', resolvedCampusId)
-      .eq('status', 'Active')
-      .order('created_at', { ascending: false });
+      .eq('status', 'Active');
+    
+    if (teacherName && teacherName !== 'All') {
+      catchupQuery = catchupQuery.ilike('assigned_teacher', `%${teacherName}%`);
+    }
+
+    const { data: catchupPlans } = await catchupQuery.order('created_at', { ascending: false });
 
     // Fetch recent lesson logs
-    const { data: recentLogs } = await supabase
+    let logsQuery = supabase
       .from('syllabus_lesson_logs')
       .select('*, academic_subjects(name, class_name), syllabus_chapters(chapter_name)')
-      .eq('campus_id', resolvedCampusId)
-      .order('lesson_date', { ascending: false })
-      .limit(10);
+      .eq('campus_id', resolvedCampusId);
+
+    if (teacherName && teacherName !== 'All') {
+      logsQuery = logsQuery.ilike('teacher_name', `%${teacherName}%`);
+    }
+
+    const { data: recentLogs } = await logsQuery.order('lesson_date', { ascending: false }).limit(10);
 
     // Summary statistics
     const totalSubjectsCount = subjectMetrics.length;
@@ -136,7 +148,7 @@ export async function getSyllabusDashboard(campusId: string, session = '2026-202
 // -------------------------------------------------------------
 // 2. SUBJECTS CRUD
 // -------------------------------------------------------------
-export async function getAcademicSubjects(campusId: string, session = '2026-2027', className?: string) {
+export async function getAcademicSubjects(campusId: string, session = '2026-2027', className?: string, teacherName?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -153,6 +165,9 @@ export async function getAcademicSubjects(campusId: string, session = '2026-2027
 
     if (className && className !== 'All') {
       query = query.eq('class_name', className);
+    }
+    if (teacherName && teacherName !== 'All') {
+      query = query.ilike('teacher_name', `%${teacherName}%`);
     }
 
     const { data, error } = await query.order('class_name').order('name');
@@ -738,7 +753,7 @@ export async function logTeachingPeriod(payload: {
   }
 }
 
-export async function getTeachingDiaryLogs(campusId: string, subjectId?: string, limit = 50) {
+export async function getTeachingDiaryLogs(campusId: string, subjectId?: string, teacherName?: string, limit = 50) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -750,6 +765,9 @@ export async function getTeachingDiaryLogs(campusId: string, subjectId?: string,
 
     if (subjectId && subjectId !== 'All') {
       query = query.eq('subject_id', subjectId);
+    }
+    if (teacherName && teacherName !== 'All') {
+      query = query.ilike('teacher_name', `%${teacherName}%`);
     }
 
     const { data, error } = await query.order('lesson_date', { ascending: false }).limit(limit);
@@ -1255,7 +1273,8 @@ export async function getGeneratedPapers(
   campusId: string, 
   session = '2026-2027', 
   className?: string, 
-  subjectId?: string
+  subjectId?: string,
+  teacherName?: string
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -1267,18 +1286,53 @@ export async function getGeneratedPapers(
         id, academic_session, class_name, subject_id, exam_title,
         max_marks, duration_minutes, general_instructions, sections,
         marking_scheme, pdf_url, status, created_by, created_at,
-        academic_subjects (id, name, class_name, code)
+        academic_subjects!inner (id, name, class_name, code, teacher_name)
       `)
       .eq('campus_id', resolvedCampusId)
       .eq('academic_session', session);
 
     if (className && className !== 'All') query = query.eq('class_name', className);
     if (subjectId && subjectId !== 'All') query = query.eq('subject_id', subjectId);
+    if (teacherName && teacherName !== 'All') query = query.ilike('academic_subjects.teacher_name', `%${teacherName}%`);
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
 
     return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getDistinctTeachers(campusId: string, session = '2026-2027') {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    const { data, error } = await supabase
+      .from('academic_subjects')
+      .select('teacher_name, name, class_name')
+      .eq('campus_id', resolvedCampusId)
+      .eq('academic_session', session)
+      .not('teacher_name', 'is', null);
+
+    if (error) throw error;
+
+    const teacherMap: Record<string, string[]> = {};
+    (data || []).forEach((row: any) => {
+      if (row.teacher_name && row.teacher_name.trim()) {
+        const t = row.teacher_name.trim();
+        if (!teacherMap[t]) teacherMap[t] = [];
+        teacherMap[t].push(`${row.name} (${row.class_name})`);
+      }
+    });
+
+    const teacherList = Object.keys(teacherMap).map(t => ({
+      teacher_name: t,
+      subjects: teacherMap[t]
+    }));
+
+    return { success: true, data: teacherList };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

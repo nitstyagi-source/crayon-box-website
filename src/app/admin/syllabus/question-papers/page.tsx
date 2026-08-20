@@ -11,7 +11,8 @@ import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
   getAcademicSubjects, getSubjectFullSyllabus,
   getQuestionBank, saveQuestionBankItem, deleteQuestionBankItem,
-  getGeneratedPapers, getGeneratedPaperById, saveGeneratedPaper, deleteGeneratedPaper
+  getGeneratedPapers, getGeneratedPaperById, saveGeneratedPaper, deleteGeneratedPaper,
+  getDistinctTeachers
 } from "@/app/actions/syllabus-core";
 import PdfUploader from "@/components/ui/PdfUploader";
 
@@ -48,6 +49,8 @@ export default function QuestionPaperGeneratorPage() {
   const [activeTab, setActiveTab] = useState<"generator" | "bank">("generator");
   const [selectedClass, setSelectedClass] = useState("Grade 5");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
+  const [selectedTeacher, setSelectedTeacher] = useState("All");
+  const [teacherList, setTeacherList] = useState<any[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjects, setSubjects] = useState<any[]>([]);
   const [fullSyllabus, setFullSyllabus] = useState<any>(null);
@@ -168,13 +171,17 @@ export default function QuestionPaperGeneratorPage() {
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    loadTeachers();
+  }, [activeCampusId, selectedSession]);
+
+  useEffect(() => {
     loadSubjects();
-  }, [activeCampusId, selectedClass, selectedSession]);
+  }, [activeCampusId, selectedClass, selectedSession, selectedTeacher]);
 
   useEffect(() => {
     loadQuestionBank();
     loadGeneratedPapers();
-  }, [activeCampusId, selectedSubjectId, selectedClass, selectedSession]);
+  }, [activeCampusId, selectedSubjectId, selectedClass, selectedSession, selectedTeacher]);
 
   useEffect(() => {
     if (selectedSubjectId) {
@@ -182,14 +189,32 @@ export default function QuestionPaperGeneratorPage() {
     }
   }, [selectedSubjectId]);
 
+  async function loadTeachers() {
+    try {
+      const res = await getDistinctTeachers(activeCampusId, selectedSession);
+      if (res.success && res.data) {
+        setTeacherList(res.data);
+      }
+    } catch (e) {
+      console.error("Error loading teachers:", e);
+    }
+  }
+
   async function loadSubjects() {
     try {
-      const res = await getAcademicSubjects(activeCampusId, selectedSession, selectedClass);
+      const res = await getAcademicSubjects(
+        activeCampusId, 
+        selectedSession, 
+        selectedClass, 
+        selectedTeacher !== "All" ? selectedTeacher : undefined
+      );
       if (res.success && res.data) {
         setSubjects(res.data);
-        if (res.data.length > 0 && !selectedSubjectId) {
+        if (res.data.length > 0) {
           setSelectedSubjectId(res.data[0].id);
           setPaperForm(prev => ({ ...prev, subject_id: res.data[0].id }));
+        } else {
+          setSelectedSubjectId("");
         }
       }
     } catch (e) {
@@ -220,11 +245,19 @@ export default function QuestionPaperGeneratorPage() {
 
   async function loadGeneratedPapers() {
     try {
-      const res = await getGeneratedPapers(activeCampusId, selectedSession, selectedClass, selectedSubjectId);
+      const res = await getGeneratedPapers(
+        activeCampusId, 
+        selectedSession, 
+        selectedClass, 
+        selectedSubjectId || undefined,
+        selectedTeacher !== "All" ? selectedTeacher : undefined
+      );
       if (res.success && res.data) {
         setGeneratedPapers(res.data);
-        if (res.data.length > 0 && !activePreviewPaper) {
+        if (res.data.length > 0) {
           setActivePreviewPaper(res.data[0]);
+        } else {
+          setActivePreviewPaper(null);
         }
       }
     } catch (e) {
@@ -529,6 +562,40 @@ export default function QuestionPaperGeneratorPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Academic Session Selector */}
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-stone-400 font-bold">Session:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
+            >
+              <option value="2026-2027">2026–2027 (Active)</option>
+              <option value="2025-2026">2025–2026 (Archived)</option>
+              <option value="2024-2025">2024–2025 (Archived)</option>
+              <option value="2027-2028">2027–2028 (Upcoming)</option>
+            </select>
+          </div>
+
+          {/* Teacher Subject Access Filter */}
+          <div className="flex items-center gap-2 bg-purple-50/70 border border-purple-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-purple-700 font-bold">Teacher Access:</span>
+            <select
+              value={selectedTeacher}
+              onChange={(e) => setSelectedTeacher(e.target.value)}
+              className="bg-transparent text-xs font-black text-purple-950 focus:outline-none max-w-[180px] truncate"
+            >
+              <option value="All">👑 Admin View (All Subjects)</option>
+              {teacherList.map(t => (
+                <option key={t.teacher_name} value={t.teacher_name}>
+                  👨‍🏫 {t.teacher_name} ({t.subjects.length} Sub)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Class Selector */}
           <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5">
             <span className="text-xs text-stone-400 font-bold">Class:</span>
             <select
