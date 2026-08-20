@@ -187,6 +187,9 @@ export default function CollectFeePOSPage() {
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-stone-900">{st.name}</span>
                       <span className="text-[10px] font-mono bg-stone-100 text-stone-600 px-1.5 rounded">{st.admissionNo}</span>
+                      {st.isEws && (
+                        <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">EWS / RTE</span>
+                      )}
                     </div>
                     <div className="text-[11px] text-stone-400">
                       {st.className} • Section {st.sectionName} • {st.parentName}
@@ -194,11 +197,11 @@ export default function CollectFeePOSPage() {
                   </div>
 
                   <div className="text-right">
-                    <div className={`text-xs font-black ${st.outstandingBalance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatCurrency(st.outstandingBalance)}
+                    <div className={`text-xs font-black ${st.isEws ? 'text-emerald-700 font-bold' : (st.outstandingBalance > 0 ? 'text-amber-600' : 'text-emerald-600')}`}>
+                      {st.isEws ? '₹0 (Free)' : formatCurrency(st.outstandingBalance)}
                     </div>
                     <span className="text-[9px] font-semibold text-stone-400 uppercase">
-                      {st.outstandingBalance > 0 ? 'Due' : 'Cleared'}
+                      {st.isEws ? 'RTE Seat' : (st.outstandingBalance > 0 ? 'Due' : 'Cleared')}
                     </span>
                   </div>
                 </div>
@@ -217,9 +220,16 @@ export default function CollectFeePOSPage() {
               <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-5">
                 <div className="flex items-start justify-between border-b border-stone-100 pb-4">
                   <div>
-                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">
-                      Family ID: {selectedStudent.familyId}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">
+                        Family ID: {selectedStudent.familyId}
+                      </span>
+                      {selectedStudent.isEws && (
+                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-md">
+                          EWS / RTE 100% Free
+                        </span>
+                      )}
+                    </div>
                     <h3 className="text-xl font-black text-stone-900 mt-1">{selectedStudent.name}</h3>
                     <p className="text-xs text-stone-500">
                       Admission #{selectedStudent.admissionNo} • {selectedStudent.className} Section {selectedStudent.sectionName}
@@ -231,32 +241,44 @@ export default function CollectFeePOSPage() {
                 </div>
 
                 {/* Dues Breakdown */}
-                <div className="space-y-2.5 text-xs bg-stone-50 p-4 rounded-2xl border border-stone-200/80">
-                  <div className="flex justify-between text-stone-600">
-                    <span>Total Session Demand:</span>
-                    <span className="font-bold text-stone-900">{formatCurrency(selectedStudent.totalDebit || 11500)}</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Total Paid So Far:</span>
-                    <span className="font-bold">{formatCurrency(selectedStudent.totalPaid || 0)}</span>
-                  </div>
-                  {concession > 0 && (
-                    <div className="flex justify-between text-purple-600">
-                      <span>Concession ({selectedStudent.concessionType}):</span>
-                      <span className="font-bold">- {formatCurrency(concession)}</span>
+                {selectedStudent.isEws ? (
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-emerald-900 space-y-2 text-xs">
+                    <div className="font-black flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                      Government-Mandated RTE Quota Seat
                     </div>
-                  )}
-                  {lateFee > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>Late Fee Fine:</span>
-                      <span className="font-bold">+ {formatCurrency(lateFee)}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-stone-200 pt-2 flex justify-between text-sm font-black text-stone-900">
-                    <span>Outstanding Due Balance:</span>
-                    <span className="text-amber-600 font-mono">{formatCurrency(selectedStudent.outstandingBalance)}</span>
+                    <p className="text-[11px] opacity-90 leading-relaxed">
+                      Under Section 12(1)(c) of the Right to Education Act, this student is entitled to 100% free schooling. No fee demands or invoices are generated.
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2.5 text-xs bg-stone-50 p-4 rounded-2xl border border-stone-200/80">
+                    <div className="flex justify-between text-stone-600">
+                      <span>Total Session Demand:</span>
+                      <span className="font-bold text-stone-900">{formatCurrency(selectedStudent.totalDebit || 11500)}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600">
+                      <span>Total Paid So Far:</span>
+                      <span className="font-bold">{formatCurrency(selectedStudent.totalPaid || 0)}</span>
+                    </div>
+                    {concession > 0 && (
+                      <div className="flex justify-between text-purple-600">
+                        <span>Concession ({selectedStudent.concessionType}):</span>
+                        <span className="font-bold">- {formatCurrency(concession)}</span>
+                      </div>
+                    )}
+                    {lateFee > 0 && (
+                      <div className="flex justify-between text-red-600">
+                        <span>Late Fee Fine:</span>
+                        <span className="font-bold">+ {formatCurrency(lateFee)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-stone-200 pt-2 flex justify-between text-sm font-black text-stone-900">
+                      <span>Outstanding Due Balance:</span>
+                      <span className="text-amber-600 font-mono">{formatCurrency(selectedStudent.outstandingBalance)}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Double Entry Ledger Summary Preview */}
                 {studentLedgerData?.ledger && (
@@ -286,102 +308,120 @@ export default function CollectFeePOSPage() {
               {/* Payment Collection Form */}
               <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-5">
                 <div className="border-b border-stone-100 pb-3">
-                  <h3 className="text-lg font-black text-stone-900">Accept Payment</h3>
-                  <p className="text-xs text-stone-400">Supports full or partial payment with automated ledger posting.</p>
+                  <h3 className="text-lg font-black text-stone-900">
+                    {selectedStudent.isEws ? "Fee Exemption Status" : "Accept Payment"}
+                  </h3>
+                  <p className="text-xs text-stone-400">
+                    {selectedStudent.isEws 
+                      ? "Government-Mandated Right to Education Quota." 
+                      : "Supports full or partial payment with automated ledger posting."}
+                  </p>
                 </div>
 
-                <form onSubmit={handleCollectPayment} className="space-y-4 text-xs">
-                  
-                  {/* Amount to Pay (Partial Supported) */}
-                  <div>
-                    <label className="font-bold text-stone-700 block mb-1">Amount Collecting (₹)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-stone-400">₹</span>
-                      <input
-                        type="number"
-                        value={amountToPay}
-                        onChange={(e) => setAmountToPay(Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 text-sm font-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                {selectedStudent.isEws ? (
+                  <div className="py-12 text-center space-y-3 bg-emerald-50/40 rounded-2xl border border-emerald-100 p-6">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-6 h-6" />
                     </div>
-                    {amountToPay < selectedStudent.outstandingBalance && (
-                      <p className="text-[10px] text-amber-600 font-semibold mt-1">
-                        ⚡ Partial payment: remaining {formatCurrency(selectedStudent.outstandingBalance - amountToPay)} will stay as due in ledger.
-                      </p>
-                    )}
+                    <h4 className="text-sm font-black text-emerald-950">100% Free Education Quota</h4>
+                    <p className="text-xs text-emerald-800/80 max-w-xs mx-auto leading-relaxed">
+                      This student is enrolled under EWS/RTE quota with zero fee demand, zero invoice generation, and full government concession.
+                    </p>
                   </div>
-
-                  {/* Payment Mode Selector */}
-                  <div>
-                    <label className="font-bold text-stone-700 block mb-1.5">Payment Mode</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['UPI', 'Cash', 'Debit Card', 'Credit Card', 'Net Banking', 'Cheque'].map((mode) => (
-                        <button
-                          type="button"
-                          key={mode}
-                          onClick={() => setPaymentMode(mode)}
-                          className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition text-center ${
-                            paymentMode === mode 
-                              ? "bg-blue-600 text-white border-blue-600 shadow-xs" 
-                              : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
-                          }`}
-                        >
-                          {mode}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reference / Cheque Details */}
-                  {paymentMode !== 'Cash' && (
-                    <div className="space-y-2">
-                      <div>
-                        <label className="font-bold text-stone-700 block mb-1">Transaction Ref / UPI UTR #</label>
+                ) : (
+                  <form onSubmit={handleCollectPayment} className="space-y-4 text-xs">
+                    
+                    {/* Amount to Pay (Partial Supported) */}
+                    <div>
+                      <label className="font-bold text-stone-700 block mb-1">Amount Collecting (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-stone-400">₹</span>
                         <input
-                          type="text"
-                          placeholder="e.g. UPI/20260405/88921"
-                          value={transactionRef}
-                          onChange={(e) => setTransactionRef(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-semibold"
+                          type="number"
+                          value={amountToPay}
+                          onChange={(e) => setAmountToPay(Number(e.target.value))}
+                          className="w-full pl-8 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 text-sm font-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
                         />
                       </div>
-                      {paymentMode === 'Cheque' && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="font-bold text-stone-700 block mb-1">Bank Name</label>
-                            <input
-                              type="text"
-                              placeholder="HDFC Bank"
-                              value={bankName}
-                              onChange={(e) => setBankName(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
-                            />
-                          </div>
-                          <div>
-                            <label className="font-bold text-stone-700 block mb-1">Cheque Number</label>
-                            <input
-                              type="text"
-                              placeholder="004812"
-                              value={chequeNo}
-                              onChange={(e) => setChequeNo(e.target.value)}
-                              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
-                            />
-                          </div>
-                        </div>
+                      {amountToPay < selectedStudent.outstandingBalance && (
+                        <p className="text-[10px] text-amber-600 font-semibold mt-1">
+                          ⚡ Partial payment: remaining {formatCurrency(selectedStudent.outstandingBalance - amountToPay)} will stay as due in ledger.
+                        </p>
                       )}
                     </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    disabled={isProcessing || amountToPay <= 0}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    {isProcessing ? "Recording Payment..." : `Collect ${formatCurrency(amountToPay)} & Generate Receipt`}
-                  </button>
-                </form>
+                    {/* Payment Mode Selector */}
+                    <div>
+                      <label className="font-bold text-stone-700 block mb-1.5">Payment Mode</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {['UPI', 'Cash', 'Debit Card', 'Credit Card', 'Net Banking', 'Cheque'].map((mode) => (
+                          <button
+                            type="button"
+                            key={mode}
+                            onClick={() => setPaymentMode(mode)}
+                            className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition text-center ${
+                              paymentMode === mode 
+                                ? "bg-blue-600 text-white border-blue-600 shadow-xs" 
+                                : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Reference / Cheque Details */}
+                    {paymentMode !== 'Cash' && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="font-bold text-stone-700 block mb-1">Transaction Ref / UPI UTR #</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. UPI/20260405/88921"
+                            value={transactionRef}
+                            onChange={(e) => setTransactionRef(e.target.value)}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-semibold"
+                          />
+                        </div>
+                        {paymentMode === 'Cheque' && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="font-bold text-stone-700 block mb-1">Bank Name</label>
+                              <input
+                                type="text"
+                                placeholder="HDFC Bank"
+                                value={bankName}
+                                onChange={(e) => setBankName(e.target.value)}
+                                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="font-bold text-stone-700 block mb-1">Cheque Number</label>
+                              <input
+                                type="text"
+                                placeholder="004812"
+                                value={chequeNo}
+                                onChange={(e) => setChequeNo(e.target.value)}
+                                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-semibold"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isProcessing || amountToPay <= 0}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {isProcessing ? "Recording Payment..." : `Collect ${formatCurrency(amountToPay)} & Generate Receipt`}
+                    </button>
+                  </form>
+                )}
               </div>
 
             </div>

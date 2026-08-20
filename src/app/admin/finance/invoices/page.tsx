@@ -144,6 +144,19 @@ export default function InvoicesModule() {
         </button>
       </div>
 
+      {/* RTE Policy Banner */}
+      <div className="bg-emerald-50/70 border border-emerald-200/80 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-emerald-900">
+        <div className="flex items-center gap-2.5">
+          <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+          <span>
+            <strong>RTE / EWS Exemption Active:</strong> Under Section 12(1)(c) of the Right to Education Act, all <strong>75 EWS category students</strong> are 100% fee-exempted with zero fee invoices generated.
+          </span>
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg shrink-0">
+          75 EWS Seats (0 Invoices)
+        </span>
+      </div>
+
       {/* Search & Filter Bar */}
       <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
         <div className="relative flex-1">

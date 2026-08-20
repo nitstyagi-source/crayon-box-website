@@ -387,7 +387,7 @@ export async function searchStudentsForFeeCollection(campusId: string, query: st
     let queryBuilder = supabase
       .from('students')
       .select(`
-        id, first_name, last_name, admission_no, enrollment_number,
+        id, first_name, last_name, admission_no, enrollment_number, category,
         student_academic_history (class_name, section_name, is_current_session),
         student_parents (name, mobile, is_primary_contact),
         student_fee_profiles (*)
@@ -425,7 +425,8 @@ export async function searchStudentsForFeeCollection(campusId: string, query: st
       const academic = s.student_academic_history?.find((h: any) => h.is_current_session) || s.student_academic_history?.[0] || {};
       const parent = s.student_parents?.find((p: any) => p.is_primary_contact) || s.student_parents?.[0] || {};
       const profile = s.student_fee_profiles?.[0] || {};
-      const ledger = ledgerMap[s.id] || { totalDebit: 11500, totalCredit: 0, balance: 11500 };
+      const isEws = s.category === 'EWS' || profile.fee_category === 'EWS' || profile.status === 'EWS Exempted';
+      const ledger = ledgerMap[s.id] || { totalDebit: isEws ? 0 : 11500, totalCredit: 0, balance: isEws ? 0 : 11500 };
 
       return {
         id: s.id,
@@ -433,15 +434,17 @@ export async function searchStudentsForFeeCollection(campusId: string, query: st
         admissionNo: s.admission_no || s.enrollment_number || 'ADM-N/A',
         className: academic.class_name || 'Grade 1',
         sectionName: academic.section_name || 'A',
+        category: s.category || 'General',
+        isEws,
         parentName: parent.name || 'Guardian',
         parentMobile: parent.mobile || '+91 98100 81008',
-        totalDebit: ledger.totalDebit || 11500,
+        totalDebit: isEws ? 0 : (ledger.totalDebit || 11500),
         totalPaid: ledger.totalCredit || 0,
-        outstandingBalance: Math.max(0, ledger.balance),
-        transportOpted: profile.transport_opted ?? true,
-        transportFee: Number(profile.transport_monthly_fee || 2000),
-        concessionType: profile.concession_type,
-        concessionPct: Number(profile.concession_percentage || 0),
+        outstandingBalance: isEws ? 0 : Math.max(0, ledger.balance),
+        transportOpted: isEws ? false : (profile.transport_opted ?? true),
+        transportFee: isEws ? 0 : Number(profile.transport_monthly_fee || 2000),
+        concessionType: isEws ? 'RTE / EWS 100% Free Seat' : profile.concession_type,
+        concessionPct: isEws ? 100 : Number(profile.concession_percentage || 0),
         familyId: profile.family_id || 'FAM-1001'
       };
     });
@@ -753,7 +756,7 @@ export async function getDefaultersAging(campusId: string) {
     const { data: students, error: stErr } = await supabase
       .from('students')
       .select(`
-        id, first_name, last_name, admission_no,
+        id, first_name, last_name, admission_no, category,
         student_academic_history (class_name, section_name, is_current_session),
         student_parents (name, mobile, is_primary_contact),
         student_fee_ledgers (debit, credit, transaction_date)
@@ -765,6 +768,9 @@ export async function getDefaultersAging(campusId: string) {
     const defaulters: any[] = [];
 
     (students || []).forEach((st: any) => {
+      // EWS / RTE Quota students have 0 fee liability and cannot be defaulters
+      if (st.category === 'EWS') return;
+
       let totalDebit = 0;
       let totalCredit = 0;
       let lastPaymentDate = 'No Payment';
