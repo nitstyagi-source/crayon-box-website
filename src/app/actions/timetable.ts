@@ -128,8 +128,128 @@ export async function saveTimetableSlot(payload: any) {
 }
 
 // -------------------------------------------------------------
-// 3. ASSIGN SMART SUBSTITUTION
+// 3. ASSIGN SMART SUBSTITUTION & GET AVAILABLE TEACHERS
 // -------------------------------------------------------------
+export async function getAvailableSubstitutesForSlot(payload: {
+  campusId?: string;
+  dayOfWeek: string;
+  periodNumber: number;
+  date?: string;
+  currentTeacherId?: string;
+  targetSubject?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
+    const dateStr = payload.date || new Date().toISOString().split("T")[0];
+
+    // 1. Fetch all active teachers/staff in this campus
+    const { data: staffList, error: staffErr } = await supabase
+      .from("staff")
+      .select("id, first_name, middle_name, last_name, designation, department, subjects_taught, photo_url, phone_number, employee_category")
+      .eq("campus_id", resolvedCampusId)
+      .eq("is_active", true)
+      .eq("status", "Active");
+
+    if (staffErr) throw staffErr;
+
+    // 2. Fetch staff attendance for this date (identify Absent or On Leave teachers)
+    const { data: attendanceLogs } = await supabase
+      .from("staff_attendance")
+      .select("staff_id, status")
+      .eq("date", dateStr);
+
+    const absentStaffIds = new Set(
+      (attendanceLogs || [])
+        .filter((a: any) => a.status === "Absent" || a.status === "On Leave" || a.status === "Half Day Leave")
+        .map((a: any) => a.staff_id)
+    );
+
+    // 3. Fetch all timetable assignments for this specific day and period number (identify BUSY teachers)
+    const { data: busySlots, error: busyErr } = await supabase
+      .from("school_timetable")
+      .select("teacher_id, substitution_teacher_id, class_name, section_name, subject_name")
+      .eq("campus_id", resolvedCampusId)
+      .eq("day_of_week", payload.dayOfWeek)
+      .eq("period_number", payload.periodNumber)
+      .eq("break_type", "None");
+
+    if (busyErr) throw busyErr;
+
+    const busyStaffIds = new Set<string>();
+    (busySlots || []).forEach((slot: any) => {
+      if (slot.teacher_id) busyStaffIds.add(slot.teacher_id);
+      if (slot.substitution_teacher_id) busyStaffIds.add(slot.substitution_teacher_id);
+    });
+
+    // 4. Fetch daily period workload for all teachers on this day
+    const { data: allDaySlots } = await supabase
+      .from("school_timetable")
+      .select("teacher_id, substitution_teacher_id")
+      .eq("campus_id", resolvedCampusId)
+      .eq("day_of_week", payload.dayOfWeek)
+      .eq("break_type", "None");
+
+    const dailyPeriodCount: Record<string, number> = {};
+    (allDaySlots || []).forEach((s: any) => {
+      if (s.teacher_id) dailyPeriodCount[s.teacher_id] = (dailyPeriodCount[s.teacher_id] || 0) + 1;
+      if (s.substitution_teacher_id) dailyPeriodCount[s.substitution_teacher_id] = (dailyPeriodCount[s.substitution_teacher_id] || 0) + 1;
+    });
+
+    // 5. Filter: ONLY teachers who are PRESENT and have NO PERIOD assigned during this slot
+    const targetSubjectLower = (payload.targetSubject || "").toLowerCase().trim();
+
+    const availableTeachers = (staffList || [])
+      .filter((s: any) => {
+        // Exclude the current assigned teacher
+        if (payload.currentTeacherId && s.id === payload.currentTeacherId) return false;
+        // Exclude absent teachers
+        if (absentStaffIds.has(s.id)) return false;
+        // Exclude teachers who already have a period in this time slot
+        if (busyStaffIds.has(s.id)) return false;
+        return true;
+      })
+      .map((s: any) => {
+        const fullName = [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
+        const subjects = s.subjects_taught || s.department || "General";
+        const isSubjectMatch = targetSubjectLower ? subjects.toLowerCase().includes(targetSubjectLower) || s.department?.toLowerCase().includes(targetSubjectLower) : false;
+        const assignedToday = dailyPeriodCount[s.id] || 0;
+        const freeToday = Math.max(0, 7 - assignedToday);
+
+        return {
+          id: s.id,
+          fullName,
+          firstName: s.first_name,
+          lastName: s.last_name || "",
+          designation: s.designation || "Teaching Staff",
+          department: s.department || "Academics",
+          subjectsTaught: subjects,
+          photoUrl: s.photo_url || null,
+          phone: s.phone_number || "",
+          isSubjectMatch,
+          assignedToday,
+          freeToday,
+          attendanceStatus: "Present & Available"
+        };
+      })
+      // Sort: Subject matches first, then lowest daily workload to balance teaching load!
+      .sort((a: any, b: any) => {
+        if (a.isSubjectMatch && !b.isSubjectMatch) return -1;
+        if (!a.isSubjectMatch && b.isSubjectMatch) return 1;
+        return a.assignedToday - b.assignedToday;
+      });
+
+    return {
+      success: true,
+      data: availableTeachers,
+      totalFreeAndPresent: availableTeachers.length
+    };
+  } catch (error: any) {
+    console.error("Error in getAvailableSubstitutesForSlot:", error);
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
 export async function assignSubstitutionToSlot(slotId: string, substituteTeacherId: string, substituteName: string) {
   try {
     const supabase = getSupabaseAdmin();

@@ -10,7 +10,8 @@ import {
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
   getTimetable, saveTimetableSlot, assignSubstitutionToSlot, 
-  clearSubstitutionFromSlot, deleteTimetableSlot, bulkGenerateStandardTimetable 
+  clearSubstitutionFromSlot, deleteTimetableSlot, bulkGenerateStandardTimetable,
+  getAvailableSubstitutesForSlot
 } from "@/app/actions/timetable";
 import { getFacultyList } from "@/app/actions/faculty";
 import { getClasses } from "@/app/actions/classes";
@@ -53,6 +54,9 @@ export default function TimetableManagementPage() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
   const [substituteTeacherId, setSubstituteTeacherId] = useState("");
+  const [availableSubstitutes, setAvailableSubstitutes] = useState<any[]>([]);
+  const [isLoadingSubs, setIsLoadingSubs] = useState(false);
+  const [subSearchQuery, setSubSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Bell Configuration State
@@ -197,23 +201,45 @@ export default function TimetableManagementPage() {
     }
   }
 
-  function handleOpenSubstitution(slot: any) {
+  async function handleOpenSubstitution(slot: any) {
     setSelectedSlot(slot);
     setSubstituteTeacherId(slot.substitution_teacher_id || "");
+    setSubSearchQuery("");
     setSubModalOpen(true);
+    setIsLoadingSubs(true);
+
+    try {
+      const res = await getAvailableSubstitutesForSlot({
+        campusId: activeCampusId,
+        dayOfWeek: slot.day_of_week,
+        periodNumber: slot.period_number,
+        targetSubject: slot.subject_name,
+        currentTeacherId: slot.teacher_id
+      });
+      if (res.success && res.data) {
+        setAvailableSubstitutes(res.data);
+      } else {
+        setAvailableSubstitutes([]);
+      }
+    } catch (err) {
+      console.error("Error loading available substitutes:", err);
+    } finally {
+      setIsLoadingSubs(false);
+    }
   }
 
-  async function handleAssignSubstitute(e: React.FormEvent) {
-    e.preventDefault();
-    if (!substituteTeacherId) {
-      alert("Please select a substitute teacher.");
+  async function handleAssignSubstitute(e?: React.FormEvent, directTeacherId?: string) {
+    if (e) e.preventDefault();
+    const targetId = directTeacherId || substituteTeacherId;
+    if (!targetId) {
+      alert("Please select an available substitute teacher.");
       return;
     }
     setIsSaving(true);
-    const subTeacher = facultyList.find(f => f.id === substituteTeacherId);
-    const subName = subTeacher ? `${subTeacher.first_name} ${subTeacher.last_name || ''}`.trim() : 'Substitute Teacher';
+    const subTeacher = availableSubstitutes.find(f => f.id === targetId) || facultyList.find(f => f.id === targetId);
+    const subName = subTeacher ? (subTeacher.fullName || `${subTeacher.first_name} ${subTeacher.last_name || ''}`.trim()) : 'Substitute Teacher';
     
-    const res = await assignSubstitutionToSlot(selectedSlot.id, substituteTeacherId, subName);
+    const res = await assignSubstitutionToSlot(selectedSlot.id, targetId, subName);
     setIsSaving(false);
     if (res.success) {
       setSubModalOpen(false);
@@ -861,75 +887,203 @@ export default function TimetableManagementPage() {
         </div>
       )}
 
-      {/* Smart Substitution Modal */}
+      {/* Smart Substitution Modal (Present Teachers with No Periods) */}
       {subModalOpen && selectedSlot && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col justify-between">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-stone-900">Assign Smart Substitute</h3>
-                <p className="text-xs text-stone-400">{selectedSlot.class_name}-{selectedSlot.section_name} • {selectedSlot.subject_name} ({selectedSlot.start_time})</p>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded font-bold">
+                  Period Substitution Assistant
+                </span>
+                <h3 className="text-lg font-black text-stone-900 mt-1">
+                  Substitute for {selectedSlot.class_name} ({selectedSlot.section_name})
+                </h3>
+                <p className="text-xs text-stone-500">
+                  {selectedSlot.day_of_week} • {selectedSlot.period_label || `Period ${selectedSlot.period_number}`} ({selectedSlot.start_time} - {selectedSlot.end_time}) • <strong>{selectedSlot.subject_name}</strong>
+                </p>
               </div>
-              <button onClick={() => setSubModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
+              <button 
+                type="button"
+                onClick={() => setSubModalOpen(false)} 
+                className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-full text-stone-500 hover:text-stone-900"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleAssignSubstitute} className="space-y-4 text-xs">
-              <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-900 space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 text-amber-700" />
-                  Primary Teacher: {selectedSlot.teacher_name}
+            {/* Content Body */}
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              
+              {/* Primary Teacher Callout */}
+              <div className="bg-stone-50 border border-stone-200 p-3 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[10px] text-stone-500 font-bold uppercase block">Regular Facilitator</span>
+                  <strong className="text-stone-900 font-bold text-sm">{selectedSlot.teacher_name}</strong>
                 </div>
-                <p className="text-[11px] opacity-80">Select an available faculty member to take this period.</p>
+                <span className="text-[10px] font-mono bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded-xl">
+                  {selectedSlot.status === "Substitution Active" ? `Sub: ${selectedSlot.substitution_teacher_name}` : "Needs Cover"}
+                </span>
               </div>
 
-              <div>
-                <label className="font-bold text-stone-700 block mb-1">Available Faculty Substitute</label>
-                <select
-                  value={substituteTeacherId}
-                  onChange={(e) => setSubstituteTeacherId(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+              {/* Requirement Rule Highlight */}
+              <div className="bg-emerald-50/80 border border-emerald-200 p-3 rounded-2xl space-y-1">
+                <div className="flex items-center gap-1.5 text-emerald-950 font-black text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Showing Present Teachers with NO Assigned Periods</span>
+                </div>
+                <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                  Only teachers who are <strong>marked Present today</strong> and have <strong>zero teaching periods assigned</strong> during {selectedSlot.period_label || `Period ${selectedSlot.period_number}`} on {selectedSlot.day_of_week} are listed.
+                </p>
+              </div>
+
+              {/* Search Bar for Available Teachers */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search available teacher name, subject, or department..."
+                  value={subSearchQuery}
+                  onChange={(e) => setSubSearchQuery(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              {/* List of Available Teachers */}
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {isLoadingSubs ? (
+                  <div className="p-8 text-center text-stone-400 space-y-2">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-amber-600" />
+                    <span>Analyzing live timetable & attendance records...</span>
+                  </div>
+                ) : availableSubstitutes.length === 0 ? (
+                  <div className="p-6 bg-red-50/60 border border-red-200 rounded-2xl text-center space-y-1.5">
+                    <AlertCircle className="w-6 h-6 text-red-600 mx-auto" />
+                    <strong className="text-red-950 block text-xs">No Free Teachers Available</strong>
+                    <p className="text-[11px] text-red-800">
+                      All other faculty members are either on leave or already have classes assigned during this period.
+                    </p>
+                  </div>
+                ) : (
+                  availableSubstitutes
+                    .filter((teacher) => {
+                      if (!subSearchQuery.trim()) return true;
+                      const q = subSearchQuery.toLowerCase();
+                      return (
+                        teacher.fullName?.toLowerCase().includes(q) ||
+                        teacher.designation?.toLowerCase().includes(q) ||
+                        teacher.department?.toLowerCase().includes(q) ||
+                        teacher.subjectsTaught?.toLowerCase().includes(q)
+                      );
+                    })
+                    .map((teacher) => {
+                      const isSelected = substituteTeacherId === teacher.id;
+
+                      return (
+                        <div
+                          key={teacher.id}
+                          onClick={() => setSubstituteTeacherId(teacher.id)}
+                          className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? "bg-amber-50 border-amber-400 shadow-xs"
+                              : "bg-white border-stone-200 hover:border-stone-300 hover:bg-stone-50/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Avatar */}
+                            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-900 border border-purple-200 flex items-center justify-center font-black text-xs shrink-0 overflow-hidden">
+                              {teacher.photoUrl ? (
+                                <img src={teacher.photoUrl} alt={teacher.fullName} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{teacher.firstName?.charAt(0)}{teacher.lastName?.charAt(0) || ""}</span>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <strong className="text-stone-900 font-bold text-xs truncate">
+                                  {teacher.fullName}
+                                </strong>
+                                {teacher.isSubjectMatch && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-900 font-black px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
+                                    ⭐ Subject Match
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-[10px] text-stone-500 flex items-center gap-2 flex-wrap mt-0.5">
+                                <span>{teacher.designation}</span>
+                                <span>•</span>
+                                <span className="text-purple-800 font-semibold">{teacher.department}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: Daily Load & Quick Button */}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right text-[10px] font-mono">
+                              <span className="block text-emerald-700 font-bold">🟢 Free This Period</span>
+                              <span className="text-stone-400">{teacher.assignedToday} taught today</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={isSaving}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAssignSubstitute(undefined, teacher.id);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition shadow-2xs ${
+                                isSelected
+                                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                  : "bg-stone-100 hover:bg-amber-600 hover:text-white text-stone-700"
+                              }`}
+                            >
+                              Assign
+                            </button>
+                          </div>
+
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="flex justify-between items-center pt-3 border-t border-stone-100 text-xs">
+              {selectedSlot.status === "Substitution Active" ? (
+                <button
+                  type="button"
+                  onClick={() => handleClearSubstitution(selectedSlot.id)}
+                  className="px-3.5 py-2 text-red-600 hover:bg-red-50 text-xs font-bold rounded-xl transition"
                 >
-                  <option value="">Select Faculty Substitute...</option>
-                  {facultyList
-                    .filter(f => f.id !== selectedSlot.teacher_id)
-                    .map((f: any) => (
-                      <option key={f.id} value={f.id}>
-                        {f.first_name} {f.last_name || ''} ({f.designation} • {f.department})
-                      </option>
-                    ))}
-                </select>
-              </div>
+                  Clear Substitute
+                </button>
+              ) : <div />}
 
-              <div className="flex justify-between items-center pt-3 border-t border-stone-100">
-                {selectedSlot.status === "Substitution Active" ? (
-                  <button
-                    type="button"
-                    onClick={() => handleClearSubstitution(selectedSlot.id)}
-                    className="px-3 py-2 text-stone-600 hover:bg-stone-100 text-xs font-bold rounded-xl"
-                  >
-                    Clear Substitute
-                  </button>
-                ) : <div />}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubModalOpen(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSubModalOpen(false)}
-                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl disabled:opacity-50"
-                  >
-                    {isSaving ? "Assigning..." : "Confirm Substitution"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={isSaving || !substituteTeacherId}
+                  onClick={() => handleAssignSubstitute()}
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? "Assigning..." : "Confirm Selected Substitute"}
+                </button>
               </div>
-            </form>
+            </div>
+
           </div>
         </div>
       )}

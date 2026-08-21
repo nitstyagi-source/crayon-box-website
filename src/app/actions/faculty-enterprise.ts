@@ -449,33 +449,73 @@ export async function returnStaffAsset(id: string, staffId: string, conditionOnR
 // -------------------------------------------------------------
 // 9. SMART SUBSTITUTION ENGINE
 // -------------------------------------------------------------
-export async function getFreeTeachersForPeriod(campusId: string, dayOfWeek: string, periodNumber: number) {
+export async function getFreeTeachersForPeriod(campusId: string, dayOfWeek: string, periodNumber: number, date?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
+    const dateStr = date || new Date().toISOString().split("T")[0];
 
     // 1. Get all active staff
-    const { data: allStaff } = await supabase
+    const { data: allStaff, error: staffErr } = await supabase
       .from('staff')
-      .select('id, first_name, last_name, designation, department, photo_url, employee_category')
+      .select('id, first_name, last_name, designation, department, photo_url, employee_category, subjects_taught, phone_number')
       .eq('campus_id', resolvedCampusId)
+      .eq('is_active', true)
       .eq('status', 'Active');
 
-    // 2. Get all timetable assignments for this day and period
-    const { data: busySlots } = await supabase
-      .from('staff_timetable')
-      .select('staff_id, class_name, subject_name, is_free_period')
-      .eq('day_of_week', dayOfWeek)
-      .eq('period_number', periodNumber);
+    if (staffErr) throw staffErr;
 
-    const busyStaffIds = new Set(
-      (busySlots || [])
-        .filter((slot: any) => !slot.is_free_period && slot.class_name !== 'Free Period')
-        .map((slot: any) => slot.staff_id)
+    // 2. Check attendance logs for this date (exclude absent teachers)
+    const { data: attendanceLogs } = await supabase
+      .from('staff_attendance')
+      .select('staff_id, status')
+      .eq('date', dateStr);
+
+    const absentStaffIds = new Set(
+      (attendanceLogs || [])
+        .filter((a: any) => a.status === 'Absent' || a.status === 'On Leave' || a.status === 'Half Day Leave')
+        .map((a: any) => a.staff_id)
     );
 
-    // 3. Filter free teachers
-    const freeTeachers = (allStaff || []).filter(s => !busyStaffIds.has(s.id));
+    // 3. Get all timetable assignments for this day and period in school_timetable
+    const { data: busySlots } = await supabase
+      .from('school_timetable')
+      .select('teacher_id, substitution_teacher_id')
+      .eq('campus_id', resolvedCampusId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('period_number', periodNumber)
+      .eq('break_type', 'None');
+
+    const busyStaffIds = new Set<string>();
+    (busySlots || []).forEach((slot: any) => {
+      if (slot.teacher_id) busyStaffIds.add(slot.teacher_id);
+      if (slot.substitution_teacher_id) busyStaffIds.add(slot.substitution_teacher_id);
+    });
+
+    // 4. Calculate total daily load for teachers
+    const { data: daySlots } = await supabase
+      .from('school_timetable')
+      .select('teacher_id, substitution_teacher_id')
+      .eq('campus_id', resolvedCampusId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('break_type', 'None');
+
+    const dailyLoad: Record<string, number> = {};
+    (daySlots || []).forEach((s: any) => {
+      if (s.teacher_id) dailyLoad[s.teacher_id] = (dailyLoad[s.teacher_id] || 0) + 1;
+      if (s.substitution_teacher_id) dailyLoad[s.substitution_teacher_id] = (dailyLoad[s.substitution_teacher_id] || 0) + 1;
+    });
+
+    // 5. Filter: ONLY teachers who are PRESENT and have NO PERIOD assigned during this slot
+    const freeTeachers = (allStaff || [])
+      .filter(s => !absentStaffIds.has(s.id) && !busyStaffIds.has(s.id))
+      .map(s => ({
+        ...s,
+        assigned_periods_today: dailyLoad[s.id] || 0,
+        free_periods_today: Math.max(0, 7 - (dailyLoad[s.id] || 0)),
+        attendance_status: 'Present'
+      }))
+      .sort((a, b) => a.assigned_periods_today - b.assigned_periods_today);
 
     return { success: true, data: freeTeachers };
   } catch (error: any) {

@@ -57,7 +57,7 @@ export default function SmartSubstitutionPage() {
       setIsLoadingFree(true);
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const dayOfWeek = dayNames[new Date(selectedDate).getDay()] || "Monday";
-      const res = await getFreeTeachersForPeriod(activeCampusId, dayOfWeek, selectedPeriod);
+      const res = await getFreeTeachersForPeriod(activeCampusId, dayOfWeek, selectedPeriod, selectedDate);
       if (res.success) {
         setFreeTeachers(res.data);
       }
@@ -68,8 +68,8 @@ export default function SmartSubstitutionPage() {
 
   async function handleAssign(substituteTeacher: any) {
     const absentTeacher = faculty.find(f => f.id === absentTeacherId);
-    const absentName = absentTeacher ? `${absentTeacher.first_name} ${absentTeacher.last_name}` : "Teacher";
-    const subName = `${substituteTeacher.first_name} ${substituteTeacher.last_name}`;
+    const absentName = absentTeacher ? `${absentTeacher.first_name} ${absentTeacher.last_name || ''}` : "Teacher";
+    const subName = `${substituteTeacher.first_name} ${substituteTeacher.last_name || ''}`;
 
     const res = await assignSubstitution({
       campus_id: activeCampusId,
@@ -116,12 +116,12 @@ export default function SmartSubstitutionPage() {
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Faculty Hub
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Smart Substitution Engine</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">Automatic detection of free teachers and zero-gap classroom coverage.</p>
+          <p className="text-stone-500 text-xs sm:text-sm mt-1">Automatic detection of present teachers with zero period assignments for full classroom coverage.</p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> 0 Unattended Classes
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Attendance & Timetable Linked
           </span>
         </div>
       </div>
@@ -175,6 +175,7 @@ export default function SmartSubstitutionPage() {
                   <option value={4}>Period 4 (10:20 AM)</option>
                   <option value={5}>Period 5 (11:00 AM)</option>
                   <option value={6}>Period 6 (11:40 AM)</option>
+                  <option value={7}>Period 7 (12:45 PM)</option>
                 </select>
               </div>
 
@@ -186,10 +187,12 @@ export default function SmartSubstitutionPage() {
                   className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
                 >
                   <option value="Grade 5-A">Grade 5-A</option>
-                  <option value="Grade 4-B">Grade 4-B</option>
+                  <option value="Grade 4-A">Grade 4-A</option>
                   <option value="Grade 3-A">Grade 3-A</option>
                   <option value="Grade 2-A">Grade 2-A</option>
-                  <option value="Kindergarten">Kindergarten</option>
+                  <option value="Grade 1-A">Grade 1-A</option>
+                  <option value="UKG-Jupiter">UKG Jupiter</option>
+                  <option value="Nursery-Earth">Nursery Earth</option>
                 </select>
               </div>
             </div>
@@ -200,7 +203,7 @@ export default function SmartSubstitutionPage() {
                 type="text" 
                 value={selectedSubject}
                 onChange={e => setSelectedSubject(e.target.value)}
-                className="w-full border border-stone-200 p-2.5 rounded-xl"
+                className="w-full border border-stone-200 p-2.5 rounded-xl font-semibold"
               />
             </div>
           </div>
@@ -211,22 +214,22 @@ export default function SmartSubstitutionPage() {
           <div className="flex justify-between items-center border-b border-stone-100 pb-3">
             <div>
               <h3 className="font-black text-stone-900 text-base flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600" /> 2. Available Free Teachers
+                <Sparkles className="w-4 h-4 text-purple-600" /> 2. Present Teachers (No Periods Assigned)
               </h3>
-              <p className="text-[11px] text-stone-400">Educators with no scheduled lecture during Period {selectedPeriod}.</p>
+              <p className="text-[11px] text-stone-400">Educators marked present today with zero scheduled classes during Period {selectedPeriod}.</p>
             </div>
-            <span className="text-xs font-black text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">
-              {freeTeachers.length} Available
+            <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+              {freeTeachers.length} Free & Present
             </span>
           </div>
 
           {isLoadingFree ? (
             <div className="py-12 text-center text-stone-400 font-bold text-xs animate-pulse">
-              Scanning timetable matrices...
+              Scanning attendance & timetable matrices...
             </div>
           ) : freeTeachers.length === 0 ? (
             <div className="py-12 text-center text-stone-400 text-xs">
-              No free teachers found for this period. Try another slot.
+              No free & present teachers found for this period. Try another slot.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
@@ -240,12 +243,15 @@ export default function SmartSubstitutionPage() {
                       <img src={teacher.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover border border-stone-200 shrink-0" />
                     ) : (
                       <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 font-black flex items-center justify-center text-xs shrink-0">
-                        {teacher.first_name[0]}{teacher.last_name[0]}
+                        {teacher.first_name?.[0] || "T"}{teacher.last_name?.[0] || ""}
                       </div>
                     )}
                     <div className="truncate">
-                      <p className="font-bold text-stone-900 text-xs truncate">{teacher.first_name} {teacher.last_name}</p>
+                      <p className="font-bold text-stone-900 text-xs truncate">{teacher.first_name} {teacher.last_name || ''}</p>
                       <p className="text-[11px] text-stone-500 truncate">{teacher.department}</p>
+                      <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded inline-block mt-0.5">
+                        🟢 {teacher.assigned_periods_today || 0} periods today
+                      </span>
                     </div>
                   </div>
 
