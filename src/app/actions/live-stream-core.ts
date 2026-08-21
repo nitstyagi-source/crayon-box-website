@@ -552,6 +552,44 @@ export async function bulkUpdateParentStreamAccess(
   }
 }
 
+export async function bulkUpdateClassStreamAccess(
+  className: string,
+  campusId?: string,
+  allowed: boolean = true,
+  excludeEws: boolean = true
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    let query = supabase
+      .from("students")
+      .update({
+        live_stream_access: allowed,
+        updated_at: new Date().toISOString()
+      })
+      .eq("campus_id", resolvedCampusId);
+
+    if (className && className !== "All") {
+      query = query.eq("grade", className);
+    }
+
+    if (excludeEws && allowed) {
+      query = query.eq("is_ews", false).neq("admission_category", "EWS");
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+
+    revalidatePath("/admin/live-stream");
+    revalidatePath("/parent/dashboard");
+    revalidatePath("/parent/live-stream");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function saveCamera(payload: {
   id?: string;
   campus_id?: string;

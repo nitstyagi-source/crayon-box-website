@@ -15,7 +15,7 @@ import {
   getLiveStreamAdminDashboard, toggleGlobalKillSwitch, 
   toggleCameraKillSwitch, saveLiveStreamSettings, 
   saveCamera, deleteCamera, getParentAccessControlList,
-  toggleParentStreamAccess
+  toggleParentStreamAccess, bulkUpdateClassStreamAccess
 } from "@/app/actions/live-stream-core";
 
 const ALL_CLASSES = [
@@ -37,6 +37,7 @@ export default function AdminLiveStreamPage() {
 
   // Parent Access Control State
   const [parentList, setParentList] = useState<any[]>([]);
+  const [selectedAccessCameraId, setSelectedAccessCameraId] = useState<string>("all");
   const [selectedParentClass, setSelectedParentClass] = useState("All");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
   const [parentSearch, setParentSearch] = useState("");
@@ -169,6 +170,24 @@ export default function AdminLiveStreamPage() {
       }
     } finally {
       setIsUpdatingParent(null);
+    }
+  }
+
+  async function handleBulkClassUpdate(allowed: boolean, excludeEws: boolean) {
+    if (!confirm(`Are you sure you want to ${allowed ? "GRANT" : "REVOKE"} camera access for ${selectedParentClass === "All" ? "all students" : selectedParentClass}?`)) {
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await bulkUpdateClassStreamAccess(selectedParentClass, activeCampusId, allowed, excludeEws);
+      if (res.success) {
+        alert(`Camera access permissions updated for ${selectedParentClass}!`);
+        loadParentAccessList();
+      } else {
+        alert("Error: " + res.error);
+      }
+    } finally {
+      setIsProcessing(false);
     }
   }
 
@@ -689,12 +708,140 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: PARENT ACCESS CONTROL & EWS POLICY MANAGER */}
+      {/* TAB 3: PARENT ACCESS CONTROL (3-STEP: CAMERA -> CLASS -> STUDENTS) */}
       {/* ========================================================================= */}
       {activeTab === "parents" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           
-          {/* EWS Banner Policy Notice */}
+          {/* TOP STEPPER BREADCRUMB */}
+          <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">
+                Parent Authorization Wizard
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-stone-900 mt-1">
+                Parent Live Stream Access Manager
+              </h3>
+              <p className="text-xs text-stone-500">
+                Follow the 3-step hierarchy: <strong>1. Select Camera</strong> $\rightarrow$ <strong>2. Select Class</strong> $\rightarrow$ <strong>3. Select Authorized Student Parents</strong>.
+              </p>
+            </div>
+
+            {/* 3-STEP HIERARCHY SELECTOR */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
+              
+              {/* STEP 1: SELECT CAMERA */}
+              <div className="bg-purple-50/60 border-2 border-purple-200 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-purple-950 font-black text-xs uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[11px] font-bold">1</span>
+                    Step 1: Select Camera
+                  </span>
+                  <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">
+                    {(data?.cameras || []).length} Cameras
+                  </span>
+                </div>
+
+                <select
+                  value={selectedAccessCameraId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedAccessCameraId(val);
+                    if (val === "all") {
+                      setSelectedParentClass("All");
+                    } else {
+                      const matched = data?.cameras?.find((c: any) => c.id === val);
+                      if (matched) setSelectedParentClass(matched.classroom_name);
+                    }
+                  }}
+                  className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-bold text-xs text-purple-950 shadow-2xs focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                >
+                  <option value="all">🌐 All Cameras (All Campus Wings)</option>
+                  {(data?.cameras || []).map((cam: any) => (
+                    <option key={cam.id} value={cam.id}>
+                      📹 {cam.camera_name} — {cam.classroom_name} ({cam.room_number})
+                    </option>
+                  ))}
+                </select>
+
+                <p className="text-[10px] text-purple-900/70">
+                  Selecting a camera automatically links to its mapped classroom.
+                </p>
+              </div>
+
+              {/* STEP 2: SELECT CLASS */}
+              <div className="bg-blue-50/60 border-2 border-blue-200 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-blue-950 font-black text-xs uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold">2</span>
+                    Step 2: Select Class / Section
+                  </span>
+                  <span className="text-[10px] font-mono text-blue-700 bg-blue-100 px-2 py-0.5 rounded font-bold">
+                    Active: {selectedParentClass}
+                  </span>
+                </div>
+
+                <select
+                  value={selectedParentClass}
+                  onChange={(e) => {
+                    setSelectedParentClass(e.target.value);
+                    const matchedCam = data?.cameras?.find((c: any) => c.classroom_name === e.target.value);
+                    if (matchedCam) setSelectedAccessCameraId(matchedCam.id);
+                  }}
+                  className="w-full bg-white border border-blue-300 rounded-xl p-2.5 font-bold text-xs text-blue-950 shadow-2xs focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                >
+                  <option value="All">All Classes & Specialized Wings</option>
+                  {ALL_CLASSES.map(c => <option key={c} value={c}>🏫 {c}</option>)}
+                </select>
+
+                <p className="text-[10px] text-blue-900/70">
+                  Choose the grade or section to manage parent permissions for this stream.
+                </p>
+              </div>
+
+              {/* STEP 3: QUICK BATCH ACTIONS */}
+              <div className="bg-emerald-50/60 border-2 border-emerald-200 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-emerald-950 font-black text-xs uppercase tracking-wider">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px] font-bold">3</span>
+                    Step 3: Class Batch Actions
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold">
+                    {parentList.length} Students
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleBulkClassUpdate(true, true)}
+                    className="px-2.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1"
+                    title="Allow live stream for all non-EWS students in this class"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Allow Non-EWS
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleBulkClassUpdate(false, false)}
+                    className="px-2.5 py-2 bg-red-100 hover:bg-red-200 text-red-900 font-bold rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1"
+                    title="Block live stream for all students in this class"
+                  >
+                    <XCircle className="w-3.5 h-3.5" /> Revoke All
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-emerald-900/70">
+                  Instantly authorize or revoke stream access for the whole class.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* EWS Policy Alert Banner */}
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-3xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold shrink-0">
@@ -702,16 +849,16 @@ export default function AdminLiveStreamPage() {
               </div>
               <div>
                 <strong className="text-xs font-black uppercase tracking-wider text-amber-900 block">
-                  EWS / DG Category Camera Policy Active
+                  EWS / DG / RTE Policy: Excluded by Default
                 </strong>
                 <p className="text-xs text-amber-950/80 mt-0.5">
-                  By default, parents of students enrolled under the <strong>EWS / DG / RTE quota</strong> do NOT receive classroom camera access. You can grant custom individual overrides below.
+                  EWS category parents are automatically excluded from live stream viewing. You can click <strong>"Grant Stream Access"</strong> on any individual student below to provide an override.
                 </p>
               </div>
             </div>
 
             <span className="text-xs font-black bg-amber-200/80 text-amber-900 px-3 py-1 rounded-xl shrink-0">
-              Policy: EWS Blocked by Default
+              EWS Protected
             </span>
           </div>
 
@@ -731,38 +878,25 @@ export default function AdminLiveStreamPage() {
                 />
               </div>
 
-              {/* Class Filter */}
-              <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1">
-                <span className="text-[11px] text-stone-400 font-bold">Class:</span>
-                <select
-                  value={selectedParentClass}
-                  onChange={(e) => setSelectedParentClass(e.target.value)}
-                  className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
-                >
-                  <option value="All">All Classes</option>
-                  {ALL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
               {/* Category Filter */}
               <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1">
-                <span className="text-[11px] text-stone-400 font-bold">Category / Status:</span>
+                <span className="text-[11px] text-stone-400 font-bold">Filter By:</span>
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
                   className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
                 >
-                  <option value="All">All Students</option>
-                  <option value="General">General Category</option>
-                  <option value="EWS">EWS / DG / RTE Quota</option>
-                  <option value="Allowed">Stream Allowed</option>
-                  <option value="Blocked">Stream Blocked / Revoked</option>
+                  <option value="All">All Students in Roster</option>
+                  <option value="General">General Category Only</option>
+                  <option value="EWS">EWS / DG / RTE Quota Only</option>
+                  <option value="Allowed">🟢 Camera Access Allowed</option>
+                  <option value="Blocked">🔴 Camera Access Blocked</option>
                 </select>
               </div>
             </div>
 
             <span className="text-xs font-mono font-bold bg-stone-100 text-stone-600 px-3 py-1 rounded-xl">
-              {parentList.length} Students Listed
+              Showing {parentList.length} Students for {selectedParentClass}
             </span>
           </div>
 
@@ -775,89 +909,97 @@ export default function AdminLiveStreamPage() {
                     <th className="p-3.5">Student & Adm No.</th>
                     <th className="p-3.5">Class / Grade</th>
                     <th className="p-3.5">Admission Quota</th>
-                    <th className="p-3.5">Attendance Status</th>
-                    <th className="p-3.5">Camera Access Status</th>
+                    <th className="p-3.5">Attendance Today</th>
+                    <th className="p-3.5">Live Stream Status</th>
                     <th className="p-3.5 text-right">Access Permission Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {parentList.map((stu) => {
-                    const isEws = stu.is_ews || stu.admission_category === "EWS" || stu.admission_category === "DG" || stu.admission_category === "RTE";
-                    const isAllowed = stu.live_stream_access !== false;
+                  {parentList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-stone-400">
+                        No students found for this class / camera filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    parentList.map((stu) => {
+                      const isEws = stu.is_ews || stu.admission_category === "EWS" || stu.admission_category === "DG" || stu.admission_category === "RTE";
+                      const isAllowed = stu.live_stream_access !== false;
 
-                    return (
-                      <tr key={stu.id} className="hover:bg-stone-50/60">
-                        <td className="p-3.5">
-                          <strong className="text-stone-900 text-sm block">
-                            {stu.first_name} {stu.last_name || ""}
-                          </strong>
-                          <span className="text-[10px] font-mono text-stone-400">Adm: {stu.admission_no || "CB-2026-X"}</span>
-                        </td>
+                      return (
+                        <tr key={stu.id} className="hover:bg-stone-50/60 transition">
+                          <td className="p-3.5">
+                            <strong className="text-stone-900 text-sm block">
+                              {stu.first_name} {stu.last_name || ""}
+                            </strong>
+                            <span className="text-[10px] font-mono text-stone-400">Adm No: {stu.admission_no || "CB-2026-X"}</span>
+                          </td>
 
-                        <td className="p-3.5 font-bold text-stone-800">
-                          {stu.grade} {stu.section ? `(${stu.section})` : ""}
-                        </td>
+                          <td className="p-3.5 font-bold text-stone-800">
+                            {stu.grade} {stu.section ? `(${stu.section})` : ""}
+                          </td>
 
-                        <td className="p-3.5">
-                          {isEws ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold text-[10px] px-2 py-0.5 rounded-full border border-amber-300">
-                              🔒 EWS / DG Quota
-                            </span>
-                          ) : (
-                            <span className="bg-stone-100 text-stone-700 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                              General Quota
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="p-3.5">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                            stu.attendance_status === "Present" 
-                              ? "bg-emerald-100 text-emerald-900" 
-                              : "bg-red-100 text-red-900"
-                          }`}>
-                            {stu.attendance_status || "Present Today"}
-                          </span>
-                        </td>
-
-                        <td className="p-3.5">
-                          {isAllowed ? (
-                            <span className="bg-emerald-100 text-emerald-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Access Allowed
-                            </span>
-                          ) : (
-                            <div>
-                              <span className="bg-red-100 text-red-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
-                                <XCircle className="w-3.5 h-3.5 text-red-600" /> Access Blocked
+                          <td className="p-3.5">
+                            {isEws ? (
+                              <span className="bg-amber-100 text-amber-900 font-bold text-[10px] px-2.5 py-0.5 rounded-full border border-amber-300">
+                                🔒 EWS / DG Quota
                               </span>
-                              {stu.live_stream_revocation_reason && (
-                                <span className="text-[10px] text-red-600 block mt-0.5 max-w-xs truncate">
-                                  {stu.live_stream_revocation_reason}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                            ) : (
+                              <span className="bg-stone-100 text-stone-700 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                                General Quota
+                              </span>
+                            )}
+                          </td>
 
-                        <td className="p-3.5 text-right">
-                          <button
-                            type="button"
-                            disabled={isUpdatingParent === stu.id}
-                            onClick={() => handleToggleParentAccess(stu)}
-                            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition shadow-xs ${
-                              isAllowed
-                                ? "bg-red-100 hover:bg-red-200 text-red-900"
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            }`}
-                          >
-                            {isUpdatingParent === stu.id 
-                              ? "Updating..." 
-                              : isAllowed ? "Revoke Access" : "Grant Stream Access"}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          <td className="p-3.5">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              stu.attendance_status === "Present" 
+                                ? "bg-emerald-100 text-emerald-900" 
+                                : "bg-red-100 text-red-900"
+                            }`}>
+                              {stu.attendance_status || "Present Today"}
+                            </span>
+                          </td>
+
+                          <td className="p-3.5">
+                            {isAllowed ? (
+                              <span className="bg-emerald-100 text-emerald-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Access Allowed
+                              </span>
+                            ) : (
+                              <div>
+                                <span className="bg-red-100 text-red-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
+                                  <XCircle className="w-3.5 h-3.5 text-red-600" /> Access Blocked
+                                </span>
+                                {stu.live_stream_revocation_reason && (
+                                  <span className="text-[10px] text-red-600 block mt-0.5 max-w-xs truncate">
+                                    {stu.live_stream_revocation_reason}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="p-3.5 text-right">
+                            <button
+                              type="button"
+                              disabled={isUpdatingParent === stu.id}
+                              onClick={() => handleToggleParentAccess(stu)}
+                              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition shadow-xs ${
+                                isAllowed
+                                  ? "bg-red-100 hover:bg-red-200 text-red-900"
+                                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              }`}
+                            >
+                              {isUpdatingParent === stu.id 
+                                ? "Updating..." 
+                                : isAllowed ? "Revoke Access" : "Grant Stream Access"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
