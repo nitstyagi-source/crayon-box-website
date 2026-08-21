@@ -59,7 +59,8 @@ export default function AdminLiveStreamPage() {
     watermark_enabled: true,
     capture_detection_enabled: true,
     require_student_present: true,
-    block_ews_default: true
+    block_ews_default: true,
+    gateway_url: "https://lightweight-episodes-catalog-investigations.trycloudflare.com"
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -89,7 +90,8 @@ export default function AdminLiveStreamPage() {
             watermark_enabled: res.data.settings.watermark_enabled ?? true,
             capture_detection_enabled: res.data.settings.capture_detection_enabled ?? true,
             require_student_present: res.data.settings.require_student_present ?? true,
-            block_ews_default: res.data.settings.block_ews_default ?? true
+            block_ews_default: res.data.settings.block_ews_default ?? true,
+            gateway_url: res.data.settings.gateway_url || "https://lightweight-episodes-catalog-investigations.trycloudflare.com"
           });
         }
       }
@@ -241,11 +243,12 @@ export default function AdminLiveStreamPage() {
         watermark_enabled: settingsForm.watermark_enabled,
         capture_detection_enabled: settingsForm.capture_detection_enabled,
         require_student_present: settingsForm.require_student_present,
-        block_ews_default: settingsForm.block_ews_default
+        block_ews_default: settingsForm.block_ews_default,
+        gateway_url: settingsForm.gateway_url
       });
 
       if (res.success) {
-        alert("Live stream policies updated successfully!");
+        alert("Live stream policies & Gateway URL updated successfully!");
         loadDashboard();
       } else {
         alert("Error: " + res.error);
@@ -1028,6 +1031,23 @@ export default function AdminLiveStreamPage() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900"
                 />
               </div>
+            </div>
+
+            {/* Cloud Streaming Gateway / Tunnel URL */}
+            <div className="p-4 bg-purple-50/60 border border-purple-200 rounded-2xl space-y-1.5">
+              <label className="font-bold text-purple-950 block text-xs">
+                🌐 Live Streaming Cloud Gateway / Tunnel URL (For crayonboxschool.com Remote Access)
+              </label>
+              <input
+                type="url"
+                value={settingsForm.gateway_url}
+                onChange={(e) => setSettingsForm({ ...settingsForm, gateway_url: e.target.value })}
+                placeholder="https://your-tunnel.trycloudflare.com or https://stream.crayonboxschool.com"
+                className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-mono font-bold text-purple-950 text-xs shadow-2xs"
+              />
+              <p className="text-[11px] text-purple-900/80">
+                Pipes live camera feeds from your local school DVR (192.168.1.90:10554) to <strong>crayonboxschool.com</strong> so parents and admins can view feeds from outside the school Wi-Fi.
+              </p>
             </div>
 
             {/* EWS Policy Toggle */}

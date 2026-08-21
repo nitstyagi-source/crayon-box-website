@@ -401,6 +401,7 @@ export async function saveLiveStreamSettings(payload: {
   capture_detection_enabled: boolean;
   require_student_present: boolean;
   block_ews_default?: boolean;
+  gateway_url?: string;
 }) {
   try {
     const supabase = getSupabaseAdmin();
@@ -416,13 +417,31 @@ export async function saveLiveStreamSettings(payload: {
         capture_detection_enabled: payload.capture_detection_enabled,
         require_student_present: payload.require_student_present,
         block_ews_default: payload.block_ews_default ?? true,
+        gateway_url: payload.gateway_url || "https://lightweight-episodes-catalog-investigations.trycloudflare.com",
         updated_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    // If gateway URL provided, sync active cameras stream_url base
+    if (payload.gateway_url) {
+      const cleanGateway = payload.gateway_url.replace(/\/+$/, "");
+      const { data: existingCams } = await supabase
+        .from("cameras")
+        .select("id, classroom_name, stream_url")
+        .eq("campus_id", resolvedCampusId);
+
+      for (const cam of existingCams || []) {
+        const pathPart = cam.stream_url.split("/").filter(Boolean).pop() || (cam.classroom_name.toLowerCase().replace(/\s+/g, "") + "_cam");
+        const newUrl = `${cleanGateway}/${pathPart}/`;
+        await supabase.from("cameras").update({ stream_url: newUrl }).eq("id", cam.id);
+      }
+    }
+
     revalidatePath("/admin/live-stream");
+    revalidatePath("/parent/live-stream");
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };
