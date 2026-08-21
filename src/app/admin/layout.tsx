@@ -9,6 +9,7 @@ import { CampusProvider, useCampusContext } from "@/components/providers/CampusP
 const NAV_ITEMS = [
   { name: "Global Command", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Classroom Live View", href: "/admin/live-stream", icon: Radio },
+  { name: "Library & Books", href: "/admin/library", icon: BookOpen },
   { name: "Visitor & Gate Pass", href: "/admin/visitors", icon: ShieldCheck },
   { name: "Incident Log", href: "/admin/incidents", icon: ShieldAlert },
   { name: "School Calendar", href: "/admin/calendar", icon: Calendar },
