@@ -219,7 +219,92 @@ export async function getPeriodWorkspaceDetails(payload: {
 }
 
 // -------------------------------------------------------------
-// 3. SAVE PERIOD DIGITAL DIARY ENTRY (UNIFIED SINGLE-SCREEN FLOW)
+// 3. SAVE SIMPLE DAILY DIARY (TOPIC + CLASSWORK + HOMEWORK + REMARKS)
+// -------------------------------------------------------------
+export async function saveSimpleDiaryEntry(payload: {
+  campusId?: string;
+  date: string;
+  className: string;
+  sectionName?: string;
+  subjectName: string;
+  periodNumber?: number;
+  periodLabel?: string;
+  startTime?: string;
+  endTime?: string;
+  topicTaught: string;
+  classwork: string;
+  homework: string;
+  remarks?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  teacherName?: string;
+  teacherId?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayOfWeek = dayNames[new Date(payload.date).getDay()] || "Monday";
+    const sec = payload.sectionName || "A";
+    const period = Number(payload.periodNumber) || 1;
+
+    const attachments = payload.attachmentUrl ? [{
+      name: payload.attachmentName || "Worksheet_StudyMaterial.pdf",
+      url: payload.attachmentUrl,
+      type: "PDF"
+    }] : [];
+
+    const diaryData = {
+      campus_id: resolvedCampusId,
+      academic_session: "2026-2027",
+      date: payload.date,
+      day_of_week: dayOfWeek,
+      period_number: period,
+      period_label: payload.periodLabel || `Period ${period}`,
+      start_time: payload.startTime || "08:15 AM",
+      end_time: payload.endTime || "08:55 AM",
+      class_name: payload.className,
+      section_name: sec,
+      subject_name: payload.subjectName,
+      teacher_id: payload.teacherId || null,
+      teacher_name: payload.teacherName || "Teaching Faculty",
+      topic_taught: payload.topicTaught,
+      classwork_text: payload.classwork,
+      homework_title: payload.homework,
+      homework_description: payload.homework,
+      teacher_remarks_parent: payload.remarks || "",
+      study_material_attachments: attachments,
+      classwork_attachments: attachments,
+      is_lesson_completed: true,
+      status: "Completed",
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from("digital_diary_entries")
+      .upsert(diaryData, {
+        onConflict: "campus_id,date,class_name,section_name,period_number"
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath("/admin/digital-diary");
+    revalidatePath("/parent/academics");
+    return {
+      success: true,
+      message: `Diary saved for ${payload.className} (${sec}) ${payload.subjectName}!`,
+      data
+    };
+  } catch (error: any) {
+    console.error("Error saving simple diary:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 3B. SAVE DETAILED PERIOD DIGITAL DIARY ENTRY
 // -------------------------------------------------------------
 export async function saveDailyDiaryPeriodEntry(payload: {
   campusId?: string;
