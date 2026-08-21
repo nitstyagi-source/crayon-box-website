@@ -1,90 +1,278 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSiblingContext } from "@/components/providers/SiblingProvider";
-import { Bus, Phone, MapPin, AlertCircle } from "lucide-react";
-import Image from "next/image";
+import { 
+  Bus, Phone, MapPin, AlertCircle, ShieldCheck, 
+  CheckCircle2, Clock, Navigation, Bell, Settings
+} from "lucide-react";
+import { getChildLiveTransportTracking } from "@/app/actions/transport";
 
-export default function TransportHub() {
+export default function ParentTransportPortal() {
   const { activeSibling } = useSiblingContext();
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [notificationSettings, setNotificationSettings] = useState({
+    busApproaching: true,
+    studentBoarded: true,
+    schoolReached: true,
+    returnBoarded: true,
+    studentDropped: true
+  });
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      const res = await getChildLiveTransportTracking(activeSibling?.id);
+      if (res.success && res.data) {
+        setTrackingData(res.data);
+      }
+    }
+    loadData();
+  }, [activeSibling]);
+
+  const student = trackingData?.student || {
+    student_name: activeSibling ? `${activeSibling.firstName} Sharma` : "Aarav Sharma",
+    class_name: activeSibling?.grade || "Grade 5",
+    section_name: "A",
+    route_name: "Route R-05 — Burari & Sant Nagar",
+    pickup_stop_name: "Burari Chowk (Pillar 42)"
+  };
+
+  const bus = trackingData?.bus || {
+    bus_number: "Bus 01",
+    registration_number: "DL-1VA-8921",
+    driver_name: "Amit Singh",
+    driver_phone: "+91 98765 43210",
+    attendant_name: "Sunita Devi",
+    current_location_name: "Sant Nagar Main Market",
+    current_speed_kmh: 32,
+    status: "Running"
+  };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] -m-4 md:-m-8">
+    <div className="space-y-6 max-w-5xl mx-auto font-sans">
       
-      {/* Absolute Full Map Mockup */}
-      <div className="relative flex-1 bg-stone-200">
-        <Image 
-          src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop" 
-          alt="Map" 
-          fill sizes="(max-width: 768px) 100vw, 50vw" 
-          className="object-cover opacity-60 mix-blend-luminosity" 
-        />
-        
-        {/* Route Line Mockup */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <path d="M 20 80 Q 40 40 80 20" fill="none" stroke="#2563EB" strokeWidth="0.5" strokeDasharray="1 1" />
-        </svg>
-
-        {/* GPS Pin */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-          <div className="relative">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-primary absolute -left-6 -top-12 z-20">
-              <Bus className="w-5 h-5 text-primary" />
+      {/* Top Child Header */}
+      <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-black shrink-0">
+            🚌
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-50 text-blue-900 font-mono font-bold text-[10px] uppercase px-2 py-0.5 rounded">
+                Live Transit Tracking
+              </span>
+              <span className="bg-emerald-100 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" /> GPS Online
+              </span>
             </div>
-            <div className="w-4 h-4 bg-primary rounded-full absolute -left-2 -top-2 animate-ping opacity-50"></div>
+            <h1 className="text-xl font-black text-stone-900 mt-1">
+              {student.student_name} — {student.class_name}-{student.section_name}
+            </h1>
+            <p className="text-xs text-stone-500 font-medium">
+              {student.route_name} • Stop: <strong>{student.pickup_stop_name}</strong>
+            </p>
           </div>
         </div>
 
-        {/* Top Floating Status (Desktop) / Static (Mobile) */}
-        <div className="absolute top-6 left-6 right-6 md:right-auto md:w-96 z-20">
-          <div className="bg-white/90 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-xl">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => setShowSettings(!showSettings)}
+          className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+        >
+          <Settings className="w-3.5 h-3.5" /> Notification Preferences
+        </button>
+      </div>
+
+      {/* Notification Preferences Overlay */}
+      {showSettings && (
+        <div className="bg-purple-50 p-5 rounded-3xl border border-purple-200 space-y-3 text-xs animate-in fade-in">
+          <div className="flex justify-between items-center border-b border-purple-200/80 pb-2">
+            <strong className="text-purple-950 font-black flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-purple-700" /> Automated Parent WhatsApp &amp; App Alerts
+            </strong>
+            <span className="text-[10px] text-purple-800 font-bold">Customizable</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <label className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-purple-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationSettings.busApproaching}
+                onChange={(e) => setNotificationSettings({ ...notificationSettings, busApproaching: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+              <span className="font-bold text-stone-800 text-[11px]">Bus 5 mins away</span>
+            </label>
+
+            <label className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-purple-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationSettings.studentBoarded}
+                onChange={(e) => setNotificationSettings({ ...notificationSettings, studentBoarded: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+              <span className="font-bold text-stone-800 text-[11px]">Student Boarded QR</span>
+            </label>
+
+            <label className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-purple-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationSettings.schoolReached}
+                onChange={(e) => setNotificationSettings({ ...notificationSettings, schoolReached: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+              <span className="font-bold text-stone-800 text-[11px]">School Gate Inward</span>
+            </label>
+
+            <label className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-purple-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationSettings.returnBoarded}
+                onChange={(e) => setNotificationSettings({ ...notificationSettings, returnBoarded: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+              <span className="font-bold text-stone-800 text-[11px]">Return Bus Boarded</span>
+            </label>
+
+            <label className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-purple-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationSettings.studentDropped}
+                onChange={(e) => setNotificationSettings({ ...notificationSettings, studentDropped: e.target.checked })}
+                className="w-4 h-4 accent-purple-600 rounded"
+              />
+              <span className="font-bold text-stone-800 text-[11px]">Escort Handover Drop</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Main Tracking & Live Status Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Status & Map Mockup (8 cols) */}
+        <div className="lg:col-span-8 bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-xs space-y-6">
+          
+          {/* Live Status Highlight */}
+          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">
+                <Navigation className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-900">Bus 4 - On Route to School</h2>
-                <p className="text-sm text-slate-600">Arriving at <strong className="text-slate-800">Sector 42 Gate</strong> in ~10 mins</p>
-                <div className="mt-2 w-full bg-slate-200 rounded-full h-1.5">
-                  <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '75%' }}></div>
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                  🟢 Live Bus Status
+                </span>
+                <strong className="text-stone-900 font-bold text-sm">
+                  Bus is on route near {bus.current_location_name}
+                </strong>
+                <p className="text-[11px] text-stone-600 font-mono">
+                  Speed: {bus.current_speed_kmh} km/h • Vehicle: {bus.registration_number} ({bus.bus_number})
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right sm:border-l sm:border-emerald-200 sm:pl-4">
+              <span className="text-[10px] text-stone-500 font-bold uppercase block">Estimated Arrival</span>
+              <strong className="text-lg font-black text-purple-900 font-mono">07:28 AM</strong>
+              <span className="text-[10px] text-emerald-700 font-bold block">(~4 mins away)</span>
+            </div>
+          </div>
+
+          {/* Interactive Route Milestones Timeline */}
+          <div className="space-y-4 text-xs">
+            <h3 className="font-black text-stone-900 text-sm">Transit Journey Milestones</h3>
+            
+            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-blue-200">
+              
+              <div className="relative flex items-start gap-3">
+                <div className="absolute -left-6 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  ✓
+                </div>
+                <div>
+                  <strong className="text-stone-900 font-bold block">Bus Departed Depot</strong>
+                  <span className="text-[11px] text-stone-500">07:05 AM • Main Campus Depot</span>
                 </div>
               </div>
+
+              <div className="relative flex items-start gap-3">
+                <div className="absolute -left-6 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  ●
+                </div>
+                <div>
+                  <strong className="text-blue-900 font-bold block">Next Stop: {student.pickup_stop_name}</strong>
+                  <span className="text-[11px] text-blue-700 font-mono">Expected: 07:28 AM (Morning Pickup)</span>
+                </div>
+              </div>
+
+              <div className="relative flex items-start gap-3 opacity-60">
+                <div className="absolute -left-6 w-5 h-5 rounded-full bg-stone-300 text-stone-600 flex items-center justify-center text-[10px]">
+                  ○
+                </div>
+                <div>
+                  <strong className="text-stone-800 font-bold block">School Gate Arrival</strong>
+                  <span className="text-[11px] text-stone-500">Scheduled: 07:55 AM</span>
+                </div>
+              </div>
+
             </div>
           </div>
+
         </div>
 
-        {/* Bottom Floating Driver Card */}
-        <div className="absolute bottom-20 md:bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-80 z-20">
-          <div className="bg-slate-900 text-white p-5 rounded-[2rem] shadow-2xl border border-slate-700">
-            <h3 className="text-xs uppercase tracking-widest font-bold text-slate-400 mb-4">Assigned Personnel</h3>
-            
-            <div className="flex items-center gap-4 mb-5">
-              <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=100&auto=format&fit=crop" alt="Driver" className="w-12 h-12 rounded-full border-2 border-slate-700 object-cover" />
+        {/* Right Staff & Emergency Card (4 cols) */}
+        <div className="lg:col-span-4 space-y-4 text-xs">
+          
+          {/* Driver & Attendant Contact */}
+          <div className="bg-stone-900 text-white p-6 rounded-3xl shadow-xl space-y-4">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 font-bold block">
+              Assigned Bus Crew
+            </span>
+
+            <div className="flex items-center justify-between gap-3 border-b border-stone-800 pb-3">
               <div>
-                <p className="font-bold text-sm">Ramesh Kumar</p>
-                <p className="text-xs text-slate-400">Lead Driver • Bus 4</p>
+                <strong className="text-white block font-bold text-sm">{bus.driver_name}</strong>
+                <span className="text-[11px] text-stone-400">Lead Driver ({bus.bus_number})</span>
               </div>
-              <button className="w-10 h-10 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center ml-auto transition-colors">
+              <a
+                href={`tel:${bus.driver_phone}`}
+                className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition"
+              >
                 <Phone className="w-4 h-4" />
-              </button>
+              </a>
             </div>
 
-            <div className="flex items-center gap-4 border-t border-slate-800 pt-5">
-              <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=100&auto=format&fit=crop" alt="Attendant" className="w-10 h-10 rounded-full border-2 border-slate-700 object-cover" />
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="font-bold text-sm">Sunita Devi</p>
-                <p className="text-xs text-slate-400">Bus Attendant (Female)</p>
+                <strong className="text-white block font-bold text-sm">{bus.attendant_name}</strong>
+                <span className="text-[11px] text-stone-400">Female Bus Attendant</span>
               </div>
+              <span className="text-[10px] font-bold bg-stone-800 text-stone-300 px-2 py-1 rounded-lg">
+                On Duty ✓
+              </span>
             </div>
 
-            <div className="mt-5 bg-slate-800 rounded-xl p-3 flex gap-3 items-start border border-slate-700">
-              <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-300 leading-relaxed">For security, calls are masked. Driver will only pick up during active transit hours.</p>
+            <div className="p-3 bg-stone-800 rounded-2xl text-[10px] text-stone-400 leading-relaxed">
+              🔒 Calls are securely routed. Crew members only answer calls during designated transit stops.
             </div>
-
           </div>
+
+          {/* Escort Handover Security Notice */}
+          <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-2">
+            <span className="font-bold text-stone-900 block flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-purple-600" /> Authorized Escort Card Required
+            </span>
+            <p className="text-[11px] text-stone-500 leading-relaxed">
+              At the afternoon drop point, the attendant will scan your <strong>Authorized Escort QR Card</strong> before handing over your child.
+            </p>
+          </div>
+
         </div>
 
       </div>
+
     </div>
   );
 }
