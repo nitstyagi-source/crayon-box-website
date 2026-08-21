@@ -6,6 +6,7 @@ import {
   RefreshCw, AlertTriangle, Video, Maximize2, UserCheck, 
   Clock, MapPin, Radio, Sparkles, BookOpen, Activity
 } from "lucide-react";
+import Hls from "hls.js";
 import { recordSecurityEvent } from "@/app/actions/live-stream-core";
 
 interface SecureClassroomPlayerProps {
@@ -30,24 +31,6 @@ interface SecureClassroomPlayerProps {
   onSessionExpired?: () => void;
 }
 
-const CLASS_SUBJECTS: Record<string, { subject: string; teacher: string; topic: string; students: number }> = {
-  "Nursery": { subject: "Early Sensory & Phonics", teacher: "Ms. Neha Sharma", topic: "Alphabet Rhymes & Shapes", students: 18 },
-  "LKG": { subject: "Foundational Literacy", teacher: "Ms. Priyanka Das", topic: "Number Fun (1-50) & Colors", students: 20 },
-  "UKG": { subject: "English & Hindi Storytelling", teacher: "Ms. Anjali Verma", topic: "Vowels & Sight Words", students: 22 },
-  "Grade 1": { subject: "Environmental Studies", teacher: "Mr. Rajesh Gupta", topic: "Plants & Living Things", students: 25 },
-  "Grade 2": { subject: "Mathematics", teacher: "Ms. Sunita Rao", topic: "Place Values & Addition", students: 26 },
-  "Grade 3": { subject: "Science & Nature", teacher: "Mr. Amit Kumar", topic: "Solar System & Planets", students: 28 },
-  "Grade 4": { subject: "Social Studies", teacher: "Ms. Kavita Joshi", topic: "Rivers & Maps of India", students: 30 },
-  "Grade 5": { subject: "Mathematics", teacher: "Mr. R. K. Sharma", topic: "Fractions & Decimals Lab", students: 32 },
-  "Grade 6": { subject: "General Science", teacher: "Dr. Meenakshi Iyer", topic: "Motion & Measurement", students: 34 },
-  "Grade 7": { subject: "History & Civics", teacher: "Mr. Vikram Malhotra", topic: "Medieval India & Dynasties", students: 35 },
-  "Grade 8": { subject: "Algebra & Geometry", teacher: "Ms. Pooja Aggarwal", topic: "Linear Equations & Angles", students: 36 },
-  "Grade 9": { subject: "Physics & Chemistry", teacher: "Mr. Deepak Saxena", topic: "Newton's Laws & Optics", students: 38 },
-  "Grade 10": { subject: "CBSE Board Preparatory", teacher: "Dr. S. K. Narang", topic: "Sample Paper Analysis", students: 40 },
-  "Science Lab": { subject: "Practical Laboratory", teacher: "Lab Incharge", topic: "Titration & Microscope Optics", students: 24 },
-  "Computer Lab": { subject: "AI & Robotics Lab", teacher: "Er. Rohit Bansal", topic: "Python Logic & Circuitry", students: 28 }
-};
-
 export default function SecureClassroomPlayer({
   streamUrl,
   cameraName,
@@ -64,20 +47,13 @@ export default function SecureClassroomPlayer({
 }: SecureClassroomPlayerProps) {
   const [isObscured, setIsObscured] = useState(false);
   const [securityAlert, setSecurityAlert] = useState<string | null>(null);
-  const [hasStreamError, setHasStreamError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "25%" });
   const [microWatermarkAngle, setMicroWatermarkAngle] = useState(-15);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [liveClock, setLiveClock] = useState<string>("");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const classInfo = CLASS_SUBJECTS[className] || {
-    subject: "Active Class Session",
-    teacher: "Faculty Incharge",
-    topic: "Curriculum Progression",
-    students: 30
-  };
 
   // 1. Moving Dynamic Watermark Algorithm (Shifts every 4.5 seconds to prevent crop removal)
   useEffect(() => {
@@ -110,136 +86,63 @@ export default function SecureClassroomPlayer({
     };
   }, []);
 
-  // 2. Real-Time High-Definition CCTV Canvas Rendering Engine
+  // 2. Native HLS Stream Ingestion Engine
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const video = videoRef.current;
+    if (!video || !streamUrl) return;
 
-    let animationFrameId: number;
-    let frame = 0;
+    let hlsEndpoint = streamUrl.trim();
+    if (!hlsEndpoint.endsWith(".m3u8")) {
+      hlsEndpoint = hlsEndpoint.replace(/\/+$/, "") + "/index.m3u8";
+    }
 
-    const render = () => {
-      frame++;
-      const w = canvas.width;
-      const h = canvas.height;
-
-      // 1. Classroom Wall Background Gradient
-      const wallGrad = ctx.createLinearGradient(0, 0, 0, h);
-      wallGrad.addColorStop(0, "#1c1917");
-      wallGrad.addColorStop(0.65, "#292524");
-      wallGrad.addColorStop(1, "#1c1917");
-      ctx.fillStyle = wallGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // 2. Classroom Floor Perspective
-      const floorGrad = ctx.createLinearGradient(0, h * 0.62, 0, h);
-      floorGrad.addColorStop(0, "#44403c");
-      floorGrad.addColorStop(1, "#1c1917");
-      ctx.fillStyle = floorGrad;
-      ctx.beginPath();
-      ctx.moveTo(0, h * 0.62);
-      ctx.lineTo(w, h * 0.62);
-      ctx.lineTo(w, h);
-      ctx.lineTo(0, h);
-      ctx.fill();
-
-      // Floor Perspective Grid
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-      ctx.lineWidth = 1;
-      for (let i = -w; i < w * 2; i += 60) {
-        ctx.beginPath();
-        ctx.moveTo(w / 2, h * 0.62);
-        ctx.lineTo(i, h);
-        ctx.stroke();
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
       }
 
-      // 3. Smart Ceramic Chalkboard
-      const boardW = w * 0.58;
-      const boardH = h * 0.44;
-      const boardX = (w - boardW) / 2;
-      const boardY = h * 0.10;
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 5
+      });
 
-      ctx.fillStyle = "#78716c";
-      ctx.fillRect(boardX - 4, boardY - 4, boardW + 8, boardH + 8);
-      ctx.fillStyle = "#064e3b";
-      ctx.fillRect(boardX, boardY, boardW, boardH);
+      hlsRef.current = hls;
+      hls.loadSource(hlsEndpoint);
+      hls.attachMedia(video);
 
-      // Chalkboard Text
-      ctx.fillStyle = "#fef08a";
-      ctx.font = "bold 13px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(`🏫 CRAYON BOX SCHOOL • ${className.toUpperCase()}`, w / 2, boardY + 22);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsPlaying(true);
+        video.play().catch(() => {});
+      });
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillText(`Subject: ${classInfo.subject}`, w / 2, boardY + 45);
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              break;
+          }
+        }
+      });
 
-      ctx.fillStyle = "#93c5fd";
-      ctx.font = "11px sans-serif";
-      ctx.fillText(`Topic: ${classInfo.topic}`, w / 2, boardY + 68);
-
-      ctx.fillStyle = "#cbd5e1";
-      ctx.font = "10px sans-serif";
-      ctx.fillText(`Faculty: ${classInfo.teacher} • ${studentName} Present 🟢`, w / 2, boardY + 90);
-
-      // Chalk Equations
-      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-      ctx.font = "9px monospace";
-      ctx.fillText("Quadratic Roots • √b²-4ac • Trigonometry Proofs", w / 2, boardY + 112);
-
-      // 4. Classroom Windows
-      ctx.fillStyle = "rgba(147, 197, 253, 0.12)";
-      ctx.fillRect(15, h * 0.15, w * 0.12, h * 0.35);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(15, h * 0.15, w * 0.12, h * 0.35);
-
-      // 5. Student Desks
-      for (let row = 0; row < 3; row++) {
-        const rowY = h * 0.68 + row * 24;
-        const deskW = w * 0.22 + row * 18;
-        const deskH = 10 + row * 2;
-
-        ctx.fillStyle = "#854d0e";
-        ctx.fillRect(w * 0.15 - row * 10, rowY, deskW, deskH);
-        ctx.fillRect(w * 0.60 - row * 5, rowY, deskW, deskH);
-      }
-
-      // 6. Teacher Silhouette
-      ctx.fillStyle = "#1e293b";
-      ctx.fillRect(w * 0.25, h * 0.52, 28, 38);
-      ctx.beginPath();
-      ctx.arc(w * 0.25 + 14, h * 0.48, 10, 0, Math.PI * 2);
-      ctx.fillStyle = "#334155";
-      ctx.fill();
-
-      // 7. Motion Detection Box
-      const pulseAlpha = 0.4 + Math.sin(frame * 0.05) * 0.25;
-      ctx.strokeStyle = `rgba(34, 197, 94, ${pulseAlpha})`;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(w * 0.20, h * 0.42, 40, 60);
-
-      ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
-      ctx.font = "9px monospace";
-      ctx.fillText("STUDENT ACTIVE", w * 0.20 + 20, h * 0.40);
-
-      // 8. Scanlines
-      ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
-      for (let y = 0; y < h; y += 4) {
-        ctx.fillRect(0, y, w, 1);
-      }
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [className, classInfo, studentName]);
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = hlsEndpoint;
+      video.addEventListener("loadedmetadata", () => {
+        setIsPlaying(true);
+        video.play().catch(() => {});
+      });
+    }
+  }, [streamUrl]);
 
   // 3. Strict Screen-Capture & Shortcut Prevention
   useEffect(() => {
@@ -294,6 +197,9 @@ export default function SecureClassroomPlayer({
   function handleResumeVideo() {
     setIsObscured(false);
     setSecurityAlert(null);
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
   }
 
   const watermarkString = watermarkData?.text || `CONFIDENTIAL • ${parentName} • Parent of ${studentName} (${className})`;
@@ -308,17 +214,19 @@ export default function SecureClassroomPlayer({
         className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-800 aspect-video flex items-center justify-center group"
       >
         
-        {/* Live Physical Camera Stream Embed */}
-        <div className="w-full h-full relative">
-          <iframe
-            src={streamUrl}
-            title={cameraName}
-            className={`w-full h-full border-0 pointer-events-none transition duration-300 ${
-              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
-            }`}
-            allow="autoplay; encrypted-media; picture-in-picture"
-          />
-        </div>
+        {/* Native Hardware-Accelerated Video Player */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          controlsList="nodownload nofullscreen noremoteplayback"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
+          className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+            isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+          }`}
+        />
 
         {/* SECURITY OBSCURATION OVERLAY (TRIGGERED ON SCREENSHOT / RECORDING / DEVTOOLS) */}
         {isObscured && (
@@ -405,10 +313,10 @@ export default function SecureClassroomPlayer({
           <div className="bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-stone-700/60 shadow-lg text-white space-y-0.5 max-w-sm">
             <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1">
               <BookOpen className="w-3 h-3" />
-              {classInfo.subject} • {classInfo.teacher}
+              {className} • {cameraName}
             </div>
             <strong className="block text-xs font-bold text-stone-100 truncate">
-              Topic: {classInfo.topic}
+              {roomNumber} • Live Class Stream
             </strong>
           </div>
 
