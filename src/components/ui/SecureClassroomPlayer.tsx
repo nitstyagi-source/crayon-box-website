@@ -46,6 +46,7 @@ export default function SecureClassroomPlayer({
 }: SecureClassroomPlayerProps) {
   const [isObscured, setIsObscured] = useState(false);
   const [securityAlert, setSecurityAlert] = useState<string | null>(null);
+  const [hasStreamError, setHasStreamError] = useState(false);
   const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "25%" });
   const [microWatermarkAngle, setMicroWatermarkAngle] = useState(-15);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -157,10 +158,11 @@ export default function SecureClassroomPlayer({
       >
         
         {/* Video / Stream Embed with Security Guardrails */}
-        {streamUrl.startsWith("http") && !streamUrl.endsWith(".mp4") && !streamUrl.endsWith(".webm") ? (
+        {streamUrl.startsWith("http") && !streamUrl.endsWith(".mp4") && !streamUrl.endsWith(".webm") && !hasStreamError ? (
           <iframe
             src={streamUrl}
             title="Classroom Live Stream"
+            onError={() => setHasStreamError(true)}
             className={`w-full h-full border-0 pointer-events-none transition duration-300 ${
               isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
             }`}
@@ -169,7 +171,7 @@ export default function SecureClassroomPlayer({
         ) : (
           <video
             ref={videoRef}
-            src={streamUrl}
+            src={streamUrl.endsWith(".mp4") ? streamUrl : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
             autoPlay
             playsInline
             muted

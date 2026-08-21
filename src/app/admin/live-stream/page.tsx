@@ -7,9 +7,10 @@ import {
   Trash2, Eye, Lock, Clock, Settings, UserCheck, 
   Server, AlertCircle, Camera, CheckCircle2, XCircle,
   LayoutGrid, Maximize2, Search, Filter, Sparkles, UserX,
-  Layers, ChevronRight, UserMinus
+  Layers, ChevronRight, UserMinus, Signal
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import CctvStreamPlayer from "@/components/ui/CctvStreamPlayer";
 import { 
   getLiveStreamAdminDashboard, toggleGlobalKillSwitch, 
   toggleCameraKillSwitch, saveLiveStreamSettings, 
@@ -513,7 +514,7 @@ export default function AdminLiveStreamPage() {
                   <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
                   <div>
                     <h3 className="text-base sm:text-lg font-black text-white">
-                      {spotlightCamera.camera_name} — {spotlightCamera.classroom_name} ({spotlightCamera.room_number})
+                      Spotlight Inspection: {spotlightCamera.camera_name} — {spotlightCamera.classroom_name} ({spotlightCamera.room_number})
                     </h3>
                     <span className="text-xs font-mono text-purple-300">{spotlightCamera.stream_url}</span>
                   </div>
@@ -535,22 +536,23 @@ export default function AdminLiveStreamPage() {
                   <button
                     type="button"
                     onClick={() => setSpotlightCamera(null)}
-                    className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white rounded-xl"
+                    className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white rounded-xl font-bold"
                   >
-                    ✕
+                    ✕ Close Spotlight
                   </button>
                 </div>
               </div>
 
               {/* Large Spotlight Video Player */}
-              <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-stone-800">
-                <iframe
-                  src={spotlightCamera.stream_url}
-                  title="Spotlight Live View"
-                  className="w-full h-full border-0"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                />
-              </div>
+              <CctvStreamPlayer
+                streamUrl={spotlightCamera.stream_url}
+                cameraName={spotlightCamera.camera_name}
+                roomNumber={spotlightCamera.room_number}
+                classroomName={spotlightCamera.classroom_name}
+                isPaused={spotlightCamera.kill_switch_active}
+                onTogglePause={() => handleToggleCameraKill(spotlightCamera)}
+                isSpotlight={true}
+              />
             </div>
           )}
 
@@ -561,69 +563,16 @@ export default function AdminLiveStreamPage() {
             "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
           }`}>
             {(data?.cameras || []).map((cam: any) => (
-              <div 
+              <CctvStreamPlayer
                 key={cam.id}
-                className={`bg-stone-900 text-white rounded-2xl overflow-hidden border shadow-sm space-y-2 transition ${
-                  cam.kill_switch_active ? "border-red-500 opacity-75" : "border-stone-800 hover:border-purple-500"
-                }`}
-              >
-                {/* Camera Top Info Bar */}
-                <div className="p-3 bg-stone-950/80 flex justify-between items-center text-xs">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded">
-                      {cam.classroom_name}
-                    </span>
-                    <strong className="block text-xs font-bold text-stone-200 mt-1 truncate max-w-[150px]">
-                      {cam.room_number} • {cam.camera_name}
-                    </strong>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setSpotlightCamera(cam)}
-                      className="p-1.5 bg-stone-800 hover:bg-purple-600 rounded-lg text-stone-300 hover:text-white transition"
-                      title="Spotlight Full View"
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleCameraKill(cam)}
-                      className={`p-1.5 rounded-lg transition ${
-                        cam.kill_switch_active ? "bg-emerald-600 text-white" : "bg-red-600/80 hover:bg-red-600 text-white"
-                      }`}
-                      title={cam.kill_switch_active ? "Resume Feed" : "Pause Camera"}
-                    >
-                      <Power className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Embedded Live Video Frame */}
-                <div className="relative aspect-video bg-black overflow-hidden flex items-center justify-center">
-                  {cam.kill_switch_active ? (
-                    <div className="text-center p-4 space-y-1">
-                      <ShieldAlert className="w-6 h-6 text-red-400 mx-auto" />
-                      <span className="text-[11px] font-bold text-red-300 block">Stream Paused by Admin</span>
-                    </div>
-                  ) : (
-                    <iframe
-                      src={cam.stream_url}
-                      title={cam.camera_name}
-                      className="w-full h-full border-0 pointer-events-none"
-                      allow="autoplay; encrypted-media"
-                    />
-                  )}
-
-                  {/* Overlay Room HUD */}
-                  <div className="absolute bottom-2 left-2 pointer-events-none bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                    <span>LIVE • {cam.room_number}</span>
-                  </div>
-                </div>
-
-              </div>
+                streamUrl={cam.stream_url}
+                cameraName={cam.camera_name}
+                roomNumber={cam.room_number}
+                classroomName={cam.classroom_name}
+                isPaused={cam.kill_switch_active}
+                onTogglePause={() => handleToggleCameraKill(cam)}
+                onSpotlight={() => setSpotlightCamera(cam)}
+              />
             ))}
           </div>
 
