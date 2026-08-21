@@ -156,21 +156,32 @@ export default function SecureClassroomPlayer({
         className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-800 aspect-video flex items-center justify-center group"
       >
         
-        {/* HTML5 Video Element with Native Protection Flags */}
-        <video
-          ref={videoRef}
-          src={streamUrl}
-          autoPlay
-          playsInline
-          muted
-          loop
-          controlsList="nodownload nofullscreen noremoteplayback"
-          disablePictureInPicture
-          onContextMenu={(e) => e.preventDefault()}
-          className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
-            isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
-          }`}
-        />
+        {/* Video / Stream Embed with Security Guardrails */}
+        {streamUrl.startsWith("http") && !streamUrl.endsWith(".mp4") && !streamUrl.endsWith(".webm") ? (
+          <iframe
+            src={streamUrl}
+            title="Classroom Live Stream"
+            className={`w-full h-full border-0 pointer-events-none transition duration-300 ${
+              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+            }`}
+            allow="autoplay; encrypted-media; picture-in-picture"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={streamUrl}
+            autoPlay
+            playsInline
+            muted
+            loop
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            onContextMenu={(e) => e.preventDefault()}
+            className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+            }`}
+          />
+        )}
 
         {/* SECURITY OBSCURATION OVERLAY (TRIGGERED ON SCREENSHOT / RECORDING / DEVTOOLS) */}
         {isObscured && (
