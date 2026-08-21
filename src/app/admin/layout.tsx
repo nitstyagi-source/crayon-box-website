@@ -3,12 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3, MapPin, QrCode, Clock, BookOpen, Radio, Calendar, Briefcase, Receipt, ShieldAlert, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3, MapPin, QrCode, Clock, BookOpen, Radio, Calendar, Briefcase, Receipt, ShieldAlert, ShieldCheck, FileSpreadsheet } from "lucide-react";
 import { CampusProvider, useCampusContext } from "@/components/providers/CampusProvider";
 
 const NAV_ITEMS = [
   { name: "Global Command", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Classroom Live View", href: "/admin/live-stream", icon: Radio },
+  { name: "Feedback & Surveys", href: "/admin/surveys", icon: FileSpreadsheet },
   { name: "Library & Books", href: "/admin/library", icon: BookOpen },
   { name: "Visitor & Gate Pass", href: "/admin/visitors", icon: ShieldCheck },
   { name: "Incident Log", href: "/admin/incidents", icon: ShieldAlert },
