@@ -200,6 +200,13 @@ export default function IdAndEscortCardManagementHub() {
           </button>
 
           <Link
+            href="/admin/id-cards/faculty"
+            className="bg-purple-900 hover:bg-purple-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
+          >
+            <CreditCard className="w-4 h-4 text-amber-300" /> Faculty ID Creator
+          </Link>
+
+          <Link
             href="/admin/id-cards/gate-pickup"
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
           >
