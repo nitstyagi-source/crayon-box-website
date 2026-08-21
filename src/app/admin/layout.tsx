@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3, MapPin, QrCode, Clock, BookOpen, Radio, Calendar } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, Building2, LifeBuoy, CreditCard, Bus, Package, HeartPulse, Brain, FileBarChart, PhoneCall, LayoutTemplate, GraduationCap, FileText, ImageIcon, BarChart3, MapPin, QrCode, Clock, BookOpen, Radio, Calendar, Briefcase } from "lucide-react";
 import { CampusProvider, useCampusContext } from "@/components/providers/CampusProvider";
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { name: "Classroom Live View", href: "/admin/live-stream", icon: Radio },
   { name: "School Calendar", href: "/admin/calendar", icon: Calendar },
   { name: "Digital Diary & HW", href: "/admin/digital-diary", icon: BookOpen },
+  { name: "Hiring & Recruitment", href: "/admin/recruitment", icon: Briefcase },
   { name: "Syllabus & Curriculum", href: "/admin/syllabus", icon: BookOpen },
   { name: "Master Timetable", href: "/admin/timetable", icon: Clock },
   { name: "Website CMS", href: "/admin/cms", icon: LayoutTemplate },
