@@ -5,29 +5,50 @@ import {
   Video, Radio, ShieldAlert, ShieldCheck, Power, 
   AlertTriangle, Play, Pause, RefreshCw, Plus, Edit3, 
   Trash2, Eye, Lock, Clock, Settings, UserCheck, 
-  Server, AlertCircle, Camera, CheckCircle2, XCircle
+  Server, AlertCircle, Camera, CheckCircle2, XCircle,
+  LayoutGrid, Maximize2, Search, Filter, Sparkles, UserX,
+  Layers, ChevronRight, UserMinus
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
   getLiveStreamAdminDashboard, toggleGlobalKillSwitch, 
   toggleCameraKillSwitch, saveLiveStreamSettings, 
-  saveCamera, deleteCamera 
+  saveCamera, deleteCamera, getParentAccessControlList,
+  toggleParentStreamAccess
 } from "@/app/actions/live-stream-core";
+
+const ALL_CLASSES = [
+  "Nursery", "LKG", "UKG", 
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", 
+  "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10",
+  "Science Lab", "Computer Lab", "Activity Hall"
+];
 
 export default function AdminLiveStreamPage() {
   const { activeCampusId } = useCampusContext();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"cameras" | "logs" | "security" | "settings">("cameras");
+  const [activeTab, setActiveTab] = useState<"videowall" | "cameras" | "parents" | "logs" | "security" | "settings">("videowall");
   
-  // Modals
+  // Video Wall Spotlight State
+  const [spotlightCamera, setSpotlightCamera] = useState<any>(null);
+  const [gridColumns, setGridColumns] = useState<2 | 3 | 4>(3);
+
+  // Parent Access Control State
+  const [parentList, setParentList] = useState<any[]>([]);
+  const [selectedParentClass, setSelectedParentClass] = useState("All");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
+  const [parentSearch, setParentSearch] = useState("");
+  const [isUpdatingParent, setIsUpdatingParent] = useState<string | null>(null);
+
+  // Camera Mapping Modal State
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [editingCamera, setEditingCamera] = useState<any>(null);
   const [camForm, setCamForm] = useState({
     classroom_name: "Grade 5",
     room_number: "Room 301",
-    camera_name: "",
-    stream_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    camera_name: "Grade 5 Junior High Cam",
+    stream_url: "http://localhost:8888/grade5_cam/",
     status: "Online"
   });
 
@@ -36,14 +57,20 @@ export default function AdminLiveStreamPage() {
     streaming_end_time: "15:30",
     watermark_enabled: true,
     capture_detection_enabled: true,
-    require_student_present: true
+    require_student_present: true,
+    block_ews_default: true
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     loadDashboard();
+    loadParentAccessList();
   }, [activeCampusId]);
+
+  useEffect(() => {
+    loadParentAccessList();
+  }, [selectedParentClass, selectedCategoryFilter, parentSearch]);
 
   async function loadDashboard() {
     setIsLoading(true);
@@ -51,20 +78,40 @@ export default function AdminLiveStreamPage() {
       const res = await getLiveStreamAdminDashboard(activeCampusId);
       if (res.success && res.data) {
         setData(res.data);
+        if (res.data.cameras && res.data.cameras.length > 0 && !spotlightCamera) {
+          setSpotlightCamera(res.data.cameras[0]);
+        }
         if (res.data.settings) {
           setSettingsForm({
             streaming_start_time: res.data.settings.streaming_start_time || "08:00",
             streaming_end_time: res.data.settings.streaming_end_time || "15:30",
             watermark_enabled: res.data.settings.watermark_enabled ?? true,
             capture_detection_enabled: res.data.settings.capture_detection_enabled ?? true,
-            require_student_present: res.data.settings.require_student_present ?? true
+            require_student_present: res.data.settings.require_student_present ?? true,
+            block_ews_default: res.data.settings.block_ews_default ?? true
           });
         }
       }
     } catch (e) {
-      console.error("Error loading live stream admin dashboard:", e);
+      console.error("Error loading live stream dashboard:", e);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadParentAccessList() {
+    try {
+      const res = await getParentAccessControlList(
+        activeCampusId,
+        selectedParentClass,
+        parentSearch,
+        selectedCategoryFilter
+      );
+      if (res.success && res.data) {
+        setParentList(res.data);
+      }
+    } catch (e) {
+      console.error("Error loading parent list:", e);
     }
   }
 
@@ -100,13 +147,35 @@ export default function AdminLiveStreamPage() {
     }
   }
 
+  async function handleToggleParentAccess(student: any) {
+    const currentAccess = student.live_stream_access !== false;
+    const newAccess = !currentAccess;
+    let reason = "";
+
+    if (!newAccess) {
+      reason = prompt("Optional: Enter reason for revoking live stream access:", "Revoked by School Administration") || "Revoked by School Administration";
+    }
+
+    setIsUpdatingParent(student.id);
+    try {
+      const res = await toggleParentStreamAccess(student.id, newAccess, reason);
+      if (res.success) {
+        loadParentAccessList();
+      } else {
+        alert("Error updating access: " + res.error);
+      }
+    } finally {
+      setIsUpdatingParent(null);
+    }
+  }
+
   function openAddCamera() {
     setEditingCamera(null);
     setCamForm({
       classroom_name: "Grade 5",
       room_number: "Room 301",
-      camera_name: "Grade 5 Classroom Cam A",
-      stream_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      camera_name: "Grade 5 Junior High Cam",
+      stream_url: "http://localhost:8888/grade5_cam/",
       status: "Online"
     });
     setCameraModalOpen(true);
@@ -170,7 +239,8 @@ export default function AdminLiveStreamPage() {
         streaming_end_time: settingsForm.streaming_end_time,
         watermark_enabled: settingsForm.watermark_enabled,
         capture_detection_enabled: settingsForm.capture_detection_enabled,
-        require_student_present: settingsForm.require_student_present
+        require_student_present: settingsForm.require_student_present,
+        block_ews_default: settingsForm.block_ews_default
       });
 
       if (res.success) {
@@ -189,26 +259,26 @@ export default function AdminLiveStreamPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
       
-      {/* Top Banner */}
+      {/* Top Command Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-purple-100 text-purple-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
-              Restricted Classroom Video Engine
+            <span className="bg-purple-100 text-purple-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md flex items-center gap-1">
+              <Radio className="w-3 h-3 text-purple-600 animate-pulse" /> CCTV Security Command
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Parent Live View Security Hub</span>
+            <span className="text-stone-500 text-xs font-bold">Classroom Mapping & Access Manager</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
-            <Radio className="w-8 h-8 text-purple-600 animate-pulse" />
+            <Camera className="w-8 h-8 text-purple-600" />
             Classroom Live View Command Center
           </h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Manage classroom IP cameras, enforce student attendance verification, configure dynamic watermarks, and control emergency kill switches.
+            Watch live multi-camera feeds, map DVR channels to classrooms, grant or restrict parent access, and enforce EWS privacy policies.
           </p>
         </div>
 
-        {/* EMERGENCY GLOBAL KILL SWITCH BUTTON */}
+        {/* Master Emergency Kill Switch */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -226,7 +296,7 @@ export default function AdminLiveStreamPage() {
         </div>
       </div>
 
-      {/* GLOBAL EMERGENCY ALERT BANNER (IF KILL SWITCH ACTIVE) */}
+      {/* Global Emergency Alert Banner */}
       {isGlobalKillActive && (
         <div className="bg-red-600 text-white p-4 sm:p-5 rounded-3xl shadow-xl flex items-center justify-between gap-4 animate-in fade-in">
           <div className="flex items-center gap-3">
@@ -238,7 +308,7 @@ export default function AdminLiveStreamPage() {
                 Emergency Shutdown Active: All Parent Streams Terminated
               </h3>
               <p className="text-xs text-red-100 mt-0.5">
-                No parent can view any classroom camera. All active video tokens have been revoked.
+                All external parent classroom streams are currently severed. Admins can still view internal feeds below.
               </p>
             </div>
           </div>
@@ -251,7 +321,7 @@ export default function AdminLiveStreamPage() {
         </div>
       )}
 
-      {/* Operational Metrics Grid */}
+      {/* Operational Metrics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs font-bold text-stone-400">
@@ -281,14 +351,14 @@ export default function AdminLiveStreamPage() {
 
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs font-bold text-stone-400">
-            <span>Screen Capture Alerts</span>
-            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <span>EWS Category Policy</span>
+            <Lock className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-black text-amber-700 font-mono">
-            {data?.stats?.captureAlertsCount || 0}
+          <div className="text-lg font-black text-amber-900">
+            {settingsForm.block_ews_default ? "BLOCKED BY DEFAULT" : "ALLOWED"}
           </div>
           <span className="text-[11px] text-stone-500 font-bold">
-            Incidents Obscured & Logged
+            EWS Quota Excluded by Standard
           </span>
         </div>
 
@@ -297,8 +367,8 @@ export default function AdminLiveStreamPage() {
             <span>Presence Enforcement</span>
             <UserCheck className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="text-2xl font-black text-stone-900">
-            {data?.settings?.require_student_present ? "ACTIVE" : "OFF"}
+          <div className="text-lg font-black text-stone-900">
+            {settingsForm.require_student_present ? "PRESENT ONLY" : "ALWAYS ON"}
           </div>
           <span className="text-[11px] text-purple-600 font-bold">
             Absent = Stream Blocked
@@ -306,76 +376,280 @@ export default function AdminLiveStreamPage() {
         </div>
       </div>
 
-      {/* Tabs Header */}
-      <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
+      {/* Tabs Header Navigation */}
+      <div className="flex items-center gap-2 border-b border-stone-200 pb-2 overflow-x-auto">
+        
+        {/* Tab 1: Live Video Wall (Admin Backend Live View) */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("videowall")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === "videowall"
+              ? "bg-purple-900 text-white shadow-xs"
+              : "text-stone-500 hover:text-stone-900"
+          }`}
+        >
+          <LayoutGrid className="w-4 h-4 text-purple-300" />
+          <span>📺 Live Admin Video Wall</span>
+        </button>
+
+        {/* Tab 2: Camera-to-Classroom Mapping */}
         <button
           type="button"
           onClick={() => setActiveTab("cameras")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
             activeTab === "cameras"
               ? "bg-white text-stone-900 shadow-xs border border-stone-200"
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
           <Camera className="w-4 h-4 text-purple-600" />
-          <span>Classroom Cameras ({data?.cameras?.length || 0})</span>
+          <span>Classroom Camera Mapping ({data?.cameras?.length || 0})</span>
         </button>
 
+        {/* Tab 3: Parent Access & EWS Control */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("parents")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === "parents"
+              ? "bg-white text-stone-900 shadow-xs border border-stone-200 ring-2 ring-amber-500/20"
+              : "text-stone-500 hover:text-stone-900"
+          }`}
+        >
+          <UserCheck className="w-4 h-4 text-amber-600" />
+          <span>Parent Access & EWS Permissions 🔐</span>
+        </button>
+
+        {/* Tab 4: Access Logs */}
         <button
           type="button"
           onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
             activeTab === "logs"
               ? "bg-white text-stone-900 shadow-xs border border-stone-200"
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
-          <UserCheck className="w-4 h-4 text-emerald-600" />
-          <span>Parent Access Audit Logs ({data?.accessLogs?.length || 0})</span>
+          <Eye className="w-4 h-4 text-emerald-600" />
+          <span>Access Audit Logs ({data?.accessLogs?.length || 0})</span>
         </button>
 
+        {/* Tab 5: Security Alerts */}
         <button
           type="button"
           onClick={() => setActiveTab("security")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
             activeTab === "security"
               ? "bg-white text-stone-900 shadow-xs border border-stone-200"
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
           <ShieldAlert className="w-4 h-4 text-red-600" />
-          <span>Security & Screen-Capture Alerts ({data?.securityEvents?.length || 0})</span>
+          <span>Screen Capture Alerts ({data?.securityEvents?.length || 0})</span>
         </button>
 
+        {/* Tab 6: Global Settings */}
         <button
           type="button"
           onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
             activeTab === "settings"
               ? "bg-white text-stone-900 shadow-xs border border-stone-200"
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
           <Settings className="w-4 h-4 text-stone-700" />
-          <span>Streaming Policies & Schedule</span>
+          <span>Policies & EWS Rules</span>
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: CAMERAS LIST & ROOM CONTROLS */}
+      {/* TAB 1: ADMIN BACKEND LIVE VIDEO WALL & SPOTLIGHT MATRIX */}
+      {/* ========================================================================= */}
+      {activeTab === "videowall" && (
+        <div className="space-y-6">
+          
+          {/* Top Controls Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-stone-500">Video Matrix Layout:</span>
+              <div className="flex bg-stone-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(2)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition ${gridColumns === 2 ? "bg-white text-purple-950 shadow-xs" : "text-stone-600"}`}
+                >
+                  2 Columns
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(3)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition ${gridColumns === 3 ? "bg-white text-purple-950 shadow-xs" : "text-stone-600"}`}
+                >
+                  3 Columns (Standard)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridColumns(4)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition ${gridColumns === 4 ? "bg-white text-purple-950 shadow-xs" : "text-stone-600"}`}
+                >
+                  4 Columns (Dense)
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Direct RTSP DVR Ingestion Active ({data?.stats?.onlineCameras || 0} Feeds Live)</span>
+            </div>
+          </div>
+
+          {/* SPOTLIGHT EXPANDED CAMERA VIEW (IF SELECTED) */}
+          {spotlightCamera && (
+            <div className="bg-stone-950 text-white rounded-3xl p-6 shadow-2xl border border-stone-800 space-y-4">
+              <div className="flex justify-between items-center border-b border-stone-800 pb-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white">
+                      {spotlightCamera.camera_name} — {spotlightCamera.classroom_name} ({spotlightCamera.room_number})
+                    </h3>
+                    <span className="text-xs font-mono text-purple-300">{spotlightCamera.stream_url}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCameraKill(spotlightCamera)}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 ${
+                      spotlightCamera.kill_switch_active
+                        ? "bg-emerald-600 text-white"
+                        : "bg-red-600 text-white"
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    {spotlightCamera.kill_switch_active ? "Resume Feed" : "Pause Stream"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSpotlightCamera(null)}
+                    className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white rounded-xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Large Spotlight Video Player */}
+              <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-stone-800">
+                <iframe
+                  src={spotlightCamera.stream_url}
+                  title="Spotlight Live View"
+                  className="w-full h-full border-0"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* MULTI-CAMERA CCTV VIDEO WALL MATRIX */}
+          <div className={`grid gap-4 ${
+            gridColumns === 2 ? "grid-cols-1 md:grid-cols-2" :
+            gridColumns === 3 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" :
+            "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+          }`}>
+            {(data?.cameras || []).map((cam: any) => (
+              <div 
+                key={cam.id}
+                className={`bg-stone-900 text-white rounded-2xl overflow-hidden border shadow-sm space-y-2 transition ${
+                  cam.kill_switch_active ? "border-red-500 opacity-75" : "border-stone-800 hover:border-purple-500"
+                }`}
+              >
+                {/* Camera Top Info Bar */}
+                <div className="p-3 bg-stone-950/80 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded">
+                      {cam.classroom_name}
+                    </span>
+                    <strong className="block text-xs font-bold text-stone-200 mt-1 truncate max-w-[150px]">
+                      {cam.room_number} • {cam.camera_name}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSpotlightCamera(cam)}
+                      className="p-1.5 bg-stone-800 hover:bg-purple-600 rounded-lg text-stone-300 hover:text-white transition"
+                      title="Spotlight Full View"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCameraKill(cam)}
+                      className={`p-1.5 rounded-lg transition ${
+                        cam.kill_switch_active ? "bg-emerald-600 text-white" : "bg-red-600/80 hover:bg-red-600 text-white"
+                      }`}
+                      title={cam.kill_switch_active ? "Resume Feed" : "Pause Camera"}
+                    >
+                      <Power className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Embedded Live Video Frame */}
+                <div className="relative aspect-video bg-black overflow-hidden flex items-center justify-center">
+                  {cam.kill_switch_active ? (
+                    <div className="text-center p-4 space-y-1">
+                      <ShieldAlert className="w-6 h-6 text-red-400 mx-auto" />
+                      <span className="text-[11px] font-bold text-red-300 block">Stream Paused by Admin</span>
+                    </div>
+                  ) : (
+                    <iframe
+                      src={cam.stream_url}
+                      title={cam.camera_name}
+                      className="w-full h-full border-0 pointer-events-none"
+                      allow="autoplay; encrypted-media"
+                    />
+                  )}
+
+                  {/* Overlay Room HUD */}
+                  <div className="absolute bottom-2 left-2 pointer-events-none bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    <span>LIVE • {cam.room_number}</span>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: CAMERA TO CLASSROOM MAPPING */}
       {/* ========================================================================= */}
       {activeTab === "cameras" && (
         <div className="space-y-4">
           <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-            <span className="text-xs font-bold text-stone-600">
-              Manage live camera feeds mapped to individual classrooms & activity wings.
-            </span>
+            <div>
+              <h3 className="text-sm font-black text-stone-900">
+                Classroom & Section Camera Mapping
+              </h3>
+              <p className="text-xs text-stone-500">
+                Map each physical DVR channel to a specific grade, section, or specialized laboratory.
+              </p>
+            </div>
             <button
               type="button"
               onClick={openAddCamera}
               className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" /> Add Classroom Camera
+              <Plus className="w-4 h-4" /> Map New Camera
             </button>
           </div>
 
@@ -390,7 +664,7 @@ export default function AdminLiveStreamPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 px-2 py-0.5 rounded">
-                      {cam.classroom_name} • {cam.room_number}
+                      Mapped to: {cam.classroom_name}
                     </span>
                     <h3 className="text-base font-black text-stone-900 mt-1.5">
                       {cam.camera_name}
@@ -406,10 +680,14 @@ export default function AdminLiveStreamPage() {
                   </span>
                 </div>
 
-                <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs space-y-1">
+                <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs space-y-1.5">
                   <div className="flex justify-between text-stone-500 font-medium">
-                    <span>Stream Endpoint:</span>
-                    <span className="font-mono text-[10px] truncate max-w-[160px]">{cam.stream_url}</span>
+                    <span>Room Number:</span>
+                    <strong className="text-stone-900">{cam.room_number}</strong>
+                  </div>
+                  <div className="flex justify-between text-stone-500 font-medium">
+                    <span>HLS Endpoint:</span>
+                    <span className="font-mono text-[10px] text-purple-700 truncate max-w-[160px]">{cam.stream_url}</span>
                   </div>
                   <div className="flex justify-between text-stone-500 font-medium">
                     <span>Access Rule:</span>
@@ -437,6 +715,7 @@ export default function AdminLiveStreamPage() {
                       type="button"
                       onClick={() => openEditCamera(cam)}
                       className="p-1.5 hover:bg-stone-100 text-stone-600 rounded-lg"
+                      title="Edit Mapping"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
@@ -444,6 +723,7 @@ export default function AdminLiveStreamPage() {
                       type="button"
                       onClick={() => handleDeleteCamera(cam.id)}
                       className="p-1.5 hover:bg-red-100 text-red-600 rounded-lg"
+                      title="Delete Camera"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -457,7 +737,185 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: ACCESS AUDIT LOGS */}
+      {/* TAB 3: PARENT ACCESS CONTROL & EWS POLICY MANAGER */}
+      {/* ========================================================================= */}
+      {activeTab === "parents" && (
+        <div className="space-y-4">
+          
+          {/* EWS Banner Policy Notice */}
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-3xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <strong className="text-xs font-black uppercase tracking-wider text-amber-900 block">
+                  EWS / DG Category Camera Policy Active
+                </strong>
+                <p className="text-xs text-amber-950/80 mt-0.5">
+                  By default, parents of students enrolled under the <strong>EWS / DG / RTE quota</strong> do NOT receive classroom camera access. You can grant custom individual overrides below.
+                </p>
+              </div>
+            </div>
+
+            <span className="text-xs font-black bg-amber-200/80 text-amber-900 px-3 py-1 rounded-xl shrink-0">
+              Policy: EWS Blocked by Default
+            </span>
+          </div>
+
+          {/* Search & Filter Strip */}
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Search student / admission no..."
+                  value={parentSearch}
+                  onChange={(e) => setParentSearch(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-9 pr-3 py-1.5 text-xs font-semibold text-stone-900"
+                />
+              </div>
+
+              {/* Class Filter */}
+              <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1">
+                <span className="text-[11px] text-stone-400 font-bold">Class:</span>
+                <select
+                  value={selectedParentClass}
+                  onChange={(e) => setSelectedParentClass(e.target.value)}
+                  className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
+                >
+                  <option value="All">All Classes</option>
+                  {ALL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1">
+                <span className="text-[11px] text-stone-400 font-bold">Category / Status:</span>
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                  className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
+                >
+                  <option value="All">All Students</option>
+                  <option value="General">General Category</option>
+                  <option value="EWS">EWS / DG / RTE Quota</option>
+                  <option value="Allowed">Stream Allowed</option>
+                  <option value="Blocked">Stream Blocked / Revoked</option>
+                </select>
+              </div>
+            </div>
+
+            <span className="text-xs font-mono font-bold bg-stone-100 text-stone-600 px-3 py-1 rounded-xl">
+              {parentList.length} Students Listed
+            </span>
+          </div>
+
+          {/* Parent Access Roster Table */}
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="p-3.5">Student & Adm No.</th>
+                    <th className="p-3.5">Class / Grade</th>
+                    <th className="p-3.5">Admission Quota</th>
+                    <th className="p-3.5">Attendance Status</th>
+                    <th className="p-3.5">Camera Access Status</th>
+                    <th className="p-3.5 text-right">Access Permission Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {parentList.map((stu) => {
+                    const isEws = stu.is_ews || stu.admission_category === "EWS" || stu.admission_category === "DG" || stu.admission_category === "RTE";
+                    const isAllowed = stu.live_stream_access !== false;
+
+                    return (
+                      <tr key={stu.id} className="hover:bg-stone-50/60">
+                        <td className="p-3.5">
+                          <strong className="text-stone-900 text-sm block">
+                            {stu.first_name} {stu.last_name || ""}
+                          </strong>
+                          <span className="text-[10px] font-mono text-stone-400">Adm: {stu.admission_no || "CB-2026-X"}</span>
+                        </td>
+
+                        <td className="p-3.5 font-bold text-stone-800">
+                          {stu.grade} {stu.section ? `(${stu.section})` : ""}
+                        </td>
+
+                        <td className="p-3.5">
+                          {isEws ? (
+                            <span className="bg-amber-100 text-amber-900 font-bold text-[10px] px-2 py-0.5 rounded-full border border-amber-300">
+                              🔒 EWS / DG Quota
+                            </span>
+                          ) : (
+                            <span className="bg-stone-100 text-stone-700 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                              General Quota
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            stu.attendance_status === "Present" 
+                              ? "bg-emerald-100 text-emerald-900" 
+                              : "bg-red-100 text-red-900"
+                          }`}>
+                            {stu.attendance_status || "Present Today"}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5">
+                          {isAllowed ? (
+                            <span className="bg-emerald-100 text-emerald-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Access Allowed
+                            </span>
+                          ) : (
+                            <div>
+                              <span className="bg-red-100 text-red-900 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 w-fit">
+                                <XCircle className="w-3.5 h-3.5 text-red-600" /> Access Blocked
+                              </span>
+                              {stu.live_stream_revocation_reason && (
+                                <span className="text-[10px] text-red-600 block mt-0.5 max-w-xs truncate">
+                                  {stu.live_stream_revocation_reason}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 text-right">
+                          <button
+                            type="button"
+                            disabled={isUpdatingParent === stu.id}
+                            onClick={() => handleToggleParentAccess(stu)}
+                            className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition shadow-xs ${
+                              isAllowed
+                                ? "bg-red-100 hover:bg-red-200 text-red-900"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            }`}
+                          >
+                            {isUpdatingParent === stu.id 
+                              ? "Updating..." 
+                              : isAllowed ? "Revoke Access" : "Grant Stream Access"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: ACCESS AUDIT LOGS */}
       {/* ========================================================================= */}
       {activeTab === "logs" && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
@@ -523,7 +981,7 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SECURITY & SCREEN CAPTURE ALERTS */}
+      {/* TAB 5: SECURITY & SCREEN CAPTURE ALERTS */}
       {/* ========================================================================= */}
       {activeTab === "security" && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
@@ -585,13 +1043,13 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: STREAMING SETTINGS & POLICY CONFIG */}
+      {/* TAB 6: STREAMING SETTINGS & POLICY CONFIG */}
       {/* ========================================================================= */}
       {activeTab === "settings" && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 sm:p-8 space-y-6 max-w-3xl">
           <div>
             <h3 className="text-lg font-black text-stone-900">
-              Classroom Live Streaming Policies & Timetable Window
+              Classroom Live Streaming Policies & EWS Rules
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
               Control the exact hours and security guardrails under which parents are authorized to view live feeds.
@@ -621,6 +1079,24 @@ export default function AdminLiveStreamPage() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900"
                 />
               </div>
+            </div>
+
+            {/* EWS Policy Toggle */}
+            <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-2xl flex items-center justify-between gap-4">
+              <div>
+                <strong className="block text-amber-950 font-bold text-xs">
+                  EWS / DG / RTE Category Default Policy: Excluded by Default
+                </strong>
+                <p className="text-[11px] text-amber-900/80 mt-0.5">
+                  When enabled, EWS category parents are automatically blocked from live streams unless individually granted an override.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settingsForm.block_ews_default}
+                onChange={(e) => setSettingsForm({ ...settingsForm, block_ews_default: e.target.checked })}
+                className="w-5 h-5 accent-amber-600 rounded"
+              />
             </div>
 
             {/* Attendance Toggle */}
@@ -659,24 +1135,6 @@ export default function AdminLiveStreamPage() {
               />
             </div>
 
-            {/* Screen Capture Detection Toggle */}
-            <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl flex items-center justify-between gap-4">
-              <div>
-                <strong className="block text-stone-900 font-bold text-xs">
-                  Screen-Capture & DevTools Obscuration
-                </strong>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Immediately pauses/blurs video feed when print screen, screen recording, or tab unfocus is detected.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={settingsForm.capture_detection_enabled}
-                onChange={(e) => setSettingsForm({ ...settingsForm, capture_detection_enabled: e.target.checked })}
-                className="w-5 h-5 accent-purple-600 rounded"
-              />
-            </div>
-
             <div className="pt-3">
               <button
                 type="submit"
@@ -691,14 +1149,14 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD / EDIT CAMERA */}
+      {/* MODAL: MAP / EDIT CAMERA */}
       {/* ========================================================================= */}
       {cameraModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <h3 className="text-lg font-black text-stone-900">
-                {editingCamera ? "Edit Classroom Camera" : "Add Classroom Camera"}
+                {editingCamera ? "Edit Camera Mapping" : "Map Classroom Camera"}
               </h3>
               <button onClick={() => setCameraModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>
             </div>
@@ -706,15 +1164,14 @@ export default function AdminLiveStreamPage() {
             <form onSubmit={handleSaveCamera} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Classroom Name *</label>
-                  <input
-                    type="text"
+                  <label className="font-bold text-stone-700 block mb-1">Classroom / Wing *</label>
+                  <select
                     value={camForm.classroom_name}
                     onChange={(e) => setCamForm({ ...camForm, classroom_name: e.target.value })}
-                    placeholder="e.g. Grade 5 or Nursery"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900"
-                    required
-                  />
+                  >
+                    {ALL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
 
                 <div>
@@ -743,12 +1200,12 @@ export default function AdminLiveStreamPage() {
               </div>
 
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Stream Endpoint / RTSP HLS URL *</label>
+                <label className="font-bold text-stone-700 block mb-1">Stream Endpoint / HLS Web URL *</label>
                 <input
                   type="url"
                   value={camForm.stream_url}
                   onChange={(e) => setCamForm({ ...camForm, stream_url: e.target.value })}
-                  placeholder="https://... or rtsp://..."
+                  placeholder="http://localhost:8888/grade5_cam/ or https://..."
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono text-stone-900 text-xs"
                   required
                 />
@@ -772,7 +1229,7 @@ export default function AdminLiveStreamPage() {
                   Cancel
                 </button>
                 <button type="submit" disabled={isProcessing} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs transition">
-                  {isProcessing ? "Saving..." : "Save Camera"}
+                  {isProcessing ? "Saving..." : "Save Mapping"}
                 </button>
               </div>
             </form>

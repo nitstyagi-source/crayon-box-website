@@ -64,19 +64,37 @@ export async function getLiveStreamAuthorization(payload: {
     // For testing flexibility in demo mode, allow if within window or fallback to active school hours
     const isWithinHours = currentTimeStr >= startTime && currentTimeStr <= endTime;
 
-    // 3. Student Attendance Verification (Student MUST be Present today)
-    // Check in students table or attendance table
-    const todayStr = now.toISOString().split("T")[0];
-    
-    // Check student status
+    // 3. Student Attendance & EWS / Access Permission Verification
     const { data: student } = await supabase
       .from("students")
-      .select("id, first_name, last_name, grade, section, status, attendance_status")
+      .select("id, first_name, last_name, grade, section, status, attendance_status, is_ews, admission_category, live_stream_access, live_stream_revocation_reason")
       .or(`id.eq.${payload.studentId},first_name.ilike.%${payload.studentName.split(" ")[0]}%`)
       .limit(1)
       .single();
 
-    // Verify if student is marked Absent
+    // Check 3A: EWS / RTE Policy (Restricted by default unless explicitly whitelisted by Admin)
+    const isEwsStudent = student?.is_ews || student?.admission_category === "EWS" || student?.admission_category === "DG" || student?.admission_category === "RTE";
+    if (isEwsStudent && (settings?.block_ews_default ?? true) && student?.live_stream_access !== true) {
+      await logAccessAttempt(supabase, resolvedCampusId, payload, "Denied", `${payload.studentName} is enrolled under EWS/DG/RTE quota (camera access restricted by default).`);
+      return {
+        authorized: false,
+        reason: `🔴 Classroom Live View is not available under the standard policy for EWS / DG quota enrollments. Contact School Administration for permissions.`,
+        status: "EwsRestricted"
+      };
+    }
+
+    // Check 3B: Specific Parent / Student Access Flag
+    if (student && student.live_stream_access === false) {
+      const customReason = student.live_stream_revocation_reason || "Live stream viewing has been paused for your parent account by School Administration.";
+      await logAccessAttempt(supabase, resolvedCampusId, payload, "Denied", customReason);
+      return {
+        authorized: false,
+        reason: `🔴 Classroom Live View Unavailable: ${customReason}`,
+        status: "ParentAccessRevoked"
+      };
+    }
+
+    // Check 3C: Attendance Verification (Student MUST be Present today)
     const isStudentAbsent = student?.attendance_status === "Absent" || student?.status === "Inactive";
 
     if (isStudentAbsent && settings?.require_student_present) {
@@ -382,6 +400,7 @@ export async function saveLiveStreamSettings(payload: {
   watermark_enabled: boolean;
   capture_detection_enabled: boolean;
   require_student_present: boolean;
+  block_ews_default?: boolean;
 }) {
   try {
     const supabase = getSupabaseAdmin();
@@ -396,6 +415,7 @@ export async function saveLiveStreamSettings(payload: {
         watermark_enabled: payload.watermark_enabled,
         capture_detection_enabled: payload.capture_detection_enabled,
         require_student_present: payload.require_student_present,
+        block_ews_default: payload.block_ews_default ?? true,
         updated_at: new Date().toISOString()
       })
       .select()
@@ -404,6 +424,110 @@ export async function saveLiveStreamSettings(payload: {
     if (error) throw error;
     revalidatePath("/admin/live-stream");
     return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 5. PARENT ACCESS CONTROL & EWS MANAGEMENT
+// -------------------------------------------------------------
+export async function getParentAccessControlList(
+  campusId?: string,
+  className?: string,
+  searchQuery?: string,
+  filterCategory?: string
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    let query = supabase
+      .from("students")
+      .select(`
+        id, admission_no, enrollment_number, first_name, last_name,
+        grade, section, status, attendance_status,
+        is_ews, admission_category, live_stream_access, live_stream_revocation_reason,
+        created_at
+      `)
+      .eq("campus_id", resolvedCampusId);
+
+    if (className && className !== "All") {
+      query = query.eq("grade", className);
+    }
+
+    if (filterCategory && filterCategory !== "All") {
+      if (filterCategory === "EWS") {
+        query = query.or("is_ews.eq.true,admission_category.ilike.%EWS%,admission_category.ilike.%DG%,admission_category.ilike.%RTE%");
+      } else if (filterCategory === "General") {
+        query = query.eq("is_ews", false).neq("admission_category", "EWS");
+      } else if (filterCategory === "Allowed") {
+        query = query.eq("live_stream_access", true);
+      } else if (filterCategory === "Blocked") {
+        query = query.eq("live_stream_access", false);
+      }
+    }
+
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim();
+      query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_no.ilike.%${q}%`);
+    }
+
+    const { data, error } = await query.order("first_name", { ascending: true }).limit(100);
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function toggleParentStreamAccess(
+  studentId: string,
+  allowed: boolean,
+  reason?: string
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("students")
+      .update({
+        live_stream_access: allowed,
+        live_stream_revocation_reason: allowed ? null : (reason || "Camera stream access has been revoked by School Administration."),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", studentId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath("/admin/live-stream");
+    revalidatePath("/parent/dashboard");
+    revalidatePath("/parent/live-stream");
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function bulkUpdateParentStreamAccess(
+  studentIds: string[],
+  allowed: boolean
+) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("students")
+      .update({
+        live_stream_access: allowed,
+        updated_at: new Date().toISOString()
+      })
+      .in("id", studentIds);
+
+    if (error) throw error;
+    revalidatePath("/admin/live-stream");
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
