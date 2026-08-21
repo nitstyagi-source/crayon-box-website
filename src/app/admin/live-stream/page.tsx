@@ -15,7 +15,8 @@ import {
   getLiveStreamAdminDashboard, toggleGlobalKillSwitch, 
   toggleCameraKillSwitch, saveLiveStreamSettings, 
   saveCamera, deleteCamera, getParentAccessControlList,
-  toggleParentStreamAccess, bulkUpdateClassStreamAccess
+  toggleParentStreamAccess, bulkUpdateClassStreamAccess,
+  getSchoolClassesWithSections
 } from "@/app/actions/live-stream-core";
 
 const ALL_CLASSES = [
@@ -37,8 +38,10 @@ export default function AdminLiveStreamPage() {
 
   // Parent Access Control State
   const [parentList, setParentList] = useState<any[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<any[]>([]);
   const [selectedAccessCameraId, setSelectedAccessCameraId] = useState<string>("all");
   const [selectedParentClass, setSelectedParentClass] = useState("All");
+  const [selectedParentSection, setSelectedParentSection] = useState("All");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
   const [parentSearch, setParentSearch] = useState("");
   const [isUpdatingParent, setIsUpdatingParent] = useState<string | null>(null);
@@ -68,12 +71,13 @@ export default function AdminLiveStreamPage() {
 
   useEffect(() => {
     loadDashboard();
+    loadClasses();
     loadParentAccessList();
   }, [activeCampusId]);
 
   useEffect(() => {
     loadParentAccessList();
-  }, [selectedParentClass, selectedCategoryFilter, parentSearch]);
+  }, [selectedParentClass, selectedParentSection, selectedCategoryFilter, parentSearch]);
 
   async function loadDashboard() {
     setIsLoading(true);
@@ -103,13 +107,25 @@ export default function AdminLiveStreamPage() {
     }
   }
 
+  async function loadClasses() {
+    try {
+      const res = await getSchoolClassesWithSections(activeCampusId);
+      if (res.success && res.data) {
+        setAvailableClasses(res.data);
+      }
+    } catch (e) {
+      console.error("Error loading classes:", e);
+    }
+  }
+
   async function loadParentAccessList() {
     try {
       const res = await getParentAccessControlList(
         activeCampusId,
         selectedParentClass,
         parentSearch,
-        selectedCategoryFilter
+        selectedCategoryFilter,
+        selectedParentSection
       );
       if (res.success && res.data) {
         setParentList(res.data);
@@ -784,18 +800,35 @@ export default function AdminLiveStreamPage() {
                 <select
                   value={selectedParentClass}
                   onChange={(e) => {
-                    setSelectedParentClass(e.target.value);
-                    const matchedCam = data?.cameras?.find((c: any) => c.classroom_name === e.target.value);
+                    const val = e.target.value;
+                    setSelectedParentClass(val);
+                    const matchedCam = data?.cameras?.find((c: any) => c.classroom_name.toLowerCase().includes(val.toLowerCase()));
                     if (matchedCam) setSelectedAccessCameraId(matchedCam.id);
                   }}
                   className="w-full bg-white border border-blue-300 rounded-xl p-2.5 font-bold text-xs text-blue-950 shadow-2xs focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 >
-                  <option value="All">All Classes & Specialized Wings</option>
-                  {ALL_CLASSES.map(c => <option key={c} value={c}>🏫 {c}</option>)}
+                  <option value="All">All Classes & Sections</option>
+                  {(availableClasses.length > 0 ? availableClasses : [
+                    { id: "1", grade: "Nursery", section: "Earth" },
+                    { id: "2", grade: "Nursery", section: "Mars" },
+                    { id: "3", grade: "UKG", section: "Jupiter" },
+                    { id: "4", grade: "UKG", section: "Neptune" },
+                    { id: "5", grade: "UKG", section: "Uranus" },
+                    { id: "6", grade: "Grade 1", section: "A" },
+                    { id: "7", grade: "Grade 1", section: "B" },
+                    { id: "8", grade: "Grade 2", section: "A" },
+                    { id: "9", grade: "Grade 3", section: "A" },
+                    { id: "10", grade: "Grade 4", section: "A" },
+                    { id: "11", grade: "Grade 5", section: "A" }
+                  ]).map((c: any) => (
+                    <option key={c.id} value={c.grade}>
+                      🏫 {c.grade} (Section {c.section}) {c.room_number ? `• ${c.room_number}` : ""}
+                    </option>
+                  ))}
                 </select>
 
                 <p className="text-[10px] text-blue-900/70">
-                  Choose the grade or section to manage parent permissions for this stream.
+                  Select official class to view registered students and parents.
                 </p>
               </div>
 

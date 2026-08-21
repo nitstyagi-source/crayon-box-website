@@ -455,7 +455,8 @@ export async function getParentAccessControlList(
   campusId?: string,
   className?: string,
   searchQuery?: string,
-  filterCategory?: string
+  filterCategory?: string,
+  sectionName?: string
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -464,37 +465,90 @@ export async function getParentAccessControlList(
     let query = supabase
       .from("students")
       .select(`
-        id, admission_no, enrollment_number, first_name, last_name,
-        grade, section, status, attendance_status,
-        is_ews, admission_category, live_stream_access, live_stream_revocation_reason,
-        created_at
+        id, admission_no, enrollment_number, first_name, middle_name, last_name,
+        gender, blood_group, status, transport_mode, transport_route,
+        is_ews, admission_category, category, live_stream_access, live_stream_revocation_reason,
+        created_at, class_id,
+        classes:class_id (
+          id, grade, section, room_number
+        ),
+        parents:parent_id (
+          id, first_name, last_name, phone, email
+        )
       `)
       .eq("campus_id", resolvedCampusId);
-
-    if (className && className !== "All") {
-      query = query.eq("grade", className);
-    }
-
-    if (filterCategory && filterCategory !== "All") {
-      if (filterCategory === "EWS") {
-        query = query.or("is_ews.eq.true,admission_category.ilike.%EWS%,admission_category.ilike.%DG%,admission_category.ilike.%RTE%");
-      } else if (filterCategory === "General") {
-        query = query.eq("is_ews", false).neq("admission_category", "EWS");
-      } else if (filterCategory === "Allowed") {
-        query = query.eq("live_stream_access", true);
-      } else if (filterCategory === "Blocked") {
-        query = query.eq("live_stream_access", false);
-      }
-    }
 
     if (searchQuery && searchQuery.trim()) {
       const q = searchQuery.trim();
       query = query.or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_no.ilike.%${q}%`);
     }
 
-    const { data, error } = await query.order("first_name", { ascending: true }).limit(100);
+    const { data, error } = await query.order("first_name", { ascending: true }).limit(500);
     if (error) throw error;
 
+    let filtered = (data || []).map((stu: any) => {
+      const cls = Array.isArray(stu.classes) ? stu.classes[0] : stu.classes;
+      const prt = Array.isArray(stu.parents) ? stu.parents[0] : stu.parents;
+      return {
+        ...stu,
+        grade: cls?.grade || "Unassigned",
+        section: cls?.section || "",
+        room_number: cls?.room_number || "",
+        parent_name: prt ? `${prt.first_name || ""} ${prt.last_name || ""}`.trim() : "Parent / Guardian",
+        parent_phone: prt?.phone || "—",
+        parent_email: prt?.email || "—",
+        attendance_status: "Present Today"
+      };
+    });
+
+    // Filter by grade / class
+    if (className && className !== "All") {
+      filtered = filtered.filter((s: any) => {
+        const gradeMatch = s.grade?.toLowerCase().trim() === className.toLowerCase().trim();
+        const fullClassMatch = `${s.grade} - Section ${s.section}`.toLowerCase() === className.toLowerCase() ||
+                              `${s.grade} (${s.section})`.toLowerCase() === className.toLowerCase() ||
+                              `${s.grade} ${s.section}`.toLowerCase() === className.toLowerCase();
+        return gradeMatch || fullClassMatch;
+      });
+    }
+
+    // Filter by section if specified
+    if (sectionName && sectionName !== "All") {
+      filtered = filtered.filter((s: any) => s.section?.toLowerCase().trim() === sectionName.toLowerCase().trim());
+    }
+
+    // Filter by Category
+    if (filterCategory && filterCategory !== "All") {
+      if (filterCategory === "EWS") {
+        filtered = filtered.filter((s: any) => s.is_ews || s.admission_category === "EWS" || s.category === "EWS" || s.admission_category === "DG" || s.admission_category === "RTE");
+      } else if (filterCategory === "General") {
+        filtered = filtered.filter((s: any) => !s.is_ews && s.admission_category !== "EWS" && s.category !== "EWS");
+      } else if (filterCategory === "Allowed") {
+        filtered = filtered.filter((s: any) => s.live_stream_access !== false);
+      } else if (filterCategory === "Blocked") {
+        filtered = filtered.filter((s: any) => s.live_stream_access === false);
+      }
+    }
+
+    return { success: true, data: filtered };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getSchoolClassesWithSections(campusId?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    const { data, error } = await supabase
+      .from("classes")
+      .select("id, grade, section, room_number, capacity")
+      .eq("campus_id", resolvedCampusId)
+      .order("grade", { ascending: true })
+      .order("section", { ascending: true });
+
+    if (error) throw error;
     return { success: true, data: data || [] };
   } catch (error: any) {
     return { success: false, error: error.message };
