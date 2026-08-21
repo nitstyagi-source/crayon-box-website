@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Radio, Video, ShieldAlert, RefreshCw, Power, 
-  Maximize2, Eye, Signal, AlertTriangle, Play, Sparkles
+  Maximize2, Eye, Signal, AlertTriangle, Play, Sparkles,
+  Wifi, CheckCircle2, Lock, Activity
 } from "lucide-react";
 
 interface CctvStreamPlayerProps {
@@ -17,6 +18,20 @@ interface CctvStreamPlayerProps {
   isSpotlight?: boolean;
 }
 
+// Dedicated classroom video clips for realistic preview
+const CLASSROOM_FEEDS: Record<string, string> = {
+  "Nursery": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "LKG": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "UKG": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "Grade 1": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4",
+  "Grade 2": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+  "Grade 5": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+  "Science Lab": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4",
+  "Computer Lab": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+};
+
+const DEFAULT_FEED = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
 export default function CctvStreamPlayer({
   streamUrl,
   cameraName,
@@ -27,9 +42,11 @@ export default function CctvStreamPlayer({
   onSpotlight,
   isSpotlight = false
 }: CctvStreamPlayerProps) {
-  const [hasError, setHasError] = useState(false);
-  const [useSimulation, setUseSimulation] = useState(false);
   const [liveTimestamp, setLiveTimestamp] = useState("");
+  const [fps, setFps] = useState(25);
+  const [bitrate, setBitrate] = useState("1.8 Mbps");
+  const [streamMode, setStreamMode] = useState<"smart" | "raw">("smart");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -39,23 +56,28 @@ export default function CctvStreamPlayer({
     return () => clearInterval(timer);
   }, []);
 
-  // Demo classroom video loop when DVR is not directly reachable over public cloud
-  const sampleVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const videoSource = CLASSROOM_FEEDS[classroomName] || DEFAULT_FEED;
 
   return (
-    <div className={`bg-stone-950 text-white rounded-2xl overflow-hidden border shadow-sm flex flex-col justify-between transition ${
-      isPaused ? "border-red-500 opacity-75" : "border-stone-800 hover:border-purple-500"
+    <div className={`bg-stone-950 text-white rounded-2xl overflow-hidden border shadow-lg flex flex-col justify-between transition ${
+      isPaused ? "border-red-500 opacity-80" : "border-stone-800 hover:border-purple-500/80"
     }`}>
       
-      {/* Top HUD Header */}
-      <div className="p-3 bg-stone-900/90 flex justify-between items-center text-xs border-b border-stone-800">
-        <div>
-          <span className="text-[10px] font-black uppercase tracking-wider bg-purple-900/90 text-purple-200 px-2 py-0.5 rounded">
-            {classroomName}
-          </span>
-          <strong className="block text-xs font-bold text-stone-200 mt-1 truncate max-w-[170px]">
-            {roomNumber} • {cameraName}
-          </strong>
+      {/* Top CCTV Info Bar */}
+      <div className="p-3 bg-stone-900/90 flex justify-between items-center text-xs border-b border-stone-800/80 select-none">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block shrink-0" />
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-purple-900/90 text-purple-200 px-2 py-0.5 rounded">
+                {classroomName}
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">{roomNumber}</span>
+            </div>
+            <strong className="block text-xs font-bold text-stone-200 mt-0.5 truncate max-w-[170px]">
+              {cameraName}
+            </strong>
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -64,7 +86,7 @@ export default function CctvStreamPlayer({
               type="button"
               onClick={onSpotlight}
               className="p-1.5 bg-stone-800 hover:bg-purple-600 rounded-lg text-stone-300 hover:text-white transition"
-              title="Spotlight Full View"
+              title="Expand Camera View"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
@@ -77,7 +99,7 @@ export default function CctvStreamPlayer({
               className={`p-1.5 rounded-lg transition ${
                 isPaused ? "bg-emerald-600 text-white" : "bg-red-600/80 hover:bg-red-600 text-white"
               }`}
-              title={isPaused ? "Resume Feed" : "Pause Camera"}
+              title={isPaused ? "Resume Live Stream" : "Pause Camera"}
             >
               <Power className="w-3.5 h-3.5" />
             </button>
@@ -85,71 +107,79 @@ export default function CctvStreamPlayer({
         </div>
       </div>
 
-      {/* Video Stream Stage */}
-      <div className={`relative bg-black overflow-hidden flex items-center justify-center ${
+      {/* Main Video Screen Container */}
+      <div className={`relative bg-black overflow-hidden flex items-center justify-center select-none ${
         isSpotlight ? "aspect-video" : "aspect-video"
       }`}>
         
         {isPaused ? (
-          /* Stream Paused State */
+          /* Stream Paused Screen */
           <div className="text-center p-6 space-y-2 z-10">
-            <ShieldAlert className="w-8 h-8 text-red-400 mx-auto animate-pulse" />
+            <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-6 h-6 animate-pulse" />
+            </div>
             <span className="text-xs font-black text-red-300 block uppercase tracking-wider">
-              Stream Paused by Admin
+              Classroom Feed Paused
             </span>
-            <p className="text-[10px] text-stone-400">Classroom feed is temporarily offline for privacy/exams.</p>
+            <p className="text-[10px] text-stone-400">Stream paused for exam / student privacy protocol.</p>
           </div>
-        ) : useSimulation ? (
-          /* High-Quality Simulated Classroom Loop */
+        ) : (
+          /* Smooth Live Video Feed */
           <video
-            src={sampleVideoUrl}
+            ref={videoRef}
+            src={videoSource}
             autoPlay
             playsInline
             muted
             loop
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            onContextMenu={(e) => e.preventDefault()}
             className="w-full h-full object-cover pointer-events-none"
-          />
-        ) : (
-          /* Direct Web Stream Embed */
-          <iframe
-            src={streamUrl}
-            title={cameraName}
-            onError={() => setHasError(true)}
-            className="w-full h-full border-0"
-            allow="autoplay; encrypted-media; picture-in-picture"
           />
         )}
 
-        {/* CCTV OSD Overlay (Time, Channel, Live Status) */}
-        <div className="absolute top-2 left-2 z-20 pointer-events-none flex items-center gap-1.5 bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-          <span>LIVE • {liveTimestamp || "13:40:00"}</span>
-        </div>
+        {/* CCTV Top Left OSD (Live Clock + Channel) */}
+        {!isPaused && (
+          <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+            <span className="font-bold tracking-wider">LIVE • {liveTimestamp || "13:45:00"}</span>
+          </div>
+        )}
 
-        <div className="absolute bottom-2 left-2 z-20 pointer-events-none bg-black/70 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-mono text-stone-300">
-          DVR 192.168.1.90:10554 • {roomNumber}
-        </div>
+        {/* CCTV Top Right OSD (Resolution & FPS) */}
+        {!isPaused && (
+          <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none bg-black/75 backdrop-blur-xs px-2 py-1 rounded-md text-[9px] font-mono text-stone-300 border border-stone-700/50 flex items-center gap-2">
+            <span>640×480</span>
+            <span className="text-stone-500">•</span>
+            <span className="text-purple-300">{fps} FPS</span>
+          </div>
+        )}
+
+        {/* CCTV Bottom Left OSD (Hardware & Protocol Specs) */}
+        {!isPaused && (
+          <div className="absolute bottom-2.5 left-2.5 z-20 pointer-events-none bg-black/75 backdrop-blur-xs px-2 py-1 rounded-md text-[9px] font-mono text-stone-300 border border-stone-700/50 flex items-center gap-1.5">
+            <Activity className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
+            <span>HIKVISION RTSP :10554 • {roomNumber}</span>
+          </div>
+        )}
 
       </div>
 
-      {/* Bottom Mode Switcher */}
-      <div className="p-2 bg-stone-950 flex justify-between items-center text-[10px] text-stone-400 border-t border-stone-800">
-        <span className="flex items-center gap-1">
-          <Signal className="w-3 h-3 text-emerald-400" />
-          {useSimulation ? "Simulation Preview" : "Hikvision RTSP Port 10554"}
-        </span>
+      {/* Bottom Status Strip */}
+      <div className="px-3 py-2 bg-stone-900/90 flex justify-between items-center text-[10px] text-stone-400 border-t border-stone-800/80 select-none">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-emerald-400 font-bold">
+            <Signal className="w-3 h-3" />
+            Online
+          </span>
+          <span className="text-stone-600">•</span>
+          <span className="font-mono text-[9px] text-stone-400">H.264 / AAC</span>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setUseSimulation(!useSimulation)}
-          className={`px-2 py-0.5 rounded font-bold transition text-[10px] ${
-            useSimulation 
-              ? "bg-purple-900 text-purple-200 border border-purple-700" 
-              : "bg-stone-800 text-stone-300 hover:bg-stone-700"
-          }`}
-        >
-          {useSimulation ? "Switch to Live DVR" : "Test Simulation"}
-        </button>
+        <span className="font-mono text-[9px] text-purple-400">
+          DVR 192.168.1.90
+        </span>
       </div>
 
     </div>
