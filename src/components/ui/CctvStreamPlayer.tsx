@@ -247,31 +247,14 @@ export default function CctvStreamPlayer({
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
         ) : (
-          /* REAL PHYSICAL CAMERA LIVE VIDEO FEED */
+          /* REAL PHYSICAL CAMERA LIVE STREAM EMBED */
           <div className="w-full h-full relative">
-            <img
-              src={liveStreamEndpoint}
-              alt={cameraName}
-              onLoad={() => {
-                setStreamLoaded(true);
-                setHasImgError(false);
-              }}
-              onError={() => {
-                setHasImgError(true);
-              }}
-              className={`w-full h-full object-cover select-none pointer-events-none ${
-                hasImgError ? "hidden" : "block"
-              }`}
+            <iframe
+              src={streamUrl}
+              title={cameraName}
+              className="w-full h-full border-0 pointer-events-none"
+              allow="autoplay; encrypted-media; picture-in-picture"
             />
-
-            {hasImgError && (
-              <canvas
-                ref={canvasRef}
-                width={640}
-                height={360}
-                className="w-full h-full object-cover"
-              />
-            )}
           </div>
         )}
 
