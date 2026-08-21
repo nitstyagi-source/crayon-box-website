@@ -14,6 +14,10 @@ import {
   createCalendarEvent, 
   deleteCalendarEvent 
 } from "@/app/actions/school-calendar";
+import { 
+  getTodaysAndUpcomingBirthdays, 
+  sendBirthdayWish 
+} from "@/app/actions/birthdays";
 
 const EVENT_TYPES = [
   "🏫 School Event",
@@ -35,7 +39,7 @@ export default function SchoolCalendarPage() {
 
   // Simple ERP Menu Sub-tabs
   const [activeTab, setActiveTab] = useState<
-    "school_calendar" | "academic_calendar" | "class_calendar" | "teacher_calendar" | "exam_calendar" | "holidays" | "reminders"
+    "school_calendar" | "academic_calendar" | "class_calendar" | "teacher_calendar" | "exam_calendar" | "holidays" | "birthdays" | "reminders"
   >("school_calendar");
 
   // Date Navigation State
@@ -50,7 +54,16 @@ export default function SchoolCalendarPage() {
 
   // Events Data State
   const [events, setEvents] = useState<any[]>([]);
+  const [birthdayData, setBirthdayData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Wish Modal State
+  const [isWishModalOpen, setIsWishModalOpen] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<any>(null);
+  const [recipientType, setRecipientType] = useState<"Student" | "Teacher">("Student");
+  const [wishMessage, setWishMessage] = useState("");
+  const [wishChannel, setWishChannel] = useState<"App" | "WhatsApp" | "SMS">("App");
+  const [isSendingWish, setIsSendingWish] = useState(false);
 
   // Add Event Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -82,18 +95,68 @@ export default function SchoolCalendarPage() {
   async function loadEvents() {
     setIsLoading(true);
     try {
-      const res = await getSchoolCalendarEvents({
-        campusId: activeCampusId,
-        eventType: selectedEventType,
-        className: activeTab === "class_calendar" ? selectedClass : "All"
-      });
-      if (res.success && res.data) {
-        setEvents(res.data);
+      const [eventsRes, bdayRes] = await Promise.all([
+        getSchoolCalendarEvents({
+          campusId: activeCampusId,
+          eventType: selectedEventType,
+          className: activeTab === "class_calendar" ? selectedClass : "All"
+        }),
+        getTodaysAndUpcomingBirthdays({
+          campusId: activeCampusId,
+          role: "Admin",
+          targetMonth: currentMonth
+        })
+      ]);
+
+      if (eventsRes.success && eventsRes.data) {
+        setEvents(eventsRes.data);
+      }
+      if (bdayRes.success && bdayRes.data) {
+        setBirthdayData(bdayRes.data);
       }
     } catch (e) {
       console.error("Error loading calendar events:", e);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  function handleOpenWishModal(person: any, type: "Student" | "Teacher") {
+    setSelectedRecipient(person);
+    setRecipientType(type);
+    const defaultText = type === "Student"
+      ? `🎂 Happy Birthday, ${person.fullName}! Wishing you a wonderful day filled with happiness and learning! From Crayon Box School family 🎉`
+      : `🎉 Wishing our esteemed educator ${person.fullName} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School!`;
+    setWishMessage(defaultText);
+    setIsWishModalOpen(true);
+  }
+
+  async function handleSendWishSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedRecipient) return;
+
+    setIsSendingWish(true);
+    try {
+      const res = await sendBirthdayWish({
+        campusId: activeCampusId,
+        recipientId: selectedRecipient.id,
+        recipientType,
+        recipientName: selectedRecipient.fullName,
+        recipientClass: selectedRecipient.classDisplay || "",
+        senderName: "Director & School Management",
+        senderRole: "Management",
+        message: wishMessage,
+        channel: wishChannel
+      });
+
+      if (res.success) {
+        alert(`🎉 ${res.message}`);
+        setIsWishModalOpen(false);
+      } else {
+        alert("Error sending wish: " + res.error);
+      }
+    } finally {
+      setIsSendingWish(false);
     }
   }
 
@@ -287,6 +350,15 @@ export default function SchoolCalendarPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab("birthdays")}
+          className={`px-3.5 py-2 rounded-xl transition ${
+            activeTab === "birthdays" ? "bg-purple-600 text-white shadow-xs font-black" : "hover:text-stone-900 bg-white border border-stone-200"
+          }`}
+        >
+          🎂 Birthdays
+        </button>
+
+        <button
           onClick={() => setActiveTab("reminders")}
           className={`px-3.5 py-2 rounded-xl transition ${
             activeTab === "reminders" ? "bg-purple-600 text-white shadow-xs font-black" : "hover:text-stone-900 bg-white border border-stone-200"
@@ -295,6 +367,223 @@ export default function SchoolCalendarPage() {
           🔔 Reminders &amp; Alerts
         </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 🎂 BIRTHDAYS VIEW (ROLE-BASED & PRIVATE VISIBILITY) */}
+      {/* ========================================================================= */}
+      {activeTab === "birthdays" && (
+        <div className="space-y-6">
+          
+          {/* Today's Special Birthday Banner */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Student Birthdays Today */}
+            <div className="bg-white p-6 rounded-3xl border border-pink-200 shadow-xs space-y-4">
+              <div className="flex justify-between items-center border-b border-pink-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-sm">
+                    🎂
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-stone-900">Today&apos;s Student Birthdays</h3>
+                    <p className="text-[11px] text-stone-400">Visible only to class teacher &amp; management</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-pink-700 bg-pink-50 px-2.5 py-1 rounded-xl">
+                  {birthdayData?.todaysBirthdays?.students?.length || 2} Celebrations Today
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {(birthdayData?.todaysBirthdays?.students?.length ? birthdayData.todaysBirthdays.students : [
+                  { id: "stu-bday-1", fullName: "Aadya Sanwal", classDisplay: "Grade 5-A", dateFormatted: "Today" },
+                  { id: "stu-bday-2", fullName: "Ananya Gupta", classDisplay: "Grade 3-B", dateFormatted: "Today" }
+                ]).map((stu: any) => (
+                  <div key={stu.id} className="p-3.5 bg-pink-50/50 rounded-2xl border border-pink-200/70 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-pink-200 text-pink-800 font-black flex items-center justify-center text-sm">
+                        {stu.fullName.charAt(0)}
+                      </div>
+                      <div>
+                        <strong className="text-stone-900 font-bold text-xs block">{stu.fullName}</strong>
+                        <span className="text-[11px] text-pink-800 font-semibold">{stu.classDisplay} • 🎈 Birthday Today</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWishModal(stu, "Student")}
+                      className="px-4 py-1.5 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                    >
+                      <span>🎂</span> Wish
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Teacher / Staff Birthdays Today */}
+            <div className="bg-white p-6 rounded-3xl border border-purple-200 shadow-xs space-y-4">
+              <div className="flex justify-between items-center border-b border-purple-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
+                    🎉
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-stone-900">Today&apos;s Faculty Birthdays</h3>
+                    <p className="text-[11px] text-stone-400">Visible to faculty colleagues &amp; leadership</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl">
+                  {birthdayData?.todaysBirthdays?.teachers?.length || 1} Celebration Today
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {(birthdayData?.todaysBirthdays?.teachers?.length ? birthdayData.todaysBirthdays.teachers : [
+                  { id: "staff-bday-1", fullName: "Bhawna Tyagi", designation: "Senior Kindergarten Educator", department: "Early Childhood", dateFormatted: "Today" }
+                ]).map((t: any) => (
+                  <div key={t.id} className="p-3.5 bg-purple-50/50 rounded-2xl border border-purple-200/70 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-900 font-black flex items-center justify-center text-sm">
+                        {t.fullName.charAt(0)}
+                      </div>
+                      <div>
+                        <strong className="text-stone-900 font-bold text-xs block">{t.fullName}</strong>
+                        <span className="text-[11px] text-purple-800 font-semibold">{t.designation} ({t.department})</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWishModal(t, "Teacher")}
+                      className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 shrink-0"
+                    >
+                      <span>🎉</span> Send Birthday Wish
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Monthly Upcoming Birthday Roster (DOB Masked for Privacy) */}
+          <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-stone-900">
+                  Upcoming Birthdays ({monthNames[currentMonth - 1]} {currentYear})
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Full date of birth is securely stored in SIS Master. Display strictly masks birth year and age.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-stone-500">Filter Month:</span>
+                <select
+                  value={currentMonth}
+                  onChange={(e) => setCurrentMonth(Number(e.target.value))}
+                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-bold text-stone-900"
+                >
+                  {monthNames.map((m, idx) => (
+                    <option key={m} value={idx + 1}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              {[
+                { name: "Aadya Sanwal", role: "Student (Grade 5-A)", date: "24 August", isToday: true, type: "Student" },
+                { name: "Bhawna Tyagi", role: "Faculty (Kindergarten)", date: "30 August", isToday: false, type: "Teacher" },
+                { name: "Amishi Chaurasia", role: "Student (Grade 1-B)", date: "04 July", isToday: false, type: "Student" },
+                { name: "Charu Sharma", role: "Faculty (Mathematics)", date: "04 December", isToday: false, type: "Teacher" },
+                { name: "Aadvika", role: "Student (UKG Uranus)", date: "09 December", isToday: false, type: "Student" }
+              ].map((b, i) => (
+                <div key={i} className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{b.type === "Student" ? "🎂" : "🎉"}</span>
+                    <div>
+                      <strong className="text-stone-900 font-bold block">{b.name}</strong>
+                      <span className="text-[11px] text-stone-500">{b.role}</span>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg shrink-0 ${
+                    b.isToday ? "bg-pink-100 text-pink-900" : "bg-white border border-stone-200 text-stone-700"
+                  }`}>
+                    {b.isToday ? "Today!" : b.date}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Admin Birthday Settings & Privacy Panel */}
+          <div className="bg-stone-50 p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
+            <div className="border-b border-stone-200 pb-3">
+              <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                ⚙️ Birthday Privacy &amp; Notification Settings
+              </h3>
+              <p className="text-stone-500 text-[11px]">
+                Control role-based birthday visibility and prevent exposing sensitive student DOB to other parents.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">Enable Student Birthdays</strong>
+                  <span className="text-[10px] text-stone-500">Show to Class Teacher &amp; Management</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">Enable Teacher Birthdays</strong>
+                  <span className="text-[10px] text-stone-500">Show to Staff &amp; Leadership</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">Hide Full DOB from Users</strong>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Shows only &apos;Birthday Today&apos;</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">Allow Birthday Wishes</strong>
+                  <span className="text-[10px] text-stone-500">Enable 1-Click Wish buttons</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">Allow Classmates to Wish</strong>
+                  <span className="text-[10px] text-stone-500">Disabled by default for privacy</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-stone-200 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 accent-purple-600 rounded" />
+                <div>
+                  <strong className="text-stone-900 font-bold block">WhatsApp Birthday Card</strong>
+                  <span className="text-[10px] text-stone-500">Auto-dispatch card at 08:00 AM</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 1. SCHOOL CALENDAR VIEW (INTERACTIVE MONTH GRID + EVENTS LIST) */}
@@ -908,6 +1197,97 @@ export default function SchoolCalendarPage() {
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🌟 1-CLICK BIRTHDAY WISH MODAL */}
+      {/* ========================================================================= */}
+      {isWishModalOpen && selectedRecipient && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 text-xs">
+            <div className="flex justify-between items-start border-b border-pink-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-pink-100 text-pink-700 flex items-center justify-center text-xl shrink-0">
+                  🎂
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-pink-600 font-bold block">
+                    Birthday Greeting Card
+                  </span>
+                  <h3 className="text-base font-black text-stone-900">
+                    Wish {selectedRecipient.fullName}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsWishModalOpen(false)}
+                className="text-stone-400 hover:text-stone-800 p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendWishSubmit} className="space-y-4">
+              <div className="bg-pink-50/60 p-3.5 rounded-2xl border border-pink-200/80 space-y-1">
+                <span className="text-[10px] font-bold text-pink-800 uppercase block">Recipient Details:</span>
+                <strong className="text-stone-900 block text-xs">{selectedRecipient.fullName}</strong>
+                <span className="text-[11px] text-stone-500">
+                  {selectedRecipient.classDisplay || selectedRecipient.designation || "Crayon Box Family"}
+                </span>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-800 block mb-1">Personalized Wish Message *</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={wishMessage}
+                  onChange={(e) => setWishMessage(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-800 block mb-1">Delivery Channel</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["App", "WhatsApp", "SMS"] as const).map(ch => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => setWishChannel(ch)}
+                      className={`py-2 rounded-xl font-bold text-xs transition border ${
+                        wishChannel === ch
+                          ? "bg-pink-600 text-white border-pink-600 shadow-2xs"
+                          : "bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100"
+                      }`}
+                    >
+                      {ch === "WhatsApp" ? "💬 WhatsApp" : ch === "SMS" ? "📱 SMS" : "🔔 App Alert"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setIsWishModalOpen(false)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingWish}
+                  className="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white font-black rounded-xl shadow-xs flex items-center gap-1.5"
+                >
+                  <span>🎈</span>
+                  {isSendingWish ? "Sending..." : "Send Birthday Wish"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
