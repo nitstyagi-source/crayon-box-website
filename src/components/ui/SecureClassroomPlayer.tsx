@@ -64,6 +64,7 @@ export default function SecureClassroomPlayer({
 }: SecureClassroomPlayerProps) {
   const [isObscured, setIsObscured] = useState(false);
   const [securityAlert, setSecurityAlert] = useState<string | null>(null);
+  const [hasStreamError, setHasStreamError] = useState(false);
   const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "25%" });
   const [microWatermarkAngle, setMicroWatermarkAngle] = useState(-15);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -307,15 +308,28 @@ export default function SecureClassroomPlayer({
         className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-800 aspect-video flex items-center justify-center group"
       >
         
-        {/* Live Canvas Screen */}
-        <canvas
-          ref={canvasRef}
-          width={640}
-          height={360}
-          className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
-            isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
-          }`}
-        />
+        {/* Live Physical Camera Stream or Fallback Canvas Screen */}
+        <div className="w-full h-full relative">
+          <img
+            src={`/api/cameras/${CLASS_SUBJECTS[className] ? (className.toLowerCase().replace(/\s+/g, "") + "_cam") : "nursery_cam"}/live`}
+            alt={cameraName}
+            onError={() => setHasStreamError(true)}
+            className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+              hasStreamError ? "hidden" : "block"
+            } ${isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"}`}
+          />
+
+          {hasStreamError && (
+            <canvas
+              ref={canvasRef}
+              width={640}
+              height={360}
+              className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+                isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+              }`}
+            />
+          )}
+        </div>
 
         {/* SECURITY OBSCURATION OVERLAY (TRIGGERED ON SCREENSHOT / RECORDING / DEVTOOLS) */}
         {isObscured && (

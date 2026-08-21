@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { 
   Radio, Video, ShieldAlert, RefreshCw, Power, 
   Maximize2, Eye, Signal, AlertTriangle, Play, Sparkles,
-  Wifi, CheckCircle2, Lock, Activity, Users, BookOpen
+  Wifi, CheckCircle2, Lock, Activity, Users, BookOpen, Camera
 } from "lucide-react";
 
 interface CctvStreamPlayerProps {
@@ -17,6 +17,25 @@ interface CctvStreamPlayerProps {
   onSpotlight?: () => void;
   isSpotlight?: boolean;
 }
+
+const CLASS_TO_CHANNEL: Record<string, string> = {
+  "Nursery": "nursery_cam",
+  "LKG": "lkg_cam",
+  "UKG": "ukg_cam",
+  "Grade 1": "grade1_cam",
+  "Grade 2": "grade2_cam",
+  "Grade 3": "grade3_cam",
+  "Grade 4": "grade4_cam",
+  "Grade 5": "grade5_cam",
+  "Grade 6": "grade6_cam",
+  "Grade 7": "grade7_cam",
+  "Grade 8": "grade8_cam",
+  "Grade 9": "grade9_cam",
+  "Grade 10": "grade10_cam",
+  "Science Lab": "science_lab",
+  "Computer Lab": "computer_lab",
+  "Activity Hall": "activity_hall"
+};
 
 const CLASS_SUBJECTS: Record<string, { subject: string; teacher: string; topic: string; students: number }> = {
   "Nursery": { subject: "Early Sensory & Phonics", teacher: "Ms. Neha Sharma", topic: "Alphabet Rhymes & Shapes", students: 18 },
@@ -49,8 +68,12 @@ export default function CctvStreamPlayer({
 }: CctvStreamPlayerProps) {
   const [liveTimestamp, setLiveTimestamp] = useState("");
   const [fps, setFps] = useState(25);
-  const [motionActive, setMotionActive] = useState(true);
+  const [hasImgError, setHasImgError] = useState(false);
+  const [streamLoaded, setStreamLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const channelKey = CLASS_TO_CHANNEL[classroomName] || "nursery_cam";
+  const liveStreamEndpoint = `/api/cameras/${channelKey}/live`;
 
   const classInfo = CLASS_SUBJECTS[classroomName] || {
     subject: "Active Class Session",
@@ -67,8 +90,10 @@ export default function CctvStreamPlayer({
     return () => clearInterval(timer);
   }, []);
 
-  // Real-Time High-Definition CCTV Canvas Rendering Engine
+  // Fallback Canvas Engine (Used if DVR is disconnected/buffering)
   useEffect(() => {
+    if (!hasImgError && streamLoaded) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -82,7 +107,7 @@ export default function CctvStreamPlayer({
       const w = canvas.width;
       const h = canvas.height;
 
-      // 1. Classroom Wall Background Gradient
+      // 1. Background
       const wallGrad = ctx.createLinearGradient(0, 0, 0, h);
       wallGrad.addColorStop(0, "#1c1917");
       wallGrad.addColorStop(0.65, "#292524");
@@ -90,7 +115,7 @@ export default function CctvStreamPlayer({
       ctx.fillStyle = wallGrad;
       ctx.fillRect(0, 0, w, h);
 
-      // 2. Classroom Floor Perspective
+      // 2. Floor
       const floorGrad = ctx.createLinearGradient(0, h * 0.62, 0, h);
       floorGrad.addColorStop(0, "#44403c");
       floorGrad.addColorStop(1, "#1c1917");
@@ -102,36 +127,22 @@ export default function CctvStreamPlayer({
       ctx.lineTo(0, h);
       ctx.fill();
 
-      // Floor Tiles Perspective Lines
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
-      ctx.lineWidth = 1;
-      for (let i = -w; i < w * 2; i += 60) {
-        ctx.beginPath();
-        ctx.moveTo(w / 2, h * 0.62);
-        ctx.lineTo(i, h);
-        ctx.stroke();
-      }
-
-      // 3. Smart Whiteboard / Green Chalkboard
-      const boardW = w * 0.55;
-      const boardH = h * 0.42;
+      // 3. Chalkboard
+      const boardW = w * 0.58;
+      const boardH = h * 0.44;
       const boardX = (w - boardW) / 2;
-      const boardY = h * 0.12;
+      const boardY = h * 0.10;
 
-      // Board Frame
       ctx.fillStyle = "#78716c";
       ctx.fillRect(boardX - 4, boardY - 4, boardW + 8, boardH + 8);
-      // Board Surface (Dark Green Ceramic)
       ctx.fillStyle = "#064e3b";
       ctx.fillRect(boardX, boardY, boardW, boardH);
 
-      // Chalkboard Heading Text
       ctx.fillStyle = "#fef08a";
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`🏫 CRAYON BOX SCHOOL • ${classroomName.toUpperCase()}`, w / 2, boardY + 22);
+      ctx.fillText(`🏫 CRAYON BOX • ${classroomName.toUpperCase()}`, w / 2, boardY + 22);
 
-      // Subject & Topic Chalk Text
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 12px sans-serif";
       ctx.fillText(`Subject: ${classInfo.subject}`, w / 2, boardY + 45);
@@ -142,44 +153,9 @@ export default function CctvStreamPlayer({
 
       ctx.fillStyle = "#cbd5e1";
       ctx.font = "10px sans-serif";
-      ctx.fillText(`Teacher: ${classInfo.teacher} • ${classInfo.students} Students Present`, w / 2, boardY + 90);
+      ctx.fillText(`Teacher: ${classInfo.teacher} • ${classInfo.students} Students`, w / 2, boardY + 90);
 
-      // Subtle chalk formula notes
-      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-      ctx.font = "9px monospace";
-      ctx.fillText("2x + 5y = 10 • E = mc² • ∑(k=1..n)", w / 2, boardY + 112);
-
-      // 4. Classroom Windows (Daylight Ambient Effect)
-      ctx.fillStyle = "rgba(147, 197, 253, 0.12)";
-      ctx.fillRect(15, h * 0.15, w * 0.12, h * 0.35);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(15, h * 0.15, w * 0.12, h * 0.35);
-
-      // 5. Student Desks Rows in Perspective
-      ctx.fillStyle = "#78350f";
-      for (let row = 0; row < 3; row++) {
-        const rowY = h * 0.68 + row * 24;
-        const deskW = w * 0.22 + row * 18;
-        const deskH = 10 + row * 2;
-
-        // Left Desk
-        ctx.fillStyle = "#854d0e";
-        ctx.fillRect(w * 0.15 - row * 10, rowY, deskW, deskH);
-        // Right Desk
-        ctx.fillRect(w * 0.60 - row * 5, rowY, deskW, deskH);
-      }
-
-      // 6. Teacher Podium / Silhouette
-      ctx.fillStyle = "#1e293b";
-      ctx.fillRect(w * 0.25, h * 0.52, 28, 38);
-      // Teacher Head
-      ctx.beginPath();
-      ctx.arc(w * 0.25 + 14, h * 0.48, 10, 0, Math.PI * 2);
-      ctx.fillStyle = "#334155";
-      ctx.fill();
-
-      // 7. Motion Detection Radar Box
+      // 4. Motion Box
       const pulseAlpha = 0.4 + Math.sin(frame * 0.05) * 0.25;
       ctx.strokeStyle = `rgba(34, 197, 94, ${pulseAlpha})`;
       ctx.lineWidth = 1.5;
@@ -189,27 +165,11 @@ export default function CctvStreamPlayer({
       ctx.font = "9px monospace";
       ctx.fillText("MOTION: ACTIVE", w * 0.20 + 20, h * 0.40);
 
-      // 8. Subtle CCTV Scanlines
-      ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+      // 5. Scanlines
+      ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
       for (let y = 0; y < h; y += 4) {
         ctx.fillRect(0, y, w, 1);
       }
-
-      // 9. Camera Sensor Timestamp & Live Badge
-      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-      ctx.fillRect(10, 10, 180, 24);
-      ctx.strokeStyle = "rgba(34, 197, 94, 0.4)";
-      ctx.strokeRect(10, 10, 180, 24);
-
-      ctx.fillStyle = "#4ade80";
-      ctx.beginPath();
-      ctx.arc(20, 22, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 10px monospace";
-      ctx.textAlign = "left";
-      ctx.fillText(`REC • LIVE ${new Date().toLocaleTimeString("en-IN")}`, 30, 26);
 
       animationFrameId = requestAnimationFrame(render);
     };
@@ -219,7 +179,7 @@ export default function CctvStreamPlayer({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [classroomName, classInfo]);
+  }, [hasImgError, streamLoaded, classroomName, classInfo]);
 
   return (
     <div className={`bg-stone-950 text-white rounded-2xl overflow-hidden border shadow-lg flex flex-col justify-between transition ${
@@ -270,7 +230,7 @@ export default function CctvStreamPlayer({
         </div>
       </div>
 
-      {/* Main Video Stage Canvas */}
+      {/* Main Video Stage */}
       <div className={`relative bg-black overflow-hidden flex items-center justify-center select-none ${
         isSpotlight ? "aspect-video" : "aspect-video"
       }`}>
@@ -287,13 +247,40 @@ export default function CctvStreamPlayer({
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
         ) : (
-          /* Animated Classroom CCTV Canvas */
-          <canvas
-            ref={canvasRef}
-            width={640}
-            height={360}
-            className="w-full h-full object-cover"
-          />
+          /* REAL PHYSICAL CAMERA LIVE VIDEO FEED */
+          <div className="w-full h-full relative">
+            <img
+              src={liveStreamEndpoint}
+              alt={cameraName}
+              onLoad={() => {
+                setStreamLoaded(true);
+                setHasImgError(false);
+              }}
+              onError={() => {
+                setHasImgError(true);
+              }}
+              className={`w-full h-full object-cover select-none pointer-events-none ${
+                hasImgError ? "hidden" : "block"
+              }`}
+            />
+
+            {hasImgError && (
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={360}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+        )}
+
+        {/* CCTV Top Left OSD (Live Clock + Recording) */}
+        {!isPaused && (
+          <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+            <span className="font-bold tracking-wider">REC • LIVE {liveTimestamp || "13:50:00"}</span>
+          </div>
         )}
 
         {/* CCTV Top Right OSD (Resolution & FPS) */}
@@ -328,7 +315,7 @@ export default function CctvStreamPlayer({
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-emerald-400 font-bold">
             <Signal className="w-3 h-3" />
-            Stream Online
+            Physical Stream Connected
           </span>
           <span className="text-stone-600">•</span>
           <span className="font-mono text-[9px] text-stone-400">{classInfo.teacher}</span>
