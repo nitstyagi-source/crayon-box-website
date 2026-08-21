@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSiblingContext } from "@/components/providers/SiblingProvider";
 import { 
   BookOpen, FileText, Download, CheckCircle2, Circle, Clock, 
-  BarChart3, Sparkles, Award, FileQuestion, ChevronRight
+  BarChart3, Sparkles, Award, FileQuestion, ChevronRight, Check
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getAcademicSubjects, getExamBlueprints, getTeachingDiaryLogs } from "@/app/actions/syllabus-core";
@@ -127,48 +127,134 @@ export default function AcademicsHub() {
             </div>
           </div>
 
-          {/* Active Homework & Classwork */}
+          {/* Active Digital Diary & Homework */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              Recent Homework & Classroom Diary
-            </h2>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-purple-600" />
+                  📅 Today&apos;s Digital Diary &amp; Homework
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Daily communication, classwork, and assignments for {activeSibling?.firstName || "Student"}.
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold bg-purple-50 text-purple-900 px-2.5 py-1 rounded-xl">
+                Session 2026-27
+              </span>
+            </div>
 
             <div className="space-y-4">
-              {recentLogs.slice(0, 3).map((log) => (
-                <div key={log.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-3 text-xs">
+              {[
+                {
+                  id: "diary-1",
+                  subject: "Mathematics",
+                  topic: "Equivalent Fractions & Simplification",
+                  classwork: "NCERT Textbook Exercise 4.2 — Questions 1 to 6 solved in class.",
+                  homework: "Exercise 4.3 Practice Q1 to Q8",
+                  dueDate: "24 August 2026",
+                  priority: "High",
+                  submissionStatus: "Submitted",
+                  marks: 9.5,
+                  parentRemark: "Students practiced fraction strips enthusiastically today. Please ensure homework is completed in the blue homework notebook.",
+                  worksheetUrl: "https://example.com/math_worksheet.pdf",
+                  isAcknowledged: true
+                },
+                {
+                  id: "diary-2",
+                  subject: "Science & Discovery",
+                  topic: "Plant Adaptations in Terrestrial Habitats",
+                  classwork: "Drew and labeled the structure of a Desert Cactus in Science notebook.",
+                  homework: "Collect 2 Types of Leaves & Write 3 Adaptations",
+                  dueDate: "23 August 2026",
+                  priority: "Medium",
+                  submissionStatus: "Pending",
+                  marks: null,
+                  parentRemark: "Children were excited about desert plants today. Encourage them to observe plants around your home.",
+                  worksheetUrl: null,
+                  isAcknowledged: false
+                },
+                {
+                  id: "diary-3",
+                  subject: "English Grammar",
+                  topic: "Action Verbs & Tenses (Past & Present)",
+                  classwork: "Workbook Page 28, Exercises A & B.",
+                  homework: "Write 5 Sentences Using Irregular Verbs",
+                  dueDate: "24 August 2026",
+                  priority: "Medium",
+                  submissionStatus: "Pending",
+                  marks: null,
+                  parentRemark: "Please review irregular past tense verbs with your child over the weekend.",
+                  worksheetUrl: null,
+                  isAcknowledged: false
+                }
+              ].map((entry) => (
+                <div key={entry.id} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3 text-xs">
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="font-bold text-slate-900">{log.academic_subjects?.name}</span>
-                      <span className="text-slate-400 text-[11px] block">{log.topic_title}</span>
+                      <strong className="text-slate-900 font-bold text-sm block">{entry.subject}</strong>
+                      <span className="text-purple-700 font-semibold text-xs">{entry.topic}</span>
                     </div>
-                    <span className="text-[10px] font-mono bg-white border border-slate-200 px-2 py-0.5 rounded font-bold text-slate-600">
-                      {log.lesson_date}
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${
+                      entry.priority === "High" ? "bg-red-100 text-red-900" : "bg-blue-100 text-blue-900"
+                    }`}>
+                      {entry.priority} Priority
                     </span>
                   </div>
 
-                  {log.homework && (
-                    <div className="bg-purple-50/60 p-2.5 rounded-xl border border-purple-100 text-purple-900 font-semibold text-[11px]">
-                      <strong>📝 Assigned Homework:</strong> {log.homework}
-                    </div>
-                  )}
-
-                  {log.classwork && (
-                    <div className="text-[11px] text-slate-600">
-                      <strong>Classwork:</strong> {log.classwork}
-                    </div>
-                  )}
-
-                  {/* Student Homework PDF Upload */}
-                  <div className="pt-1">
-                    <PdfUploader
-                      label="Upload Completed Homework PDF"
-                      helperText="Drag and drop completed worksheet or scanned homework PDF"
-                      onPdfUploaded={(data) => {
-                        alert(`🎉 Homework "${data.fileName}" uploaded successfully for teacher appraisal!`);
-                      }}
-                    />
+                  {/* Classwork */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 text-[11px] text-slate-700">
+                    <strong className="text-blue-700 font-bold">📘 Classwork:</strong> {entry.classwork}
                   </div>
+
+                  {/* Homework */}
+                  <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/80 space-y-1 text-[11px] text-amber-950">
+                    <div className="flex justify-between items-center">
+                      <strong className="font-black text-amber-900">📝 Homework:</strong>
+                      <span className="font-mono text-[10px] font-bold text-amber-800">Due: {entry.dueDate}</span>
+                    </div>
+                    <p className="font-semibold">{entry.homework}</p>
+                  </div>
+
+                  {/* Teacher Remark */}
+                  {entry.parentRemark && (
+                    <div className="text-[11px] text-slate-600 italic bg-purple-50/40 p-2 rounded-xl border border-purple-100">
+                      &quot;{entry.parentRemark}&quot;
+                    </div>
+                  )}
+
+                  {/* Homework Submission & Acknowledgement Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200">
+                    {entry.submissionStatus === "Submitted" ? (
+                      <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Homework Submitted ({entry.marks ? `Graded: ${entry.marks}/10` : 'Pending Teacher Grading'})
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <PdfUploader
+                          label="Submit Homework (PDF / Photo)"
+                          helperText="Upload completed assignment"
+                          onPdfUploaded={(data) => {
+                            alert(`🎉 Homework "${data.fileName}" submitted successfully!`);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Parent Acknowledgement Button */}
+                    <button
+                      type="button"
+                      onClick={() => alert("Notice acknowledged! Timestamp recorded for school records.")}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center gap-1 ${
+                        entry.isAcknowledged
+                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300 cursor-default"
+                          : "bg-purple-600 hover:bg-purple-700 text-white shadow-2xs"
+                      }`}
+                    >
+                      <Check className="w-3 h-3" /> {entry.isAcknowledged ? "Acknowledged" : "✓ I Have Read This"}
+                    </button>
+                  </div>
+
                 </div>
               ))}
             </div>

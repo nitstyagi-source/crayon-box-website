@@ -9,7 +9,9 @@ import { CampusProvider, useCampusContext } from "@/components/providers/CampusP
 const NAV_ITEMS = [
   { name: "Global Command", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Classroom Live View", href: "/admin/live-stream", icon: Radio },
+  { name: "Digital Diary & HW", href: "/admin/digital-diary", icon: BookOpen },
   { name: "Syllabus & Curriculum", href: "/admin/syllabus", icon: BookOpen },
+  { name: "Master Timetable", href: "/admin/timetable", icon: Clock },
   { name: "Website CMS", href: "/admin/cms", icon: LayoutTemplate },
   { name: 'Faculty & Mentors', href: '/admin/faculty', icon: Users },
   { name: 'Staff Attendance', href: '/admin/attendance', icon: MapPin },
@@ -17,7 +19,6 @@ const NAV_ITEMS = [
   { name: "Student Attendance", href: "/admin/students/attendance", icon: QrCode },
   { name: "ID & Escort Cards", href: "/admin/id-cards", icon: CreditCard },
   { name: "Classes & Sections", href: "/admin/classes", icon: GraduationCap },
-  { name: "Master Timetable", href: "/admin/timetable", icon: Clock },
   { name: 'News & Events', href: '/admin/news', icon: FileText },
   { name: 'Alumni', href: '/admin/alumni', icon: GraduationCap },
   { name: 'Gallery', href: '/admin/gallery', icon: ImageIcon },
