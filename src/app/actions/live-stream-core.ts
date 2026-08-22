@@ -158,10 +158,16 @@ export async function getLiveStreamAuthorization(payload: {
     // 7. Log Granted Access
     await logAccessAttempt(supabase, resolvedCampusId, payload, "Granted", `Stream Authorized for ${camera.camera_name}`, camera.name, camera.room_number);
 
+    let streamUrl = camera.stream_url;
+    if (!streamUrl || streamUrl.includes("trycloudflare.com") || streamUrl.includes("localhost:8888")) {
+      const classKey = targetClass.toLowerCase().replace(/\s+/g, "");
+      streamUrl = `/api/cameras/${classKey}_cam/live`;
+    }
+
     return {
       authorized: true,
       token: tokenString,
-      streamUrl: camera.stream_url,
+      streamUrl: streamUrl,
       cameraName: camera.camera_name,
       roomNumber: camera.room_number,
       className: targetClass,
@@ -305,6 +311,15 @@ export async function getLiveStreamAdminDashboard(campusId?: string) {
     const activeViewers = (activeTokens || []).length;
     const captureAlertsCount = (securityEvents || []).length;
 
+    const mappedCameras = (cameras || []).map((cam: any) => {
+      let streamUrl = cam.stream_url;
+      if (!streamUrl || streamUrl.includes("trycloudflare.com") || streamUrl.includes("localhost:8888")) {
+        const classKey = (cam.classroom_name || "").toLowerCase().replace(/\s+/g, "");
+        streamUrl = `/api/cameras/${classKey}_cam/live`;
+      }
+      return { ...cam, stream_url: streamUrl };
+    });
+
     return {
       success: true,
       data: {
@@ -324,7 +339,7 @@ export async function getLiveStreamAdminDashboard(campusId?: string) {
           captureAlertsCount,
           globalKillSwitchActive: settings?.global_kill_switch || false
         },
-        cameras: cameras || [],
+        cameras: mappedCameras,
         accessLogs: accessLogs || [],
         securityEvents: securityEvents || [],
         activeSessions: activeTokens || []

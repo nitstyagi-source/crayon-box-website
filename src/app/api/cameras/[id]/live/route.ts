@@ -35,9 +35,10 @@ export async function GET(
   // Spawn ffmpeg to convert RTSP to MJPEG stream for zero-latency browser rendering
   const ffmpeg = spawn("ffmpeg", [
     "-rtsp_transport", "tcp",
+    "-stimeout", "5000000",
     "-i", rtspUrl,
     "-f", "mpjpeg",
-    "-q:v", "4",
+    "-q:v", "5",
     "-r", "15",
     "-s", "640x480",
     "-"

@@ -30,7 +30,7 @@ export default function AdminLiveStreamPage() {
   const { activeCampusId } = useCampusContext();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"videowall" | "cameras" | "parents" | "logs" | "security" | "settings">("videowall");
+  const [activeTab, setActiveTab] = useState<"videowall" | "cameras" | "parents" | "standalone" | "logs" | "security" | "settings">("videowall");
   
   // Video Wall Spotlight State
   const [spotlightCamera, setSpotlightCamera] = useState<any>(null);
@@ -488,7 +488,21 @@ export default function AdminLiveStreamPage() {
           <span>Screen Capture Alerts ({data?.securityEvents?.length || 0})</span>
         </button>
 
-        {/* Tab 6: Global Settings */}
+        {/* Tab 6: 24/7 Cloud Standalone Setup */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("standalone")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === "standalone"
+              ? "bg-purple-900 text-white shadow-xs"
+              : "text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200"
+          }`}
+        >
+          <Server className="w-4 h-4 text-purple-400" />
+          <span>🚀 24/7 Cloud Setup (No Laptop Needed)</span>
+        </button>
+
+        {/* Tab 7: Global Settings */}
         <button
           type="button"
           onClick={() => setActiveTab("settings")}
@@ -1170,7 +1184,152 @@ export default function AdminLiveStreamPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 6: STREAMING SETTINGS & POLICY CONFIG */}
+      {/* TAB: 24/7 STANDALONE CLOUD DVR SETUP (NO LAPTOP NEEDED) */}
+      {/* ========================================================================= */}
+      {activeTab === "standalone" && (
+        <div className="space-y-6 max-w-5xl">
+          
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-stone-900 p-6 sm:p-8 rounded-3xl text-white shadow-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                24/7 Standalone Cloud Architecture
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+              How to Stream Cameras 24/7 Without Keeping Your Mac Running
+            </h2>
+            <p className="text-xs sm:text-sm text-purple-200/90 leading-relaxed max-w-3xl">
+              Currently, your Hikvision DVR is at a private local IP (<code className="bg-black/40 px-1.5 py-0.5 rounded text-amber-300 font-mono">192.168.1.90:10554</code>) inside the school Wi-Fi. Because private IPs cannot be reached directly over mobile 4G/5G networks, a bridge is needed. Below are the <strong>3 permanent ways</strong> to make the cameras work 24/7 without needing your laptop!
+            </p>
+          </div>
+
+          {/* Architecture Comparison Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            {/* Option 1: Direct DVR Cloud RTMP Push */}
+            <div className="bg-white p-6 rounded-3xl border-2 border-purple-500/80 shadow-md flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="bg-purple-100 text-purple-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
+                    Method 1 • Zero Extra Hardware
+                  </span>
+                  <span className="text-emerald-600 text-xs font-black">★ Recommended</span>
+                </div>
+                <h3 className="text-base font-black text-stone-900">
+                  Direct DVR $\rightarrow$ Cloud RTMP Push
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Your Hikvision DVR has built-in <strong>RTMP Push</strong>. It sends the camera feeds directly to a cloud streaming server over the internet.
+                </p>
+                <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
+                  <div className="font-bold text-purple-950 font-sans text-xs">Setup in DVR Menu:</div>
+                  <div>1. Open DVR Web GUI</div>
+                  <div>2. Config $\rightarrow$ Network $\rightarrow$ RTMP</div>
+                  <div>3. Enable RTMP &amp; Paste Cloud URL</div>
+                  <div>4. Click Save</div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-purple-700">
+                ✅ Requires: Zero laptops or PCs. DVR handles everything directly.
+              </div>
+            </div>
+
+            {/* Option 2: Tiny $35 Raspberry Pi in Server Room */}
+            <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
+                    Method 2 • Hardware Gateway
+                  </span>
+                  <span className="text-indigo-600 text-xs font-bold">Plug &amp; Play</span>
+                </div>
+                <h3 className="text-base font-black text-stone-900">
+                  $35 Raspberry Pi / Mini Box on Router
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Place a dedicated $35 Raspberry Pi (or low-cost mini PC) in the school server room plugged into the router via Ethernet.
+                </p>
+                <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
+                  <div className="font-bold text-indigo-950 font-sans text-xs">How it Works:</div>
+                  <div>• Runs 24/7 on school UPS</div>
+                  <div>• Auto-starts on power restore</div>
+                  <div>• Streams all 16 DVR channels</div>
+                  <div>• Your laptop is 100% free</div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-indigo-700">
+                ✅ Requires: One-time ~$35 mini box in school server rack.
+              </div>
+            </div>
+
+            {/* Option 3: Router DDNS & Port Forwarding */}
+            <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
+                    Method 3 • Router DDNS
+                  </span>
+                  <span className="text-stone-500 text-xs font-bold">Direct IP</span>
+                </div>
+                <h3 className="text-base font-black text-stone-900">
+                  School Router Port Forwarding
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Forward port <code className="bg-stone-100 px-1 py-0.5 rounded font-mono">10554</code> in your school's Airtel/Jio Fiber router and create a free DDNS hostname.
+                </p>
+                <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
+                  <div className="font-bold text-emerald-950 font-sans text-xs">Router Configuration:</div>
+                  <div>• Forward WAN 10554 $\rightarrow$ 192.168.1.90</div>
+                  <div>• Set DDNS: crayonschool.ddns.net</div>
+                  <div>• Cloud ERP fetches RTSP directly</div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-emerald-700">
+                ✅ Requires: School broadband router login credentials.
+              </div>
+            </div>
+
+          </div>
+
+          {/* Detailed Step-by-Step Guide */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-6">
+            <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-purple-600" />
+              Step-by-Step Instructions to Activate 24/7 Cloud Streaming
+            </h3>
+
+            <div className="space-y-4 text-xs">
+              <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
+                <h4 className="font-black text-purple-950 text-sm">
+                  Option A: Quick Cloud VPS Relay (Recommended for 100% Autonomous Uptime)
+                </h4>
+                <p className="text-purple-900/90 leading-relaxed">
+                  Deploy MediaMTX on a lightweight cloud server (e.g. AWS EC2, DigitalOcean $4/mo droplet, or Cloudflare Stream). The cloud server will continuously fetch the DVR RTSP feeds or receive the RTMP push from the DVR and serve HLS streams to <code className="bg-purple-200/60 px-1 py-0.5 rounded font-mono">crayonboxschool.com</code> with SSL encryption.
+                </p>
+                <div className="bg-stone-950 text-emerald-400 p-3 rounded-xl font-mono text-[11px] overflow-x-auto">
+                  # 1-Line Cloud Server Setup Command:<br />
+                  docker run -d --name mediamtx -p 8554:8554 -p 8888:8888 bluenviron/mediamtx
+                </div>
+              </div>
+
+              <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
+                <h4 className="font-black text-stone-900 text-sm">
+                  Option B: Local Testing on This Mac (Active Right Now)
+                </h4>
+                <p className="text-stone-600 leading-relaxed">
+                  While paired on the school Wi-Fi, the system automatically uses the native endpoint <code className="bg-stone-200 px-1 py-0.5 rounded font-mono">/api/cameras/[channel]/live</code> to convert the DVR RTSP stream into high-speed MJPEG video directly in your browser.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 7: STREAMING SETTINGS & POLICY CONFIG */}
       {/* ========================================================================= */}
       {activeTab === "settings" && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 sm:p-8 space-y-6 max-w-3xl">

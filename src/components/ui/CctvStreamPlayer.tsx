@@ -33,6 +33,8 @@ export default function CctvStreamPlayer({
   const [fps, setFps] = useState(25);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isMjpeg, setIsMjpeg] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -44,20 +46,33 @@ export default function CctvStreamPlayer({
     return () => clearInterval(timer);
   }, []);
 
-  // Native HLS Stream Ingestion Engine
+  // Determine stream type & start player
   useEffect(() => {
     if (isPaused) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      setIsPlaying(false);
       return;
     }
 
-    const video = videoRef.current;
-    if (!video || !streamUrl) return;
+    if (!streamUrl) return;
 
-    // Normalize URL to index.m3u8
+    // Check if MJPEG stream (e.g. /api/cameras/.../live or .mjpg or .mjpeg)
+    const isMjpegStream = streamUrl.includes("/api/cameras/") || streamUrl.includes("/live") || streamUrl.includes(".mjpg") || streamUrl.includes(".mjpeg");
+    setIsMjpeg(isMjpegStream);
+
+    if (isMjpegStream) {
+      setIsPlaying(true);
+      setHasError(false);
+      return;
+    }
+
+    // Otherwise handle HLS (.m3u8) Stream
+    const video = videoRef.current;
+    if (!video) return;
+
     let hlsEndpoint = streamUrl.trim();
     if (!hlsEndpoint.endsWith(".m3u8")) {
       hlsEndpoint = hlsEndpoint.replace(/\/+$/, "") + "/index.m3u8";
@@ -120,6 +135,9 @@ export default function CctvStreamPlayer({
     }
   }, [streamUrl, isPaused]);
 
+  // Derive resolved stream source
+  const resolvedStreamSrc = streamUrl ? streamUrl.trim() : `/api/cameras/grade5_cam/live`;
+
   return (
     <div className={`bg-stone-950 text-white rounded-2xl overflow-hidden border shadow-lg flex flex-col justify-between transition ${
       isPaused ? "border-red-500 opacity-80" : "border-stone-800 hover:border-purple-500/80"
@@ -169,7 +187,7 @@ export default function CctvStreamPlayer({
         </div>
       </div>
 
-      {/* Main Video Stage (Native Hardware-Accelerated Video Player) */}
+      {/* Main Video Stage (Native Hardware-Accelerated MJPEG / Video Player) */}
       <div className={`relative bg-black overflow-hidden flex items-center justify-center select-none ${
         isSpotlight ? "aspect-video" : "aspect-video"
       }`}>
@@ -185,9 +203,25 @@ export default function CctvStreamPlayer({
             </span>
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
+        ) : isMjpeg ? (
+          /* NATIVE MJPEG HARDWARE-ACCELERATED LIVE STREAM */
+          <div className="w-full h-full relative flex items-center justify-center bg-black">
+            <img
+              src={resolvedStreamSrc}
+              alt={`${classroomName} Live Feed`}
+              className="w-full h-full object-cover select-none"
+              onLoad={() => {
+                setIsPlaying(true);
+                setHasError(false);
+              }}
+              onError={() => {
+                setHasError(true);
+              }}
+            />
+          </div>
         ) : (
-          /* NATIVE LIVE VIDEO STREAM */
-          <div className="w-full h-full relative flex items-center justify-center">
+          /* NATIVE HLS VIDEO PLAYER */
+          <div className="w-full h-full relative flex items-center justify-center bg-black">
             <video
               ref={videoRef}
               autoPlay
@@ -199,7 +233,6 @@ export default function CctvStreamPlayer({
               className="w-full h-full object-cover select-none"
             />
 
-            {/* If stream is connecting */}
             {!isPlaying && !hasError && (
               <div className="absolute inset-0 bg-stone-950/80 flex flex-col items-center justify-center space-y-2 text-stone-400">
                 <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
@@ -248,7 +281,7 @@ export default function CctvStreamPlayer({
         </div>
 
         <span className="font-mono text-[9px] text-purple-400">
-          DVR 192.168.1.90
+          DVR 192.168.1.90:10554
         </span>
       </div>
 

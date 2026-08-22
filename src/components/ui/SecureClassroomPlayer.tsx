@@ -48,9 +48,12 @@ export default function SecureClassroomPlayer({
   const [isObscured, setIsObscured] = useState(false);
   const [securityAlert, setSecurityAlert] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isMjpeg, setIsMjpeg] = useState(false);
   const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "25%" });
   const [microWatermarkAngle, setMicroWatermarkAngle] = useState(-15);
   const [liveClock, setLiveClock] = useState<string>("");
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,10 +89,21 @@ export default function SecureClassroomPlayer({
     };
   }, []);
 
-  // 2. Native HLS Stream Ingestion Engine
+  // 2. Stream Type Ingestion (MJPEG vs HLS)
   useEffect(() => {
+    if (!streamUrl) return;
+
+    const isMjpegStream = streamUrl.includes("/api/cameras/") || streamUrl.includes("/live") || streamUrl.includes(".mjpg") || streamUrl.includes(".mjpeg");
+    setIsMjpeg(isMjpegStream);
+
+    if (isMjpegStream) {
+      setIsPlaying(true);
+      setHasError(false);
+      return;
+    }
+
     const video = videoRef.current;
-    if (!video || !streamUrl) return;
+    if (!video) return;
 
     let hlsEndpoint = streamUrl.trim();
     if (!hlsEndpoint.endsWith(".m3u8")) {
@@ -113,6 +127,7 @@ export default function SecureClassroomPlayer({
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsPlaying(true);
+        setHasError(false);
         video.play().catch(() => {});
       });
 
@@ -126,6 +141,7 @@ export default function SecureClassroomPlayer({
               hls.recoverMediaError();
               break;
             default:
+              setHasError(true);
               break;
           }
         }
@@ -139,7 +155,11 @@ export default function SecureClassroomPlayer({
       video.src = hlsEndpoint;
       video.addEventListener("loadedmetadata", () => {
         setIsPlaying(true);
+        setHasError(false);
         video.play().catch(() => {});
+      });
+      video.addEventListener("error", () => {
+        setHasError(true);
       });
     }
   }, [streamUrl]);
@@ -203,6 +223,7 @@ export default function SecureClassroomPlayer({
   }
 
   const watermarkString = watermarkData?.text || `CONFIDENTIAL • ${parentName} • Parent of ${studentName} (${className})`;
+  const resolvedStreamSrc = streamUrl ? streamUrl.trim() : `/api/cameras/grade5_cam/live`;
 
   return (
     <div className="space-y-3 select-none">
@@ -214,19 +235,36 @@ export default function SecureClassroomPlayer({
         className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-800 aspect-video flex items-center justify-center group"
       >
         
-        {/* Native Hardware-Accelerated Video Player */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          controlsList="nodownload nofullscreen noremoteplayback"
-          disablePictureInPicture
-          onContextMenu={(e) => e.preventDefault()}
-          className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
-            isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
-          }`}
-        />
+        {/* Native Hardware-Accelerated MJPEG Live Stream or HLS Video Player */}
+        {isMjpeg ? (
+          <img
+            src={resolvedStreamSrc}
+            alt={`${className} Live Feed`}
+            className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+            }`}
+            onLoad={() => {
+              setIsPlaying(true);
+              setHasError(false);
+            }}
+            onError={() => {
+              setHasError(true);
+            }}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            onContextMenu={(e) => e.preventDefault()}
+            className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
+              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
+            }`}
+          />
+        )}
 
         {/* SECURITY OBSCURATION OVERLAY (TRIGGERED ON SCREENSHOT / RECORDING / DEVTOOLS) */}
         {isObscured && (
@@ -237,7 +275,7 @@ export default function SecureClassroomPlayer({
 
             <div className="space-y-1.5 max-w-md">
               <h4 className="text-base sm:text-lg font-black text-red-300">
-                Security & Privacy Protection Active
+                Security &amp; Privacy Protection Active
               </h4>
               <p className="text-xs text-stone-300 font-medium leading-relaxed">
                 {securityAlert || "Classroom video feed was paused to protect student privacy. Screen recording, capturing, and unauthorized distribution are monitored."}
