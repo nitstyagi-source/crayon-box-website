@@ -1,110 +1,163 @@
 "use client";
 
-import { useState } from "react";
-import { Camera, Package, QrCode, Search, CheckCircle2, AlertCircle } from "lucide-react";
+import React, { useState } from 'react';
+import {
+  Package, QrCode, Building2, Download, Plus,
+  ShieldCheck, AlertTriangle, CheckCircle2, ArrowRight
+} from 'lucide-react';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 
-export default function InventoryScanner() {
-  const [scanMode, setScanMode] = useState(false);
-  const [scannedAsset, setScannedAsset] = useState<string | null>(null);
+export default function AssetInventoryPage() {
+  const [selectedInst, setSelectedInst] = useState<string>('ALL');
 
-  const simulateScan = () => {
-    setScanMode(true);
-    setTimeout(() => {
-      setScanMode(false);
-      setScannedAsset("ASSET-LAB-042");
-    }, 1500);
-  };
+  const assets = [
+    {
+      id: 'AST-VET-401',
+      assetName: 'Interactive Smart Interactive Panels (65")',
+      category: 'IT & Digital Classroom',
+      ownerTrustId: 'Vani Educational Trust',
+      allocatedInstitution: 'CBS (15 Units) • AS (10 Units)',
+      purchaseValue: '₹22,50,000',
+      currentBookValue: '₹18,00,000',
+      depreciationRate: '15% SLM',
+      custodian: 'Mr. Vikram Singh (IT Admin)',
+      warrantyExpiry: '2028-03-31',
+      status: 'VERIFIED_ACTIVE',
+    },
+    {
+      id: 'AST-VET-402',
+      assetName: 'Robotics Core LEGO Spike Prime Kits',
+      category: 'Robotics & STEM Lab',
+      ownerTrustId: 'Vani Educational Trust',
+      allocatedInstitution: 'CBS Lab (25 Units)',
+      purchaseValue: '₹8,50,000',
+      currentBookValue: '₹6,80,000',
+      depreciationRate: '20% SLM',
+      custodian: 'Prof. Anil Gupta (Robotics HOD)',
+      warrantyExpiry: '2027-06-30',
+      status: 'VERIFIED_ACTIVE',
+    },
+    {
+      id: 'AST-VET-403',
+      assetName: 'Montessori Sensorial Solid Cylinders & Tower Sets',
+      category: 'Montessori Specialized Apparatus',
+      ownerTrustId: 'Vani Educational Trust',
+      allocatedInstitution: 'CBPS Sensory Wing',
+      purchaseValue: '₹3,20,000',
+      currentBookValue: '₹2,72,000',
+      depreciationRate: '15% SLM',
+      custodian: 'Mrs. Shalini Mehta',
+      warrantyExpiry: '2029-12-31',
+      status: 'VERIFIED_ACTIVE',
+    },
+  ];
 
-  const assignAsset = () => {
-    alert("Asset successfully assigned to student in the database!");
-    setScannedAsset(null);
-  };
+  const consumablesStock = [
+    { item: 'A4 Printing Paper Reams (75 GSM)', currentStock: '142 Reams', minReorderThreshold: '50 Reams', status: 'ADEQUATE' },
+    { item: 'Infirmary Antiseptic Betadine 500ml', currentStock: '4 Bottles', minReorderThreshold: '5 Bottles', status: 'REORDER_NOW' },
+    { item: 'Science Lab Hydrochloric Acid (Dilute)', currentStock: '8 Litres', minReorderThreshold: '5 Litres', status: 'ADEQUATE' },
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-32">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Package className="w-6 h-6 text-indigo-600" /> Asset & Inventory Hub</h1>
-          <p className="text-sm text-slate-500">Scan QR codes to assign library books or lab equipment.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
+              Asset & Stock Lifecycle
+            </span>
+            <span className="text-stone-400 text-xs">•</span>
+            <span className="text-stone-500 text-xs font-bold">Trust Asset Base: ₹1.82 Cr</span>
+          </div>
+          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Fixed Asset Registry & Consumables Stock</h1>
+          <p className="text-stone-500 text-xs sm:text-sm mt-1">
+            QR asset tagging, location custodians, straight-line depreciation schedules, and automated stock reorder levels.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Asset Register
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
-        
-        {/* Mobile Camera Viewport Simulator */}
-        <div className="w-full md:w-1/2 bg-slate-900 p-8 flex flex-col items-center justify-center min-h-[400px] relative">
-          
-          {!scanMode && !scannedAsset && (
-            <button onClick={simulateScan} className="w-32 h-32 rounded-full bg-indigo-500 hover:bg-indigo-400 transition-colors flex flex-col items-center justify-center text-white shadow-2xl ring-8 ring-indigo-500/30">
-              <Camera className="w-8 h-8 mb-2" />
-              <span className="font-bold text-sm">Tap to Scan</span>
-            </button>
-          )}
+      {/* Fixed Asset Registry Table */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+        <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
+          <Package className="w-5 h-5 text-indigo-600" /> Trust-Owned & Campus-Allocated Fixed Assets
+        </h2>
 
-          {scanMode && (
-            <div className="relative w-64 h-64 border-2 border-indigo-400 rounded-2xl overflow-hidden">
-               {/* Scanning Laser Animation */}
-               <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,1)] animate-[ping_1.5s_ease-in-out_infinite] z-10"></div>
-               <div className="absolute inset-0 bg-indigo-900/40 flex items-center justify-center">
-                 <QrCode className="w-24 h-24 text-indigo-200 opacity-50" />
-               </div>
-               <p className="absolute bottom-4 left-0 right-0 text-center text-indigo-200 text-sm font-bold animate-pulse">Scanning QR_HASH...</p>
-            </div>
-          )}
-
-          {scannedAsset && (
-            <div className="bg-emerald-500 text-white p-6 rounded-2xl flex flex-col items-center text-center animate-in zoom-in duration-300 shadow-2xl">
-              <CheckCircle2 className="w-16 h-16 mb-4" />
-              <h2 className="text-xl font-bold">QR Detected</h2>
-              <p className="text-emerald-100 mt-1 font-mono">{scannedAsset}</p>
-            </div>
-          )}
-
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-stone-50 text-stone-400 uppercase font-black tracking-wider border-b border-stone-200">
+              <tr>
+                <th className="p-3.5">Asset Tag & Name</th>
+                <th className="p-3.5">Category & Location</th>
+                <th className="p-3.5 text-right">Purchase Cost</th>
+                <th className="p-3.5 text-right">Current Book Value</th>
+                <th className="p-3.5">Custodian</th>
+                <th className="p-3.5">Warranty Expiry</th>
+                <th className="p-3.5 text-right">Audit Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
+              {assets.map((ast) => (
+                <tr key={ast.id} className="hover:bg-slate-50/60 transition">
+                  <td className="p-3.5">
+                    <span className="font-black text-stone-900 block text-sm">{ast.assetName}</span>
+                    <span className="font-mono text-stone-400 text-[10px]">{ast.id}</span>
+                  </td>
+                  <td className="p-3.5">
+                    <span className="font-bold text-stone-800 block">{ast.category}</span>
+                    <span className="text-indigo-600 font-semibold text-[11px]">{ast.allocatedInstitution}</span>
+                  </td>
+                  <td className="p-3.5 text-right font-bold text-stone-800">{ast.purchaseValue}</td>
+                  <td className="p-3.5 text-right font-black text-emerald-600">{ast.currentBookValue}</td>
+                  <td className="p-3.5 font-semibold text-stone-700">{ast.custodian}</td>
+                  <td className="p-3.5 text-stone-500 font-semibold">{ast.warrantyExpiry}</td>
+                  <td className="p-3.5 text-right">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-black rounded-lg text-[10px] uppercase">
+                      {ast.status.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* Details & Assignment Form */}
-        <div className="w-full md:w-1/2 p-8 bg-slate-50 flex flex-col">
-          {scannedAsset ? (
-            <div className="flex-1 space-y-6">
-              <div>
-                <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Library Book</span>
-                <h2 className="text-2xl font-bold text-slate-800 mt-3">Advanced Chemistry Vol. 2</h2>
-                <p className="text-slate-500 font-mono text-sm mt-1">SKU: {scannedAsset}</p>
-              </div>
-
-              <div className="space-y-4">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Assign to Student</label>
-                <div className="relative">
-                  <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input type="text" placeholder="Search by name or ID..." className="pl-10 pr-4 py-3 w-full bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm" />
-                </div>
-              </div>
-
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800">This asset is currently in <strong>Good</strong> condition. The student is liable for any damage upon return.</p>
-              </div>
-
-              <div className="pt-6 mt-auto">
-                <button onClick={assignAsset} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors">
-                  Confirm Checkout
-                </button>
-                <button onClick={() => setScannedAsset(null)} className="w-full text-slate-500 font-bold py-4 hover:text-slate-700 transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
-              <QrCode className="w-24 h-24 text-slate-300 mb-6" />
-              <h3 className="text-lg font-bold text-slate-500">Awaiting Scan</h3>
-              <p className="text-sm text-slate-400 mt-2 max-w-xs">Scan an asset using the camera on the left to view details and assign it to a student.</p>
-            </div>
-          )}
-        </div>
-
       </div>
+
+      {/* Consumables Inventory Re-Order Radar */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+        <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
+          <QrCode className="w-5 h-5 text-amber-600" /> Consumables Inventory & Automated Minimum Stock Radar
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {consumablesStock.map((item, i) => (
+            <div key={i} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-2 text-xs">
+              <div className="flex justify-between items-start">
+                <h3 className="font-black text-stone-900 text-sm">{item.item}</h3>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                  item.status === 'REORDER_NOW' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {item.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <p className="text-stone-700 font-bold">Stock Available: {item.currentStock}</p>
+              <p className="text-stone-500 font-semibold">Min Reorder Level: {item.minReorderThreshold}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

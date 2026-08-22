@@ -7,47 +7,52 @@ import { LayoutDashboard, Users, UserCheck, Search, Bell, Settings, FileSearch, 
 import { CampusProvider, useCampusContext } from "@/components/providers/CampusProvider";
 
 const NAV_ITEMS = [
-  { name: "Global Command", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Identity & Access (IAM)", href: "/admin/iam", icon: KeyRound },
-  { name: "Master Data & Sync Hub", href: "/admin/master-data", icon: Link2 },
-  { name: "Classroom Live View", href: "/admin/live-stream", icon: Radio },
-  { name: "Feedback & Surveys", href: "/admin/surveys", icon: FileSpreadsheet },
-  { name: "Library & Books", href: "/admin/library", icon: BookOpen },
-  { name: "Visitor & Gate Pass", href: "/admin/visitors", icon: ShieldCheck },
-  { name: "Incident Log", href: "/admin/incidents", icon: ShieldAlert },
-  { name: "School Calendar", href: "/admin/calendar", icon: Calendar },
-  { name: "Digital Diary & HW", href: "/admin/digital-diary", icon: BookOpen },
-  { name: "Expense & Vouchers", href: "/admin/expenses", icon: Receipt },
-  { name: "Hiring & Recruitment", href: "/admin/recruitment", icon: Briefcase },
-  { name: "Syllabus & Curriculum", href: "/admin/syllabus", icon: BookOpen },
+  { name: "🏛️ Trust HQ Command", href: "/admin/trust", icon: Building2 },
+  { name: "Admissions CRM", href: "/admin/admissions/crm", icon: PhoneCall },
+  { name: "Daily Operations", href: "/admin/operations", icon: LayoutDashboard },
+  { name: "Students Master", href: "/admin/students", icon: Users },
+  { name: "Student 360° Dossier", href: "/admin/students/std-001", icon: Users },
+  { name: "Family 360°", href: "/admin/families/fam-012", icon: Users },
+  { name: "Classes & Rooms", href: "/admin/classes", icon: GraduationCap },
+  { name: "Inter-Institution Transfers", href: "/admin/transfers", icon: Link2 },
+  { name: "Curriculum Radar", href: "/admin/curriculum", icon: BookOpen },
+  { name: "Teacher Lesson Diary", href: "/admin/lesson-diary", icon: BookOpen },
   { name: "Master Timetable", href: "/admin/timetable", icon: Clock },
-  { name: "Website CMS", href: "/admin/cms", icon: LayoutTemplate },
-  { name: 'Faculty & Mentors', href: '/admin/faculty', icon: Users },
-  { name: 'Staff Attendance', href: '/admin/attendance', icon: MapPin },
-  { name: "Master SIS", href: "/admin/students", icon: Users },
-  { name: "Student Attendance", href: "/admin/students/attendance", icon: QrCode },
-  { name: "ID & Escort Cards", href: "/admin/id-cards", icon: CreditCard },
-  { name: "Classes & Sections", href: "/admin/classes", icon: GraduationCap },
-  { name: 'News & Events', href: '/admin/news', icon: FileText },
-  { name: 'Alumni', href: '/admin/alumni', icon: GraduationCap },
-  { name: 'Gallery', href: '/admin/gallery', icon: ImageIcon },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: "Enquiry CRM", href: "/admin/enquiries", icon: PhoneCall },
-  { name: "HR Command Center", href: "/admin/hr", icon: Users },
+  { name: "Exams & Moderation", href: "/admin/exams", icon: FileText },
+  { name: "Executive Finance & GL", href: "/admin/finance", icon: CreditCard },
+  { name: "Procurement & Budgets", href: "/admin/procurement", icon: Package },
+  { name: "HR & Statutory Payroll", href: "/admin/hr", icon: Users },
+  { name: "Transport Fleet Radar", href: "/admin/transport", icon: Bus },
+  { name: "Safeguarding & POCSO", href: "/admin/incidents", icon: ShieldAlert },
   { name: "Health Clinic", href: "/admin/health", icon: HeartPulse },
-  { name: "Smart Inventory", href: "/admin/inventory", icon: Package },
-  { name: "Live Transport", href: "/admin/transport", icon: Bus },
-  { name: "Fee Management", href: "/admin/finance", icon: CreditCard },
-  { name: "Dynamic Reports", href: "/admin/reports", icon: FileBarChart },
-  { name: "Helpdesk Triage", href: "/admin/helpdesk", icon: LifeBuoy },
+  { name: "Asset & Stock Inventory", href: "/admin/inventory", icon: Package },
+  { name: "Visitor & Gate Pass", href: "/admin/visitors", icon: ShieldCheck },
+  { name: "Safety & Maintenance", href: "/admin/safety", icon: ShieldCheck },
+  { name: "Broadcasts & Circulars", href: "/admin/campaigns", icon: PhoneCall },
+  { name: "Digital Parent Consent", href: "/admin/consent", icon: FileText },
+  { name: "PTM Slot Scheduling", href: "/admin/ptm", icon: Calendar },
+  { name: "Parent Grievance Desk", href: "/admin/grievances", icon: LifeBuoy },
+  { name: "Early Departure Passes", href: "/admin/early-departure", icon: QrCode },
+  { name: "Classroom Live CCTV", href: "/admin/live-stream", icon: Radio },
+  { name: "Library & Media", href: "/admin/library", icon: BookOpen },
+  { name: "Data Quality Scanner", href: "/admin/data-quality", icon: ShieldCheck },
+  { name: "🚨 Emergency Mode", href: "/admin/emergency", icon: ShieldAlert },
+  { name: "Dynamic BI Reports", href: "/admin/reports", icon: FileBarChart },
+  { name: "Identity & Access (IAM)", href: "/admin/iam", icon: KeyRound },
+  { name: "Master Data Hub", href: "/admin/master-data", icon: Link2 },
 ];
+
+import { useState } from "react";
+import GlobalSearchModal from "@/components/layout/GlobalSearchModal";
+import TrustScopeSelector from "@/components/layout/TrustScopeSelector";
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { campuses, activeCampusId, setActiveCampusId } = useCampusContext();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans text-slate-800">
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shrink-0">
@@ -56,8 +61,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <Image src="/logo.png" alt="Crayon Box Logo" width={40} height={40} className="object-contain" priority />
           </div>
           <div>
-            <span className="font-black text-white tracking-wider uppercase text-xs block">Crayon Box</span>
-            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest block">Super Admin</span>
+            <span className="font-black text-white tracking-wider uppercase text-xs block">Vani Trust ERP</span>
+            <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">Multi-Institution</span>
           </div>
         </div>
         
@@ -90,26 +95,30 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Global Top Bar */}
         <header className="bg-white border-b border-slate-200 h-16 shrink-0 flex items-center justify-between px-6 z-10 shadow-sm">
           
-          <div className="flex items-center gap-6">
-            {/* Campus Switcher Removed per user request */}
+          <div className="flex items-center gap-4">
+            {/* Multi-Institution Scope Selector */}
+            <TrustScopeSelector />
 
-            {/* Global Search (Command Palette Simulation) */}
-            <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 w-64 text-slate-400 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
-              <Search className="w-4 h-4" />
-              <input type="text" placeholder="Search students, IDs..." className="bg-transparent border-none focus:outline-none focus:ring-0 text-sm w-full text-slate-800" />
-              <div className="bg-slate-200 text-[10px] font-bold px-1.5 py-0.5 rounded text-slate-500 flex gap-0.5">
-                <span>⌘</span><span>K</span>
-              </div>
-            </div>
+            {/* Global Search Button (Cmd + K) */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="hidden md:flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 w-64 text-slate-400 text-xs font-medium text-left transition"
+            >
+              <Search className="w-4 h-4 text-blue-600" />
+              <span className="flex-1 text-slate-600 font-semibold truncate">Search records (⌘K)...</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
-            <div className="w-8 h-8 bg-blue-100 text-blue-700 font-bold rounded-full flex items-center justify-center border border-blue-200 text-sm">
-               JS
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/emergency"
+              className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 font-black text-xs rounded-xl border border-rose-200 flex items-center gap-1.5"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+              Emergency Mode
+            </Link>
+            <div className="w-8 h-8 bg-indigo-600 text-white font-black rounded-full flex items-center justify-center text-xs shadow-xs">
+              VT
             </div>
           </div>
         </header>
