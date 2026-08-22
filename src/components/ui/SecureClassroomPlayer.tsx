@@ -118,7 +118,10 @@ export default function SecureClassroomPlayer({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 5
+        backBufferLength: 5,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
+        }
       });
 
       hlsRef.current = hls;

@@ -88,7 +88,10 @@ export default function CctvStreamPlayer({
         lowLatencyMode: true,
         backBufferLength: 5,
         manifestLoadingMaxRetry: 5,
-        levelLoadingMaxRetry: 5
+        levelLoadingMaxRetry: 5,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
+        }
       });
 
       hlsRef.current = hls;
