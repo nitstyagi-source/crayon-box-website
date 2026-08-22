@@ -6,7 +6,6 @@ import {
   RefreshCw, AlertTriangle, Video, Maximize2, UserCheck, 
   Clock, MapPin, Radio, Sparkles, BookOpen, Activity
 } from "lucide-react";
-import Hls from "hls.js";
 import { recordSecurityEvent } from "@/app/actions/live-stream-core";
 
 interface SecureClassroomPlayerProps {
@@ -47,15 +46,11 @@ export default function SecureClassroomPlayer({
 }: SecureClassroomPlayerProps) {
   const [isObscured, setIsObscured] = useState(false);
   const [securityAlert, setSecurityAlert] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [isMjpeg, setIsMjpeg] = useState(false);
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "25%" });
   const [microWatermarkAngle, setMicroWatermarkAngle] = useState(-15);
   const [liveClock, setLiveClock] = useState<string>("");
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 1. Moving Dynamic Watermark Algorithm (Shifts every 4.5 seconds to prevent crop removal)
@@ -89,85 +84,7 @@ export default function SecureClassroomPlayer({
     };
   }, []);
 
-  // 2. Stream Type Ingestion (MJPEG vs HLS)
-  useEffect(() => {
-    if (!streamUrl) return;
-
-    const isMjpegStream = streamUrl.includes("/api/cameras/") || streamUrl.includes("/live") || streamUrl.includes(".mjpg") || streamUrl.includes(".mjpeg");
-    setIsMjpeg(isMjpegStream);
-
-    if (isMjpegStream) {
-      setIsPlaying(true);
-      setHasError(false);
-      return;
-    }
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    let hlsEndpoint = streamUrl.trim();
-    if (!hlsEndpoint.endsWith(".m3u8")) {
-      hlsEndpoint = hlsEndpoint.replace(/\/+$/, "") + "/index.m3u8";
-    }
-
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 5,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = true;
-        }
-      });
-
-      hlsRef.current = hls;
-      hls.loadSource(hlsEndpoint);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsPlaying(true);
-        setHasError(false);
-        video.play().catch(() => {});
-      });
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              setHasError(true);
-              break;
-          }
-        }
-      });
-
-      return () => {
-        hls.destroy();
-        hlsRef.current = null;
-      };
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = hlsEndpoint;
-      video.addEventListener("loadedmetadata", () => {
-        setIsPlaying(true);
-        setHasError(false);
-        video.play().catch(() => {});
-      });
-      video.addEventListener("error", () => {
-        setHasError(true);
-      });
-    }
-  }, [streamUrl]);
-
-  // 3. Strict Screen-Capture & Shortcut Prevention
+  // 2. Strict Screen-Capture & Shortcut Prevention
   useEffect(() => {
     function handleSecurityTrigger(eventType: string, alertText: string) {
       setIsObscured(true);
@@ -220,13 +137,20 @@ export default function SecureClassroomPlayer({
   function handleResumeVideo() {
     setIsObscured(false);
     setSecurityAlert(null);
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
-    }
   }
 
   const watermarkString = watermarkData?.text || `CONFIDENTIAL • ${parentName} • Parent of ${studentName} (${className})`;
-  const resolvedStreamSrc = streamUrl ? streamUrl.trim() : `/api/cameras/grade5_cam/live`;
+
+  // Determine iframe vs mjpeg URL
+  let resolvedUrl = streamUrl ? streamUrl.trim() : "";
+  const isMjpeg = resolvedUrl.startsWith("/api/cameras/");
+
+  let iframeSrc = "";
+  if (!isMjpeg && resolvedUrl) {
+    let clean = resolvedUrl.replace(/\/index\.m3u8\??.*$/, "");
+    if (!clean.endsWith("/")) clean += "/";
+    iframeSrc = `${clean}?autoplay=true&muted=true&controls=false`;
+  }
 
   return (
     <div className="space-y-3 select-none">
@@ -238,35 +162,35 @@ export default function SecureClassroomPlayer({
         className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-800 aspect-video flex items-center justify-center group"
       >
         
-        {/* Native Hardware-Accelerated MJPEG Live Stream or HLS Video Player */}
+        {/* Hardware-Accelerated MJPEG Live Stream or Embedded Stream Iframe */}
         {isMjpeg ? (
           <img
-            src={resolvedStreamSrc}
+            src={resolvedUrl}
             alt={`${className} Live Feed`}
             className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
               isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
             }`}
-            onLoad={() => {
-              setIsPlaying(true);
-              setHasError(false);
-            }}
-            onError={() => {
-              setHasError(true);
-            }}
           />
+        ) : iframeSrc ? (
+          <div className={`w-full h-full relative ${isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"}`}>
+            <iframe
+              src={iframeSrc}
+              title={`${className} Live Feed`}
+              allow="autoplay; encrypted-media; fullscreen"
+              className="w-full h-full border-0 pointer-events-auto select-none bg-black"
+              onLoad={() => setIsIframeLoaded(true)}
+            />
+            {!isIframeLoaded && (
+              <div className="absolute inset-0 bg-stone-950 flex flex-col items-center justify-center space-y-2 text-stone-400 pointer-events-none">
+                <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
+                <span className="text-[11px] font-mono">Connecting to Live Camera...</span>
+              </div>
+            )}
+          </div>
         ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload nofullscreen noremoteplayback"
-            disablePictureInPicture
-            onContextMenu={(e) => e.preventDefault()}
-            className={`w-full h-full object-cover transition duration-300 pointer-events-none ${
-              isObscured ? "filter blur-3xl opacity-10 scale-95" : "filter blur-none opacity-100"
-            }`}
-          />
+          <div className="text-center p-6 text-stone-500 text-xs">
+            No live camera feed URL available.
+          </div>
         )}
 
         {/* SECURITY OBSCURATION OVERLAY (TRIGGERED ON SCREENSHOT / RECORDING / DEVTOOLS) */}

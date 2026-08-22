@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { 
   Radio, Video, ShieldAlert, RefreshCw, Power, 
   Maximize2, Eye, Signal, AlertTriangle, Play, Sparkles,
   Wifi, CheckCircle2, Lock, Activity, Users, BookOpen, Camera
 } from "lucide-react";
-import Hls from "hls.js";
 
 interface CctvStreamPlayerProps {
   streamUrl: string;
@@ -31,12 +30,7 @@ export default function CctvStreamPlayer({
 }: CctvStreamPlayerProps) {
   const [liveTimestamp, setLiveTimestamp] = useState("");
   const [fps, setFps] = useState(25);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [isMjpeg, setIsMjpeg] = useState(false);
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -46,100 +40,16 @@ export default function CctvStreamPlayer({
     return () => clearInterval(timer);
   }, []);
 
-  // Determine stream type & start player
-  useEffect(() => {
-    if (isPaused) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      setIsPlaying(false);
-      return;
-    }
+  // Determine iframe vs mjpeg URL
+  let resolvedUrl = streamUrl ? streamUrl.trim() : "";
+  const isMjpeg = resolvedUrl.startsWith("/api/cameras/");
 
-    if (!streamUrl) return;
-
-    // Check if MJPEG stream (e.g. /api/cameras/.../live or .mjpg or .mjpeg)
-    const isMjpegStream = streamUrl.includes("/api/cameras/") || streamUrl.includes("/live") || streamUrl.includes(".mjpg") || streamUrl.includes(".mjpeg");
-    setIsMjpeg(isMjpegStream);
-
-    if (isMjpegStream) {
-      setIsPlaying(true);
-      setHasError(false);
-      return;
-    }
-
-    // Otherwise handle HLS (.m3u8) Stream
-    const video = videoRef.current;
-    if (!video) return;
-
-    let hlsEndpoint = streamUrl.trim();
-    if (!hlsEndpoint.endsWith(".m3u8")) {
-      hlsEndpoint = hlsEndpoint.replace(/\/+$/, "") + "/index.m3u8";
-    }
-
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 5,
-        manifestLoadingMaxRetry: 5,
-        levelLoadingMaxRetry: 5,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = true;
-        }
-      });
-
-      hlsRef.current = hls;
-      hls.loadSource(hlsEndpoint);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsPlaying(true);
-        setHasError(false);
-        video.play().catch(() => {});
-      });
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              setHasError(true);
-              break;
-          }
-        }
-      });
-
-      return () => {
-        hls.destroy();
-        hlsRef.current = null;
-      };
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari Native HLS
-      video.src = hlsEndpoint;
-      video.addEventListener("loadedmetadata", () => {
-        setIsPlaying(true);
-        setHasError(false);
-        video.play().catch(() => {});
-      });
-      video.addEventListener("error", () => {
-        setHasError(true);
-      });
-    }
-  }, [streamUrl, isPaused]);
-
-  // Derive resolved stream source
-  const resolvedStreamSrc = streamUrl ? streamUrl.trim() : `/api/cameras/grade5_cam/live`;
+  let iframeSrc = "";
+  if (!isMjpeg && resolvedUrl) {
+    let clean = resolvedUrl.replace(/\/index\.m3u8\??.*$/, "");
+    if (!clean.endsWith("/")) clean += "/";
+    iframeSrc = `${clean}?autoplay=true&muted=true&controls=false`;
+  }
 
   return (
     <div className={`bg-stone-950 text-white rounded-2xl overflow-hidden border shadow-lg flex flex-col justify-between transition ${
@@ -190,7 +100,7 @@ export default function CctvStreamPlayer({
         </div>
       </div>
 
-      {/* Main Video Stage (Native Hardware-Accelerated MJPEG / Video Player) */}
+      {/* Main Video Stage */}
       <div className={`relative bg-black overflow-hidden flex items-center justify-center select-none ${
         isSpotlight ? "aspect-video" : "aspect-video"
       }`}>
@@ -207,41 +117,32 @@ export default function CctvStreamPlayer({
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
         ) : isMjpeg ? (
-          /* NATIVE MJPEG HARDWARE-ACCELERATED LIVE STREAM */
-          <div className="w-full h-full relative flex items-center justify-center bg-black">
-            <img
-              src={resolvedStreamSrc}
-              alt={`${classroomName} Live Feed`}
-              className="w-full h-full object-cover select-none"
-              onLoad={() => {
-                setIsPlaying(true);
-                setHasError(false);
-              }}
-              onError={() => {
-                setHasError(true);
-              }}
+          /* Native MJPEG Live Stream */
+          <img
+            src={resolvedUrl}
+            alt={`${classroomName} Live Feed`}
+            className="w-full h-full object-cover select-none"
+          />
+        ) : iframeSrc ? (
+          /* Direct Embedded MediaMTX / Cloudflare Stream Iframe */
+          <div className="w-full h-full relative">
+            <iframe
+              src={iframeSrc}
+              title={`${classroomName} Live Feed`}
+              allow="autoplay; encrypted-media; fullscreen"
+              className="w-full h-full border-0 pointer-events-auto select-none bg-black"
+              onLoad={() => setIsIframeLoaded(true)}
             />
-          </div>
-        ) : (
-          /* NATIVE HLS VIDEO PLAYER */
-          <div className="w-full h-full relative flex items-center justify-center bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              controlsList="nodownload nofullscreen noremoteplayback"
-              disablePictureInPicture
-              onContextMenu={(e) => e.preventDefault()}
-              className="w-full h-full object-cover select-none"
-            />
-
-            {!isPlaying && !hasError && (
-              <div className="absolute inset-0 bg-stone-950/80 flex flex-col items-center justify-center space-y-2 text-stone-400">
+            {!isIframeLoaded && (
+              <div className="absolute inset-0 bg-stone-950 flex flex-col items-center justify-center space-y-2 text-stone-400 pointer-events-none">
                 <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
                 <span className="text-[11px] font-mono">Connecting to Live Camera...</span>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="text-center p-4 text-stone-500 text-xs">
+            No live camera feed URL available.
           </div>
         )}
 
@@ -277,7 +178,7 @@ export default function CctvStreamPlayer({
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-emerald-400 font-bold">
             <Signal className="w-3 h-3" />
-            {isPlaying ? "Live DVR Stream Active" : "Connecting..."}
+            Live DVR Stream Active
           </span>
           <span className="text-stone-600">•</span>
           <span className="font-mono text-[9px] text-stone-400">{roomNumber}</span>
