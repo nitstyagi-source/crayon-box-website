@@ -84,6 +84,12 @@ export default async function Header() {
             </div>
 
             <div className="hidden xl:flex items-center gap-4 text-sm font-semibold text-stone-600 ml-2">
+              <Link 
+                href="/mobile" 
+                className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-amber-100 transition-colors shadow-2xs"
+              >
+                <span>📱 Mobile App</span>
+              </Link>
               <Link href="/login" className="flex items-center gap-1.5 hover:text-primary transition-colors">
                 <User className="h-4 w-4" />
                 <span>Portal</span>

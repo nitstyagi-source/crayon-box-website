@@ -4,7 +4,7 @@ const client = new Client({ connectionString: 'postgresql://postgres.fesqtrunkql
 async function activateLiveCctvGateway() {
   await client.connect();
 
-  const GATEWAY = 'https://advised-wheel-raid-saturday.trycloudflare.com';
+  const GATEWAY = (process.argv[2] || 'https://think-planned-leads-family.trycloudflare.com').replace(/\/+$/, '');
 
   const camMapping = {
     'Nursery': `${GATEWAY}/nursery_cam/`,
@@ -38,7 +38,7 @@ async function activateLiveCctvGateway() {
     SET gateway_url = $1, global_kill_switch = false;
   `, [GATEWAY]);
 
-  console.log('🎉 100% SUCCESS: All 16 Classroom CCTV Cameras are fully linked to the live HTTPS Gateway!');
+  console.log(`🎉 100% SUCCESS: All 16 Classroom CCTV Cameras linked to: ${GATEWAY}`);
   await client.end();
 }
 
