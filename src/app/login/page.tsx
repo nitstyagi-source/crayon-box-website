@@ -206,6 +206,23 @@ export default function UnifiedLoginPortal() {
             </p>
           </div>
 
+          {/* Direct Faculty & Super Admin Email Login Callout */}
+          <div className="p-3 bg-indigo-950/70 border border-indigo-800/80 rounded-2xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+              <div>
+                <span className="text-xs font-black text-indigo-200 block">Faculty &amp; Super Admin?</span>
+                <span className="text-[10px] text-indigo-300">Email-based staff &amp; executive portal</span>
+              </div>
+            </div>
+            <Link
+              href="/admin/login"
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl shadow-xs transition shrink-0"
+            >
+              Sign In &rarr;
+            </Link>
+          </div>
+
           {/* Auth Mode Toggle: Password vs MSG91 OTP */}
           <div className="grid grid-cols-2 gap-1 bg-stone-900 p-1 rounded-2xl border border-stone-800 text-xs font-bold">
             <button
