@@ -1,0 +1,30 @@
+{
+  "school_name": "CRAYON BOX HIGH SCHOOL",
+  "dvr_ip": "192.168.1.90",
+  "dvr_port": "10554",
+  "dvr_username": "admin",
+  "dvr_password": "master123",
+  "http_port": 8888,
+  "channels": [
+    { "key": "nursery_cam", "name": "Nursery Play Wing", "channel": "102" },
+    { "key": "lkg_cam", "name": "LKG Activity Room", "channel": "202" },
+    { "key": "ukg_cam", "name": "UKG Classroom", "channel": "302" },
+    { "key": "grade1_cam", "name": "Grade 1 Classroom", "channel": "402" },
+    { "key": "grade2_cam", "name": "Grade 2 Classroom", "channel": "502" },
+    { "key": "grade3_cam", "name": "Grade 3 Classroom", "channel": "602" },
+    { "key": "grade4_cam", "name": "Grade 4 Classroom", "channel": "702" },
+    { "key": "grade5_cam", "name": "Grade 5 Classroom", "channel": "802" },
+    { "key": "grade6_cam", "name": "Grade 6 Classroom", "channel": "902" },
+    { "key": "grade7_cam", "name": "Grade 7 Classroom", "channel": "1002" },
+    { "key": "grade8_cam", "name": "Grade 8 Classroom", "channel": "1102" },
+    { "key": "grade9_cam", "name": "Grade 9 Classroom", "channel": "1202" },
+    { "key": "grade10_cam", "name": "Grade 10 Board Room", "channel": "1302" },
+    { "key": "science_lab", "name": "Science & Bio Laboratory", "channel": "1402" },
+    { "key": "computer_lab", "name": "AI & Robotics Tech Hub", "channel": "1502" },
+    { "key": "activity_hall", "name": "Indoor Sports & Activity Hall", "channel": "1602" }
+  ],
+  "erp_heartbeat_urls": [
+    "http://localhost:3000/api/gateway/heartbeat",
+    "https://crayonboxschool.com/api/gateway/heartbeat"
+  ]
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, BookOpen, Calendar, MessageSquare, Settings, Users, LogOut, CheckSquare } from "lucide-react";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -74,10 +75,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <h2 className="text-lg font-bold text-slate-800">Teacher Portal</h2>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <NotificationCenter role="TEACHER" institutionCode="CBS" />
           </div>
         </header>
 

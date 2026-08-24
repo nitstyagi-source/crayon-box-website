@@ -4,162 +4,174 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Search, Users, ExternalLink, Phone, Mail, MapPin,
-  Sparkles, Download, Plus, Filter
+  Sparkles, Download, Plus, Filter, RefreshCw, Trash2
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { DataTable } from '@/components/ui/DataTable';
+import { Button } from '@/components/ui/Button';
 
 export default function FamiliesDirectoryPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [families, setFamilies] = useState([
-    {
-      id: 'fam-012',
-      familyName: 'Sharma Household',
-      primaryGuardian: 'Rajesh Sharma (Father)',
-      phone: '+91 98100 12345',
-      email: 'rajesh.sharma@techcorp.com',
-      childrenCount: 2,
-      childrenNames: ['Aarav Sharma (Grade 4B)', 'Anaya Sharma (Grade 1A)'],
-      address: 'Flat 402, Evergreen Heights, Sector 62, Noida',
-      feeStatus: 'Settled (₹0 Due)',
-      siblingDiscountActive: true,
-    },
-    {
-      id: 'fam-015',
-      familyName: 'Gupta Household',
-      primaryGuardian: 'Amit Gupta (Father)',
-      phone: '+91 98111 55667',
-      email: 'amit.gupta@finserve.in',
-      childrenCount: 1,
-      childrenNames: ['Vihaan Gupta (Grade 7A)'],
-      address: 'House 14, Block C, Sector 50, Noida',
-      feeStatus: 'Settled (₹0 Due)',
-      siblingDiscountActive: false,
-    },
-    {
-      id: 'fam-018',
-      familyName: 'Verma Household',
-      primaryGuardian: 'Dr. Sunita Verma (Mother)',
-      phone: '+91 98222 33445',
-      email: 'dr.sunita@medicare.org',
-      childrenCount: 2,
-      childrenNames: ['Rohan Verma (Grade 9A)', 'Riya Verma (Grade 6B)'],
-      address: 'Villa 8, Palm Greens, Expressway, Greater Noida',
-      feeStatus: 'Q2 Fee Pending (₹45,000)',
-      siblingDiscountActive: true,
-    },
-  ]);
+  const [families, setFamilies] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredFamilies = families.filter(
-    (f) =>
-      f.familyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.primaryGuardian.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.phone.includes(searchQuery) ||
-      f.childrenNames.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const fetchFamilies = async () => {
+    setIsLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('guardians')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        relationship,
+        phone,
+        email,
+        occupation,
+        address,
+        created_at,
+        student_guardians (
+          students (
+            id,
+            first_name,
+            last_name,
+            admission_no
+          )
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    setFamilies(data || []);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchFamilies();
+  }, []);
+
+  const handleDeleteGuardian = async (guardianId: string) => {
+    const supabase = createClient();
+    await supabase.from('guardians').delete().eq('id', guardianId);
+    fetchFamilies();
+  };
+
+  const columns = [
+    {
+      key: 'name',
+      header: 'Guardian / Household Name',
+      render: (row: any) => (
+        <div>
+          <span className="font-bold text-slate-900 block text-sm">
+            {row.first_name} {row.last_name} Household
+          </span>
+          <span className="text-slate-400 font-mono text-[10px]">{row.id}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'contact',
+      header: 'Contact Details',
+      render: (row: any) => (
+        <div>
+          <span className="font-bold text-slate-800 block text-xs">📞 {row.phone}</span>
+          <span className="text-slate-400 text-[10px]">{row.email || 'No email provided'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'relation',
+      header: 'Relationship',
+      render: (row: any) => (
+        <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase border border-indigo-200">
+          {row.relationship || 'FATHER'}
+        </span>
+      ),
+    },
+    {
+      key: 'children',
+      header: 'Enrolled Children',
+      render: (row: any) => {
+        const students = row.student_guardians?.map((sg: any) => sg.students).filter(Boolean) || [];
+        if (students.length === 0) return <span className="text-slate-400 text-xs italic">No children linked</span>;
+        return (
+          <div className="space-y-0.5">
+            {students.map((s: any) => (
+              <span key={s.id} className="block text-xs font-semibold text-slate-800">
+                • {s.first_name} {s.last_name} ({s.admission_no || 'Enrolled'})
+              </span>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right' as const,
+      render: (row: any) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <Link href={`/admin/families/${row.id}`}>
+            <Button size="sm" variant="outline">
+              Details
+            </Button>
+          </Link>
+          <button
+            onClick={() => handleDeleteGuardian(row.id)}
+            title="Delete test record (Cleanup)"
+            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
-              Household Master
+            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live PostgreSQL Table (`guardians`)
             </span>
-            <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
+            <span className="text-slate-300 text-xs">•</span>
+            <span className="text-slate-500 text-xs font-semibold">{families.length} Households in Database</span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Family 360° Master Directory</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Central household management, multi-child sibling linkages, and consolidated family statements.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Family 360° Household Master
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Unified household records linking multi-child sibling relationships across CBS, AVM, AS, and CBPS.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export Directory
-          </button>
+        <div className="flex items-center gap-2.5">
+          <Button variant="outline" size="sm" onClick={fetchFamilies} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+            Refresh Live DB
+          </Button>
+          <Link href="/admin/students">
+            <Button variant="secondary" size="md" leftIcon={<Plus className="w-4 h-4" />}>
+              Enroll Student with Guardian
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex items-center gap-3">
-        <Search className="w-4 h-4 text-stone-400 shrink-0" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by family name, guardian name, student name, or mobile number..."
-          className="w-full text-xs font-semibold text-stone-900 bg-transparent focus:outline-none placeholder:text-stone-400"
-        />
-        {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="text-xs text-stone-400 hover:text-stone-600">
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* Families Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredFamilies.map((fam) => (
-          <div
-            key={fam.id}
-            className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 hover:border-purple-300 transition"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="font-mono text-[10px] text-stone-400 font-bold uppercase tracking-wider">
-                  {fam.id}
-                </span>
-                <h3 className="text-base font-black text-stone-900">{fam.familyName}</h3>
-                <p className="text-xs text-stone-500 font-medium">{fam.primaryGuardian}</p>
-              </div>
-              <Link
-                href={`/admin/families/${fam.id}`}
-                className="p-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl transition"
-                title="Open Family 360°"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-stone-600">
-              <p className="flex items-center gap-1.5 font-medium"><Phone className="w-3.5 h-3.5 text-stone-400" /> {fam.phone}</p>
-              <p className="flex items-center gap-1.5 font-medium"><Mail className="w-3.5 h-3.5 text-stone-400" /> {fam.email}</p>
-              <p className="flex items-center gap-1.5 font-medium"><MapPin className="w-3.5 h-3.5 text-stone-400" /> {fam.address}</p>
-            </div>
-
-            {/* Enrolled Sibling Tags */}
-            <div className="p-3 bg-stone-50 rounded-2xl border border-stone-100 space-y-1 text-xs">
-              <span className="text-[10px] font-black uppercase text-stone-400">
-                Enrolled Children ({fam.childrenCount})
-              </span>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {fam.childrenNames.map((cn, i) => (
-                  <span key={i} className="text-[11px] font-bold bg-white text-stone-800 px-2 py-0.5 rounded-md border border-stone-200">
-                    {cn}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
-              <span className={`font-bold ${fam.feeStatus.includes('Pending') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {fam.feeStatus}
-              </span>
-              {fam.siblingDiscountActive && (
-                <span className="text-[10px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">
-                  Sibling Discount Active
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Live Families Table with Clean Empty State */}
+      <DataTable
+        title="Registered Households & Guardians (Live Database)"
+        subtitle="Direct records from PostgreSQL `guardians` and `student_guardians` tables"
+        columns={columns}
+        data={families}
+        searchKey="first_name"
+        searchPlaceholder="Search guardian name..."
+        emptyTitle="No Households Registered in Database"
+        emptyDescription="Your database currently has 0 registered family households. When students are enrolled via the Students Master, guardian records will automatically link and appear here."
+        addLabel="Go to Students Master to Enroll"
+        onAddFirst={() => window.location.href = '/admin/students'}
+      />
 
     </div>
   );

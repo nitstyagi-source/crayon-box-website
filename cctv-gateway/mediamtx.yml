@@ -1,0 +1,85 @@
+# MediaMTX Configuration for Crayon Box School Live Streaming Gateway
+# Hikvision DVR: 192.168.1.90 | Port: 10554 | User: admin
+
+logLevel: info
+logDestinations: [stdout]
+
+# Disable RTSP, RTMP, WebRTC server listeners to eliminate port conflicts
+rtsp: no
+rtmp: no
+webrtc: no
+srt: no
+
+# HLS Server (For Web Browsers & Parent Portal)
+hls: yes
+hlsAddress: :8888
+hlsVariant: mpegts
+hlsSegmentCount: 5
+hlsSegmentDuration: 1s
+hlsAlwaysRemux: yes
+
+# 16-Channel Classroom Mapping (Port 10554)
+paths:
+  nursery_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/102
+    rtspTransport: tcp
+
+  lkg_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/202
+    rtspTransport: tcp
+
+  ukg_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/302
+    rtspTransport: tcp
+
+  grade1_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/402
+    rtspTransport: tcp
+
+  grade2_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/502
+    rtspTransport: tcp
+
+  grade3_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/602
+    rtspTransport: tcp
+
+  grade4_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/702
+    rtspTransport: tcp
+
+  grade5_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/802
+    rtspTransport: tcp
+
+  grade6_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/902
+    rtspTransport: tcp
+
+  grade7_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1002
+    rtspTransport: tcp
+
+  grade8_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1102
+    rtspTransport: tcp
+
+  grade9_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1202
+    rtspTransport: tcp
+
+  grade10_cam:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1302
+    rtspTransport: tcp
+
+  science_lab:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1402
+    rtspTransport: tcp
+
+  computer_lab:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1502
+    rtspTransport: tcp
+
+  activity_hall:
+    source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1602
+    rtspTransport: tcp

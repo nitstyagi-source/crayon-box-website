@@ -64,7 +64,11 @@ export default function AdminLiveStreamPage() {
     capture_detection_enabled: true,
     require_student_present: true,
     block_ews_default: true,
-    gateway_url: "https://lightweight-episodes-catalog-investigations.trycloudflare.com"
+    gateway_url: "https://think-planned-leads-family.trycloudflare.com",
+    dvr_ip: "192.168.1.90",
+    dvr_port: "10554",
+    dvr_username: "admin",
+    dvr_password: "master123"
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -96,7 +100,11 @@ export default function AdminLiveStreamPage() {
             capture_detection_enabled: res.data.settings.capture_detection_enabled ?? true,
             require_student_present: res.data.settings.require_student_present ?? true,
             block_ews_default: res.data.settings.block_ews_default ?? true,
-            gateway_url: res.data.settings.gateway_url || "https://lightweight-episodes-catalog-investigations.trycloudflare.com"
+            gateway_url: res.data.settings.gateway_url || "https://think-planned-leads-family.trycloudflare.com",
+            dvr_ip: res.data.settings.dvr_ip || "192.168.1.90",
+            dvr_port: res.data.settings.dvr_port || "10554",
+            dvr_username: res.data.settings.dvr_username || "admin",
+            dvr_password: res.data.settings.dvr_password || "master123"
           });
         }
       }
@@ -279,11 +287,15 @@ export default function AdminLiveStreamPage() {
         capture_detection_enabled: settingsForm.capture_detection_enabled,
         require_student_present: settingsForm.require_student_present,
         block_ews_default: settingsForm.block_ews_default,
-        gateway_url: settingsForm.gateway_url
+        gateway_url: settingsForm.gateway_url,
+        dvr_ip: settingsForm.dvr_ip,
+        dvr_port: settingsForm.dvr_port,
+        dvr_username: settingsForm.dvr_username,
+        dvr_password: settingsForm.dvr_password
       });
 
       if (res.success) {
-        alert("Live stream policies & Gateway URL updated successfully!");
+        alert(res.message || "Live stream policies & Gateway URL updated successfully!");
         loadDashboard();
       } else {
         alert("Error: " + res.error);
@@ -1334,16 +1346,107 @@ export default function AdminLiveStreamPage() {
       {activeTab === "settings" && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 sm:p-8 space-y-6 max-w-3xl">
           <div>
-            <h3 className="text-lg font-black text-stone-900">
-              Classroom Live Streaming Policies & EWS Rules
+            <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-purple-600" />
+              Classroom Live Streaming Policies, DVR Hardware &amp; Gateway Settings
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              Control the exact hours and security guardrails under which parents are authorized to view live feeds.
+              Control the local Hikvision DVR connection parameters, cloud streaming tunnel, active streaming hours, and EWS access policies.
             </p>
           </div>
 
           <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
             
+            {/* Local DVR Hardware Configuration */}
+            <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-stone-200/80 pb-2">
+                <strong className="text-stone-900 font-bold text-xs flex items-center gap-2">
+                  <Server className="w-4 h-4 text-purple-600" />
+                  Local School Hikvision DVR Hardware Settings
+                </strong>
+                <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-900 px-2.5 py-0.5 rounded">
+                  Port 10554 (16 Channels)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">DVR Local IP</label>
+                  <input
+                    type="text"
+                    value={settingsForm.dvr_ip}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, dvr_ip: e.target.value })}
+                    placeholder="192.168.1.90"
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">RTSP Port</label>
+                  <input
+                    type="text"
+                    value={settingsForm.dvr_port}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, dvr_port: e.target.value })}
+                    placeholder="10554"
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">DVR Username</label>
+                  <input
+                    type="text"
+                    value={settingsForm.dvr_username}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, dvr_username: e.target.value })}
+                    placeholder="admin"
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">DVR Password</label>
+                  <input
+                    type="password"
+                    value={settingsForm.dvr_password}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, dvr_password: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-stone-500">
+                The Windows CCTV Gateway program connects to this DVR IP inside the school network to capture Channels 102 through 1602.
+              </p>
+            </div>
+
+            {/* Cloud Streaming Gateway / Tunnel URL */}
+            <div className="p-5 bg-purple-50/60 border border-purple-200 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-purple-950 block text-xs">
+                  🌐 Live Streaming Cloud Gateway / Tunnel URL (HTTPS)
+                </label>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                  Cloudflare Tunnel Active
+                </span>
+              </div>
+              <input
+                type="url"
+                value={settingsForm.gateway_url}
+                onChange={(e) => setSettingsForm({ ...settingsForm, gateway_url: e.target.value })}
+                placeholder="https://think-planned-leads-family.trycloudflare.com"
+                className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-mono font-bold text-purple-950 text-xs shadow-2xs"
+                required
+              />
+              <p className="text-[11px] text-purple-900/80">
+                Pipes live camera feeds from your local school DVR (<code className="font-mono">{settingsForm.dvr_ip}:{settingsForm.dvr_port}</code>) to <strong>crayonboxschool.com</strong> so parents and admins can view feeds securely from anywhere.
+              </p>
+            </div>
+
             {/* Streaming Hours */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1365,23 +1468,6 @@ export default function AdminLiveStreamPage() {
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900"
                 />
               </div>
-            </div>
-
-            {/* Cloud Streaming Gateway / Tunnel URL */}
-            <div className="p-4 bg-purple-50/60 border border-purple-200 rounded-2xl space-y-1.5">
-              <label className="font-bold text-purple-950 block text-xs">
-                🌐 Live Streaming Cloud Gateway / Tunnel URL (For crayonboxschool.com Remote Access)
-              </label>
-              <input
-                type="url"
-                value={settingsForm.gateway_url}
-                onChange={(e) => setSettingsForm({ ...settingsForm, gateway_url: e.target.value })}
-                placeholder="https://your-tunnel.trycloudflare.com or https://stream.crayonboxschool.com"
-                className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-mono font-bold text-purple-950 text-xs shadow-2xs"
-              />
-              <p className="text-[11px] text-purple-900/80">
-                Pipes live camera feeds from your local school DVR (192.168.1.90:10554) to <strong>crayonboxschool.com</strong> so parents and admins can view feeds from outside the school Wi-Fi.
-              </p>
             </div>
 
             {/* EWS Policy Toggle */}
@@ -1438,14 +1524,18 @@ export default function AdminLiveStreamPage() {
               />
             </div>
 
-            <div className="pt-3">
+            <div className="pt-3 flex items-center justify-between">
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-xs transition"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2"
               >
-                {isProcessing ? "Saving..." : "Save Policy Settings"}
+                {isProcessing ? "Saving..." : "⚡ Save Settings & Sync All 16 Cameras"}
               </button>
+
+              <span className="text-[11px] text-stone-400 font-mono">
+                Auto-syncs all 16 channels to gateway
+              </span>
             </div>
           </form>
         </div>

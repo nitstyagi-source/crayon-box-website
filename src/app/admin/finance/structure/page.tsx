@@ -3,17 +3,32 @@
 import { useState, useEffect } from "react";
 import { 
   Layers, Plus, Edit3, Trash2, CheckCircle2, 
-  HelpCircle, ShieldCheck, Tag, DollarSign, Calendar, Clock, RefreshCw
+  HelpCircle, ShieldCheck, Tag, DollarSign, Calendar, Clock, RefreshCw,
+  Users, Sparkles, FileText, Send, ArrowRight, Zap, Check
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { getFeeHeads, saveFeeHead, getFeeStructures, saveFeeStructure } from "@/app/actions/finance-core";
+import {
+  scanAndApplySiblingConcessionsAction,
+  generateQuarterlyFeeDemandsAction,
+  getFinanceConcessionsSummaryAction
+} from "@/app/actions/finance-concession-actions";
 
 export default function FeeMasterAndStructurePage() {
   const { activeCampusId } = useCampusContext();
-  const [activeTab, setActiveTab] = useState<"heads" | "structures">("heads");
+  const [activeTab, setActiveTab] = useState<"heads" | "structures" | "concessions">("heads");
   const [feeHeads, setFeeHeads] = useState<any[]>([]);
   const [feeStructures, setFeeStructures] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Concession & Invoicing State
+  const [concessionsData, setConcessionsData] = useState<any[]>([]);
+  const [invoicesData, setInvoicesData] = useState<any[]>([]);
+  const [financeMetrics, setFinanceMetrics] = useState({ totalInvoices: 0, totalInvoicedAmount: 0, totalActiveConcessions: 0, averageDiscountPercent: 20 });
+  const [isScanningSiblings, setIsScanningSiblings] = useState(false);
+  const [isGeneratingInvoices, setIsGeneratingInvoices] = useState(false);
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [financeNotice, setFinanceNotice] = useState<string | null>(null);
 
   // Fee Head Modal State
   const [headModalOpen, setHeadModalOpen] = useState(false);
@@ -57,16 +72,46 @@ export default function FeeMasterAndStructurePage() {
   async function loadData() {
     setIsLoading(true);
     try {
-      const [headsRes, structsRes] = await Promise.all([
+      const [headsRes, structsRes, concRes] = await Promise.all([
         getFeeHeads(activeCampusId),
-        getFeeStructures(activeCampusId)
+        getFeeStructures(activeCampusId),
+        getFinanceConcessionsSummaryAction({})
       ]);
       if (headsRes.success) setFeeHeads(headsRes.data || []);
       if (structsRes.success) setFeeStructures(structsRes.data || []);
+      if (concRes.success) {
+        setConcessionsData(concRes.concessions || []);
+        setInvoicesData(concRes.invoices || []);
+        setFinanceMetrics(concRes.metrics || { totalInvoices: 0, totalInvoicedAmount: 0, totalActiveConcessions: 0, averageDiscountPercent: 20 });
+      }
     } catch (e) {
       console.error("Error loading fee master data:", e);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleScanSiblings() {
+    setIsScanningSiblings(true);
+    const res = await scanAndApplySiblingConcessionsAction({});
+    setIsScanningSiblings(false);
+    if (res.success) {
+      setFinanceNotice(res.message || "Sibling concessions updated!");
+      loadData();
+    } else {
+      alert("Error scanning siblings: " + res.error);
+    }
+  }
+
+  async function handleGenerateQuarterlyInvoices() {
+    setIsGeneratingInvoices(true);
+    const res = await generateQuarterlyFeeDemandsAction({ quarter: selectedQuarter });
+    setIsGeneratingInvoices(false);
+    if (res.success) {
+      setFinanceNotice(res.message || "Quarterly fee demands generated!");
+      loadData();
+    } else {
+      alert("Error generating invoices: " + res.error);
     }
   }
 
@@ -232,7 +277,7 @@ export default function FeeMasterAndStructurePage() {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-2xl w-fit flex-wrap">
         <button
           onClick={() => setActiveTab("heads")}
           className={`px-5 py-2 rounded-xl text-xs font-black transition ${
@@ -248,6 +293,15 @@ export default function FeeMasterAndStructurePage() {
           }`}
         >
           Class Fee Structures ({feeStructures.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("concessions")}
+          className={`px-5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
+            activeTab === "concessions" ? "bg-white text-stone-900 shadow-xs text-purple-700" : "text-stone-500 hover:text-stone-900"
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          Sibling Concession Matrix ({concessionsData.length})
         </button>
       </div>
 
@@ -348,6 +402,233 @@ export default function FeeMasterAndStructurePage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Content Tab 3: Family 360° Sibling Concession Matrix */}
+      {activeTab === "concessions" && (
+        <div className="space-y-6">
+          
+          {/* Action & Generation Banner */}
+          <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl border border-purple-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-500/30">
+                  Trust Sibling Discount Policy
+                </span>
+                <span className="text-purple-300 text-xs font-semibold">1st Child: 0% • 2nd Child: 20% • 3rd+ Child: 30%</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <Users className="w-6 h-6 text-amber-400" />
+                Multi-Child Sibling Concession & Invoice Engine
+              </h2>
+              <p className="text-xs text-purple-200 mt-1 max-w-2xl">
+                Automatically scans Family 360° Household links, calculates sibling concessions on Tuition Fees, and generates quarterly fee demands.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleScanSiblings}
+                disabled={isScanningSiblings}
+                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4" />
+                {isScanningSiblings ? "Scanning Households..." : "⚡ Scan & Apply Sibling Discounts"}
+              </button>
+
+              <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-xl border border-white/20">
+                <select
+                  value={selectedQuarter}
+                  onChange={(e) => setSelectedQuarter(Number(e.target.value))}
+                  className="bg-transparent text-white text-xs font-bold px-2 py-1 focus:outline-none"
+                >
+                  <option value={1} className="text-slate-900">Quarter 1 (Apr–Jun)</option>
+                  <option value={2} className="text-slate-900">Quarter 2 (Jul–Sep)</option>
+                  <option value={3} className="text-slate-900">Quarter 3 (Oct–Dec)</option>
+                  <option value={4} className="text-slate-900">Quarter 4 (Jan–Mar)</option>
+                </select>
+
+                <button
+                  onClick={handleGenerateQuarterlyInvoices}
+                  disabled={isGeneratingInvoices}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {isGeneratingInvoices ? "Generating..." : "Generate Demands"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Feedback Notice */}
+          {financeNotice && (
+            <div className="p-4 bg-emerald-50 text-emerald-950 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs font-bold">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{financeNotice}</span>
+              </div>
+              <button onClick={() => setFinanceNotice(null)} className="text-emerald-700 hover:text-emerald-900 font-bold">✕</button>
+            </div>
+          )}
+
+          {/* Telematics Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 bg-white rounded-3xl border border-stone-200 shadow-xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Active Sibling Concessions</span>
+              <span className="text-3xl font-black text-purple-600 mt-1 block">{financeMetrics.totalActiveConcessions}</span>
+              <span className="text-[11px] text-purple-700 font-bold">Approved by Board</span>
+            </div>
+
+            <div className="p-4 bg-white rounded-3xl border border-stone-200 shadow-xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Avg Sibling Concession</span>
+              <span className="text-3xl font-black text-amber-600 mt-1 block">20% – 30%</span>
+              <span className="text-[11px] text-amber-700 font-bold">On Tuition Fee Head</span>
+            </div>
+
+            <div className="p-4 bg-white rounded-3xl border border-stone-200 shadow-xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Total Generated Invoices</span>
+              <span className="text-3xl font-black text-stone-900 mt-1 block">{financeMetrics.totalInvoices}</span>
+              <span className="text-[11px] text-stone-500 font-semibold">Ledger Integrated</span>
+            </div>
+
+            <div className="p-4 bg-white rounded-3xl border border-stone-200 shadow-xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Quarterly Invoiced Demand</span>
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1 block font-mono">
+                {formatCurrency(financeMetrics.totalInvoicedAmount)}
+              </span>
+              <span className="text-[11px] text-emerald-700 font-bold">Net Demand</span>
+            </div>
+          </div>
+
+          {/* Active Sibling Concessions Table */}
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-stone-900 text-sm">Approved Sibling Concession Grants</h3>
+                <p className="text-xs text-stone-400">Multi-child discounts linked through Family 360° Household Master.</p>
+              </div>
+            </div>
+
+            {concessionsData.length === 0 ? (
+              <div className="p-12 text-center text-xs text-stone-400 space-y-2">
+                <Users className="w-8 h-8 text-stone-300 mx-auto" />
+                <p className="font-bold text-stone-600">No sibling concessions applied yet.</p>
+                <p>Click "Scan & Apply Sibling Discounts" to automatically calculate discounts for multi-child families.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-stone-50 text-[10px] font-bold uppercase tracking-wider text-stone-400 border-b border-stone-100">
+                      <th className="py-3 px-4">Student & Admission No</th>
+                      <th className="py-3 px-4">Class & School</th>
+                      <th className="py-3 px-4">Household Number</th>
+                      <th className="py-3 px-4">Concession Type</th>
+                      <th className="py-3 px-4">Discount Rate</th>
+                      <th className="py-3 px-4">Applicable Head</th>
+                      <th className="py-3 px-4">Approval Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {concessionsData.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-purple-50/40 transition">
+                        <td className="py-3.5 px-4">
+                          <strong className="text-stone-900 block font-black">{c.student_name}</strong>
+                          <span className="text-[10px] font-mono text-purple-700 font-bold">{c.admission_number || c.universal_id}</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-stone-700">
+                          {c.class_name} • <span className="text-indigo-600 font-black">{c.institution_code || 'CBS'}</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-stone-600">
+                          {c.family_number || 'FAM-VET-001'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-extrabold">
+                            Sibling Concession
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-black text-emerald-600 text-sm">
+                          {c.discount_value}% OFF
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-stone-700">
+                          {c.fee_head_name}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                            ✓ {c.approval_status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Generated Invoices Table */}
+          {invoicesData.length > 0 && (
+            <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-stone-900 text-sm">Recent Fee Demand Invoices ({invoicesData.length})</h3>
+                  <p className="text-xs text-stone-400">Quarterly invoices generated with automated sibling concessions applied.</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-stone-50 text-[10px] font-bold uppercase tracking-wider text-stone-400 border-b border-stone-100">
+                      <th className="py-3 px-4">Invoice #</th>
+                      <th className="py-3 px-4">Student & Class</th>
+                      <th className="py-3 px-4">Billing Period</th>
+                      <th className="py-3 px-4">Gross Demand</th>
+                      <th className="py-3 px-4">Sibling Discount</th>
+                      <th className="py-3 px-4">Net Demand</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {invoicesData.slice(0, 15).map((inv: any) => (
+                      <tr key={inv.id} className="hover:bg-stone-50 transition">
+                        <td className="py-3.5 px-4 font-mono font-bold text-indigo-700">
+                          {inv.invoice_number}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <strong className="text-stone-900 block font-bold">{inv.student_name}</strong>
+                          <span className="text-[10px] text-stone-400">{inv.class_name} ({inv.section_name})</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-medium text-stone-600">
+                          {inv.billing_period}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-stone-500 line-through">
+                          {formatCurrency(inv.total_amount)}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-rose-600">
+                          {Number(inv.total_discount) > 0 ? `- ${formatCurrency(inv.total_discount)}` : '—'}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-black text-stone-900 text-sm">
+                          {formatCurrency(inv.net_amount)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black">
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-stone-500 text-[11px]">
+                          {inv.due_date}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 

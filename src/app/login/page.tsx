@@ -374,29 +374,71 @@ export default function UnifiedLoginPortal() {
           {/* Quick Demo Fillers */}
           <div className="pt-3 border-t border-stone-800 space-y-2">
             <span className="text-[10px] font-mono text-stone-500 font-bold uppercase block">
-              1-Click Demo Profiles:
+              1-Click Instant Demo Login:
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => fillDemoCredentials("neha.sharma@crayonboxschool.com", "neha123")}
-                className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-purple-300 font-bold text-[10px] rounded-lg border border-stone-800"
-              >
-                👩‍🏫 Faculty + Parent (Neha Sharma)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoCredentials("CB2605421", "student123")}
-                className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-emerald-300 font-bold text-[10px] rounded-lg border border-stone-800"
-              >
-                🎒 Student (CB2605421)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoCredentials("admin@crayonboxschool.com", "admin123")}
-                className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-amber-300 font-bold text-[10px] rounded-lg border border-stone-800"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  try {
+                    const res = await authenticateUserLogin({
+                      identifier: "admin@crayonboxschool.com",
+                      password: "admin123",
+                      authMethod: "password"
+                    });
+                    if (res.success && res.data) {
+                      router.push(res.data.redirectUrl || "/admin/dashboard");
+                    }
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }}
+                className="p-2 bg-purple-950/60 hover:bg-purple-900 text-purple-200 font-black text-[11px] rounded-xl border border-purple-800/60 text-center transition"
               >
                 ⚡ Super Admin
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  try {
+                    const res = await authenticateUserLogin({
+                      identifier: "neha.sharma@crayonboxschool.com",
+                      password: "neha123",
+                      authMethod: "password"
+                    });
+                    if (res.success && res.data) {
+                      router.push("/staff/dashboard");
+                    }
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }}
+                className="p-2 bg-indigo-950/60 hover:bg-indigo-900 text-indigo-200 font-black text-[11px] rounded-xl border border-indigo-800/60 text-center transition"
+              >
+                👩‍🏫 Teacher / Staff
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  try {
+                    const res = await authenticateUserLogin({
+                      identifier: "CB2605421",
+                      password: "student123",
+                      authMethod: "password"
+                    });
+                    if (res.success && res.data) {
+                      router.push("/parent/dashboard");
+                    }
+                  } finally {
+                    setIsProcessing(false);
+                  }
+                }}
+                className="p-2 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-200 font-black text-[11px] rounded-xl border border-emerald-800/60 text-center transition"
+              >
+                🎒 Parent / Student
               </button>
             </div>
           </div>

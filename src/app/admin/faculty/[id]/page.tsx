@@ -9,7 +9,8 @@ import {
   Clock, Heart, BookOpen, Star, AlertCircle, Plus, Trash2, 
   Edit3, CheckCircle2, XCircle, Printer, Download, Eye, 
   Laptop, ChevronRight, DollarSign, Sparkles, Building2, 
-  CheckSquare, Activity, UserCheck, ShieldAlert
+  CheckSquare, Activity, UserCheck, ShieldAlert,
+  RotateCcw, UserMinus, ArrowRightLeft, CheckCheck, Check, Archive, X
 } from "lucide-react";
 import { 
   getStaffProfile360, 
@@ -26,7 +27,12 @@ import {
   issueStaffAsset, 
   returnStaffAsset 
 } from "@/app/actions/faculty-enterprise";
-import { deleteFacultyMember } from "@/app/actions/faculty";
+import { 
+  getFacultyList,
+  deleteFacultyMember,
+  archiveFacultyWithHandoverAction,
+  restoreFacultyMemberAction
+} from "@/app/actions/faculty";
 import FileUpload from "@/components/admin/FileUpload";
 
 export default function FacultyProfile360Page() {
@@ -112,6 +118,26 @@ export default function FacultyProfile360Page() {
     condition_on_issue: "Brand New"
   });
 
+  // Handover Modal State
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+  const [allFaculty, setAllFaculty] = useState<any[]>([]);
+  const [handoverForm, setHandoverForm] = useState({
+    reasonForLeaving: 'Resignation / Relocation',
+    lastWorkingDate: new Date().toISOString().split('T')[0],
+    replacementStaffId: '',
+    reassignHomeroom: true,
+    reassignTimetable: true,
+    reassignLessonPlans: true,
+    exitNotes: 'Work handover from departing faculty member.'
+  });
+  const [isSubmittingHandover, setIsSubmittingHandover] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setFeedbackToast(msg);
+    setTimeout(() => setFeedbackToast(null), 5000);
+  };
+
   useEffect(() => {
     loadDossier();
   }, [staffId]);
@@ -119,9 +145,22 @@ export default function FacultyProfile360Page() {
   async function loadDossier() {
     setLoading(true);
     try {
-      const res = await getStaffProfile360(staffId);
+      const [res, facListRes] = await Promise.all([
+        getStaffProfile360(staffId),
+        getFacultyList(undefined, { status: 'Active' })
+      ]);
       if (res.success && res.data) {
         setProfile(res.data);
+        if (facListRes.success && facListRes.data) {
+          const peers = facListRes.data.filter((f: any) => f.id !== staffId);
+          setAllFaculty(peers);
+          const sameDeptPeer = peers.find((f: any) => f.department === res.data.staff?.department);
+          setHandoverForm(prev => ({
+            ...prev,
+            replacementStaffId: sameDeptPeer ? sameDeptPeer.id : (peers[0]?.id || ''),
+            reassignHomeroom: Boolean(res.data.staff?.is_class_teacher)
+          }));
+        }
       } else {
         alert("Failed to load staff record: " + res.error);
       }
@@ -131,6 +170,44 @@ export default function FacultyProfile360Page() {
       setLoading(false);
     }
   }
+
+  const handleExecuteHandover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.staff) return;
+
+    setIsSubmittingHandover(true);
+    const res = await archiveFacultyWithHandoverAction({
+      staffId,
+      reasonForLeaving: handoverForm.reasonForLeaving,
+      lastWorkingDate: handoverForm.lastWorkingDate,
+      replacementStaffId: handoverForm.replacementStaffId,
+      reassignHomeroom: handoverForm.reassignHomeroom,
+      reassignTimetable: handoverForm.reassignTimetable,
+      reassignLessonPlans: handoverForm.reassignLessonPlans,
+      exitNotes: handoverForm.exitNotes
+    });
+    setIsSubmittingHandover(false);
+
+    if (res.success) {
+      setIsHandoverModalOpen(false);
+      showToast(res.message || 'Staff profile archived and duties handed over successfully.');
+      await loadDossier();
+    } else {
+      alert(`Handover Failed: ${res.error}`);
+    }
+  };
+
+  const handleRestoreMember = async () => {
+    setLoading(true);
+    const res = await restoreFacultyMemberAction(staffId);
+    if (res.success) {
+      showToast(res.message || 'Staff member restored to Active roster.');
+      await loadDossier();
+    } else {
+      alert(`Restore Failed: ${res.error}`);
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -261,14 +338,45 @@ export default function FacultyProfile360Page() {
           >
             <Printer className="w-3.5 h-3.5" /> Print Master Dossier
           </button>
+
+          {staff.status === 'Active' || staff.status === 'ACTIVE' ? (
+            <button 
+              onClick={() => setIsHandoverModalOpen(true)}
+              className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <UserMinus className="w-3.5 h-3.5" /> Archive & Handover Work
+            </button>
+          ) : (
+            <button 
+              onClick={handleRestoreMember}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> 🔄 Restore to Active
+            </button>
+          )}
+
           <button 
             onClick={handleDeleteMember}
-            className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            title="Permanent Database Purge"
+            className="p-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Delete Staff Member
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Feedback Toast */}
+      {feedbackToast && (
+        <div className="p-4 bg-emerald-900 text-white rounded-2xl shadow-xl flex items-center justify-between border border-emerald-700 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <Check className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-xs font-bold">{feedbackToast}</p>
+          </div>
+          <button onClick={() => setFeedbackToast(null)} className="p-1 hover:bg-emerald-800 rounded-lg text-emerald-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 360° Hero Header Card */}
       <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-8">
@@ -893,6 +1001,91 @@ export default function FacultyProfile360Page() {
         </div>
       )}
 
+      {/* 15. EXIT CLEARANCE & WORK HANDOVER TAB */}
+      {activeTab === "exit" && (
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
+            <div>
+              <h3 className="font-black text-stone-900 text-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                Exit Clearance, Work Handover & Archival
+              </h3>
+              <p className="text-xs text-stone-500">
+                CBSE compliant offboarding, work reassignment to replacement faculty, and profile archival.
+              </p>
+            </div>
+
+            {staff.status === 'Active' || staff.status === 'ACTIVE' ? (
+              <button
+                type="button"
+                onClick={() => setIsHandoverModalOpen(true)}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+              >
+                <UserMinus className="w-4 h-4" /> Initiate Offboarding & Handover
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRestoreMember}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" /> 🔄 Restore to Active Faculty
+              </button>
+            )}
+          </div>
+
+          {/* Current Status Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
+              <span className="text-stone-400 font-bold uppercase text-[10px]">Employment Status</span>
+              <p className="text-base font-black text-stone-900">{staff.status}</p>
+              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                staff.status === 'Active' || staff.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {staff.is_active ? 'Login & Portal Active' : 'Portal Login Deactivated'}
+              </span>
+            </div>
+
+            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
+              <span className="text-stone-400 font-bold uppercase text-[10px]">Public Website Visibility</span>
+              <p className="text-base font-black text-stone-900">
+                {staff.status === 'Active' || staff.status === 'ACTIVE' ? 'Visible in Directory' : 'Hidden from Website'}
+              </p>
+              <span className="text-[10px] text-stone-500 block">
+                {staff.status === 'Active' || staff.status === 'ACTIVE' ? 'Listed on /faculty page' : 'Excluded from public index'}
+              </span>
+            </div>
+
+            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
+              <span className="text-stone-400 font-bold uppercase text-[10px]">Class & Timetable Allocation</span>
+              <p className="text-base font-black text-stone-900">
+                {staff.is_class_teacher ? `Class In-Charge (${staff.class_teacher_for})` : 'Subject Faculty'}
+              </p>
+              <span className="text-[10px] text-stone-500 block">
+                Timetable slots assigned
+              </span>
+            </div>
+          </div>
+
+          {/* CBSE Audit Compliance Guarantee Card */}
+          <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-3">
+            <h4 className="font-black text-emerald-900 text-sm flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-700" /> CBSE Audit Compliance & Data Integrity Standard
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-xl border border-emerald-100">
+                <strong className="text-emerald-950 block mb-0.5">📚 Academic & Student Records</strong>
+                <span className="text-stone-600 text-[11px]">All question papers, marks, grades, syllabi, and lesson plans created by this teacher remain 100% intact.</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-emerald-100">
+                <strong className="text-emerald-950 block mb-0.5">💳 Payroll & Attendance Dossier</strong>
+                <span className="text-stone-600 text-[11px]">Historical biometric attendance, leave balances, PF/TDS ledgers, and payslips are retained permanently for statutory audits.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Add Qualification */}
       {addQualModal && (
         <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1211,6 +1404,230 @@ export default function FacultyProfile360Page() {
               <div className="flex justify-end gap-2 pt-3">
                 <button type="button" onClick={() => setAddAssetModal(false)} className="px-4 py-2 text-stone-500 font-bold">Cancel</button>
                 <button type="submit" className="bg-stone-900 text-white font-bold px-5 py-2 rounded-xl">Issue Asset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Handover & Archival Modal */}
+      {isHandoverModalOpen && staff && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-stone-200 my-8 space-y-6">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3 text-amber-700" /> Work Reassignment & Archival
+                  </span>
+                  <span className="text-stone-400 text-xs">•</span>
+                  <span className="text-stone-500 text-xs font-bold">CBSE Audit Safe</span>
+                </div>
+                <h3 className="text-xl font-black text-stone-900">
+                  Offboard Faculty & Hand Over Work
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Archive profile and transfer classes, timetable slots, and lesson plans to a replacement teacher.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsHandoverModalOpen(false)} 
+                className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Departing Staff Dossier Pill */}
+            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                  {staff.first_name?.[0]}{staff.last_name?.[0]}
+                </div>
+                <div>
+                  <h4 className="font-bold text-stone-900 text-sm">
+                    {staff.first_name} {staff.last_name}
+                  </h4>
+                  <p className="text-xs text-stone-500 font-medium">
+                    {staff.designation || 'Teacher'} • {staff.department || 'Academics'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-mono font-bold bg-white text-stone-700 px-1.5 py-0.5 rounded border border-stone-200">
+                      {staff.employee_id || 'ID N/A'}
+                    </span>
+                    {staff.is_class_teacher && staff.class_teacher_for && (
+                      <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                        Class In-Charge: {staff.class_teacher_for}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                Currently Active
+              </span>
+            </div>
+
+            <form onSubmit={handleExecuteHandover} className="space-y-4 text-xs">
+              
+              {/* Replacement Teacher Selector */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-stone-800 block">
+                  Assign Replacement / Handover Faculty Member *
+                </label>
+                <select
+                  required
+                  value={handoverForm.replacementStaffId}
+                  onChange={e => setHandoverForm({ ...handoverForm, replacementStaffId: e.target.value })}
+                  className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                >
+                  <option value="">-- Select Replacement Teacher --</option>
+                  {allFaculty
+                    .filter(peer => peer.id !== staff.id)
+                    .map(peer => (
+                      <option key={peer.id} value={peer.id}>
+                        {peer.first_name} {peer.last_name} ({peer.employee_id || 'ID'}) — {peer.department || 'General'} ({peer.designation || 'Teacher'})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-stone-400">
+                  Select the active colleague taking over ongoing academic and homeroom duties.
+                </p>
+              </div>
+
+              {/* Work Handover Checklist */}
+              <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-2.5">
+                <h5 className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                  <CheckCheck className="w-4 h-4 text-blue-600" /> Handover & Work Reassignment Checklist
+                </h5>
+
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignHomeroom}
+                      disabled={!staff.is_class_teacher}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignHomeroom: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Class Teacher / Homeroom Role {staff.class_teacher_for ? `(${staff.class_teacher_for})` : ''}
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Transfers homeroom leadership and student roster monitoring to the replacement teacher.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignTimetable}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignTimetable: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Weekly Timetable & Period Allocations
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Updates all active schedule slots in master timetable to the replacement teacher.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignLessonPlans}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignLessonPlans: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Active Lesson Plans & Syllabus Tracking
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Hands over planned and in-progress curriculum units so classes continue seamlessly.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Departure Reason & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Reason for Leaving *</label>
+                  <select
+                    value={handoverForm.reasonForLeaving}
+                    onChange={e => setHandoverForm({ ...handoverForm, reasonForLeaving: e.target.value })}
+                    className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                  >
+                    <option value="Resignation / Relocation">Resignation / Relocation</option>
+                    <option value="Career Transition">Career Transition</option>
+                    <option value="Retirement">Superannuation / Retirement</option>
+                    <option value="Transfer to Sister Campus">Transfer to Sister Campus</option>
+                    <option value="Medical Sabbatical">Medical Sabbatical</option>
+                    <option value="Contract Completion">Contract Completion</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Last Working Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={handoverForm.lastWorkingDate}
+                    onChange={e => setHandoverForm({ ...handoverForm, lastWorkingDate: e.target.value })}
+                    className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Exit & Handover Notes</label>
+                <textarea
+                  rows={2}
+                  value={handoverForm.exitNotes}
+                  onChange={e => setHandoverForm({ ...handoverForm, exitNotes: e.target.value })}
+                  placeholder="Additional handover details, relieving remarks, or asset clearances..."
+                  className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                />
+              </div>
+
+              {/* CBSE Audit Compliance Guarantee Notice */}
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1.5">
+                <div className="flex items-center gap-2 font-black text-xs text-emerald-800">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> CBSE Audit Compliance & Data Integrity Guarantee
+                </div>
+                <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-emerald-900">
+                  <li><strong>Student Marks & Results</strong>: Question papers, gradebooks, and student results remain 100% intact.</li>
+                  <li><strong>Auditable Records</strong>: Historical attendance, qualifications, and payroll ledgers are preserved for statutory inspection.</li>
+                  <li><strong>Access & Visibility</strong>: Profile is hidden from the public website and Teacher Portal login is immediately deactivated.</li>
+                  <li><strong>Reversible</strong>: Profile can be restored to Active status at any time with 1-click.</li>
+                </ul>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setIsHandoverModalOpen(false)}
+                  className="px-4 py-2.5 font-bold text-stone-600 text-xs hover:bg-stone-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingHandover}
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+                >
+                  {isSubmittingHandover ? 'Archiving & Reassigning...' : 'Archive Profile & Execute Handover'}
+                </button>
               </div>
             </form>
           </div>

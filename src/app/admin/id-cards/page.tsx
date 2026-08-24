@@ -1,910 +1,724 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { 
-  CreditCard, Users, ShieldCheck, Printer, AlertTriangle, 
-  Clock, Search, Filter, QrCode, RefreshCw, CheckCircle2, 
-  DoorOpen, ArrowRight, Eye, ShieldAlert, Sparkles, User, 
-  Plus, Check, X, Phone, Lock, Unlock, FileText, UserPlus,
-  ChevronRight
-} from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
-import { 
-  getIdCardDashboardStats, 
-  getStudentsForIdCardGeneration, 
-  getStudentsWithAllEscorts,
-  blockAndReplaceIdCard,
-  generateAllMissingIdCards,
-  generateStudentIdCard,
-  addEscortToStudent
-} from "@/app/actions/id-cards";
-import FileUpload from "@/components/admin/FileUpload";
+import React, { useState, useEffect } from 'react';
+import {
+  CreditCard, Printer, Users, UserCheck, ShieldCheck,
+  Search, Filter, Download, Sparkles, RefreshCw, Eye,
+  Building2, GraduationCap, Bus, CheckCircle2, ChevronRight,
+  Layers, CheckSquare, Square, FileText, ArrowRight
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { StudentIDCard } from '@/components/id-cards/StudentIDCard';
+import { TeacherIDCard } from '@/components/id-cards/TeacherIDCard';
+import { EscortPickupCard } from '@/components/id-cards/EscortPickupCard';
+import { createClient } from '@/lib/supabase/client';
+import { useInstitution } from '@/components/providers/InstitutionContext';
+import { getFilteredUniversalStudentsAction } from '@/app/actions/universal-student-actions';
 
-export default function IdAndEscortCardManagementHub() {
-  const { activeCampusId } = useCampusContext();
-  const [stats, setStats] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"students" | "escorts" | "blocked" | "pickups">("students");
+export default function IDCardAndEscortGeneratorHubPage() {
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  // Students & Student-Escort Cards Data
+  // Mode: SINGLE card preview vs BULK batch generator
+  const [viewMode, setViewMode] = useState<'SINGLE' | 'BULK'>('SINGLE');
+
+  // Category Tab
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'TEACHER' | 'ESCORT'>('STUDENT');
+  
+  // Data State
   const [students, setStudents] = useState<any[]>([]);
-  const [studentEscortCards, setStudentEscortCards] = useState<any[]>([]);
+  const [faculty, setFaculty] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+  const [selectedEscort, setSelectedEscort] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLayout, setBulkLayout] = useState<'DUAL' | 'FRONT_ONLY' | 'BACK_ONLY'>('DUAL');
 
   // Filters
-  const [selectedClass, setSelectedClass] = useState("All Classes");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClass, setSelectedClass] = useState('ALL');
+  const [selectedSection, setSelectedSection] = useState('ALL');
+  const [selectedDept, setSelectedDept] = useState('ALL');
 
-  // Preview Modal
-  const [previewCard, setPreviewCard] = useState<any>(null);
-  const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
+  const fetchData = async () => {
+    setIsLoading(true);
+    const supabase = createClient();
 
-  // Add Escort Modal State
-  const [selectedStudentForEscort, setSelectedStudentForEscort] = useState<any>(null);
-  const [escortFullName, setEscortFullName] = useState("");
-  const [escortRelation, setEscortRelation] = useState("Father");
-  const [escortMobile, setEscortMobile] = useState("");
-  const [escortPhoto, setEscortPhoto] = useState("");
-  const [escortIdType, setEscortIdType] = useState("Aadhaar");
-  const [escortIdNumber, setEscortIdNumber] = useState("");
-  const [isPrimaryEscort, setIsPrimaryEscort] = useState(false);
-  const [isSavingEscort, setIsSavingEscort] = useState(false);
+    // 1. Fetch Students
+    const stuRes = await getFilteredUniversalStudentsAction({
+      institutionCode: currentInstitution,
+      className: selectedClass !== 'ALL' ? selectedClass : undefined,
+      sectionName: selectedSection !== 'ALL' ? selectedSection : undefined,
+    });
+    if (stuRes.success) {
+      setStudents(stuRes.data || []);
+      if (stuRes.data?.length > 0) {
+        setSelectedStudent(stuRes.data[0]);
+        // Default bulk select first 12 students
+        setSelectedIds(stuRes.data.slice(0, 12).map((s: any) => s.id));
+        
+        const s = stuRes.data[0];
+        setSelectedEscort({
+          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
+          relationship: 'FATHER',
+          phone: s.guardian_phone || '9810011001',
+          photoUrl: '',
+          isAuthorizedPickup: true,
+          studentName: `${s.first_name} ${s.last_name}`,
+          studentUniversalId: s.universal_id || 'STU-VET-000001',
+          studentPhotoUrl: s.photo_url || '',
+          className: s.class_name || 'Class 4',
+          sectionName: s.section_name || 'A',
+          institutionCode: s.institution_code || 'CBS',
+        });
+      }
+    }
+
+    // 2. Fetch Faculty
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select(`
+        id, first_name, last_name, email, phone_number, designation, department, status, photo_url,
+        employee_assignments ( institution_code, designation, department, workload_percentage )
+      `)
+      .order('created_at', { ascending: false });
+
+    let fList = staffData || [];
+    if (currentInstitution !== 'ALL') {
+      fList = fList.filter((s: any) =>
+        s.employee_assignments?.some((a: any) => a.institution_code === currentInstitution)
+      );
+    }
+    setFaculty(fList);
+    if (fList.length > 0) {
+      setSelectedFaculty(fList[0]);
+    }
+
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    loadData();
-  }, [activeCampusId]);
+    fetchData();
+  }, [currentInstitution, selectedClass, selectedSection]);
 
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const [statsRes, stuRes, escCardsRes] = await Promise.all([
-        getIdCardDashboardStats(activeCampusId),
-        getStudentsForIdCardGeneration(activeCampusId),
-        getStudentsWithAllEscorts(activeCampusId)
-      ]);
+  const handlePrint = () => {
+    window.print();
+  };
 
-      if (statsRes.success) setStats(statsRes.data);
-      if (stuRes.success) setStudents(stuRes.data);
-      if (escCardsRes.success) setStudentEscortCards(escCardsRes.data);
-    } catch (e) {
-      console.error("ID Cards load error:", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  // Filtered lists
+  const filteredStudents = students.filter(s =>
+    searchQuery === '' ||
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.universal_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.admission_number?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // 1-Click Generate Single Student ID Card
-  async function handleGenerateSingleStudentCard(studentId: string) {
-    setIsGenerating(true);
-    const res = await generateStudentIdCard(studentId);
-    if (res.success) {
-      alert(res.message);
-      await loadData();
+  const filteredFaculty = faculty.filter(f =>
+    (searchQuery === '' || `${f.first_name} ${f.last_name}`.toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (selectedDept === 'ALL' || f.department === selectedDept)
+  );
+
+  // Bulk Selection Handlers
+  const handleToggleSelectId = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (activeTab === 'STUDENT' || activeTab === 'ESCORT') {
+      setSelectedIds(filteredStudents.map(s => s.id));
     } else {
-      alert("Error: " + res.error);
+      setSelectedIds(filteredFaculty.map(f => f.id));
     }
-    setIsGenerating(false);
-  }
+  };
 
-  // 1-Click Bulk Generate All Student ID Cards
-  async function handleGenerateAll() {
-    setIsGenerating(true);
-    const res = await generateAllMissingIdCards();
-    if (res.success) {
-      alert(res.message);
-      await loadData();
-    } else {
-      alert("Error: " + res.error);
-    }
-    setIsGenerating(false);
-  }
+  const handleDeselectAll = () => {
+    setSelectedIds([]);
+  };
 
-  // Save Escort and Generate Escort Card for Student
-  async function handleSaveEscort(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedStudentForEscort) return;
-
-    setIsSavingEscort(true);
-    try {
-      const res = await addEscortToStudent({
-        studentId: selectedStudentForEscort.id,
-        fullName: escortFullName,
-        relationship: escortRelation,
-        mobile: escortMobile,
-        photoUrl: escortPhoto,
-        idProofType: escortIdType,
-        idProofNumber: escortIdNumber,
-        isPrimary: isPrimaryEscort
-      });
-
-      if (res.success) {
-        alert(res.message);
-        setSelectedStudentForEscort(null);
-        setEscortFullName("");
-        setEscortMobile("");
-        setEscortPhoto("");
-        setEscortIdNumber("");
-        await loadData();
-      } else {
-        alert("Error saving escort: " + res.error);
-      }
-    } catch (err: any) {
-      alert("Error: " + err.message);
-    } finally {
-      setIsSavingEscort(false);
-    }
-  }
-
-  async function handleBlockAndReplace(cardId: string) {
-    const reason = prompt("Enter reason for blocking this card (e.g. 'Reported lost by parent on bus'):");
-    if (!reason) return;
-
-    const res = await blockAndReplaceIdCard(cardId, reason);
-    if (res.success) {
-      alert(res.message);
-      loadData();
-    } else {
-      alert("Error: " + res.error);
-    }
-  }
-
-  // Dynamically extract unique classes
-  const dynamicClasses = ["All Classes", ...Array.from(new Set(students.map(s => s.class_name).filter(Boolean)))];
-
-  const filteredStudents = students.filter(s => {
-    if (selectedClass !== "All Classes" && s.class_name !== selectedClass) return false;
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const name = `${s.first_name} ${s.last_name || ''}`.toLowerCase();
-    return name.includes(term) || (s.admission_no && s.admission_no.toLowerCase().includes(term));
-  });
-
-  const filteredEscortCards = studentEscortCards.filter(s => {
-    if (selectedClass !== "All Classes" && s.class_name !== selectedClass) return false;
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const name = `${s.first_name} ${s.last_name || ''}`.toLowerCase();
-    return name.includes(term) || (s.admission_no && s.admission_no.toLowerCase().includes(term));
-  });
+  // Selected Entities for Bulk Rendering
+  const bulkSelectedStudents = students.filter(s => selectedIds.includes(s.id));
+  const bulkSelectedFaculty = faculty.filter(f => selectedIds.includes(f.id));
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
+      {/* 🌟 Standard ISO/IEC 7810 ID-1 / CR80 PVC (53.98mm × 85.60mm) Print Stylesheet */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 6mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body {
+            background: #ffffff !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #bulk-print-container,
+          #bulk-print-container * {
+            visibility: visible !important;
+          }
+          #bulk-print-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+          .card-print-item {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 5mm !important;
+          }
+        }
+      `}</style>
+
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="bg-purple-100 text-purple-800 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md flex items-center gap-1">
-              <CreditCard className="w-3.5 h-3.5 text-purple-600" /> Vertical CR80 ID &amp; Escort Cards
+          <div className="flex items-center gap-2 mb-1">
+            <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1">
+              <CreditCard className="w-3.5 h-3.5" />
+              Standard PVC CR80 (85.6mm × 54mm)
             </span>
-            <span className="bg-stone-100 text-stone-700 font-mono text-xs font-bold px-2.5 py-0.5 rounded-md border border-stone-300">
-              54 mm × 85.6 mm (2.125&quot; × 3.375&quot;)
+            <span className="text-slate-300 text-xs">•</span>
+            <span className="text-slate-500 text-xs font-semibold">
+              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
             </span>
-            <span className="text-stone-500 text-xs font-bold">Session 2026-2027</span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Student ID &amp; Escort Card Generator</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Generate printable vertical CR80 Student ID Cards and Multi-Escort Pickup Cards with security QR clearance.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            ID Card & Escort Pass Generator
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Generate individual or bulk batches of Student ID Cards, Teacher Smart IDs, and Authorized Escort Gate Passes with Front-Facing QR Telematics.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <button
-            onClick={handleGenerateAll}
-            disabled={isGenerating}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-98"
-          >
-            <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isGenerating ? 'animate-spin' : ''}`} />
-            {isGenerating ? "Generating..." : "Generate All Student Cards"}
-          </button>
+        {/* Mode Switcher + Print Action */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="p-1 bg-slate-100 rounded-2xl flex items-center gap-1 text-xs font-bold">
+            <button
+              onClick={() => setViewMode('SINGLE')}
+              className={`px-3 py-1.5 rounded-xl transition ${
+                viewMode === 'SINGLE'
+                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Single Card Preview
+            </button>
+            <button
+              onClick={() => setViewMode('BULK')}
+              className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                viewMode === 'BULK'
+                  ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Bulk Batch Generator
+            </button>
+          </div>
 
-          <Link
-            href="/admin/id-cards/faculty"
-            className="bg-purple-900 hover:bg-purple-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={handlePrint}
+            leftIcon={<Printer className="w-4 h-4" />}
           >
-            <CreditCard className="w-4 h-4 text-amber-300" /> Faculty ID Creator
-          </Link>
-
-          <Link
-            href="/admin/id-cards/gate-pickup"
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
-          >
-            <DoorOpen className="w-4 h-4" /> Gate Pickup Terminal
-          </Link>
-
-          <Link
-            href="/admin/id-cards/temporary-pass"
-            className="bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-amber-200 flex items-center gap-1.5 transition-all"
-          >
-            <FileText className="w-3.5 h-3.5 text-amber-600" /> Temporary Pass
-          </Link>
+            {viewMode === 'BULK'
+              ? `Print Selected Batch (${selectedIds.length} Cards)`
+              : 'Print Active Card'}
+          </Button>
         </div>
       </div>
 
-      {/* KPI Overview Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-[10px] font-bold text-stone-400 uppercase block">Enrolled Students</span>
-          <span className="text-2xl font-black text-stone-900 mt-1 block">{students.length}</span>
-          <span className="text-[10px] text-emerald-600 font-bold">Ready to Print</span>
-        </div>
-
-        <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 shadow-xs">
-          <span className="text-[10px] font-bold text-purple-800 uppercase block">Multi-Escort Cards</span>
-          <span className="text-2xl font-black text-purple-700 mt-1 block">{studentEscortCards.length}</span>
-          <span className="text-[10px] text-purple-600">All Escorts Mapped</span>
-        </div>
-
-        <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-800 uppercase block">Active Gate Tokens</span>
-          <span className="text-2xl font-black text-emerald-700 mt-1 block">{students.length * 2}</span>
-          <span className="text-[10px] text-emerald-600">Scannable</span>
-        </div>
-
-        <div className="p-4 bg-red-50/70 rounded-2xl border border-red-200 shadow-xs">
-          <span className="text-[10px] font-bold text-red-800 uppercase block">Blocked / Lost</span>
-          <span className="text-2xl font-black text-red-700 mt-1 block">{stats?.blockedCards || 1}</span>
-          <span className="text-[10px] text-red-600 font-bold">QR Invalidated</span>
-        </div>
-
-        <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs">
-          <span className="text-[10px] font-bold text-amber-800 uppercase block">Format</span>
-          <span className="text-sm font-black text-amber-900 mt-2 block font-mono">Vertical CR80</span>
-          <span className="text-[10px] text-amber-600">54 × 85.6 mm</span>
-        </div>
-
-        <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 shadow-xs">
-          <span className="text-[10px] font-bold text-blue-800 uppercase block">Today&apos;s Pickups</span>
-          <span className="text-2xl font-black text-blue-700 mt-1 block">{stats?.todayPickups || 1}</span>
-          <span className="text-[10px] text-blue-600">Released at Gate</span>
-        </div>
+      {/* Navigation Tabs (Student, Teacher, Escort) */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-bold print:hidden">
+        {[
+          { id: 'STUDENT', label: `🎓 Student ID Cards (${students.length})` },
+          { id: 'TEACHER', label: `👨‍🏫 Teacher & Staff IDs (${faculty.length})` },
+          { id: 'ESCORT', label: `🛡️ Authorized Escort Passes (${students.length})` },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveTab(tab.id as any);
+              setSelectedIds([]);
+            }}
+            className={`px-5 py-2.5 rounded-xl transition ${
+              activeTab === tab.id
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Tabs Navigation & Action Controls */}
-      <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
-        
-        {/* Switcher Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-stone-100">
-          <button
-            onClick={() => setActiveTab("students")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === "students" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            <User className="w-3.5 h-3.5" /> 📇 Generate Student ID Cards ({students.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab("escorts")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === "escorts" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> 🛡️ Generate Student Escort Cards ({studentEscortCards.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab("blocked")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === "blocked" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Lost &amp; Blocked Registry
-          </button>
-
-          <button
-            onClick={() => setActiveTab("pickups")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === "pickups" ? "bg-stone-900 text-white shadow-sm" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" /> Today&apos;s Pickup Logs
-          </button>
-        </div>
-
-        {/* Tab 1: Student ID Cards Generator */}
-        {activeTab === "students" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={selectedClass}
-                  onChange={e => setSelectedClass(e.target.value)}
-                  className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl text-xs font-bold text-stone-700"
-                >
-                  {dynamicClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search student or adm no..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/admin/id-cards/print-students?class=${encodeURIComponent(selectedClass)}`}
-                  className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Vertical Cards (54×85.6mm)
-                </Link>
-              </div>
-            </div>
-
-            {/* Students Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider border-b border-stone-200">
-                  <tr>
-                    <th className="p-3.5">Student</th>
-                    <th className="p-3.5">Class &amp; Roll</th>
-                    <th className="p-3.5">Card Status</th>
-                    <th className="p-3.5">Card Number</th>
-                    <th className="p-3.5">QR Token</th>
-                    <th className="p-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {filteredStudents.map(student => (
-                    <tr key={student.id} className="hover:bg-stone-50/60 transition-colors">
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-3">
-                          {student.photo_url ? (
-                            <img src={student.photo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-stone-200" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 font-black flex items-center justify-center text-xs">
-                              {student.first_name[0]}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-stone-900">{student.first_name} {student.last_name || ''}</p>
-                            <p className="text-[10px] text-stone-400">Adm: {student.admission_no}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3.5 font-bold text-stone-800">{student.class_name} • Roll {student.roll_no}</td>
-                      <td className="p-3.5">
-                        <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                          ✓ Vertical Card Ready
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-mono text-stone-600 font-bold">{student.card_number}</td>
-                      <td className="p-3.5 font-mono text-[10px] text-purple-700 bg-purple-50/50 px-2 py-0.5 rounded">
-                        {student.qr_token.substring(0, 18)}...
-                      </td>
-                      <td className="p-3.5 text-right space-x-1.5">
-                        <button
-                          onClick={() => handleGenerateSingleStudentCard(student.id)}
-                          className="bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold px-2.5 py-1 rounded-lg text-xs"
-                          title="Regenerate QR Token"
-                        >
-                          Regenerate
-                        </button>
-                        <button
-                          onClick={() => {
-                            setPreviewCard({ ...student, type: 'Student' });
-                            setPreviewSide('front');
-                          }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-2.5 py-1 rounded-lg text-xs"
-                        >
-                          Preview (54×85.6mm)
-                        </button>
-                        <button
-                          onClick={() => handleBlockAndReplace(student.card_number)}
-                          className="bg-red-50 hover:bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-lg text-xs"
-                          title="Report Card Lost / Block"
-                        >
-                          Report Lost
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Student Escort Cards Generator (1 Student -> All Escorts) */}
-        {activeTab === "escorts" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={selectedClass}
-                  onChange={e => setSelectedClass(e.target.value)}
-                  className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl text-xs font-bold text-stone-700"
-                >
-                  {dynamicClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search student or adm no..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/admin/id-cards/print-escorts?class=${encodeURIComponent(selectedClass)}`}
-                  className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center gap-1.5"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" /> Batch Print Escort Cards (54×85.6mm)
-                </Link>
-              </div>
-            </div>
-
-            {/* Student Escort Cards Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider border-b border-stone-200">
-                  <tr>
-                    <th className="p-3.5">Student Ward</th>
-                    <th className="p-3.5">Class &amp; Roll</th>
-                    <th className="p-3.5">Authorized Pickup Persons</th>
-                    <th className="p-3.5">Escort Card Status</th>
-                    <th className="p-3.5 text-right">Card Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {filteredEscortCards.map(item => (
-                    <tr key={item.id} className="hover:bg-stone-50/60 transition-colors">
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-3">
-                          {item.photo_url ? (
-                            <img src={item.photo_url} alt="" className="w-9 h-9 rounded-xl object-cover border border-stone-200" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 font-black flex items-center justify-center text-xs">
-                              {item.first_name[0]}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-stone-900">{item.first_name} {item.last_name || ''}</p>
-                            <p className="text-[10px] text-stone-400">Adm: {item.admission_no}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3.5 font-bold text-stone-800">{item.class_name}-{item.section_name} • Roll {item.roll_no}</td>
-                      <td className="p-3.5">
-                        <div className="flex flex-wrap gap-1.5">
-                          {(item.escorts || []).map((esc: any, eIdx: number) => (
-                            <span key={esc.id || eIdx} className="bg-purple-50 text-purple-900 font-bold px-2 py-0.5 rounded-lg text-[10px] border border-purple-100 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                              {esc.full_name} ({esc.relationship})
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="p-3.5">
-                        <span className="bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
-                          ✓ Vertical Escort Card
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-right space-x-1.5">
-                        <button
-                          onClick={() => setSelectedStudentForEscort(item)}
-                          className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1 rounded-lg text-xs flex-inline items-center gap-1"
-                        >
-                          <UserPlus className="w-3 h-3 inline mr-1" /> Add Escort
-                        </button>
-                        <button
-                          onClick={() => {
-                            setPreviewCard({ ...item, type: 'EscortCard' });
-                            setPreviewSide('front');
-                          }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-2.5 py-1 rounded-lg text-xs"
-                        >
-                          Preview (54×85.6mm)
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 3: Lost & Blocked Registry */}
-        {activeTab === "blocked" && (
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50/70 border border-red-200 rounded-2xl flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-bold text-red-900 text-xs">Immediate Gate Invalidation Security Policy</h4>
-                <p className="text-[11px] text-red-700 mt-0.5">
-                  When a physical card is reported lost or revoked, the secure QR token is instantly rejected by gate scanners, preventing unauthorized student releases.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="font-bold text-stone-900 text-xs">Sample Blocked Card: CB-STU-2026-9999</h4>
-                  <p className="text-[11px] text-stone-500">Aarav Sharma • Reason: Parent reported card lost on transport route.</p>
-                </div>
-                <span className="bg-red-600 text-white font-black text-xs px-2.5 py-1 rounded-lg">
-                  🔴 BLOCKED AT GATE
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 4: Today's Pickup Logs */}
-        {activeTab === "pickups" && (
-          <div className="space-y-3">
-            <h3 className="font-black text-stone-900 text-sm border-b border-stone-100 pb-2">
-              Gate Release &amp; Verification Trail
-            </h3>
-
-            <div className="space-y-2">
-              {(stats?.recentPickups || []).map((p: any) => (
-                <div key={p.id} className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 font-black flex items-center justify-center">
-                      <Check className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-stone-900">
-                        {p.students?.first_name} {p.students?.last_name} picked up by {p.escorts?.full_name || 'Rajesh Sharma'} ({p.escorts?.relationship || 'Father'})
-                      </p>
-                      <p className="text-[10px] text-stone-400">
-                        Gate: {p.gate_number} • Officer: {p.security_staff_name} • Verification: {p.verification_method}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded">
-                    {p.pickup_time || '01:34 PM'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Modal 1: Add Authorized Escort to Student */}
-      {selectedStudentForEscort && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4">
+      {/* ============================================================== */}
+      {/* 🌟 VIEW MODE 1: SINGLE CARD PREVIEW */}
+      {/* ============================================================== */}
+      {viewMode === 'SINGLE' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* LEFT: LIST SELECTOR */}
+          <div className="space-y-4 print:hidden">
             
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-stone-900">
-                  Add Authorized Escort for {selectedStudentForEscort.first_name}
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Register father, mother, driver, grandparent, or nanny to child&apos;s master escort card.
-                </p>
-              </div>
-              <button onClick={() => setSelectedStudentForEscort(null)} className="p-1 text-stone-400 hover:text-stone-800">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+              <h3 className="font-bold text-slate-900 text-sm">
+                {activeTab === 'STUDENT' ? 'Select Student' : activeTab === 'TEACHER' ? 'Select Faculty Member' : 'Select Escort / Child'}
+              </h3>
 
-            <form onSubmit={handleSaveEscort} className="space-y-3.5 text-xs">
-              <div>
-                <label className="font-bold text-stone-600 block mb-1">Escort Full Name *</label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. Rajesh Sharma"
-                  value={escortFullName}
-                  onChange={e => setEscortFullName(e.target.value)}
-                  className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-stone-600 block mb-1">Relationship *</label>
-                  <select
-                    value={escortRelation}
-                    onChange={e => setEscortRelation(e.target.value)}
-                    className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                  >
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Grandfather">Grandfather</option>
-                    <option value="Grandmother">Grandmother</option>
-                    <option value="Driver">Driver</option>
-                    <option value="Nanny">Nanny</option>
-                    <option value="Uncle / Guardian">Uncle / Guardian</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-600 block mb-1">Contact Mobile *</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="+91 98100 XXXXX"
-                    value={escortMobile}
-                    onChange={e => setEscortMobile(e.target.value)}
-                    className="w-full border border-stone-200 p-2.5 rounded-xl font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-stone-600 block mb-1">ID Proof Type</label>
-                  <select
-                    value={escortIdType}
-                    onChange={e => setEscortIdType(e.target.value)}
-                    className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                  >
-                    <option value="Aadhaar">Aadhaar Card</option>
-                    <option value="Driving License">Driving License</option>
-                    <option value="Voter ID">Voter ID</option>
-                    <option value="Passport">Passport</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-stone-600 block mb-1">ID Number (Last 4 Digits)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 8912"
-                    value={escortIdNumber}
-                    onChange={e => setEscortIdNumber(e.target.value)}
-                    className="w-full border border-stone-200 p-2.5 rounded-xl font-mono"
-                  />
-                </div>
-              </div>
-
-              <FileUpload
-                label="Escort Photograph / Selfie"
-                value={escortPhoto}
-                onChange={setEscortPhoto}
-                folder="escort_photos"
-                mode="avatar"
+              <Input
+                placeholder="Search by name, admission no, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="primary_escort"
-                  checked={isPrimaryEscort}
-                  onChange={e => setIsPrimaryEscort(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded"
-                />
-                <label htmlFor="primary_escort" className="text-stone-700 font-bold text-[11px]">
-                  Set as Primary Pickup Person (e.g. Father/Mother)
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudentForEscort(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingEscort}
-                  className="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-4 h-4 text-amber-300" />
-                  {isSavingEscort ? "Saving..." : "Save & Generate Escort Card"}
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: Card Preview Modal - Vertical CR80 Dimensions */}
-      {previewCard && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-4">
-            
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-stone-900">
-                    {previewCard.type === 'Student' ? 'Student ID Card Preview' : 'Student Escort Card Preview'}
-                  </h3>
-                  <span className="bg-purple-100 text-purple-900 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded">
-                    Vertical CR80 (54×85.6mm)
-                  </span>
+              {activeTab === 'STUDENT' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Select
+                    options={[
+                      { value: 'ALL', label: 'All Classes' },
+                      { value: 'Class 1', label: 'Class 1' },
+                      { value: 'Class 2', label: 'Class 2' },
+                      { value: 'Class 3', label: 'Class 3' },
+                      { value: 'Class 4', label: 'Class 4' },
+                      { value: 'Class 5', label: 'Class 5' },
+                      { value: 'Class 6', label: 'Class 6' },
+                      { value: 'Class 7', label: 'Class 7' },
+                      { value: 'Class 8', label: 'Class 8' },
+                      { value: 'Class 9', label: 'Class 9' },
+                      { value: 'Class 10', label: 'Class 10' },
+                      { value: 'Class 11', label: 'Class 11' },
+                      { value: 'Class 12', label: 'Class 12' },
+                      { value: 'Pre-Nursery', label: 'Pre-Nursery' },
+                      { value: 'Nursery', label: 'Nursery' },
+                      { value: 'LKG', label: 'LKG' },
+                      { value: 'UKG', label: 'UKG' },
+                    ]}
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                  />
+                  <Select
+                    options={[
+                      { value: 'ALL', label: 'All Sections' },
+                      { value: 'A', label: 'Section A' },
+                      { value: 'B', label: 'Section B' },
+                      { value: 'C', label: 'Section C' },
+                    ]}
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                  />
                 </div>
-                <p className="text-xs text-stone-500">Vertical Lanyard Form Factor</p>
-              </div>
-              <button onClick={() => setPreviewCard(null)} className="p-1 text-stone-400 hover:text-stone-800">
-                <X className="w-5 h-5" />
-              </button>
+              )}
             </div>
 
-            {/* Front / Back Toggle Pill */}
-            <div className="flex bg-stone-100 p-1 rounded-xl">
-              <button
-                onClick={() => setPreviewSide('front')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  previewSide === 'front' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'
-                }`}
-              >
-                Front Side
-              </button>
-              <button
-                onClick={() => setPreviewSide('back')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  previewSide === 'back' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'
-                }`}
-              >
-                Back Side
-              </button>
-            </div>
-
-            {/* Render Vertical CR80 Card Preview */}
-            <div className="flex justify-center py-2">
-              <div 
-                className="border-2 border-stone-900 rounded-[3.18mm] bg-white shadow-2xl flex flex-col justify-between items-center text-center relative overflow-hidden"
-                style={{ width: "216px", height: "342px", boxSizing: "border-box" }}
-              >
-                {/* Subtle Watermark */}
-                <div className="absolute inset-0 bg-radial-[at_50%_0%] from-amber-500/5 via-transparent to-purple-900/5 pointer-events-none"></div>
-
-                {previewSide === 'front' ? (
-                  /* Front Side (Vertical Premium) */
-                  <>
-                    {/* Header Banner */}
-                    <div className="w-full bg-linear-to-r from-stone-900 via-indigo-950 to-stone-900 text-white px-2 pt-2 pb-1.5 shrink-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <div className="w-5 h-5 rounded bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[8px] shadow-xs shrink-0">
-                            CBS
-                          </div>
-                          <div className="text-left leading-tight">
-                            <h4 className="font-black text-[9px] text-white uppercase tracking-tight">Crayon Box</h4>
-                            <p className="text-[6px] text-amber-300 font-bold uppercase tracking-wider">
-                              {previewCard.type === 'Student' ? 'Student ID Card' : 'Escort Pass'}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="bg-amber-400 text-stone-950 font-black text-[7px] px-1.5 py-0.2 rounded-full uppercase">
-                          2026-27
-                        </span>
+            {/* List Box */}
+            <div className="max-h-[560px] overflow-y-auto space-y-2 pr-1">
+              
+              {activeTab === 'STUDENT' && (
+                filteredStudents.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => setSelectedStudent(s)}
+                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between text-xs ${
+                      selectedStudent?.id === s.id
+                        ? 'bg-indigo-50 border-indigo-300 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-xs overflow-hidden">
+                        {s.photo_url ? <img src={s.photo_url} alt={s.first_name} className="w-full h-full object-cover" /> : s.first_name[0]}
                       </div>
-                      <div className="w-full h-0.5 bg-linear-to-r from-amber-400/20 via-amber-400 to-amber-400/20 mt-1"></div>
-                    </div>
-
-                    {/* Photo Box */}
-                    <div className="my-1 relative shrink-0">
-                      <div className="w-22 h-26 rounded-lg border-2 border-stone-900 overflow-hidden bg-stone-100 flex items-center justify-center shadow-xs">
-                        {previewCard.photo_url ? (
-                          <img src={previewCard.photo_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-8 h-8 text-stone-400" />
-                        )}
-                      </div>
-                      <div className="absolute -bottom-1 inset-x-0 flex justify-center">
-                        <span className="bg-stone-900 text-amber-300 font-bold text-[6px] px-2 py-0.2 rounded-full uppercase tracking-wider border border-amber-400/50">
-                          {previewCard.type === 'Student' ? 'STUDENT' : 'STUDENT WARD'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Info Details */}
-                    <div className="w-full px-2 space-y-0.5 leading-tight">
-                      <h4 className="font-black text-[11px] text-stone-900 uppercase truncate tracking-tight">
-                        {previewCard.first_name} {previewCard.last_name || ''}
-                      </h4>
-
                       <div>
-                        <span className="inline-block bg-indigo-50 text-indigo-950 font-black px-2 py-0.5 rounded text-[8px] border border-indigo-200 uppercase">
-                          {previewCard.class_name} • SEC {previewCard.section_name || 'A'}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1 bg-stone-50/90 rounded p-1 text-[7px] text-stone-700 border border-stone-200 text-left mt-0.5">
-                        <div>
-                          <span className="text-stone-400 block font-bold text-[6px]">ADMISSION NO</span>
-                          <span className="font-mono font-black text-stone-900">{previewCard.admission_no}</span>
-                        </div>
-                        <div>
-                          <span className="text-stone-400 block font-bold text-[6px]">ROLL / BLOOD</span>
-                          <span className="font-bold text-stone-900">
-                            #{previewCard.roll_no || '1'} • <span className="text-red-600 font-black">{previewCard.blood_group || 'O+'}</span>
-                          </span>
-                        </div>
+                        <span className="font-bold text-slate-900 block">{s.first_name} {s.last_name}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">{s.universal_id} • {s.class_name} ({s.section_name})</span>
                       </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                ))
+              )}
 
-                    {/* Bottom Security Bar */}
-                    <div className="w-full px-2 pb-1.5 pt-1 flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
-                      <div className="text-left text-[6px] text-stone-500 leading-tight">
-                        <p className="font-black text-stone-800 uppercase">Main Campus</p>
-                        <p className="text-emerald-700 font-bold text-[5.5px]">✓ Gate Verified</p>
-                        <p className="text-stone-400 text-[5px]">Valid: 31 Mar 2027</p>
+              {activeTab === 'TEACHER' && (
+                filteredFaculty.map((f) => (
+                  <div
+                    key={f.id}
+                    onClick={() => setSelectedFaculty(f)}
+                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between text-xs ${
+                      selectedFaculty?.id === f.id
+                        ? 'bg-emerald-50 border-emerald-300 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-xs overflow-hidden">
+                        {f.photo_url ? <img src={f.photo_url} alt={f.first_name} className="w-full h-full object-cover" /> : f.first_name[0]}
                       </div>
-
-                      <div className="w-9 h-9 bg-white border border-stone-800 rounded p-0.5 shrink-0 flex items-center justify-center shadow-xs">
-                        <QrCode className="w-6 h-6 text-stone-900" />
+                      <div>
+                        <span className="font-bold text-slate-900 block">{f.first_name} {f.last_name}</span>
+                        <span className="text-[10px] text-slate-500">{f.designation}</span>
                       </div>
                     </div>
-                  </>
-                ) : (
-                  /* Back Side (Vertical Premium) */
-                  <>
-                    {/* Header */}
-                    <div className="w-full border-b border-stone-900 pb-1 text-center pt-2 px-2">
-                      <h5 className="font-black text-[8px] text-stone-900 uppercase tracking-tight">
-                        {previewCard.type === 'EscortCard' ? 'Authorized Pickup Escorts' : 'Emergency & Security Protocol'}
-                      </h5>
-                      <p className="text-[6px] font-mono text-purple-800 font-bold">{previewCard.card_number}</p>
-                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                ))
+              )}
 
-                    {previewCard.type === 'EscortCard' && previewCard.escorts ? (
-                      <div className="space-y-1 w-full px-2 py-1 flex-1">
-                        {previewCard.escorts.slice(0, 4).map((e: any, idx: number) => (
-                          <div key={idx} className="bg-stone-50/90 border border-stone-200 rounded p-1 flex items-center gap-1.5 text-left">
-                            <div className="w-5 h-7 rounded border border-stone-300 overflow-hidden shrink-0 bg-white flex items-center justify-center shadow-xs">
-                              {e.photo_url ? (
-                                <img src={e.photo_url} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <User className="w-3 h-3 text-stone-400" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1 leading-none text-[7px]">
-                              <p className="font-black text-stone-900 truncate">{e.full_name}</p>
-                              <span className="text-[6px] font-black text-purple-900 bg-purple-100 px-1 py-0.2 rounded inline-block mt-0.5 uppercase">
-                                {e.relationship}
-                              </span>
-                              <p className="text-[6px] font-mono text-stone-600 truncate mt-0.5 font-bold">{e.mobile}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-1 text-[7.5px] text-stone-600 flex-1 leading-tight py-1 text-left w-full px-2">
-                        <div className="bg-stone-50 p-1.5 rounded border border-stone-200 space-y-0.5">
-                          <p><span className="font-bold text-stone-400 text-[6px]">STUDENT:</span> <span className="font-black text-stone-900">{previewCard.first_name} {previewCard.last_name || ''}</span></p>
-                          <p><span className="font-bold text-stone-400 text-[6px]">TRANSPORT:</span> <span className="font-bold text-stone-800">{previewCard.transport_route}</span></p>
-                          <p><span className="font-bold text-stone-400 text-[6px]">HELPLINE:</span> <span className="font-mono font-bold text-stone-900">+91 98111 02008</span></p>
-                        </div>
-                        <p className="text-[6.5px] text-stone-500 pt-0.5">
-                          1. This card must be worn by the student at all times during school &amp; transit.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="border-t border-stone-300 pt-1 pb-1 px-2 flex justify-between items-end text-[6.5px] w-full shrink-0">
-                      <div className="text-left">
-                        <span className="text-stone-900 font-black block text-[6px]">www.crayonboxschool.com</span>
-                        <span className="text-stone-400 text-[5px]">Valid: 31 Mar 2027</span>
-                      </div>
-                      <div className="text-center shrink-0">
-                        <div className="w-12 border-b border-stone-900 mb-0.5"></div>
-                        <span className="font-bold text-stone-800 text-[5.5px] block uppercase">Principal</span>
-                      </div>
+              {activeTab === 'ESCORT' && (
+                filteredStudents.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => {
+                      setSelectedEscort({
+                        guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
+                        relationship: 'FATHER',
+                        phone: s.guardian_phone || '9810011001',
+                        photoUrl: '',
+                        isAuthorizedPickup: true,
+                        studentName: `${s.first_name} ${s.last_name}`,
+                        studentUniversalId: s.universal_id || 'STU-VET-000001',
+                        studentPhotoUrl: s.photo_url || '',
+                        className: s.class_name || 'Class 4',
+                        sectionName: s.section_name || 'A',
+                        institutionCode: s.institution_code || 'CBS',
+                      });
+                    }}
+                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between text-xs ${
+                      selectedEscort?.studentUniversalId === s.universal_id
+                        ? 'bg-amber-50 border-amber-300 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 block">Parent: {s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma'}</span>
+                      <span className="text-[10px] text-slate-500">Child: {s.first_name} {s.last_name} ({s.class_name})</span>
                     </div>
-                  </>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                ))
+              )}
+
+            </div>
+          </div>
+
+          {/* RIGHT: LIVE SINGLE PREVIEW */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-6 print:hidden">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    Live PVC Card Preview (Front & Back)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Front-facing QR code enabled for immediate security gate attendance tap.
+                  </p>
+                </div>
+                <Button size="sm" variant="secondary" onClick={handlePrint} leftIcon={<Printer className="w-4 h-4" />}>
+                  Print Card
+                </Button>
+              </div>
+
+              <div id="bulk-print-container">
+                {activeTab === 'STUDENT' && selectedStudent && (
+                  <div className="card-print-item">
+                    <StudentIDCard student={selectedStudent} />
+                  </div>
+                )}
+
+                {activeTab === 'TEACHER' && selectedFaculty && (
+                  <div className="card-print-item">
+                    <TeacherIDCard faculty={selectedFaculty} />
+                  </div>
+                )}
+
+                {activeTab === 'ESCORT' && selectedEscort && (
+                  <div className="card-print-item">
+                    <EscortPickupCard escort={selectedEscort} />
+                  </div>
                 )}
               </div>
             </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 🌟 VIEW MODE 2: BULK BATCH GENERATOR (CHECKBOX MATRIX & SHEET) */}
+      {/* ============================================================== */}
+      {viewMode === 'BULK' && (
+        <div className="space-y-6">
+          
+          {/* Bulk Controls & Filters Bar */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 print:hidden">
+            
+            {/* Top Row: Filters & Selection Stats */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                
+                {/* Search */}
+                <div className="w-56">
+                  <Input
+                    placeholder="Search name, admission no..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {/* Class & Section Filter */}
+                {activeTab === 'STUDENT' && (
+                  <>
+                    <div className="w-36">
+                      <Select
+                        options={[
+                          { value: 'ALL', label: 'All Classes' },
+                          { value: 'Class 1', label: 'Class 1' },
+                          { value: 'Class 2', label: 'Class 2' },
+                          { value: 'Class 3', label: 'Class 3' },
+                          { value: 'Class 4', label: 'Class 4' },
+                          { value: 'Class 5', label: 'Class 5' },
+                          { value: 'Class 6', label: 'Class 6' },
+                          { value: 'Class 7', label: 'Class 7' },
+                          { value: 'Class 8', label: 'Class 8' },
+                          { value: 'Class 9', label: 'Class 9' },
+                          { value: 'Class 10', label: 'Class 10' },
+                          { value: 'Class 11', label: 'Class 11' },
+                          { value: 'Class 12', label: 'Class 12' },
+                          { value: 'Pre-Nursery', label: 'Pre-Nursery' },
+                          { value: 'Nursery', label: 'Nursery' },
+                          { value: 'LKG', label: 'LKG' },
+                          { value: 'UKG', label: 'UKG' },
+                        ]}
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                      />
+                    </div>
+                    <div className="w-32">
+                      <Select
+                        options={[
+                          { value: 'ALL', label: 'All Sections' },
+                          { value: 'A', label: 'Section A' },
+                          { value: 'B', label: 'Section B' },
+                          { value: 'C', label: 'Section C' },
+                        ]}
+                        value={selectedSection}
+                        onChange={(e) => setSelectedSection(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {activeTab === 'TEACHER' && (
+                  <div className="w-48">
+                    <Select
+                      options={[
+                        { value: 'ALL', label: 'All Departments' },
+                        { value: 'Academics', label: 'Academics' },
+                        { value: 'Science & Laboratories', label: 'Science' },
+                        { value: 'Mathematics', label: 'Mathematics' },
+                        { value: 'Languages', label: 'Languages' },
+                        { value: 'Montessori', label: 'Montessori' },
+                        { value: 'Sports', label: 'Sports' },
+                        { value: 'Transport', label: 'Transport' },
+                      ]}
+                      value={selectedDept}
+                      onChange={(e) => setSelectedDept(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Card Print Format Selector */}
+                <div className="p-1 bg-slate-100 rounded-xl flex items-center gap-1 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setBulkLayout('DUAL')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      bulkLayout === 'DUAL' ? 'bg-white text-indigo-600 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    🎴 Front & Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkLayout('FRONT_ONLY')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      bulkLayout === 'FRONT_ONLY' ? 'bg-white text-indigo-600 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    🏷️ Front Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkLayout('BACK_ONLY')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      bulkLayout === 'BACK_ONLY' ? 'bg-white text-indigo-600 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    📄 Back Only
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Selection Counter & Select All Buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-900 font-extrabold text-xs border border-indigo-200">
+                  Selected: {selectedIds.length} Cards
+                </span>
+                <Button size="sm" variant="outline" onClick={handleSelectAll} leftIcon={<CheckSquare className="w-3.5 h-3.5" />}>
+                  Select All
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleDeselectAll} leftIcon={<Square className="w-3.5 h-3.5" />}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            {/* Bottom Row: Quick Action */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+              <span>
+                Format: <strong className="text-slate-800">{bulkLayout === 'DUAL' ? 'Front & Back Side-by-Side' : bulkLayout === 'FRONT_ONLY' ? 'Front Sides in Grid' : 'Back Sides in Grid'}</strong> • Standard CR80 PVC (85.6mm × 54mm)
+              </span>
+              <Button size="sm" variant="primary" onClick={handlePrint} leftIcon={<Printer className="w-4 h-4" />}>
+                Print Selected Batch ({selectedIds.length} Cards)
+              </Button>
+            </div>
 
           </div>
+
+          {/* Bulk Selection Checklist Bar */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 print:hidden space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Step 1: Check Individuals to Include in Batch Print
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-44 overflow-y-auto p-1">
+              {(activeTab === 'TEACHER' ? filteredFaculty : filteredStudents).map((item) => {
+                const isSelected = selectedIds.includes(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleSelectId(item.id)}
+                    className={`p-2 rounded-xl border transition cursor-pointer flex items-center gap-2 text-xs select-none ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                        : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="w-3.5 h-3.5 rounded text-indigo-600"
+                    />
+                    <div className="truncate">
+                      <span className="font-bold block truncate">{item.first_name} {item.last_name}</span>
+                      <span className={`text-[10px] block truncate ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                        {item.class_name ? `${item.class_name} (${item.section_name})` : item.designation}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 🌟 BATCH PRINT PREVIEW CONTAINER (NON-OVERLAPPING) */}
+          <div className="bg-slate-100 p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-6 print:hidden">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Bulk Batch Print Preview ({selectedIds.length} Cards Selected)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {bulkLayout === 'DUAL'
+                    ? 'Dual Layout: Front & Back rendered per row with zero overlapping.'
+                    : 'Single Face Grid: Optimized for multi-card sheet printing.'}
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={handlePrint} leftIcon={<Printer className="w-4 h-4" />}>
+                Print All ({selectedIds.length} Cards)
+              </Button>
+            </div>
+
+            {/* Target Bulk Printable Container */}
+            <div id="bulk-print-container">
+              {selectedIds.length === 0 ? (
+                <EmptyState
+                  icon={<Layers className="w-8 h-8 text-slate-400" />}
+                  title="No Cards Selected for Batch Generation"
+                  description="Use the checkboxes above or click 'Select All' to select students or faculty for bulk ID card printing."
+                  actionLabel="Select All Filtered"
+                  onAction={handleSelectAll}
+                />
+              ) : (
+                <div
+                  className={
+                    bulkLayout === 'DUAL'
+                      ? 'flex flex-col items-center gap-8 w-full'
+                      : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full'
+                  }
+                >
+                  {/* STUDENTS BULK */}
+                  {activeTab === 'STUDENT' && bulkSelectedStudents.map((s) => (
+                    <div key={s.id} className="card-print-item flex justify-center w-full">
+                      <StudentIDCard student={s} layoutMode={bulkLayout} />
+                    </div>
+                  ))}
+
+                  {/* TEACHERS BULK */}
+                  {activeTab === 'TEACHER' && bulkSelectedFaculty.map((f) => (
+                    <div key={f.id} className="card-print-item flex justify-center w-full">
+                      <TeacherIDCard faculty={f} layoutMode={bulkLayout} />
+                    </div>
+                  ))}
+
+                  {/* ESCORTS BULK */}
+                  {activeTab === 'ESCORT' && bulkSelectedStudents.map((s) => (
+                    <div key={s.id} className="card-print-item flex justify-center w-full">
+                      <EscortPickupCard
+                        layoutMode={bulkLayout}
+                        escort={{
+                          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
+                          relationship: 'FATHER',
+                          phone: s.guardian_phone || '9810011001',
+                          photoUrl: '',
+                          isAuthorizedPickup: true,
+                          studentName: `${s.first_name} ${s.last_name}`,
+                          studentUniversalId: s.universal_id || 'STU-VET-000001',
+                          studentPhotoUrl: s.photo_url || '',
+                          className: s.class_name || 'Class 4',
+                          sectionName: s.section_name || 'A',
+                          institutionCode: s.institution_code || 'CBS',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+
         </div>
       )}
 

@@ -1,10 +1,25 @@
 "use client";
 
+export interface PrintIsolatedOptions {
+  pageSize?: "A4 landscape" | "A4 portrait" | "A5 landscape" | "A5 portrait" | "auto";
+  orientation?: "landscape" | "portrait";
+  maxWidth?: string;
+  margin?: string;
+  isWideReport?: boolean;
+  fontSize?: string;
+}
+
 /**
- * Cleanly prints an isolated DOM element on A5 paper without printing the parent webpage,
+ * Cleanly prints an isolated DOM element without printing the parent webpage,
  * sidebars, navigation banners, or modal container overlays.
+ * Supports auto-detection for wide multi-column statements (e.g. Day Book, Registers)
+ * and compact single/double vouchers (e.g. Fee Receipts, Payment Vouchers).
  */
-export function printIsolatedElement(elementOrId: HTMLElement | string | null, documentTitle = "Fee Receipt") {
+export function printIsolatedElement(
+  elementOrId: HTMLElement | string | null, 
+  documentTitle = "Document",
+  options?: PrintIsolatedOptions
+) {
   if (typeof window === "undefined") return;
 
   let element: HTMLElement | null = null;
@@ -43,6 +58,21 @@ export function printIsolatedElement(elementOrId: HTMLElement | string | null, d
     return;
   }
 
+  // Determine whether this is a wide report (Day Book, Defaulters, Statement)
+  const isWide = options?.isWideReport ?? (
+    options?.pageSize?.includes("landscape") ||
+    documentTitle.toLowerCase().includes("report") ||
+    documentTitle.toLowerCase().includes("day_book") ||
+    documentTitle.toLowerCase().includes("statement") ||
+    documentTitle.toLowerCase().includes("defaulter") ||
+    documentTitle.toLowerCase().includes("register")
+  );
+
+  const pageSize = options?.pageSize || (isWide ? "A4 landscape" : "A5 portrait");
+  const margin = options?.margin || (isWide ? "4mm" : "5mm");
+  const maxWidth = options?.maxWidth || (isWide ? "100%" : "100%");
+  const baseFontSize = options?.fontSize || (isWide ? "7pt" : "9pt");
+
   // Grab all active stylesheets from parent document (Tailwind CSS, fonts, globals)
   const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
     .map(s => s.outerHTML)
@@ -59,8 +89,8 @@ export function printIsolatedElement(elementOrId: HTMLElement | string | null, d
         ${styles}
         <style>
           @page {
-            size: A5 portrait;
-            margin: 5mm;
+            size: ${pageSize};
+            margin: ${margin};
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -77,12 +107,45 @@ export function printIsolatedElement(elementOrId: HTMLElement | string | null, d
           }
           .isolated-print-wrapper {
             width: 100% !important;
-            max-width: 138mm !important;
+            max-width: ${maxWidth} !important;
             margin: 0 auto !important;
-            padding: 2mm !important;
+            padding: 0 !important;
             background: #ffffff !important;
           }
-          button, .no-print {
+          ${isWide ? `
+            /* Wide Report Auto-fit & Scaling Rules */
+            div, table, thead, tbody, tr, th, td {
+              overflow: visible !important;
+            }
+            .overflow-x-auto, .overflow-hidden {
+              overflow: visible !important;
+              max-width: 100% !important;
+            }
+            table {
+              width: 100% !important;
+              max-width: 100% !important;
+              border-collapse: collapse !important;
+              table-layout: auto !important;
+              page-break-inside: auto !important;
+              font-size: ${baseFontSize} !important;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            th, td {
+              padding: 2px 3px !important;
+              font-size: ${baseFontSize} !important;
+              line-height: 1.15 !important;
+              border: 0.5pt solid #78716c !important;
+            }
+            th {
+              background-color: #e7e5e4 !important;
+              color: #0c0a09 !important;
+              font-weight: 800 !important;
+            }
+          ` : ''}
+          button, .no-print, [data-hide-print="true"] {
             display: none !important;
           }
         </style>
@@ -108,5 +171,5 @@ export function printIsolatedElement(elementOrId: HTMLElement | string | null, d
         printIframe.remove();
       }, 2000);
     }
-  }, 250);
+  }, 300);
 }

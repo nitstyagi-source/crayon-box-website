@@ -1,75 +1,105 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import pg from 'pg';
 
-function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://fesqtrunkqlmvyvqodzy.supabase.co";
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlc3F0cnVua3FsbXZ5dnFvZHp5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczODk1MzA3NywiZXhwIjoyMDU0NTI5MDc3fQ.Zl4989ZJ_7_F5K1e8p_J2K27z_lG_aW5U7M-rG6p16c";
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+const { Pool } = pg;
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+
+let globalPool: pg.Pool | null = null;
+function getPool() {
+  if (!globalPool) {
+    globalPool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
+const CAM_MAPPING: Record<string, string> = {
+  "Nursery Play Wing": "nursery_cam",
+  "LKG Activity Room": "lkg_cam",
+  "UKG Classroom": "ukg_cam",
+  "Grade 1 Classroom": "grade1_cam",
+  "Grade 2 Classroom": "grade2_cam",
+  "Grade 3 Classroom": "grade3_cam",
+  "Grade 4 Classroom": "grade4_cam",
+  "Grade 5 Classroom": "grade5_cam",
+  "Grade 6 Classroom": "grade6_cam",
+  "Grade 7 Classroom": "grade7_cam",
+  "Grade 8 Classroom": "grade8_cam",
+  "Grade 9 Classroom": "grade9_cam",
+  "Grade 10 Board Room": "grade10_cam",
+  "Science & Bio Laboratory": "science_lab",
+  "AI & Robotics Tech Hub": "computer_lab",
+  "Indoor Sports & Activity Hall": "activity_hall"
+};
+
 export async function POST(req: NextRequest) {
+  const pool = getPool();
+  const client = await pool.connect();
+
   try {
     const body = await req.json();
-    const { gatewayUrl } = body;
+    const { gatewayUrl, dvrIp, dvrPort } = body;
 
     if (!gatewayUrl || !gatewayUrl.startsWith("http")) {
       return NextResponse.json({ error: "Invalid gatewayUrl provided" }, { status: 400 });
     }
 
     const cleanGateway = gatewayUrl.replace(/\/+$/, "");
-    const supabase = getSupabaseAdmin();
 
-    const camMapping: Record<string, string> = {
-      "Nursery": `${cleanGateway}/nursery_cam/`,
-      "LKG": `${cleanGateway}/lkg_cam/`,
-      "UKG": `${cleanGateway}/ukg_cam/`,
-      "Grade 1": `${cleanGateway}/grade1_cam/`,
-      "Grade 2": `${cleanGateway}/grade2_cam/`,
-      "Grade 3": `${cleanGateway}/grade3_cam/`,
-      "Grade 4": `${cleanGateway}/grade4_cam/`,
-      "Grade 5": `${cleanGateway}/grade5_cam/`,
-      "Grade 6": `${cleanGateway}/grade6_cam/`,
-      "Grade 7": `${cleanGateway}/grade7_cam/`,
-      "Grade 8": `${cleanGateway}/grade8_cam/`,
-      "Grade 9": `${cleanGateway}/grade9_cam/`,
-      "Grade 10": `${cleanGateway}/grade10_cam/`,
-      "Science Lab": `${cleanGateway}/science_lab/`,
-      "Computer Lab": `${cleanGateway}/computer_lab/`,
-      "Activity Hall": `${cleanGateway}/activity_hall/`
-    };
-
-    // Update all 16 cameras in Supabase
-    for (const [classroomName, streamUrl] of Object.entries(camMapping)) {
-      await supabase
-        .from("cameras")
-        .update({
-          stream_url: streamUrl,
-          status: "Online",
-          is_active: true,
-          kill_switch_active: false
-        })
-        .eq("classroom_name", classroomName);
+    // 1. Update all 16 cameras in PostgreSQL
+    for (const [classroomName, pathKey] of Object.entries(CAM_MAPPING)) {
+      const streamUrl = `${cleanGateway}/${pathKey}/`;
+      await client.query(`
+        UPDATE public.cameras
+        SET stream_url = $1, status = 'Online', is_active = true, kill_switch_active = false, updated_at = NOW()
+        WHERE classroom_name = $2 OR classroom_name ILIKE $3;
+      `, [streamUrl, classroomName, `%${pathKey.replace('_cam', '')}%`]);
     }
 
-    // Update global settings
-    await supabase
-      .from("live_stream_settings")
-      .update({
-        gateway_url: cleanGateway,
-        global_kill_switch: false
-      })
-      .neq("id", "00000000-0000-0000-0000-000000000000");
+    // 2. Update global settings in PostgreSQL
+    await client.query(`
+      UPDATE public.live_stream_settings
+      SET gateway_url = $1, 
+          global_kill_switch = false,
+          dvr_ip = COALESCE($2, dvr_ip, '192.168.1.90'),
+          dvr_port = COALESCE($3, dvr_port, '10554'),
+          updated_at = NOW()
+      WHERE 1=1;
+    `, [cleanGateway, dvrIp || null, dvrPort || null]);
 
     return NextResponse.json({
       success: true,
-      message: "Gateway heartbeat received and all 16 cameras updated successfully.",
+      message: "Gateway heartbeat received and all 16 cameras synchronized with live HTTPS stream.",
       gatewayUrl: cleanGateway,
+      totalCamerasSynced: Object.keys(CAM_MAPPING).length,
       timestamp: new Date().toISOString()
     });
   } catch (err: any) {
     console.error("Gateway heartbeat error:", err);
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+export async function GET() {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const settingsRes = await client.query(`SELECT * FROM public.live_stream_settings LIMIT 1;`);
+    const camerasRes = await client.query(`SELECT count(*) as total, count(CASE WHEN status = 'Online' THEN 1 END) as online FROM public.cameras;`);
+
+    return NextResponse.json({
+      status: "operational",
+      settings: settingsRes.rows[0] || null,
+      cameras: camerasRes.rows[0] || null
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  } finally {
+    client.release();
   }
 }

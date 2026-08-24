@@ -12,12 +12,15 @@ import {
   collectFeePayment, 
   getStudentFeeLedger 
 } from "@/app/actions/finance-core";
+import { getDepartedStudentsPendingDuesAction } from "@/app/actions/finance-concession-actions";
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function CollectFeePOSPage() {
   const { activeCampusId } = useCampusContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<any[]>([]);
+  const [departedDues, setDepartedDues] = useState<any[]>([]);
+  const [activeListTab, setActiveListTab] = useState<"ACTIVE" | "DEPARTED">("ACTIVE");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentLedgerData, setStudentLedgerData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,23 +40,62 @@ export default function CollectFeePOSPage() {
 
   useEffect(() => {
     handleSearch();
+    loadDepartedDues();
   }, [activeCampusId]);
+
+  async function loadDepartedDues() {
+    try {
+      const res = await getDepartedStudentsPendingDuesAction({ search: searchQuery });
+      if (res.success) {
+        setDepartedDues(res.data || []);
+      }
+    } catch (e) {
+      console.error("Error loading departed dues:", e);
+    }
+  }
 
   async function handleSearch() {
     setIsLoading(true);
     try {
-      const res = await searchStudentsForFeeCollection(activeCampusId, searchQuery);
-      if (res.success) {
-        setStudents(res.data || []);
-        if (!selectedStudent && res.data && res.data.length > 0) {
-          selectStudent(res.data[0]);
+      const [resActive, resDeparted] = await Promise.all([
+        searchStudentsForFeeCollection(activeCampusId, searchQuery),
+        getDepartedStudentsPendingDuesAction({ search: searchQuery })
+      ]);
+      
+      if (resActive.success) {
+        setStudents(resActive.data || []);
+        if (!selectedStudent && resActive.data && resActive.data.length > 0 && activeListTab === 'ACTIVE') {
+          selectStudent(resActive.data[0]);
         }
+      }
+      if (resDeparted.success) {
+        setDepartedDues(resDeparted.data || []);
       }
     } catch (e) {
       console.error("Error searching students:", e);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function selectDepartedStudent(d: any) {
+    const studentObj = {
+      id: d.studentId,
+      name: d.studentName,
+      admissionNo: d.admissionNo,
+      className: d.className,
+      sectionName: 'A',
+      parentName: d.guardianName,
+      parentMobile: d.guardianPhone,
+      outstandingBalance: d.pendingBalance,
+      concessionPct: 0,
+      isEws: false,
+      isDeparted: true,
+      subStatus: d.subStatus,
+      tcNumber: d.tcNumber,
+      tcReason: d.tcReason
+    };
+    selectStudent(studentObj);
   }
 
   async function selectStudent(st: any) {
@@ -171,50 +213,129 @@ export default function CollectFeePOSPage() {
         
         {/* Left: Student Selector List (4 Cols) */}
         <div className="lg:col-span-4 bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-            <h3 className="text-sm font-black text-stone-900">Enrolled Students ({students.length})</h3>
-            <span className="text-[10px] text-stone-400 font-bold">Select student</span>
+          
+          {/* Tab Switcher: Active vs Departed Arrears */}
+          <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-2xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setActiveListTab("ACTIVE")}
+              className={`flex-1 py-2 px-3 rounded-xl transition text-center ${
+                activeListTab === "ACTIVE"
+                  ? "bg-white text-stone-900 shadow-xs font-black"
+                  : "text-stone-500 hover:text-stone-800"
+              }`}
+            >
+              Active Enrolled ({students.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveListTab("DEPARTED")}
+              className={`flex-1 py-2 px-3 rounded-xl transition text-center flex items-center justify-center gap-1.5 ${
+                activeListTab === "DEPARTED"
+                  ? "bg-amber-600 text-white shadow-xs font-black"
+                  : "text-amber-800 hover:bg-amber-100/50"
+              }`}
+            >
+              <span>📁 Departed Arrears</span>
+              {departedDues.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  activeListTab === "DEPARTED" ? "bg-amber-700 text-white" : "bg-amber-200 text-amber-900"
+                }`}>
+                  {departedDues.length}
+                </span>
+              )}
+            </button>
           </div>
 
           <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {isLoading ? (
               <div className="py-12 text-center text-xs text-stone-400">Loading student directory...</div>
-            ) : students.length === 0 ? (
-              <div className="py-12 text-center text-xs text-stone-400">No matching students found.</div>
+            ) : activeListTab === "ACTIVE" ? (
+              students.length === 0 ? (
+                <div className="py-12 text-center text-xs text-stone-400">No matching active students found.</div>
+              ) : (
+                students.map((st) => (
+                  <div
+                    key={st.id}
+                    onClick={() => selectStudent(st)}
+                    className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                      selectedStudent?.id === st.id
+                        ? "bg-blue-50/70 border-blue-500 shadow-xs"
+                        : "bg-white border-stone-100 hover:border-stone-200"
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-stone-900">{st.name}</span>
+                        <span className="text-[10px] font-mono bg-stone-100 text-stone-600 px-1.5 rounded">{st.admissionNo}</span>
+                        {st.isEws && (
+                          <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">EWS / RTE</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-stone-400">
+                        {st.className} • Section {st.sectionName} • {st.parentName}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className={`text-xs font-black ${st.isEws ? 'text-emerald-700 font-bold' : (st.outstandingBalance > 0 ? 'text-amber-600' : 'text-emerald-600')}`}>
+                        {st.isEws ? '₹0 (Free)' : formatCurrency(st.outstandingBalance)}
+                      </div>
+                      <span className="text-[9px] font-semibold text-stone-400 uppercase">
+                        {st.isEws ? 'RTE Seat' : (st.outstandingBalance > 0 ? 'Due' : 'Cleared')}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )
             ) : (
-              students.map((st) => (
-                <div
-                  key={st.id}
-                  onClick={() => selectStudent(st)}
-                  className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
-                    selectedStudent?.id === st.id
-                      ? "bg-blue-50/70 border-blue-500 shadow-xs"
-                      : "bg-white border-stone-100 hover:border-stone-200"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-stone-900">{st.name}</span>
-                      <span className="text-[10px] font-mono bg-stone-100 text-stone-600 px-1.5 rounded">{st.admissionNo}</span>
-                      {st.isEws && (
-                        <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">EWS / RTE</span>
+              /* Departed Students with Pending Dues */
+              departedDues.length === 0 ? (
+                <div className="py-12 text-center text-xs text-stone-400">
+                  🎉 Zero departed students have pending fee dues! All accounts cleared.
+                </div>
+              ) : (
+                departedDues.map((d) => (
+                  <div
+                    key={d.studentId}
+                    onClick={() => selectDepartedStudent(d)}
+                    className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                      selectedStudent?.id === d.studentId
+                        ? "bg-amber-50 border-amber-500 shadow-xs"
+                        : "bg-white border-amber-100/70 hover:border-amber-300"
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-stone-900">{d.studentName}</span>
+                        <span className="text-[10px] font-mono bg-stone-100 text-stone-600 px-1.5 rounded">{d.admissionNo}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                          d.subStatus === 'TRANSFERRED' ? 'bg-purple-100 text-purple-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {d.subStatus === 'TRANSFERRED' ? '🔄 Transferred' : '⚠️ Withdrawn'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-stone-500">
+                        {d.className} • {d.guardianName} ({d.guardianPhone})
+                      </div>
+                      {d.tcNumber && (
+                        <div className="text-[10px] text-purple-700 font-mono font-medium">
+                          📜 TC #{d.tcNumber}
+                        </div>
                       )}
                     </div>
-                    <div className="text-[11px] text-stone-400">
-                      {st.className} • Section {st.sectionName} • {st.parentName}
-                    </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className={`text-xs font-black ${st.isEws ? 'text-emerald-700 font-bold' : (st.outstandingBalance > 0 ? 'text-amber-600' : 'text-emerald-600')}`}>
-                      {st.isEws ? '₹0 (Free)' : formatCurrency(st.outstandingBalance)}
+                    <div className="text-right">
+                      <div className="text-xs font-black text-rose-600 font-mono">
+                        {formatCurrency(d.pendingBalance)}
+                      </div>
+                      <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded uppercase">
+                        Recovery Due
+                      </span>
                     </div>
-                    <span className="text-[9px] font-semibold text-stone-400 uppercase">
-                      {st.isEws ? 'RTE Seat' : (st.outstandingBalance > 0 ? 'Due' : 'Cleared')}
-                    </span>
                   </div>
-                </div>
-              ))
+                ))
+              )
             )}
           </div>
         </div>

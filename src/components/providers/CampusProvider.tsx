@@ -44,10 +44,18 @@ export function CampusProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultFallback: CampusContextType = {
+  campuses: [{ id: 'c3d782a9-a50b-4708-a3fc-6b146f456662', name: 'Crayon Box Main Campus' }],
+  activeCampusId: 'c3d782a9-a50b-4708-a3fc-6b146f456662',
+  setActiveCampusId: () => {},
+  activeCampus: { id: 'c3d782a9-a50b-4708-a3fc-6b146f456662', name: 'Crayon Box Main Campus' },
+  isLoading: false
+};
+
 export function useCampusContext() {
   const context = useContext(CampusContext);
   if (context === undefined) {
-    throw new Error("useCampusContext must be used within a CampusProvider");
+    return defaultFallback;
   }
   return context;
 }

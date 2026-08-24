@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { CreditCard, CheckCircle2, Download, Receipt, Lock, AlertCircle, Printer, ArrowRight } from "lucide-react";
-import Script from "next/script";
-import { useSiblingContext } from "@/components/providers/SiblingProvider";
 import { lookupStudentDues, processInvoiceOnlinePayment } from "@/app/actions/payments";
 import { printIsolatedElement } from "@/lib/printUtils";
+import { useInstitution } from "@/components/providers/InstitutionContext";
+import { useSiblingContext } from "@/components/providers/SiblingProvider";
+import Script from "next/script";
 import { useRef } from "react";
 
 export default function ParentFeePortal() {
   const { activeSibling } = useSiblingContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -94,12 +96,14 @@ export default function ParentFeePortal() {
             `}</style>
 
             <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-              <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h3>
+              <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">
+                {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+              </h3>
               <p className="text-[10px] font-bold text-stone-700">
-                School ID: 1253481 • UDISE Code: 07124100151
+                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
               </p>
               <p className="text-[9.5px] text-stone-500">
-                Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                {selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084"} • Tel: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com"}
               </p>
               <div className="pt-1.5 flex justify-center">
                 <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">

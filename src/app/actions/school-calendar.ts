@@ -3,6 +3,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabaseServiceKey =
@@ -156,8 +162,8 @@ export async function createCalendarEvent(payload: {
 
     if (error) throw error;
 
-    revalidatePath("/admin/calendar");
-    revalidatePath("/parent/academics");
+    safeRevalidate("/admin/calendar");
+    safeRevalidate("/parent/academics");
     return {
       success: true,
       message: `Event "${payload.title}" broadcasted to ${payload.targetAudience || 'All'} calendar!`,
@@ -165,6 +171,78 @@ export async function createCalendarEvent(payload: {
     };
   } catch (error: any) {
     console.error("Error creating calendar event:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 2B. UPDATE EXISTING CALENDAR EVENT
+// -------------------------------------------------------------
+export async function updateCalendarEvent(payload: {
+  id: string;
+  campusId?: string;
+  academicSession?: string;
+  title: string;
+  eventType: string;
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+  targetAudience?: "All" | "Class" | "Teachers" | "Parents" | "Students";
+  applicableClasses?: string[];
+  venue?: string;
+  description?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  isHoliday?: boolean;
+  isExam?: boolean;
+  holidayType?: string;
+  reminderDaysBefore?: number[];
+  notificationChannels?: string[];
+  updatedBy?: string;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const updateRecord = {
+      title: payload.title,
+      event_type: payload.eventType,
+      start_date: payload.startDate,
+      end_date: payload.endDate || payload.startDate,
+      start_time: payload.startTime || "09:00 AM",
+      end_time: payload.endTime || "01:00 PM",
+      target_audience: payload.targetAudience || "All",
+      applicable_classes: payload.applicableClasses || ["All"],
+      venue: payload.venue || "School Campus",
+      description: payload.description || "",
+      attachment_url: payload.attachmentUrl || null,
+      attachment_name: payload.attachmentName || null,
+      is_holiday: payload.isHoliday ?? (payload.eventType.includes("Holiday") || payload.eventType.includes("🏖")),
+      is_exam: payload.isExam ?? (payload.eventType.includes("Exam") || payload.eventType.includes("Assessment") || payload.eventType.includes("📚")),
+      holiday_type: payload.holidayType || "Full Day",
+      reminder_days_before: payload.reminderDaysBefore || [7, 3, 1, 0],
+      notification_channels: payload.notificationChannels || ["App", "WhatsApp"],
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from("school_calendar_events")
+      .update(updateRecord)
+      .eq("id", payload.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    safeRevalidate("/admin/calendar");
+    safeRevalidate("/parent/academics");
+    return {
+      success: true,
+      message: `Event "${payload.title}" successfully updated!`,
+      data
+    };
+  } catch (error: any) {
+    console.error("Error updating calendar event:", error);
     return { success: false, error: error.message };
   }
 }
@@ -178,7 +256,8 @@ export async function deleteCalendarEvent(id: string) {
     const { error } = await supabase.from("school_calendar_events").delete().eq("id", id);
     if (error) throw error;
 
-    revalidatePath("/admin/calendar");
+    safeRevalidate("/admin/calendar");
+    safeRevalidate("/parent/academics");
     return { success: true, message: "Event removed successfully." };
   } catch (error: any) {
     return { success: false, error: error.message };

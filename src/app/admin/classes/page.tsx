@@ -1,115 +1,160 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
-  GraduationCap, Users, UserCheck, Plus, Search,
-  Filter, Building2, Download, ArrowRight, ExternalLink
+  GraduationCap, Users, UserCheck, BookOpen,
+  Plus, RefreshCw, Sparkles, Building2, ArrowRight
 } from 'lucide-react';
-import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { useInstitution } from '@/components/providers/InstitutionContext';
+import { getAcademicClassesDashboardAction } from '@/app/actions/academic-operations-actions';
 
-export default function ClassesMasterPage() {
-  const [selectedInst, setSelectedInst] = useState<string>('CBS');
-  const [searchQuery, setSearchQuery] = useState('');
+export default function AcademicClassesPage() {
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  const classData = [
-    { id: 'CLS-01', institutionCode: 'CBS', wing: 'Primary Wing', grade: 'Grade 1', section: 'A', room: 'Room 101', classTeacher: 'Ms. Sarah Jenkins', enrolled: 30, capacity: 30, status: 'FULL' },
-    { id: 'CLS-02', institutionCode: 'CBS', wing: 'Primary Wing', grade: 'Grade 1', section: 'B', room: 'Room 102', classTeacher: 'Ms. Priya Nair', enrolled: 28, capacity: 30, status: 'OPEN' },
-    { id: 'CLS-03', institutionCode: 'CBS', wing: 'Primary Wing', grade: 'Grade 4', section: 'B', room: 'Room 402', classTeacher: 'Dr. Meenakshi Sundaram', enrolled: 32, capacity: 32, status: 'FULL' },
-    { id: 'CLS-04', institutionCode: 'CBS', wing: 'Middle Wing', grade: 'Grade 7', section: 'A', room: 'Room 701', classTeacher: 'Prof. Anil Gupta', enrolled: 29, capacity: 32, status: 'OPEN' },
-    { id: 'CLS-05', institutionCode: 'CBPS', wing: 'Montessori Wing', grade: 'Pre-Nursery', section: 'Sunflowers', room: 'Sensory Room 1', classTeacher: 'Mrs. Shalini Mehta', enrolled: 18, capacity: 20, status: 'OPEN' },
-    { id: 'CLS-06', institutionCode: 'CBPS', wing: 'Montessori Wing', grade: 'Nursery', section: 'Butterflies', room: 'Sensory Room 2', classTeacher: 'Ms. Pooja Batra', enrolled: 20, capacity: 20, status: 'FULL' },
-    { id: 'CLS-07', institutionCode: 'AS', wing: 'Secondary Wing', grade: 'Grade 9', section: 'A', room: 'Room 901', classTeacher: 'Dr. R. K. Varma', enrolled: 34, capacity: 35, status: 'OPEN' },
-    { id: 'CLS-08', institutionCode: 'AVM', wing: 'Senior Secondary', grade: 'Grade 11', section: 'Science', room: 'Lab 3', classTeacher: 'Prof. Ramesh Chandra', enrolled: 40, capacity: 40, status: 'FULL' },
-  ];
-
-  const filtered = classData.filter((c) => {
-    const matchInst = selectedInst === 'ALL' || c.institutionCode === selectedInst;
-    const matchSearch =
-      c.grade.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.classTeacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.room.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchInst && matchSearch;
+  const [classes, setClasses] = useState<any[]>([]);
+  const [counts, setCounts] = useState({
+    totalClasses: 0,
+    totalEnrolled: 0,
+    totalCapacity: 0,
+    avgUtilization: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchClasses = async () => {
+    setIsLoading(true);
+    const res = await getAcademicClassesDashboardAction();
+    if (res.success) {
+      setClasses(res.classes || []);
+      setCounts(res.counts || { totalClasses: 0, totalEnrolled: 0, totalCapacity: 0, avgUtilization: 0 });
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
-              Institutional Structure
+            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1.5">
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+              Academic Cohorts & Sections
             </span>
-            <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Wings, Classes, Sections & Classrooms</span>
+            <span className="text-slate-600 text-xs">•</span>
+            <span className="text-indigo-300 text-xs font-semibold">
+              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
+            </span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Classes, Sections & Room Allocations</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Class capacity management, assigned class teachers, and physical classroom allocations across VET schools.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <GraduationCap className="w-8 h-8 text-indigo-400" />
+            Classroom & Section Cohorts
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 font-medium">
+            Pre-Nursery through Class 10 section rosters, room allocations, student capacities, and assigned class mentors.
           </p>
         </div>
 
-        {/* Institution Scope Filter */}
-        <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-2xl">
-          <button
-            onClick={() => setSelectedInst('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-              selectedInst === 'ALL' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600 hover:text-stone-900'
-            }`}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={fetchClasses}
+            isLoading={isLoading}
+            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            All Institutions
-          </button>
-          {VANI_TRUST_INSTITUTIONS.map((inst) => (
-            <button
-              key={inst.code}
-              onClick={() => setSelectedInst(inst.code)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                selectedInst === inst.code ? 'bg-blue-600 text-white shadow-xs' : 'text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              {inst.code}
-            </button>
-          ))}
+            Refresh Cohorts
+          </Button>
         </div>
       </div>
 
-      {/* Grid of Classes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filtered.map((cls) => (
-          <div key={cls.id} className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-3 hover:border-blue-300 transition">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-mono">
-                  {cls.institutionCode} • {cls.wing}
+      {/* 🌟 TELEMATICS COUNTERS */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Class Cohorts</span>
+          <span className="text-3xl font-black text-slate-900 mt-1 block">{counts.totalClasses}</span>
+          <span className="text-[11px] text-slate-500 font-semibold">Active Sections</span>
+        </div>
+
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Enrolled</span>
+          <span className="text-3xl font-black text-indigo-600 mt-1 block">{counts.totalEnrolled}</span>
+          <span className="text-[11px] text-indigo-700 font-bold">Allocated Students</span>
+        </div>
+
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Campus Capacity</span>
+          <span className="text-3xl font-black text-emerald-600 mt-1 block">{counts.totalCapacity}</span>
+          <span className="text-[11px] text-emerald-700 font-bold">Desk Capacity</span>
+        </div>
+
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Average Utilization</span>
+          <span className="text-3xl font-black text-amber-600 mt-1 block">{counts.avgUtilization}%</span>
+          <span className="text-[11px] text-amber-700 font-bold">Classroom Occupancy</span>
+        </div>
+      </div>
+
+      {/* 🌟 CLASSES CARDS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {classes.map((c) => (
+          <div
+            key={c.id}
+            className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4 flex flex-col justify-between hover:border-indigo-300 transition"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
+                  Section {c.section}
                 </span>
-                <h3 className="text-lg font-black text-stone-900 mt-1">{cls.grade} - {cls.section}</h3>
-                <p className="text-xs text-stone-500 font-semibold">{cls.room}</p>
+                <span className="text-[11px] font-semibold text-slate-400">
+                  {c.room_number || 'Main Wing'}
+                </span>
               </div>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                cls.status === 'FULL' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {cls.status}
-              </span>
+
+              <div>
+                <h3 className="text-lg font-black text-slate-900">{c.grade}</h3>
+                <p className="text-xs text-slate-500 font-medium">Class Teacher: <strong className="text-slate-800">{c.classTeacher}</strong></p>
+              </div>
+
+              {/* Capacity Bar */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Student Enrollment:</span>
+                  <strong className="text-slate-900 font-bold">{c.enrolled_students} / {c.capacity}</strong>
+                </div>
+
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, c.utilizationRate)}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1 text-xs">
-              <span className="text-stone-400 font-medium">Class Teacher:</span>
-              <p className="font-bold text-stone-800">{cls.classTeacher}</p>
-            </div>
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <Link
+                href={`/admin/timetable?grade=${encodeURIComponent(c.grade)}&section=${c.section}`}
+                className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+              >
+                View Timetable <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
 
-            <div className="p-3 bg-stone-50 rounded-xl space-y-1.5 text-xs">
-              <div className="flex justify-between font-bold">
-                <span className="text-stone-500">Student Capacity</span>
-                <span className="text-stone-900">{cls.enrolled} / {cls.capacity}</span>
-              </div>
-              <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className={`h-1.5 rounded-full ${cls.enrolled >= cls.capacity ? 'bg-amber-500' : 'bg-blue-600'}`}
-                  style={{ width: `${(cls.enrolled / cls.capacity) * 100}%` }}
-                />
-              </div>
+              <Link
+                href={`/admin/students?grade=${encodeURIComponent(c.grade)}`}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-900"
+              >
+                Roster →
+              </Link>
             </div>
           </div>
         ))}

@@ -8,6 +8,7 @@ import {
   Shield, Phone, Heart, Bus, CheckCircle2, Award
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getStudentsForIdCardGeneration, generateAllMissingIdCards } from "@/app/actions/id-cards";
 
 export default function StudentIdCardBatchPrintPage() {
@@ -20,6 +21,7 @@ export default function StudentIdCardBatchPrintPage() {
 
 function StudentIdCardBatchPrintContent() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj, currentInstitution } = useInstitution();
   const searchParams = useSearchParams();
   const classFilter = searchParams.get("class") || "All Classes";
 
@@ -142,12 +144,14 @@ function StudentIdCardBatchPrintContent() {
                   <div className="w-full bg-linear-to-r from-stone-900 via-indigo-950 to-stone-900 text-white px-[2mm] pt-[2mm] pb-[1.5mm] relative shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[6pt] shadow-xs shrink-0">
-                          CBS
+                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[5.5pt] shadow-xs shrink-0">
+                          {selectedInstitutionObj?.code || 'CBS'}
                         </div>
                         <div className="text-left leading-none">
-                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight">Crayon Box</h3>
-                          <p className="text-[4.2pt] text-amber-300 font-bold uppercase tracking-wider">School • Delhi</p>
+                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight truncate max-w-[28mm]">
+                            {selectedInstitutionObj?.shortName || selectedInstitutionObj?.name || 'School Name'}
+                          </h3>
+                          <p className="text-[4.2pt] text-amber-300 font-bold uppercase tracking-wider">Campus ID Card</p>
                         </div>
                       </div>
                       <span className="bg-amber-400 text-stone-950 font-black text-[4.5pt] px-[1.5mm] py-[0.3mm] rounded-full uppercase tracking-tight shadow-xs">
@@ -206,7 +210,9 @@ function StudentIdCardBatchPrintContent() {
                   {/* Bottom Security QR Code & Footer */}
                   <div className="w-full px-[2mm] pb-[1.5mm] pt-[1mm] flex items-center justify-between border-t border-stone-200 shrink-0 bg-stone-50/50">
                     <div className="text-left text-[4pt] text-stone-500 leading-tight">
-                      <p className="font-black text-stone-800 uppercase tracking-tighter">Main Campus</p>
+                      <p className="font-black text-stone-800 uppercase tracking-tighter truncate max-w-[25mm]">
+                        {selectedInstitutionObj?.name || 'Main Campus'}
+                      </p>
                       <p className="font-mono text-stone-500">Ph: {student.parent_phone || '+91 98111 02008'}</p>
                       <span className="text-emerald-700 font-bold text-[3.8pt]">✓ Gate Verified</span>
                     </div>
@@ -242,21 +248,23 @@ function StudentIdCardBatchPrintContent() {
 
                     <div className="space-y-[0.8mm] text-[4.5pt] text-stone-500 pt-[0.5mm]">
                       <p className="font-black text-stone-800 uppercase tracking-tight">CARD REGULATIONS:</p>
-                      <p>1. This credential is the property of Crayon Box School and must be worn daily.</p>
+                      <p>1. This credential is the property of {selectedInstitutionObj?.name || 'the School'} and must be worn daily.</p>
                       <p>2. Non-transferable security token.</p>
-                      <p>3. If found, please return to Crayon Box School, Burari, Delhi - 110084.</p>
+                      <p>3. If found, please return to {selectedInstitutionObj?.name || 'School Office'}{selectedInstitutionObj?.address ? `, ${selectedInstitutionObj.address}` : ''}.</p>
                     </div>
                   </div>
 
                   {/* Signature & Seal Footer */}
                   <div className="border-t border-stone-300 pt-[1.2mm] flex justify-between items-end text-[4.5pt] shrink-0">
                     <div>
-                      <span className="text-stone-900 font-black block">www.crayonboxschool.com</span>
+                      <span className="text-stone-900 font-black block">{selectedInstitutionObj?.code ? `${selectedInstitutionObj.code.toLowerCase()}school.edu.in` : 'school.edu.in'}</span>
                       <span className="text-[3.8pt] text-stone-400">Valid Until: 31 Mar 2027</span>
                     </div>
                     <div className="text-center shrink-0">
                       <div className="w-[14mm] border-b border-stone-900 mb-[0.5mm]"></div>
-                      <span className="font-bold text-stone-800 text-[4.2pt] block uppercase">Principal</span>
+                      <span className="font-bold text-stone-800 text-[4.2pt] block uppercase">
+                        {selectedInstitutionObj?.principalName || 'Principal'}
+                      </span>
                     </div>
                   </div>
                 </div>

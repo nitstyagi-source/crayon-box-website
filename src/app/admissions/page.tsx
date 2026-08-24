@@ -35,7 +35,7 @@ export default function AdmissionsHub() {
 
   const faqs = [
     { q: "What is the student-to-teacher ratio?", a: "We maintain a strict 1:20 ratio in primary grades and 1:25 in middle school to ensure personalized attention." },
-    { q: "Is the application fee refundable?", a: "The one-time application processing fee of ₹1,500 is non-refundable." },
+    { q: "Is there any application or registration fee?", a: "No, submitting an online admission enquiry / application at Crayon Box School is 100% free of charge." },
     { q: "How do I track my application status?", a: "Use your unique Application Token (e.g., APP-2026-8942) in our application tracker portal." }
   ];
 

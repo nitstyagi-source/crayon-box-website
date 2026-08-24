@@ -3,6 +3,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabaseServiceKey =
@@ -235,6 +241,8 @@ export async function sendBirthdayWish(payload: {
       sender_role: payload.senderRole || "Management",
       wish_message: payload.message || defaultMsg,
       channel: payload.channel || "App",
+      is_automated: false,
+      delivery_status: "DELIVERED",
       sent_at: new Date().toISOString()
     };
 
@@ -246,8 +254,8 @@ export async function sendBirthdayWish(payload: {
 
     if (error) throw error;
 
-    revalidatePath("/admin/calendar");
-    revalidatePath("/admin/dashboard");
+    safeRevalidate("/admin/calendar");
+    safeRevalidate("/admin/dashboard");
     return {
       success: true,
       message: `🎉 Birthday wish sent to ${payload.recipientName} successfully!`,
@@ -260,12 +268,19 @@ export async function sendBirthdayWish(payload: {
 }
 
 // -------------------------------------------------------------
-// 3. UPDATE BIRTHDAY SETTINGS
+// 3. UPDATE BIRTHDAY PRIVACY & AUTO-WISH SETTINGS
 // -------------------------------------------------------------
 export async function updateBirthdaySettings(payload: {
   campusId?: string;
   enableStudentBirthdays?: boolean;
   enableTeacherBirthdays?: boolean;
+  autoSendWishesEnabled?: boolean;
+  autoSendStudents?: boolean;
+  autoSendFaculty?: boolean;
+  autoSendTime?: string;
+  enableWhatsappWishes?: boolean;
+  enableAppNotifications?: boolean;
+  enableSmsWishes?: boolean;
   showOnDashboard?: boolean;
   showInCalendar?: boolean;
   allowBirthdayWishes?: boolean;
@@ -286,6 +301,13 @@ export async function updateBirthdaySettings(payload: {
           campus_id: resolvedCampusId,
           enable_student_birthdays: payload.enableStudentBirthdays ?? true,
           enable_teacher_birthdays: payload.enableTeacherBirthdays ?? true,
+          auto_send_wishes_enabled: payload.autoSendWishesEnabled ?? true,
+          auto_send_students: payload.autoSendStudents ?? true,
+          auto_send_faculty: payload.autoSendFaculty ?? true,
+          auto_send_time: payload.autoSendTime || "08:00 AM",
+          enable_whatsapp_wishes: payload.enableWhatsappWishes ?? true,
+          enable_app_notifications: payload.enableAppNotifications ?? true,
+          enable_sms_wishes: payload.enableSmsWishes ?? false,
           show_on_dashboard: payload.showOnDashboard ?? true,
           show_in_calendar: payload.showInCalendar ?? true,
           allow_birthday_wishes: payload.allowBirthdayWishes ?? true,
@@ -303,10 +325,206 @@ export async function updateBirthdaySettings(payload: {
 
     if (error) throw error;
 
-    revalidatePath("/admin/calendar");
-    return { success: true, message: "Birthday privacy and wish settings updated!", data };
+    safeRevalidate("/admin/calendar");
+    return { success: true, message: "Birthday automation and privacy settings saved successfully!", data };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+// -------------------------------------------------------------
+// 4. AUTOMATICALLY SEND BIRTHDAY WISHES TO STUDENTS & FACULTY
+// -------------------------------------------------------------
+export async function autoSendTodaysBirthdayWishes(payload?: {
+  campusId?: string;
+  forceAll?: boolean; // If true, dispatches regardless of auto_send toggle
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload?.campusId);
+
+    // 1. Fetch Birthday Settings
+    const { data: settings } = await supabase
+      .from("birthday_settings")
+      .select("*")
+      .eq("campus_id", resolvedCampusId)
+      .maybeSingle();
+
+    const isAutoEnabled = settings?.auto_send_wishes_enabled ?? true;
+    if (!isAutoEnabled && !payload?.forceAll) {
+      return {
+        success: true,
+        skipped: true,
+        message: "Automated birthday wishes are currently paused in settings."
+      };
+    }
+
+    const autoSendStudents = settings?.auto_send_students ?? true;
+    const autoSendFaculty = settings?.auto_send_faculty ?? true;
+    const enableWhatsapp = settings?.enable_whatsapp_wishes ?? true;
+    const enableApp = settings?.enable_app_notifications ?? true;
+    const enableSms = settings?.enable_sms_wishes ?? false;
+
+    // Get today's month & day
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+    const m = today.getMonth() + 1;
+
+    // 2. Fetch celebrants for today
+    const birthdayData = await getTodaysAndUpcomingBirthdays({
+      campusId: resolvedCampusId,
+      role: "Admin",
+      targetMonth: m
+    });
+
+    if (!birthdayData.success || !birthdayData.data) {
+      throw new Error(birthdayData.error || "Failed to retrieve today's birthdays.");
+    }
+
+    const todaysStudents = birthdayData.data.todaysBirthdays?.students || [];
+    const todaysTeachers = birthdayData.data.todaysBirthdays?.teachers || [];
+
+    // 3. Fetch already sent wishes for today to prevent duplicate sends
+    const { data: existingWishes } = await supabase
+      .from("birthday_wishes_log")
+      .select("recipient_id, sent_at")
+      .eq("campus_id", resolvedCampusId)
+      .gte("sent_at", `${todayStr}T00:00:00.000Z`)
+      .lte("sent_at", `${todayStr}T23:59:59.999Z`);
+
+    const alreadySentSet = new Set((existingWishes || []).map((w: any) => w.recipient_id));
+
+    const wishedStudents: string[] = [];
+    const wishedTeachers: string[] = [];
+    const insertedRecords: any[] = [];
+
+    // Determine primary dispatch channels
+    const channels: string[] = [];
+    if (enableWhatsapp) channels.push("WhatsApp");
+    if (enableApp) channels.push("App");
+    if (enableSms) channels.push("SMS");
+    const primaryChannel = channels.join(" + ") || "App";
+
+    // 4. Auto-Send to Students
+    if (autoSendStudents) {
+      for (const stu of todaysStudents) {
+        if (alreadySentSet.has(stu.id)) continue;
+
+        const rawTemplate = settings?.custom_student_message || 
+          "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness, joy, and learning! From Crayon Box School family 🎉";
+        
+        const message = rawTemplate
+          .replace(/{NAME}/g, stu.fullName)
+          .replace(/{FIRST_NAME}/g, stu.firstName)
+          .replace(/{CLASS}/g, stu.classDisplay || "Class")
+          .replace(/{SCHOOL_NAME}/g, "Crayon Box School");
+
+        insertedRecords.push({
+          campus_id: resolvedCampusId,
+          recipient_type: "Student",
+          recipient_id: stu.id,
+          recipient_name: stu.fullName,
+          recipient_class: stu.classDisplay || "",
+          sender_name: "Automated Birthday System",
+          sender_role: "School Principal Office",
+          wish_message: message,
+          channel: primaryChannel,
+          is_automated: true,
+          delivery_status: "DELIVERED",
+          sent_at: new Date().toISOString()
+        });
+
+        wishedStudents.push(stu.fullName);
+      }
+    }
+
+    // 5. Auto-Send to Faculty / Staff
+    if (autoSendFaculty) {
+      for (const teacher of todaysTeachers) {
+        if (alreadySentSet.has(teacher.id)) continue;
+
+        const rawTemplate = settings?.custom_teacher_message || 
+          "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School family!";
+        
+        const message = rawTemplate
+          .replace(/{NAME}/g, teacher.fullName)
+          .replace(/{DESIGNATION}/g, teacher.designation || "Educator")
+          .replace(/{DEPARTMENT}/g, teacher.department || "Academics")
+          .replace(/{SCHOOL_NAME}/g, "Crayon Box School");
+
+        insertedRecords.push({
+          campus_id: resolvedCampusId,
+          recipient_type: "Teacher",
+          recipient_id: teacher.id,
+          recipient_name: teacher.fullName,
+          recipient_class: teacher.department || "Faculty",
+          sender_name: "Automated Birthday System",
+          sender_role: "School Principal Office",
+          wish_message: message,
+          channel: primaryChannel,
+          is_automated: true,
+          delivery_status: "DELIVERED",
+          sent_at: new Date().toISOString()
+        });
+
+        wishedTeachers.push(teacher.fullName);
+      }
+    }
+
+    // 6. Batch Insert into Log
+    if (insertedRecords.length > 0) {
+      const { error: insertErr } = await supabase
+        .from("birthday_wishes_log")
+        .insert(insertedRecords);
+
+      if (insertErr) throw insertErr;
+    }
+
+    safeRevalidate("/admin/calendar");
+    safeRevalidate("/admin/dashboard");
+
+    return {
+      success: true,
+      totalSent: insertedRecords.length,
+      studentCount: wishedStudents.length,
+      teacherCount: wishedTeachers.length,
+      studentsWished: wishedStudents,
+      teachersWished: wishedTeachers,
+      message: insertedRecords.length > 0
+        ? `🎉 Automatically dispatched birthday wishes to ${insertedRecords.length} celebrants (${wishedStudents.length} students, ${wishedTeachers.length} faculty)!`
+        : "✓ All birthday wishes for today have already been sent and logged."
+    };
+  } catch (error: any) {
+    console.error("Error in autoSendTodaysBirthdayWishes:", error);
+    return { success: false, error: error.message, totalSent: 0 };
+  }
+}
+
+// -------------------------------------------------------------
+// 5. GET RECENT BIRTHDAY WISHES DISPATCH LOG
+// -------------------------------------------------------------
+export async function getBirthdayWishesLog(payload?: {
+  campusId?: string;
+  limit?: number;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, payload?.campusId);
+    const limit = payload?.limit || 20;
+
+    const { data: logs, error } = await supabase
+      .from("birthday_wishes_log")
+      .select("*")
+      .eq("campus_id", resolvedCampusId)
+      .order("sent_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return { success: true, data: logs || [] };
+  } catch (error: any) {
+    console.error("Error in getBirthdayWishesLog:", error);
+    return { success: false, error: error.message, data: [] };
   }
 }
 
@@ -314,3 +532,4 @@ function getMonthName(monthNum: number): string {
   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return names[monthNum - 1] || "";
 }
+

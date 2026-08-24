@@ -11,9 +11,23 @@ export default async function AdmissionsDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" /> Admissions Pipeline
+            <Users className="w-6 h-6 text-blue-600" /> Admissions Overview
           </h1>
           <p className="text-sm text-slate-500">Review and manage incoming student applications.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <a 
+            href="/admin/admissions/pipeline" 
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-xs transition"
+          >
+            Open Interactive Kanban Pipeline →
+          </a>
+          <a 
+            href="/admin/admissions/crm" 
+            className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition"
+          >
+            CRM Candidate Directory
+          </a>
         </div>
       </div>
 
@@ -38,7 +52,7 @@ export default async function AdmissionsDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {applications.map((app) => (
+                {applications.map((app: any) => (
                   <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 font-mono font-bold text-slate-700">{app.id}</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(app.date).toLocaleDateString()}</td>

@@ -18,9 +18,12 @@ import {
   getBulkTargetStudents
 } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
+import { useInstitution } from "@/components/providers/InstitutionContext";
+import { convertAmountToWords } from "@/lib/number-to-words";
 
 export default function GenerateInvoicesPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">("individual");
 
   // Common State
@@ -50,9 +53,16 @@ export default function GenerateInvoicesPage() {
   const [isSavingHead, setIsSavingHead] = useState(false);
 
   // Individual Form State
+  const [individualClass, setIndividualClass] = useState("Grade 1");
+  const [individualSection, setIndividualSection] = useState("All");
+  const [individualClassStudents, setIndividualClassStudents] = useState<any[]>([]);
+  const [isLoadingIndStudents, setIsLoadingIndStudents] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [browseModalOpen, setBrowseModalOpen] = useState(false);
+  const [browseSearchQuery, setBrowseSearchQuery] = useState("");
+  const [browseClassFilter, setBrowseClassFilter] = useState("All");
   const [invoiceItems, setInvoiceItems] = useState<Array<{
     fee_head_id: string;
     fee_head_name: string;
@@ -132,6 +142,26 @@ export default function GenerateInvoicesPage() {
       setBulkBatchItems(items);
     }
   }, [activeCampusId, selectedClass, selectedSection, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "individual") {
+      loadIndividualStudents();
+    }
+  }, [activeCampusId, individualClass, individualSection, activeTab]);
+
+  async function loadIndividualStudents() {
+    setIsLoadingIndStudents(true);
+    try {
+      const res = await getBulkTargetStudents(activeCampusId, individualClass, individualSection);
+      if (res.success && res.data) {
+        setIndividualClassStudents(res.data.students || []);
+      }
+    } catch (e) {
+      console.error("Error loading individual class students:", e);
+    } finally {
+      setIsLoadingIndStudents(false);
+    }
+  }
 
   async function loadFeeHeads() {
     try {
@@ -281,10 +311,70 @@ export default function GenerateInvoicesPage() {
   }
 
   function handleSelectStudent(st: any) {
-    setSelectedStudent(st);
+    const norm = {
+      id: st.id,
+      name: st.name || `${st.first_name || ''} ${st.last_name || ''}`.trim(),
+      admissionNo: st.admissionNo || st.admission_no || st.enrollment_number || 'ADM-N/A',
+      className: st.className || st.class_name || 'Grade 1',
+      sectionName: st.sectionName || st.section_name || 'A',
+      category: st.category || 'General',
+      isEws: st.isEws || st.category === 'EWS',
+      concessionType: st.concessionType || st.concession_type || (st.isEws ? '100% RTE Quota' : 'None'),
+      concessionPct: Number(st.concessionPct || st.concession_percentage || 0),
+      parentName: st.parentName || 'Guardian',
+      parentMobile: st.parentMobile || '+91 9811102008',
+      outstandingBalance: st.outstandingBalance !== undefined ? st.outstandingBalance : (st.estimated_net || 11500)
+    };
+
+    setSelectedStudent(norm);
     setSearchResults([]);
-    setSearchQuery(`${st.name} (${st.admissionNo})`);
+    setSearchQuery(`${norm.name} (${norm.admissionNo})`);
     setNotification(null);
+
+    // Auto-populate itemized fee heads based on the student's class
+    let tuition = 6500;
+    let annual = 3000;
+    let activity = 1000;
+    let lab = 1000;
+    const cls = norm.className;
+
+    if (["Nursery", "Pre-Nursery", "LKG", "UKG"].includes(cls)) {
+      tuition = 5500; annual = 2500; activity = 1000; lab = 0;
+    } else if (["Grade 3", "Grade 4"].includes(cls)) {
+      tuition = 7000; annual = 3500; activity = 1000; lab = 1000;
+    } else if (cls === "Grade 5") {
+      tuition = 7500; annual = 3500; activity = 1200; lab = 1200;
+    } else if (["Grade 6", "Grade 7", "Grade 8"].includes(cls)) {
+      tuition = 8500; annual = 4000; activity = 1200; lab = 1500;
+    } else if (["Grade 9", "Grade 10"].includes(cls)) {
+      tuition = 9000; annual = 4500; activity = 1500; lab = 1800;
+    } else if (["Grade 11", "Grade 12"].includes(cls)) {
+      tuition = 9500; annual = 5000; activity = 1500; lab = 2000;
+    }
+
+    const cPct = norm.concessionPct;
+    const tuitionDisc = cPct > 0 ? Math.round((tuition * cPct) / 100) : 0;
+
+    const items = [
+      { fee_head_id: "", fee_head_name: "Tuition Fee", base_amount: tuition, discount_amount: tuitionDisc },
+      { fee_head_id: "", fee_head_name: "Annual Charges", base_amount: annual, discount_amount: 0 },
+      { fee_head_id: "", fee_head_name: "Activity & Sports Fee", base_amount: activity, discount_amount: 0 },
+    ];
+    if (lab > 0) {
+      items.push({ fee_head_id: "", fee_head_name: "Computer & AI Lab Fee", base_amount: lab, discount_amount: 0 });
+    }
+    setInvoiceItems(items);
+  }
+
+  function handleSelectStudentById(studentId: string) {
+    if (!studentId) {
+      setSelectedStudent(null);
+      return;
+    }
+    const found = individualClassStudents.find(s => s.id === studentId);
+    if (found) {
+      handleSelectStudent(found);
+    }
   }
 
   function handleAddItem() {
@@ -576,70 +666,179 @@ export default function GenerateInvoicesPage() {
           {/* Left: Student Picker & Billing Metadata (5 Cols) */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Student Search Box */}
+            {/* Student Selector Card */}
             <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
-              <h3 className="text-sm font-black text-stone-900 flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-600" />
-                1. Select Enrolled Student
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-stone-900 flex items-center gap-2">
+                  <User className="w-4 h-4 text-blue-600" />
+                  1. Select Enrolled Student
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBrowseClassFilter(individualClass);
+                    setBrowseSearchQuery("");
+                    setBrowseModalOpen(true);
+                  }}
+                  className="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Search className="w-3 h-3" /> Browse Roster
+                </button>
+              </div>
 
-              <div className="relative">
-                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search student by Name, Admission #, Class..."
-                  value={searchQuery}
-                  onChange={(e) => handleStudentSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-
-                {/* Dropdown Results */}
-                {searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto divide-y divide-stone-100">
-                    {searchResults.map((st) => (
-                      <div
-                        key={st.id}
-                        onClick={() => handleSelectStudent(st)}
-                        className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center text-xs transition"
-                      >
-                        <div>
-                          <div className="font-bold text-stone-900 flex items-center gap-1.5">
-                            {st.name}
-                            {st.isEws && <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">EWS / RTE</span>}
-                          </div>
-                          <div className="text-[11px] text-stone-400">#{st.admissionNo} • {st.className}</div>
-                        </div>
-                        <span className="text-[10px] font-bold text-blue-600">Select</span>
-                      </div>
-                    ))}
+              {/* A. Class & Section Filter + Direct Student Name Dropdown */}
+              <div className="p-3.5 bg-stone-50/80 rounded-2xl border border-stone-200/80 space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="font-bold text-stone-600 block mb-1 text-[10.5px] uppercase tracking-wider">
+                      Class Filter
+                    </label>
+                    <select
+                      value={individualClass}
+                      onChange={(e) => setIndividualClass(e.target.value)}
+                      className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-800"
+                    >
+                      <option value="All">All Classes</option>
+                      {['Pre-Nursery', 'Nursery', 'LKG', 'UKG', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+
+                  <div>
+                    <label className="font-bold text-stone-600 block mb-1 text-[10.5px] uppercase tracking-wider">
+                      Section
+                    </label>
+                    <select
+                      value={individualSection}
+                      onChange={(e) => setIndividualSection(e.target.value)}
+                      className="w-full bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-800"
+                    >
+                      <option value="All">All Sections</option>
+                      <option value="A">Section A</option>
+                      <option value="B">Section B</option>
+                      <option value="C">Section C</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1 text-xs flex items-center justify-between">
+                    <span>👤 Select Student Name</span>
+                    {isLoadingIndStudents ? (
+                      <span className="text-[10px] text-blue-600 font-mono flex items-center gap-1">
+                        <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Loading...
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {individualClassStudents.length} Students Available
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={selectedStudent?.id || ""}
+                    onChange={(e) => handleSelectStudentById(e.target.value)}
+                    className="w-full bg-white border border-blue-300 focus:border-blue-500 rounded-xl px-3 py-2 text-xs font-bold text-stone-900 shadow-2xs cursor-pointer"
+                  >
+                    <option value="">-- Choose Student Name ({individualClassStudents.length}) --</option>
+                    {individualClassStudents.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.name} (#{st.admission_no} • {st.class_name}{st.section_name ? `-${st.section_name}` : ''}) {st.isEws ? '⚠️ [EWS Quota]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* B. Or Quick Live Search */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-stone-500 block">
+                  Or Quick Search by Name / Admission Number:
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name or admission #..."
+                    value={searchQuery}
+                    onChange={(e) => handleStudentSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+
+                  {/* Dropdown Results */}
+                  {searchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-2xl shadow-xl z-20 max-h-60 overflow-y-auto divide-y divide-stone-100">
+                      {searchResults.map((st) => (
+                        <div
+                          key={st.id}
+                          onClick={() => handleSelectStudent(st)}
+                          className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center text-xs transition"
+                        >
+                          <div>
+                            <div className="font-bold text-stone-900 flex items-center gap-1.5">
+                              {st.name}
+                              {st.isEws && <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">EWS / RTE</span>}
+                            </div>
+                            <div className="text-[11px] text-stone-400">#{st.admissionNo} • {st.className} {st.sectionName ? `(${st.sectionName})` : ''}</div>
+                          </div>
+                          <span className="text-[10px] font-bold text-blue-600">Select</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Selected Student Card */}
               {selectedStudent && (
-                <div className={`p-4 rounded-2xl border text-xs space-y-2 ${
-                  selectedStudent.isEws ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-blue-50/70 border-blue-200"
+                <div className={`p-4 rounded-2xl border text-xs space-y-2.5 ${
+                  selectedStudent.isEws ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-blue-50/70 border-blue-200 text-blue-950"
                 }`}>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-black text-stone-900 text-sm flex items-center gap-1.5">
-                        {selectedStudent.name}
-                        {selectedStudent.isEws && (
-                          <span className="text-[9px] bg-emerald-200 text-emerald-900 font-black px-2 py-0.5 rounded">
-                            EWS 100% Free Quota
-                          </span>
-                        )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
+                        {selectedStudent.name.charAt(0)}
                       </div>
-                      <p className="text-[11px] text-stone-500">#{selectedStudent.admissionNo} • {selectedStudent.className} Section {selectedStudent.sectionName}</p>
+                      <div>
+                        <div className="font-black text-stone-900 text-sm flex items-center gap-1.5">
+                          {selectedStudent.name}
+                          {selectedStudent.isEws && (
+                            <span className="text-[9px] bg-emerald-200 text-emerald-900 font-black px-2 py-0.5 rounded">
+                              EWS 100% Free Quota
+                            </span>
+                          )}
+                          {!selectedStudent.isEws && selectedStudent.concessionPct > 0 && (
+                            <span className="text-[9px] bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded border border-purple-200">
+                              {selectedStudent.concessionType || `${selectedStudent.concessionPct}% Concession`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-500 mt-0.5">
+                          #{selectedStudent.admissionNo} • {selectedStudent.className} Section {selectedStudent.sectionName}
+                        </p>
+                      </div>
                     </div>
+
                     <button 
                       type="button"
                       onClick={() => { setSelectedStudent(null); setSearchQuery(""); }}
-                      className="text-stone-400 hover:text-stone-700 font-bold"
+                      className="text-stone-400 hover:text-stone-700 font-bold p-1 rounded-lg hover:bg-stone-200/50"
+                      title="Clear Selection"
                     >
                       ✕
                     </button>
+                  </div>
+
+                  {/* Metadata Row */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200/60 text-[11px] text-stone-600">
+                    <div>
+                      <span className="text-stone-400 block text-[10px] uppercase font-bold">Parent / Contact</span>
+                      <span className="font-semibold text-stone-800">{selectedStudent.parentName} ({selectedStudent.parentMobile})</span>
+                    </div>
+                    <div>
+                      <span className="text-stone-400 block text-[10px] uppercase font-bold">Category</span>
+                      <span className="font-semibold text-stone-800">{selectedStudent.category}</span>
+                    </div>
                   </div>
 
                   {selectedStudent.isEws && (
@@ -1173,68 +1372,102 @@ export default function GenerateInvoicesPage() {
             {/* A5 Printable Invoice Slip Container */}
             <div 
               ref={previewPrintRef} 
-              className="bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-3.5 text-xs font-sans max-w-[148mm] mx-auto"
+              className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-400 shadow-md mx-auto print:border-none print:shadow-none print:p-0 print:m-0 w-full max-w-[140mm] text-[10px] text-stone-800 font-sans leading-tight space-y-2.5"
             >
-              {/* School Header (Official details, no branch info) */}
-              <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-                <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
-                <p className="text-[10px] font-bold text-stone-700">
-                  School ID: 1253481 • UDISE Code: 07124100151
+              {/* Print Specific CSS */}
+              <style jsx global>{`
+                @media print {
+                  @page {
+                    size: A5 portrait;
+                    margin: 5mm;
+                  }
+                  body {
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                    background: white !important;
+                  }
+                }
+              `}</style>
+
+              {/* School Header Banner */}
+              <div className="text-center border-b-2 border-stone-800 pb-2 space-y-0.5">
+                <div className="flex items-center justify-center gap-2">
+                  <h1 className="text-sm sm:text-base font-black text-stone-900 tracking-tight uppercase">
+                    {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                  </h1>
+                </div>
+                <p className="text-[9px] font-bold text-stone-700">
+                  {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
                 </p>
-                <p className="text-[9.5px] text-stone-500">
-                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                <p className="text-[8.5px] text-stone-500">
+                  {selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084"} • Tel: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com"}
                 </p>
-                <div className="pt-1.5 flex justify-center">
-                  <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">
+                <div className="pt-1 flex justify-center items-center gap-2">
+                  <span className="bg-stone-900 text-white font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded">
                     FEE DEMAND INVOICE
+                  </span>
+                  <span className="text-[8.5px] font-bold uppercase px-1.5 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-300">
+                    UNPAID DEMAND
                   </span>
                 </div>
               </div>
 
               {/* Student & Invoice Meta Details */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10.5px] bg-stone-50/70 p-3 rounded-xl border border-stone-100">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 bg-stone-50/80 p-2 rounded-xl border border-stone-200 text-[9.5px]">
                 <div>
-                  <span className="text-stone-400">Student Name:</span> <strong className="text-stone-900">{selectedStudent.name}</strong>
+                  <span className="text-stone-500 font-medium">Student Name:</span> <strong className="text-stone-900">{selectedStudent.name}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Admission No:</span> <strong className="text-stone-900 font-mono">{selectedStudent.admissionNo}</strong>
+                  <span className="text-stone-500 font-medium">Issue Date:</span> <strong className="text-stone-900">{new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Class & Section:</span> <strong className="text-stone-900">{selectedStudent.className} {selectedStudent.sectionName}</strong>
+                  <span className="text-stone-500 font-medium">Admission / Scholar No:</span> <strong className="text-stone-900 font-mono">{selectedStudent.admissionNo}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Parent / Guardian:</span> <strong className="text-stone-900">{selectedStudent.parentName || 'Parent'}</strong>
+                  <span className="text-stone-500 font-medium">Payment Due Date:</span> <strong className="text-red-700 font-bold">{dueDate}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Billing Period:</span> <strong className="text-stone-900 font-semibold">{billingPeriod}</strong>
+                  <span className="text-stone-500 font-medium">Class &amp; Section:</span> <strong className="text-stone-900">{selectedStudent.className} {selectedStudent.sectionName}</strong>
                 </div>
                 <div>
-                  <span className="text-stone-400">Payment Due Date:</span> <strong className="text-red-700 font-bold">{dueDate}</strong>
+                  <span className="text-stone-500 font-medium">Parent / Guardian:</span> <strong className="text-stone-900">{selectedStudent.parentName || 'Parent'}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-500 font-medium">Billing Period:</span> <strong className="text-blue-900 font-semibold">{billingPeriod}</strong>
+                </div>
+                <div>
+                  <span className="text-stone-500 font-medium">Invoice Mode:</span> <strong className="text-stone-900">Individual Direct Demand</strong>
                 </div>
               </div>
 
               {/* Itemized Fee Breakdown Table */}
-              <div className="border border-stone-200 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-[11px]">
-                  <thead className="bg-stone-100/70 text-stone-600 font-bold border-b border-stone-200">
+              <div className="border border-stone-300 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-[9px]">
+                  <thead className="bg-stone-100 text-stone-700 font-bold border-b border-stone-300">
                     <tr>
-                      <th className="p-2">Fee Head</th>
-                      <th className="p-2 text-right">Gross Amount</th>
-                      <th className="p-2 text-right">Discount</th>
-                      <th className="p-2 text-right">Net Amount</th>
+                      <th className="p-1.5 w-6 text-center">#</th>
+                      <th className="p-1.5">Fee Head Particulars</th>
+                      <th className="p-1.5 text-right w-18">Gross Amount</th>
+                      <th className="p-1.5 text-right w-16">Discount</th>
+                      <th className="p-1.5 text-right w-20">Net Payable</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
+                  <tbody className="divide-y divide-stone-200">
                     {invoiceItems.map((item, idx) => {
-                      const net = Math.max(0, Number(item.base_amount || 0) - Number(item.discount_amount || 0));
+                      const base = Number(item.base_amount || 0);
+                      const disc = Number(item.discount_amount || 0);
+                      const net = Math.max(0, base - disc);
                       return (
-                        <tr key={idx}>
-                          <td className="p-2 font-semibold text-stone-800">{item.fee_head_name}</td>
-                          <td className="p-2 text-right font-mono text-stone-600">{formatCurrency(item.base_amount)}</td>
-                          <td className="p-2 text-right font-mono text-purple-700">
-                            {item.discount_amount > 0 ? `- ${formatCurrency(item.discount_amount)}` : '—'}
+                        <tr key={idx} className="hover:bg-stone-50/50">
+                          <td className="p-1.5 text-center text-stone-400 font-mono">{idx + 1}</td>
+                          <td className="p-1.5 font-semibold text-stone-900">
+                            {item.fee_head_name}
                           </td>
-                          <td className="p-2 text-right font-mono font-bold text-stone-900">{formatCurrency(net)}</td>
+                          <td className="p-1.5 text-right font-mono text-stone-700">{formatCurrency(base)}</td>
+                          <td className="p-1.5 text-right font-mono text-purple-800">
+                            {disc > 0 ? `- ${formatCurrency(disc)}` : "—"}
+                          </td>
+                          <td className="p-1.5 text-right font-mono font-bold text-stone-900">{formatCurrency(net)}</td>
                         </tr>
                       );
                     })}
@@ -1243,31 +1476,52 @@ export default function GenerateInvoicesPage() {
               </div>
 
               {/* Totals Breakdown */}
-              <div className="border-t border-stone-200 pt-2 space-y-1 text-[11px]">
+              <div className="bg-stone-50 p-2 rounded-xl border border-stone-200 space-y-1 text-[9.5px]">
                 <div className="flex justify-between text-stone-600">
                   <span>Gross Invoice Total:</span>
-                  <span className="font-mono">{formatCurrency(totalBaseAmount)}</span>
+                  <span className="font-mono font-bold text-stone-900">{formatCurrency(totalBaseAmount)}</span>
                 </div>
                 {totalDiscountAmount > 0 && (
                   <div className="flex justify-between text-purple-700 font-semibold">
-                    <span>Total Individual Head Discounts:</span>
+                    <span>Authorized Concessions / Head Discounts:</span>
                     <span className="font-mono">- {formatCurrency(totalDiscountAmount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-black text-stone-900 pt-1.5 border-t border-dashed border-stone-200">
-                  <span>Net Demand Payable:</span>
-                  <span className="text-blue-600 font-mono">{formatCurrency(netPayableAmount)}</span>
+                <div className="flex justify-between items-center text-[11px] font-black text-stone-900 pt-1 border-t border-dashed border-stone-300">
+                  <span className="uppercase">Net Balance Due / Payable:</span>
+                  <span className="text-blue-700 font-mono text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    {formatCurrency(netPayableAmount)}
+                  </span>
+                </div>
+                <div className="text-[8.5px] italic text-stone-600 pt-0.5 border-t border-stone-100">
+                  <strong>Amount in words:</strong> {convertAmountToWords(netPayableAmount)}
+                </div>
+              </div>
+
+              {/* Bank & Payment Information */}
+              <div className="grid grid-cols-2 gap-2 text-[8px] bg-blue-50/40 p-2 rounded-xl border border-blue-100 text-stone-600">
+                <div>
+                  <strong className="text-stone-900 block font-bold text-[8.5px]">🏦 Bank Transfer / Cheque Info:</strong>
+                  <p>Bank: <strong>HDFC Bank Ltd</strong> • A/C: <strong>50200048192831</strong></p>
+                  <p>IFSC: <strong>HDFC0001234</strong> • Branch: <strong>Sant Nagar Branch</strong></p>
+                </div>
+                <div>
+                  <strong className="text-stone-900 block font-bold text-[8.5px]">📱 UPI / Online Portal:</strong>
+                  <p>UPI ID: <strong>crayonbox.edu@hdfcbank</strong></p>
+                  <p>Payable via Mobile Parent App or School Reception Counter.</p>
                 </div>
               </div>
 
               {/* Signatory & Notes */}
-              <div className="flex justify-between items-end pt-1 text-[9.5px] text-stone-500">
-                <div>
-                  <p>Authorized Signatory: <strong className="text-stone-800">Accounts Department</strong></p>
-                  <p className="italic text-stone-400">Payable online via parent portal or at reception fee counter.</p>
+              <div className="pt-2 flex justify-between items-end text-[8.5px] text-stone-500 border-t border-stone-200">
+                <div className="space-y-0.5">
+                  <p className="italic text-stone-400">* Cheques subject to realization. Quote Invoice No in all transfers.</p>
+                  <p className="font-mono text-[7.5px] text-stone-400">Due Date: {dueDate}</p>
                 </div>
-                <div className="text-right font-mono text-[9px] text-stone-400">
-                  DUE: {dueDate}
+                <div className="text-center">
+                  <div className="h-6 border-b border-stone-400 w-28 mb-0.5"></div>
+                  <strong className="text-stone-800 block text-[8.5px]">Accounts Officer / Principal</strong>
+                  <span className="text-[7.5px] text-stone-400">Authorized Signature &amp; Stamp</span>
                 </div>
               </div>
             </div>
@@ -1913,6 +2167,165 @@ export default function GenerateInvoicesPage() {
                   {isProcessing ? "Generating Invoices..." : `Confirm & Generate (${selectedCount}) Invoices`}
                 </button>
               </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 BROWSE STUDENT DIRECTORY MODAL */}
+      {browseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-4xl rounded-3xl border border-stone-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-6 bg-stone-900 text-white flex items-center justify-between">
+              <div>
+                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-blue-500/30">
+                  Student Master Directory
+                </span>
+                <h3 className="text-lg font-black text-white mt-1">Select Student for Single Invoice</h3>
+                <p className="text-xs text-stone-300">
+                  Browse and pick any student to immediately populate their fee structure and invoice line items.
+                </p>
+              </div>
+              <button 
+                onClick={() => setBrowseModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-stone-800 text-stone-400 hover:text-white flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="p-4 bg-stone-50 border-b border-stone-200 flex flex-col sm:flex-row items-center gap-3">
+              <div className="w-full sm:w-64">
+                <select
+                  value={browseClassFilter}
+                  onChange={(e) => {
+                    setBrowseClassFilter(e.target.value);
+                    setIndividualClass(e.target.value);
+                  }}
+                  className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-800"
+                >
+                  <option value="All">All Classes ({individualClassStudents.length} Students)</option>
+                  {['Pre-Nursery', 'Nursery', 'LKG', 'UKG', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filter by Student Name, Admission Number, Parent..."
+                  value={browseSearchQuery}
+                  onChange={(e) => setBrowseSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-stone-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Student Table */}
+            <div className="p-4 overflow-y-auto flex-1 text-xs">
+              {(() => {
+                const filtered = individualClassStudents.filter(s => {
+                  if (browseClassFilter !== 'All' && s.class_name !== browseClassFilter) return false;
+                  if (!browseSearchQuery.trim()) return true;
+                  const q = browseSearchQuery.toLowerCase();
+                  return (
+                    s.name?.toLowerCase().includes(q) ||
+                    s.admission_no?.toLowerCase().includes(q) ||
+                    s.parent_name?.toLowerCase().includes(q) ||
+                    s.class_name?.toLowerCase().includes(q)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-12 text-center text-stone-400 space-y-2">
+                      <User className="w-8 h-8 mx-auto text-stone-300" />
+                      <p className="font-bold">No students found matching your filter.</p>
+                      <p className="text-[11px]">Try switching classes or clearing search query.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider text-[10px] border-b border-stone-200">
+                        <tr>
+                          <th className="py-3 px-4">Student Name</th>
+                          <th className="py-3 px-4">Admission #</th>
+                          <th className="py-3 px-4">Class & Section</th>
+                          <th className="py-3 px-4">Category / Concession</th>
+                          <th className="py-3 px-4 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 text-stone-700">
+                        {filtered.map((st) => (
+                          <tr key={st.id} className="hover:bg-blue-50/50 transition">
+                            <td className="py-3 px-4 font-bold text-stone-900 flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 font-black text-xs flex items-center justify-center">
+                                {st.name.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="block font-bold">{st.name}</span>
+                                {st.isEws && <span className="text-[9px] text-emerald-700 font-black">EWS 100% Free Quota</span>}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-mono font-bold text-stone-600">
+                              #{st.admission_no}
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-stone-800">
+                              {st.class_name} {st.section_name ? `(${st.section_name})` : ''}
+                            </td>
+                            <td className="py-3 px-4">
+                              {st.isEws ? (
+                                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                                  EWS Exempt
+                                </span>
+                              ) : st.concession_percentage > 0 ? (
+                                <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">
+                                  {st.concession_percentage}% Concession
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 text-[11px]">Regular</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleSelectStudent(st);
+                                  setBrowseModalOpen(false);
+                                }}
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                              >
+                                Select for Invoice
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+              <span className="text-stone-400 text-xs font-mono">Showing students for campus</span>
+              <button
+                type="button"
+                onClick={() => setBrowseModalOpen(false)}
+                className="px-4 py-2 bg-white hover:bg-stone-100 text-stone-700 border border-stone-200 font-bold rounded-xl text-xs"
+              >
+                Close
+              </button>
             </div>
 
           </div>

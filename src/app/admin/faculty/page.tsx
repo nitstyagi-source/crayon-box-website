@@ -7,14 +7,17 @@ import {
   Award, ShieldCheck, Edit3, Trash2, X, Check, LayoutGrid, 
   Table as TableIcon, Sparkles, BookOpen, Star, UserCheck, 
   ExternalLink, Building2, Briefcase, FileText, ChevronRight,
-  Clock, AlertCircle, ArrowRight, ShieldAlert, Heart, Activity
+  Clock, AlertCircle, ArrowRight, ShieldAlert, Heart, Activity,
+  Archive, RotateCcw, CheckCheck, UserMinus, ArrowRightLeft
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
   getFacultyList, 
   createFacultyMember, 
   updateFacultyMember, 
-  deleteFacultyMember 
+  deleteFacultyMember,
+  archiveFacultyWithHandoverAction,
+  restoreFacultyMemberAction
 } from "@/app/actions/faculty";
 import { getManagementExecutiveDashboard } from "@/app/actions/faculty-enterprise";
 import { getClasses } from "@/app/actions/classes";
@@ -247,12 +250,88 @@ export default function FacultyAdminDashboard() {
     }
   }
 
+  // Handover & Archival Modal State
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+  const [staffForHandover, setStaffForHandover] = useState<any>(null);
+  const [handoverForm, setHandoverForm] = useState({
+    reasonForLeaving: 'Resignation / Relocation',
+    lastWorkingDate: new Date().toISOString().split('T')[0],
+    replacementStaffId: '',
+    reassignHomeroom: true,
+    reassignTimetable: true,
+    reassignLessonPlans: true,
+    exitNotes: 'Archived with work handover assigned.'
+  });
+  const [isSubmittingHandover, setIsSubmittingHandover] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setFeedbackToast(msg);
+    setTimeout(() => setFeedbackToast(null), 5000);
+  };
+
+  const handleOpenHandover = (member: any) => {
+    setStaffForHandover(member);
+    const activePeers = faculty.filter(f => (f.status === 'Active' || f.status === 'ACTIVE') && f.id !== member.id);
+    const sameDeptPeer = activePeers.find(f => f.department === member.department);
+
+    setHandoverForm({
+      reasonForLeaving: 'Resignation / Relocation',
+      lastWorkingDate: new Date().toISOString().split('T')[0],
+      replacementStaffId: sameDeptPeer ? sameDeptPeer.id : (activePeers[0]?.id || ''),
+      reassignHomeroom: Boolean(member.is_class_teacher),
+      reassignTimetable: true,
+      reassignLessonPlans: true,
+      exitNotes: `Work handover from ${member.first_name} ${member.last_name} (${member.employee_id || 'Staff'}) upon departure.`
+    });
+    setIsHandoverModalOpen(true);
+  };
+
+  const handleExecuteHandover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffForHandover) return;
+
+    setIsSubmittingHandover(true);
+    const res = await archiveFacultyWithHandoverAction({
+      staffId: staffForHandover.id,
+      reasonForLeaving: handoverForm.reasonForLeaving,
+      lastWorkingDate: handoverForm.lastWorkingDate,
+      replacementStaffId: handoverForm.replacementStaffId,
+      reassignHomeroom: handoverForm.reassignHomeroom,
+      reassignTimetable: handoverForm.reassignTimetable,
+      reassignLessonPlans: handoverForm.reassignLessonPlans,
+      exitNotes: handoverForm.exitNotes
+    });
+    setIsSubmittingHandover(false);
+
+    if (res.success) {
+      setIsHandoverModalOpen(false);
+      setStaffForHandover(null);
+      showToast(res.message || 'Staff profile archived and work handed over successfully!');
+      await loadFacultyData();
+    } else {
+      alert(`Handover Failed: ${res.error}`);
+    }
+  };
+
+  const handleRestoreFaculty = async (staffId: string) => {
+    setIsLoading(true);
+    const res = await restoreFacultyMemberAction(staffId);
+    if (res.success) {
+      showToast(res.message || 'Staff member restored to active status.');
+      await loadFacultyData();
+    } else {
+      alert(`Restore Failed: ${res.error}`);
+      setIsLoading(false);
+    }
+  };
+
   async function handleDelete(id: string, name: string, empId?: string) {
-    if (!confirm(`Are you sure you want to permanently remove ${name} (${empId || 'Staff Member'}) from the staff records?\n\nThis will also remove all associated 360° dossiers (attendance, qualifications, timetable, documents).`)) return;
+    if (!confirm(`Are you sure you want to permanently delete ${name} (${empId || 'Staff Member'})?\n\nTip: Use 'Archive & Handover' instead to preserve student marks, syllabus, and audit logs.`)) return;
     setIsLoading(true);
     const res = await deleteFacultyMember(id);
     if (res.success) {
-      alert(`Staff member ${name} removed successfully.`);
+      alert(`Staff member ${name} permanently removed.`);
       await loadFacultyData();
     } else {
       alert("Failed to delete member: " + res.error);
@@ -363,6 +442,61 @@ export default function FacultyAdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Toast Notification */}
+      {feedbackToast && (
+        <div className="p-4 bg-emerald-900 text-white rounded-2xl shadow-xl flex items-center justify-between border border-emerald-700 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <Check className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-xs font-bold">{feedbackToast}</p>
+          </div>
+          <button onClick={() => setFeedbackToast(null)} className="p-1 hover:bg-emerald-800 rounded-lg text-emerald-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Top Status Switcher */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold no-scrollbar">
+        <button
+          type="button"
+          onClick={() => { setStatusFilter("Active"); }}
+          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap border shadow-2xs ${
+            statusFilter === "Active"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-emerald-200"
+              : "bg-white text-stone-700 hover:bg-stone-50 border-stone-200"
+          }`}
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Active Faculty ({faculty.filter(f => f.status === 'Active' || f.status === 'ACTIVE').length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setStatusFilter("Former"); }}
+          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap border shadow-2xs ${
+            statusFilter === "Former"
+              ? "bg-amber-600 text-white border-amber-600 shadow-amber-200"
+              : "bg-white text-stone-700 hover:bg-stone-50 border-stone-200"
+          }`}
+        >
+          <Archive className="w-4 h-4" />
+          <span>📁 Archived & Former Faculty Hub</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setStatusFilter("All"); }}
+          className={`px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap border shadow-2xs ${
+            statusFilter === "All"
+              ? "bg-slate-900 text-white border-slate-900"
+              : "bg-white text-stone-700 hover:bg-stone-50 border-stone-200"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>All Records</span>
+        </button>
+      </div>
 
       {/* Control Bar: Search, Category Tabs, Filters, View Modes */}
       <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
@@ -530,7 +664,7 @@ export default function FacultyAdminDashboard() {
                 </div>
               </div>
 
-              {/* 360° Dossier Link Button & Delete Option */}
+              {/* 360° Dossier Link Button & Archive / Restore Options */}
               <div className="flex items-center justify-between gap-2 mt-5 pt-3 border-t border-stone-100">
                 <Link
                   href={`/admin/faculty/${member.id}`}
@@ -538,14 +672,28 @@ export default function FacultyAdminDashboard() {
                 >
                   Open 360° Master File <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(member.id, `${member.first_name} ${member.last_name}`, member.employee_id)}
-                  title="Delete Staff Member"
-                  className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-200 transition-all flex items-center justify-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+
+                {member.status === 'Active' || member.status === 'ACTIVE' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenHandover(member)}
+                    title="Archive Profile & Handover Responsibilities"
+                    className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1 text-xs font-bold"
+                  >
+                    <UserMinus className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Archive</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleRestoreFaculty(member.id)}
+                    title="Restore to Active Faculty"
+                    className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1 text-xs font-bold"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Restore</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -618,14 +766,27 @@ export default function FacultyAdminDashboard() {
                         >
                           View File <ChevronRight className="w-3.5 h-3.5" />
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(member.id, `${member.first_name} ${member.last_name}`, member.employee_id)}
-                          title="Delete Staff Member"
-                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-200 transition-all flex items-center justify-center"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {member.status === 'Active' || member.status === 'ACTIVE' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenHandover(member)}
+                            title="Archive & Handover Responsibilities"
+                            className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1 text-xs font-bold px-2.5"
+                          >
+                            <UserMinus className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Archive</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreFaculty(member.id)}
+                            title="Restore to Active Faculty"
+                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1 text-xs font-bold px-2.5"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Restore</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -714,6 +875,230 @@ export default function FacultyAdminDashboard() {
                 <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 font-bold text-stone-500 text-xs">Cancel</button>
                 <button type="submit" disabled={isSaving} className="bg-stone-900 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md">
                   {isSaving ? "Saving..." : "Enroll Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Handover & Archival Modal */}
+      {isHandoverModalOpen && staffForHandover && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-stone-200 my-8 space-y-6">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <ArrowRightLeft className="w-3 h-3 text-amber-700" /> Work Reassignment & Archival
+                  </span>
+                  <span className="text-stone-400 text-xs">•</span>
+                  <span className="text-stone-500 text-xs font-bold">CBSE Audit Safe</span>
+                </div>
+                <h3 className="text-xl font-black text-stone-900">
+                  Offboard Faculty & Hand Over Work
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Archive profile and transfer classes, timetable slots, and lesson plans to a replacement teacher.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsHandoverModalOpen(false)} 
+                className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Departing Staff Dossier Pill */}
+            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                  {staffForHandover.first_name?.[0]}{staffForHandover.last_name?.[0]}
+                </div>
+                <div>
+                  <h4 className="font-bold text-stone-900 text-sm">
+                    {staffForHandover.first_name} {staffForHandover.last_name}
+                  </h4>
+                  <p className="text-xs text-stone-500 font-medium">
+                    {staffForHandover.designation || 'Teacher'} • {staffForHandover.department || 'Academics'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-mono font-bold bg-white text-stone-700 px-1.5 py-0.5 rounded border border-stone-200">
+                      {staffForHandover.employee_id || 'ID N/A'}
+                    </span>
+                    {staffForHandover.is_class_teacher && staffForHandover.class_teacher_for && (
+                      <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                        Class In-Charge: {staffForHandover.class_teacher_for}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                Currently Active
+              </span>
+            </div>
+
+            <form onSubmit={handleExecuteHandover} className="space-y-4 text-xs">
+              
+              {/* Replacement Teacher Selector */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-stone-800 block">
+                  Assign Replacement / Handover Faculty Member *
+                </label>
+                <select
+                  required
+                  value={handoverForm.replacementStaffId}
+                  onChange={e => setHandoverForm({ ...handoverForm, replacementStaffId: e.target.value })}
+                  className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                >
+                  <option value="">-- Select Replacement Teacher --</option>
+                  {faculty
+                    .filter(f => (f.status === 'Active' || f.status === 'ACTIVE') && f.id !== staffForHandover.id)
+                    .map(peer => (
+                      <option key={peer.id} value={peer.id}>
+                        {peer.first_name} {peer.last_name} ({peer.employee_id || 'ID'}) — {peer.department || 'General'} ({peer.designation || 'Teacher'})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-stone-400">
+                  Select the active colleague taking over ongoing academic and homeroom duties.
+                </p>
+              </div>
+
+              {/* Work Handover Checklist */}
+              <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-2.5">
+                <h5 className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                  <CheckCheck className="w-4 h-4 text-blue-600" /> Handover & Work Reassignment Checklist
+                </h5>
+
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignHomeroom}
+                      disabled={!staffForHandover.is_class_teacher}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignHomeroom: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Class Teacher / Homeroom Role {staffForHandover.class_teacher_for ? `(${staffForHandover.class_teacher_for})` : ''}
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Transfers homeroom leadership and student roster monitoring to the replacement teacher.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignTimetable}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignTimetable: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Weekly Timetable & Period Allocations
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Updates all active schedule slots in master timetable to the replacement teacher.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 text-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={handoverForm.reassignLessonPlans}
+                      onChange={e => setHandoverForm({ ...handoverForm, reassignLessonPlans: e.target.checked })}
+                      className="rounded text-indigo-600 mt-0.5"
+                    />
+                    <div>
+                      <span className="font-bold block">
+                        Reassign Active Lesson Plans & Syllabus Tracking
+                      </span>
+                      <span className="text-[11px] text-stone-500 block">
+                        Hands over planned and in-progress curriculum units so classes continue seamlessly.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Departure Reason & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Reason for Leaving *</label>
+                  <select
+                    value={handoverForm.reasonForLeaving}
+                    onChange={e => setHandoverForm({ ...handoverForm, reasonForLeaving: e.target.value })}
+                    className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                  >
+                    <option value="Resignation / Relocation">Resignation / Relocation</option>
+                    <option value="Career Transition">Career Transition</option>
+                    <option value="Retirement">Superannuation / Retirement</option>
+                    <option value="Transfer to Sister Campus">Transfer to Sister Campus</option>
+                    <option value="Medical Sabbatical">Medical Sabbatical</option>
+                    <option value="Contract Completion">Contract Completion</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 block mb-1">Last Working Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={handoverForm.lastWorkingDate}
+                    onChange={e => setHandoverForm({ ...handoverForm, lastWorkingDate: e.target.value })}
+                    className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">Exit & Handover Notes</label>
+                <textarea
+                  rows={2}
+                  value={handoverForm.exitNotes}
+                  onChange={e => setHandoverForm({ ...handoverForm, exitNotes: e.target.value })}
+                  placeholder="Additional handover details, relieving remarks, or asset clearances..."
+                  className="w-full bg-white border border-stone-300 p-2.5 rounded-xl font-medium"
+                />
+              </div>
+
+              {/* CBSE Audit Compliance Guarantee Notice */}
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1.5">
+                <div className="flex items-center gap-2 font-black text-xs text-emerald-800">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> CBSE Audit Compliance & Data Integrity Guarantee
+                </div>
+                <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-emerald-900">
+                  <li><strong>Student Marks & Results</strong>: Question papers, gradebooks, and student results remain 100% intact.</li>
+                  <li><strong>Auditable Records</strong>: Historical attendance, qualifications, and payroll ledgers are preserved for statutory inspection.</li>
+                  <li><strong>Access & Visibility</strong>: Profile is hidden from the public website and Teacher Portal login is immediately deactivated.</li>
+                  <li><strong>Reversible</strong>: Profile can be restored to Active status at any time with 1-click.</li>
+                </ul>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setIsHandoverModalOpen(false)}
+                  className="px-4 py-2.5 font-bold text-stone-600 text-xs hover:bg-stone-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingHandover}
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5"
+                >
+                  {isSubmittingHandover ? 'Archiving & Reassigning...' : 'Archive Profile & Execute Handover'}
                 </button>
               </div>
             </form>

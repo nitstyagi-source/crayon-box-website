@@ -2,10 +2,22 @@
 
 import React from "react";
 
-export type WritingGuideType = "none" | "english_4lines" | "hindi_2lines" | "math_grid" | "math_column";
+export type WritingGuideType = 
+  | "none" 
+  | "english_4lines" 
+  | "english_4_line"
+  | "hindi_5lines" 
+  | "hindi_5_line"
+  | "hindi_2lines" 
+  | "hindi_2_line"
+  | "math_grid" 
+  | "maths_square_boxes"
+  | "blank_drawing_box"
+  | "blank_box"
+  | "math_column";
 
 interface WritingGuideRendererProps {
-  type?: WritingGuideType;
+  type?: WritingGuideType | string;
   rows?: number;
   mathOp?: "+" | "-" | "×" | "÷";
   num1?: string;
@@ -21,28 +33,28 @@ export default function WritingGuideRenderer({
 }: WritingGuideRendererProps) {
   if (!type || type === "none") return null;
 
-  const rowCount = Math.max(1, Math.min(6, rows || 2));
+  const rowCount = Math.max(1, Math.min(20, rows || 2));
 
-  // 1. ENGLISH 4-LINES (Red - Sky - Sky - Red)
-  if (type === "english_4lines") {
+  // 1. 🇬🇧 ENGLISH 4-LINES (Red - Sky - Sky - Red)
+  if (type === "english_4lines" || type === "english_4_line") {
     return (
-      <div className="space-y-3 pt-2 my-2 select-none print:my-1.5">
+      <div className="space-y-3 pt-2 my-2 select-none print:my-2">
         {Array.from({ length: rowCount }).map((_, idx) => (
           <div 
             key={idx} 
             className="w-full bg-white border-y border-red-500 relative flex flex-col justify-between"
             style={{ height: "36px" }}
           >
-            {/* Top Red Line */}
+            {/* Top Ascender Red Line */}
             <div className="w-full border-t border-red-500" />
             
-            {/* Middle Sky Blue Line 1 */}
+            {/* Midline Sky Blue 1 */}
             <div className="w-full border-t border-sky-400 border-dashed opacity-80" />
             
-            {/* Middle Sky Blue Line 2 */}
+            {/* Baseline Sky Blue 2 */}
             <div className="w-full border-t border-sky-400 border-dashed opacity-80" />
             
-            {/* Bottom Red Line */}
+            {/* Bottom Descender Red Line */}
             <div className="w-full border-b border-red-500" />
           </div>
         ))}
@@ -50,8 +62,38 @@ export default function WritingGuideRenderer({
     );
   }
 
-  // 2. HINDI 2-LINES / HEADLINE GUIDE (Hindi Ruled Lines)
-  if (type === "hindi_2lines") {
+  // 2. 🇮🇳 HINDI 5-LINES (Top Boundary Red - 3 Inner Blue Lines - Bottom Boundary Red)
+  if (type === "hindi_5lines" || type === "hindi_5_line") {
+    return (
+      <div className="space-y-3.5 pt-2 my-2 select-none print:my-2">
+        {Array.from({ length: rowCount }).map((_, idx) => (
+          <div 
+            key={idx} 
+            className="w-full bg-white border-y border-red-500 relative flex flex-col justify-between"
+            style={{ height: "42px" }}
+          >
+            {/* Line 1: Top Matra Boundary (Red) */}
+            <div className="w-full border-t border-red-500" />
+            
+            {/* Line 2: Shirorekha / Head line (Blue) */}
+            <div className="w-full border-t border-blue-600 opacity-90" />
+            
+            {/* Line 3: Body Middle Guide (Blue) */}
+            <div className="w-full border-t border-blue-400 border-dashed opacity-75" />
+            
+            {/* Line 4: Letter Baseline (Blue) */}
+            <div className="w-full border-t border-blue-600 opacity-90" />
+            
+            {/* Line 5: Bottom Matra Boundary (Red) */}
+            <div className="w-full border-b border-red-500" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // 3. 🇮🇳 HINDI 2-LINES / HEADLINE GUIDE (Shirorekha Headline + Base Line)
+  if (type === "hindi_2lines" || type === "hindi_2_line") {
     return (
       <div className="space-y-4 pt-2 my-2 select-none print:my-2">
         {Array.from({ length: rowCount }).map((_, idx) => (
@@ -74,18 +116,18 @@ export default function WritingGuideRenderer({
     );
   }
 
-  // 3. MATH SQUARE GRID (Mathematics Box Notebook)
-  if (type === "math_grid") {
+  // 4. 📐 MATH SQUARE BOXES / GRID (Arithmetic Box Notebook)
+  if (type === "math_grid" || type === "maths_square_boxes") {
     const gridCols = 10;
     return (
       <div className="pt-2 my-2 select-none overflow-x-auto print:my-1.5">
-        <div className="inline-block border border-slate-400 bg-white">
-          {Array.from({ length: rowCount + 1 }).map((_, rIdx) => (
+        <div className="inline-block border border-slate-400 bg-white shadow-xs">
+          {Array.from({ length: rowCount }).map((_, rIdx) => (
             <div key={rIdx} className="flex">
               {Array.from({ length: gridCols }).map((_, cIdx) => (
                 <div
                   key={cIdx}
-                  className="w-8 h-8 sm:w-9 sm:h-9 border-r border-b border-slate-300 flex items-center justify-center text-xs font-mono font-bold text-slate-400"
+                  className="w-7 h-7 sm:w-8 sm:h-8 border-r border-b border-slate-300 flex items-center justify-center text-xs font-mono font-bold text-slate-400"
                 />
               ))}
             </div>
@@ -95,7 +137,21 @@ export default function WritingGuideRenderer({
     );
   }
 
-  // 4. MATH ARITHMETIC COLUMN (Place Value Grid)
+  // 5. 🎨 BLANK DRAWING / WORKING BOX
+  if (type === "blank_drawing_box" || type === "blank_box") {
+    return (
+      <div className="pt-2 my-2 select-none print:my-1.5">
+        <div 
+          className="w-full border-2 border-dashed border-stone-300 rounded-xl bg-stone-50/40 flex items-center justify-center text-stone-400 text-xs italic"
+          style={{ height: `${Math.max(40, rowCount * 28)}px` }}
+        >
+          <span>[ Space for Drawing / Geometry Working / Freeform Answer ]</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 6. 🧮 MATH ARITHMETIC COLUMN (Place Value Grid H T O)
   if (type === "math_column") {
     const digits1 = (num1 || "458").split("");
     const digits2 = (num2 || "273").split("");

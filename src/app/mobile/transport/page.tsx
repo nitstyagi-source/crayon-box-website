@@ -7,6 +7,7 @@ import {
   CheckCircle2, Clock, ShieldCheck, AlertCircle, RefreshCw
 } from "lucide-react";
 import { useMobileAuth } from "@/components/mobile/MobileAuthProvider";
+import GoogleMapsVehicleTracker from "@/components/transport/GoogleMapsVehicleTracker";
 
 export default function MobileTransportPage() {
   const { activeChild } = useMobileAuth();
@@ -47,14 +48,19 @@ export default function MobileTransportPage() {
               <Bus className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] text-amber-300 uppercase font-bold tracking-wider">Bus No. 04</span>
-              <h3 className="font-bold text-sm text-white">UP-16-CB-2026</h3>
-              <p className="text-xs text-slate-300">Driver: Ramesh Yadav</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-amber-300 uppercase font-bold tracking-wider">Bus No. 01</span>
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                  ● Driver Phone GPS
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-white">DL-1VA-8921 (Tata Starbus)</h3>
+              <p className="text-xs text-slate-300">Driver: Amit Singh (+91 98765 43210)</p>
             </div>
           </div>
 
           <a 
-            href="tel:+919876500000"
+            href="tel:+919876543210"
             className="w-10 h-10 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-sm transition-all"
             title="Call Driver"
           >
@@ -66,18 +72,42 @@ export default function MobileTransportPage() {
         <div className="grid grid-cols-2 gap-2 pt-1">
           <div className="bg-white/10 rounded-2xl p-3 border border-white/10">
             <span className="text-[10px] uppercase font-bold text-slate-300">Next Stop ETA</span>
-            <div className="text-lg font-bold text-amber-300 mt-0.5">12 Mins</div>
-            <span className="text-[10px] text-slate-300">Speed: 38 km/h</span>
+            <div className="text-lg font-bold text-amber-300 mt-0.5">4 Mins</div>
+            <span className="text-[10px] text-slate-300">Speed: 34 km/h</span>
           </div>
 
           <div className="bg-white/10 rounded-2xl p-3 border border-white/10">
             <span className="text-[10px] uppercase font-bold text-slate-300">Boarding Status</span>
             <div className="text-xs font-bold text-emerald-400 mt-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Boarded at 08:05 AM
+              <CheckCircle2 className="w-3.5 h-3.5" /> En Route to Stop
             </div>
-            <span className="text-[10px] text-slate-300">Seat #12 Verified</span>
+            <span className="text-[10px] text-slate-300">18 Students Onboard</span>
           </div>
         </div>
+      </div>
+
+      {/* 🗺️ GOOGLE MAPS LIVE VEHICLE TRACKER */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Live Google Maps Transit View
+        </h3>
+        <GoogleMapsVehicleTracker
+          bus={{
+            bus_number: "Bus 01",
+            registration_number: "DL-1VA-8921",
+            driver_name: "Amit Singh",
+            driver_phone: "+91 98765 43210",
+            current_lat: 28.7214,
+            current_lng: 77.2012,
+            current_speed_kmh: 34,
+            current_location_name: "Sant Nagar Main Market",
+            status: "Running",
+            route_name: "Route R-05 — Burari & Sant Nagar"
+          }}
+          height="320px"
+          interactive={true}
+          showControls={false}
+        />
       </div>
 
       {/* Live Roadmap Graphic */}

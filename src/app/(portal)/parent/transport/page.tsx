@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useSiblingContext } from "@/components/providers/SiblingProvider";
 import { 
   Bus, Phone, MapPin, AlertCircle, ShieldCheck, 
-  CheckCircle2, Clock, Navigation, Bell, Settings
+  CheckCircle2, Clock, Navigation, Bell, Settings, Smartphone
 } from "lucide-react";
 import { getChildLiveTransportTracking } from "@/app/actions/transport";
+import GoogleMapsVehicleTracker from "@/components/transport/GoogleMapsVehicleTracker";
 
 export default function ParentTransportPortal() {
   const { activeSibling } = useSiblingContext();
@@ -163,7 +164,7 @@ export default function ParentTransportPortal() {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
-                  🟢 Live Bus Status
+                  🟢 Live Bus GPS Status (Driver Phone Tracking)
                 </span>
                 <strong className="text-stone-900 font-bold text-sm">
                   Bus is on route near {bus.current_location_name}
@@ -179,6 +180,37 @@ export default function ParentTransportPortal() {
               <strong className="text-lg font-black text-purple-900 font-mono">07:28 AM</strong>
               <span className="text-[10px] text-emerald-700 font-bold block">(~4 mins away)</span>
             </div>
+          </div>
+
+          {/* 🗺️ INTERACTIVE GOOGLE MAPS VEHICLE TRACKER */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <strong className="text-stone-900 font-bold flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-rose-500" /> Live Google Maps Tracking: {student.pickup_stop_name}
+              </strong>
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Real-time Satellite
+              </span>
+            </div>
+            <GoogleMapsVehicleTracker
+              bus={{
+                bus_number: bus.bus_number || "Bus 01",
+                registration_number: bus.registration_number || "DL-1VA-8921",
+                driver_name: bus.driver_name || "Amit Singh",
+                driver_phone: bus.driver_phone || "+91 98765 43210",
+                attendant_name: bus.attendant_name || "Sunita Devi",
+                current_lat: Number(bus.current_lat || 28.7214),
+                current_lng: Number(bus.current_lng || 77.2012),
+                current_speed_kmh: Number(bus.current_speed_kmh || 32),
+                current_location_name: bus.current_location_name || "Sant Nagar Main Market",
+                status: bus.status || "Running",
+                route_name: student.route_name
+              }}
+              targetStopName={student.pickup_stop_name}
+              height="380px"
+              interactive={true}
+              showControls={true}
+            />
           </div>
 
           {/* Interactive Route Milestones Timeline */}

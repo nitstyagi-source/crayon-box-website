@@ -1,141 +1,170 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
-  HeartPulse, ShieldAlert, AlertTriangle, CheckCircle2,
-  Phone, Plus, Download, ArrowRight, Activity, Pill
+  HeartPulse, Activity, Thermometer, ShieldCheck,
+  RefreshCw, CheckCircle2, AlertCircle, Plus, FileText
 } from 'lucide-react';
-import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { useInstitution } from '@/components/providers/InstitutionContext';
+import { getStudentHealthMedicalDashboardAction } from '@/app/actions/safety-health-actions';
 
-export default function CampusHealthClinicPage() {
-  const [selectedInst, setSelectedInst] = useState<string>('CBS');
+export default function StudentHealthInfirmaryPage() {
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  const criticalAllergyAlerts = [
-    {
-      studentName: 'Aarav Sharma (Grade 4B - CBS)',
-      condition: 'Severe Peanut Allergy (Anaphylaxis Risk)',
-      actionProtocol: 'Administer EpiPen immediately + Call Parent & Emergency 108',
-      epipenLocation: 'Infirmary Emergency Cabinet #2 + Classroom Emergency Kit',
-      contactParent: 'Rajesh Sharma • 📞 +91 98100 12345',
-    },
-    {
-      studentName: 'Vihaan Gupta (Grade 7A - AS)',
-      condition: 'Asthma (Triggered by dust/running)',
-      actionProtocol: 'Provide Inhaler (Ventolin 2 puffs) + Rest 15 mins',
-      epipenLocation: 'Infirmary Emergency Cabinet #1',
-      contactParent: 'Amit Gupta • 📞 +91 98111 55667',
-    },
-  ];
+  const [logs, setLogs] = useState<any[]>([]);
+  const [counts, setCounts] = useState({ totalVisits: 0, resolvedVisits: 0, referredVisits: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const todayClinicVisits = [
-    {
-      id: 'MED-2026-112',
-      time: '10:15 AM',
-      studentName: 'Aditi Patel (Grade 4B)',
-      symptoms: 'Mild fever (99.8°F) & Headache',
-      treatment: 'Paracetamol 250mg administered with parent verbal consent + Temperature re-checked (98.6°F)',
-      attendingNurse: 'Nurse Rita D\'Souza',
-      parentInformed: true,
-      status: 'RETURNED_TO_CLASS',
-    },
-    {
-      id: 'MED-2026-113',
-      time: '11:45 AM',
-      studentName: 'Rohan Verma (Grade 9A)',
-      symptoms: 'Minor knee scrape during basketball practice',
-      treatment: 'Betadine antiseptic dressing applied + Ice pack for 10 mins',
-      attendingNurse: 'Nurse Rita D\'Souza',
-      parentInformed: false,
-      status: 'RESOLVED',
-    },
-  ];
+  const fetchHealthLogs = async () => {
+    setIsLoading(true);
+    const res = await getStudentHealthMedicalDashboardAction();
+    if (res.success) {
+      setLogs(res.logs || []);
+      setCounts(res.counts || { totalVisits: 0, resolvedVisits: 0, referredVisits: 0 });
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchHealthLogs();
+  }, []);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
-              Emergency Infirmary
+            <span className="bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-rose-500/30 flex items-center gap-1.5">
+              <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
+              Campus Health & First-Aid Infirmary
             </span>
-            <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Campus Medical Desk</span>
+            <span className="text-slate-600 text-xs">•</span>
+            <span className="text-indigo-300 text-xs font-semibold">
+              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
+            </span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Health Clinic & Emergency Medical Protocols</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">
-            Daily student infirmary visits, medication logs, and critical allergy emergency response protocols.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <HeartPulse className="w-8 h-8 text-rose-400" />
+            Student Health & Infirmary Clinical Logs
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 font-medium">
+            Campus clinic visits, first-aid administration, vital temperature monitoring, and parent emergency alerts.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition border border-stone-200"
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link href="/admin/incidents">
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
+              leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-rose-400" />}
+            >
+              Safeguarding Vault
+            </Button>
+          </Link>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={fetchHealthLogs}
+            isLoading={isLoading}
+            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            <Download className="w-3.5 h-3.5" />
-            Export Health Register
-          </button>
+            Refresh Health Logs
+          </Button>
         </div>
       </div>
 
-      {/* Critical Allergy Emergency Alerts */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-rose-200 shadow-xs space-y-4">
-        <h2 className="text-base font-black text-rose-900 flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-rose-600" /> Critical Medical & Allergy Emergency Protocols ({criticalAllergyAlerts.length})
-        </h2>
+      {/* 🌟 TELEMATICS COUNTERS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Infirmary Visits</span>
+          <span className="text-3xl font-black text-slate-900 mt-1 block">{counts.totalVisits}</span>
+          <span className="text-[11px] text-slate-500 font-semibold">Clinical Encounters</span>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {criticalAllergyAlerts.map((alert, i) => (
-            <div key={i} className="p-5 bg-rose-50/60 rounded-2xl border border-rose-200 space-y-2 text-xs">
-              <div className="flex justify-between items-start">
-                <h3 className="font-black text-stone-900 text-sm">{alert.studentName}</h3>
-                <span className="px-2 py-0.5 bg-rose-600 text-white font-black text-[10px] rounded-md uppercase">
-                  HIGH ALERT
-                </span>
-              </div>
-              <p className="font-bold text-rose-900">⚠️ {alert.condition}</p>
-              <p className="text-stone-700 font-medium">📋 <strong>Action:</strong> {alert.actionProtocol}</p>
-              <p className="text-stone-700 font-semibold">📍 <strong>Kit Location:</strong> {alert.epipenLocation}</p>
-              <p className="text-stone-500 font-semibold pt-1 border-t border-rose-200">{alert.contactParent}</p>
-            </div>
-          ))}
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Resolved on Campus</span>
+          <span className="text-3xl font-black text-emerald-600 mt-1 block">{counts.resolvedVisits}</span>
+          <span className="text-[11px] text-emerald-700 font-bold">First-Aid & Rest Treated</span>
+        </div>
+
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Hospital Referrals</span>
+          <span className="text-3xl font-black text-rose-600 mt-1 block">{counts.referredVisits}</span>
+          <span className="text-[11px] text-rose-700 font-bold">External Emergency Referrals</span>
         </div>
       </div>
 
-      {/* Daily Infirmary Visits Table */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-4">
-        <h2 className="text-base font-black text-stone-900 flex items-center gap-2">
-          <HeartPulse className="w-5 h-5 text-rose-600" /> Today's Infirmary Log & Medical Treatment Register
-        </h2>
+      {/* 🌟 INFIRMARY LOGS TABLE */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-extrabold text-slate-900 text-sm">
+              Clinical Encounter Registry ({logs.length})
+            </h3>
+            <p className="text-xs text-slate-400">
+              Audit log of medical treatments, vitals, and parent notifications.
+            </p>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-stone-50 text-stone-400 uppercase font-black tracking-wider border-b border-stone-200">
-              <tr>
-                <th className="p-3.5">Visit ID & Time</th>
-                <th className="p-3.5">Student Account</th>
-                <th className="p-3.5">Symptoms / Complaint</th>
-                <th className="p-3.5">Clinical Treatment Given</th>
-                <th className="p-3.5">Attending Nurse</th>
-                <th className="p-3.5 text-right">Status</th>
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th className="py-3 px-4">Student & Class</th>
+                <th className="py-3 px-4">Symptoms & Complaint</th>
+                <th className="py-3 px-4">Diagnosis</th>
+                <th className="py-3 px-4">Treatment Administered</th>
+                <th className="py-3 px-4">Vitals / Temp</th>
+                <th className="py-3 px-4">Attending Nurse</th>
+                <th className="py-3 px-4 text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
-              {todayClinicVisits.map((v) => (
-                <tr key={v.id} className="hover:bg-slate-50/60 transition">
-                  <td className="p-3.5">
-                    <span className="font-mono font-bold text-stone-900 block">{v.id}</span>
-                    <span className="text-stone-400 text-[10px]">{v.time}</span>
+            <tbody className="divide-y divide-slate-100">
+              {logs.map((log) => (
+                <tr key={log.id} className="hover:bg-slate-50 transition">
+                  <td className="py-3.5 px-4">
+                    <strong className="text-slate-900 block font-bold">{log.student_name}</strong>
+                    <span className="text-[10px] font-mono text-indigo-600 font-bold">{log.class_name} ({log.admission_no})</span>
                   </td>
-                  <td className="p-3.5 font-bold text-stone-900">{v.studentName}</td>
-                  <td className="p-3.5 font-semibold text-rose-800">{v.symptoms}</td>
-                  <td className="p-3.5 text-stone-800 max-w-[280px]">{v.treatment}</td>
-                  <td className="p-3.5 text-stone-600 font-medium">{v.attendingNurse}</td>
-                  <td className="p-3.5 text-right">
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-black rounded-lg text-[10px] uppercase">
-                      {v.status.replace(/_/g, ' ')}
+
+                  <td className="py-3.5 px-4 text-slate-700 font-medium max-w-xs">
+                    {log.symptoms}
+                  </td>
+
+                  <td className="py-3.5 px-4">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200 inline-block">
+                      {log.diagnosis}
+                    </span>
+                  </td>
+
+                  <td className="py-3.5 px-4 text-slate-800 text-xs">
+                    <div>{log.action_taken}</div>
+                    {log.medication_administered && (
+                      <span className="text-[10px] text-emerald-700 font-bold block">Med: {log.medication_administered}</span>
+                    )}
+                  </td>
+
+                  <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                    {log.temperature ? `${log.temperature}°F` : '98.4°F'}
+                  </td>
+
+                  <td className="py-3.5 px-4 text-slate-600">
+                    {log.logged_by_name}
+                  </td>
+
+                  <td className="py-3.5 px-4 text-right">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                      ✓ {log.status}
                     </span>
                   </td>
                 </tr>

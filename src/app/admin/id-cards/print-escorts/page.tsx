@@ -7,6 +7,7 @@ import {
   Printer, ArrowLeft, User, QrCode, ShieldCheck, Phone, Sparkles, Shield
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getStudentsWithAllEscorts } from "@/app/actions/id-cards";
 
 export default function EscortCardBatchPrintPage() {
@@ -19,6 +20,7 @@ export default function EscortCardBatchPrintPage() {
 
 function EscortCardBatchPrintContent() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const searchParams = useSearchParams();
   const classFilter = searchParams.get("class") || "All Classes";
 
@@ -119,11 +121,13 @@ function EscortCardBatchPrintContent() {
                   <div className="w-full bg-linear-to-r from-purple-950 via-indigo-950 to-purple-950 text-white px-[2mm] pt-[2mm] pb-[1.5mm] relative shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[6pt] shadow-xs shrink-0">
-                          CBS
+                        <div className="w-[5.5mm] h-[5.5mm] rounded-[1mm] bg-linear-to-br from-amber-300 via-amber-400 to-amber-600 text-stone-950 flex items-center justify-center font-black text-[5.5pt] shadow-xs shrink-0">
+                          {selectedInstitutionObj?.code || 'CBS'}
                         </div>
                         <div className="text-left leading-none">
-                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight">Crayon Box</h3>
+                          <h3 className="font-black text-[6.8pt] text-white uppercase tracking-tight truncate max-w-[28mm]">
+                            {selectedInstitutionObj?.shortName || selectedInstitutionObj?.name || 'School Name'}
+                          </h3>
                           <p className="text-[4.2pt] text-amber-300 font-bold uppercase tracking-wider">Escort Pass</p>
                         </div>
                       </div>

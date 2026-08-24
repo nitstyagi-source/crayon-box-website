@@ -11,6 +11,8 @@ import {
   Maximize2, Minimize2, Grid, Hash, AlignJustify
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
+import { printIsolatedElement } from "@/lib/printUtils";
 import { 
   getAcademicSubjects, getSubjectFullSyllabus,
   getQuestionBank, saveQuestionBankItem, deleteQuestionBankItem,
@@ -67,10 +69,12 @@ const ALL_CLASSES = [
 
 export default function QuestionPaperGeneratorPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"generator" | "worksheets" | "bank">("generator");
   const [selectedClass, setSelectedClass] = useState("Grade 5");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
   const [selectedTeacher, setSelectedTeacher] = useState("All");
+  const [myPapersOnly, setMyPapersOnly] = useState(false);
   const [teacherList, setTeacherList] = useState<any[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -292,9 +296,16 @@ export default function QuestionPaperGeneratorPage() {
         selectedTeacher !== "All" ? selectedTeacher : undefined
       );
       if (res.success && res.data) {
-        setGeneratedPapers(res.data);
-        if (res.data.length > 0) {
-          setActivePreviewPaper(res.data[0]);
+        let papers = res.data;
+        if (myPapersOnly && selectedTeacher !== "All") {
+          papers = papers.filter((p: any) => 
+            p.created_by?.toLowerCase().includes(selectedTeacher.toLowerCase()) ||
+            p.academic_subjects?.teacher_name?.toLowerCase().includes(selectedTeacher.toLowerCase())
+          );
+        }
+        setGeneratedPapers(papers);
+        if (papers.length > 0) {
+          setActivePreviewPaper(papers[0]);
         } else {
           setActivePreviewPaper(null);
         }
@@ -672,6 +683,36 @@ export default function QuestionPaperGeneratorPage() {
     }
   }
 
+  async function handleDuplicatePaper(paper: any) {
+    if (!paper) return;
+    if (!confirm(`Duplicate "${paper.exam_title}" as a new editable copy?`)) return;
+    setIsSaving(true);
+    try {
+      const res = await saveGeneratedPaper({
+        campus_id: activeCampusId,
+        academic_session: selectedSession,
+        class_name: paper.class_name,
+        subject_id: paper.subject_id,
+        exam_title: `${paper.exam_title} (Copy)`,
+        max_marks: Number(paper.max_marks || 80),
+        duration_minutes: Number(paper.duration_minutes || 180),
+        general_instructions: paper.general_instructions || [],
+        sections: paper.sections || [],
+        status: "Draft",
+        created_by: selectedTeacher !== "All" ? selectedTeacher : (paper.created_by || "Faculty")
+      });
+      if (res.success) {
+        alert("🎉 Document duplicated successfully as a new draft!");
+        await loadGeneratedPapers();
+        if (res.data) setActivePreviewPaper(res.data);
+      } else {
+        alert("Error duplicating document: " + res.error);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function handleDeletePaper(id: string) {
     if (!confirm("Delete this generated paper/worksheet?")) return;
     const res = await deleteGeneratedPaper(id);
@@ -682,7 +723,11 @@ export default function QuestionPaperGeneratorPage() {
   }
 
   function handlePrintPaper() {
-    window.print();
+    if (printAreaRef.current) {
+      printIsolatedElement(printAreaRef.current, activePreviewPaper?.exam_title || "Exam-Paper");
+    } else {
+      window.print();
+    }
   }
 
   const allChapters = [
@@ -822,14 +867,24 @@ export default function QuestionPaperGeneratorPage() {
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => openNewPaperDesigner(isMotherTeacherClass)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition"
-          >
-            <Plus className="w-4 h-4" /> 
-            {isMotherTeacherClass ? "Create Foundational Worksheet" : "Design Question Paper"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openNewPaperDesigner(false)}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs transition"
+            >
+              <FileText className="w-4 h-4 text-amber-400" /> 
+              Design Question Paper
+            </button>
+            <button
+              type="button"
+              onClick={() => openNewPaperDesigner(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+            >
+              <Palette className="w-4 h-4 text-purple-200" /> 
+              Generate Worksheet
+            </button>
+          </div>
         </div>
       </div>
 
@@ -931,13 +986,29 @@ export default function QuestionPaperGeneratorPage() {
               >
                 {generatedPapers.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.exam_title} — {p.academic_subjects?.name} ({p.class_name})
+                    {p.exam_title} — {p.academic_subjects?.name} ({p.class_name}) {p.created_by ? `• by ${p.created_by}` : ""}
                   </option>
                 ))}
               </select>
 
+              {/* My Papers Filter Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMyPapersOnly(!myPapersOnly);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  myPapersOnly
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                }`}
+                title="Filter to view your own authored question papers & worksheets"
+              >
+                {myPapersOnly ? "👤 My Papers Only" : "🏫 All School Papers"}
+              </button>
+
               <span className="text-xs font-mono font-bold bg-stone-100 text-stone-600 px-2 py-1 rounded">
-                Total Papers: {generatedPapers.length}
+                Total: {generatedPapers.length}
               </span>
             </div>
 
@@ -956,6 +1027,15 @@ export default function QuestionPaperGeneratorPage() {
 
               {activePreviewPaper && (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicatePaper(activePreviewPaper)}
+                    className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition flex items-center gap-1 text-xs font-bold"
+                    title="Duplicate / Clone Document"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span className="hidden md:inline">Duplicate</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEditPaperDesigner(activePreviewPaper)}
@@ -996,10 +1076,12 @@ export default function QuestionPaperGeneratorPage() {
               {/* 1. OFFICIAL SCHOOL HEADER */}
               <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1.5">
                 <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider font-sans text-stone-950">
-                  CRAYON BOX SCHOOL
+                  {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
                 </h1>
                 <p className="text-xs sm:text-sm font-sans font-bold text-stone-700 tracking-wide">
-                  Affiliated to CBSE, New Delhi • School ID: 1253481 • UDISE: 07124100151
+                  {selectedInstitutionObj?.affiliation_number 
+                    ? `Affiliation No: ${selectedInstitutionObj.affiliation_number} • CBSE, New Delhi`
+                    : "Affiliated to CBSE, New Delhi • School ID: 1253481 • UDISE: 07124100151"}
                 </p>
                 <div className="pt-1.5 text-base sm:text-lg font-black font-sans uppercase tracking-tight text-stone-900">
                   {activePreviewPaper.exam_title} • SESSION {activePreviewPaper.academic_session}
@@ -1619,7 +1701,7 @@ export default function QuestionPaperGeneratorPage() {
                               <div className="p-3.5 bg-sky-50/60 border border-sky-200 rounded-xl space-y-3">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div>
-                                    <label className="font-bold text-sky-950 block mb-1">Select Line / Guide Type</label>
+                                    <label className="font-bold text-sky-950 block mb-1">Select Answer Space / Guide Type</label>
                                     <select
                                       value={q.writing_guide_type || "none"}
                                       onChange={(e) => {
@@ -1629,31 +1711,56 @@ export default function QuestionPaperGeneratorPage() {
                                       }}
                                       className="w-full bg-white border border-sky-300 rounded-lg px-2.5 py-1.5 font-bold text-sky-950 text-xs"
                                     >
-                                      <option value="none">None (Plain Space)</option>
-                                      <option value="english_4lines">English 4-Lines Guide (Red/Blue Ruled)</option>
-                                      <option value="hindi_2lines">Hindi 2-Lines Guide (Shirorekha Ruled)</option>
-                                      <option value="math_grid">Math Square-Grid Box (Digits / Geometry)</option>
-                                      <option value="math_column">Math Arithmetic Column (Place Value H T O)</option>
+                                      <option value="none">None — Questions Only (No ruled lines)</option>
+                                      <option value="english_4lines">🇬🇧 English 4-Lines (Red / Sky Blue / Red)</option>
+                                      <option value="hindi_5lines">🇮🇳 Hindi 5-Lines (Primary Devanagari 5-Line)</option>
+                                      <option value="math_grid">📐 Maths Square Boxes (Arithmetic Grid)</option>
+                                      <option value="hindi_2lines">🇮🇳 Hindi 2-Lines (Shirorekha &amp; Baseline)</option>
+                                      <option value="blank_drawing_box">🎨 Blank Drawing / Working Box</option>
+                                      <option value="math_column">🧮 Math Place Value Column (H T O)</option>
                                     </select>
                                   </div>
 
                                   {q.writing_guide_type && q.writing_guide_type !== "none" && q.writing_guide_type !== "math_column" && (
                                     <div>
-                                      <label className="font-bold text-sky-950 block mb-1">Number of Rows / Bands</label>
-                                      <select
-                                        value={q.writing_guide_rows || 2}
-                                        onChange={(e) => {
-                                          const updated = [...paperForm.sections];
-                                          updated[secIdx].questions[qIdx].writing_guide_rows = Number(e.target.value);
-                                          setPaperForm({ ...paperForm, sections: updated });
-                                        }}
-                                        className="w-full bg-white border border-sky-300 rounded-lg px-2.5 py-1.5 font-bold text-sky-950 text-xs"
-                                      >
-                                        <option value="1">1 Row</option>
-                                        <option value="2">2 Rows</option>
-                                        <option value="3">3 Rows</option>
-                                        <option value="4">4 Rows</option>
-                                      </select>
+                                      <label className="font-bold text-sky-950 block mb-1">
+                                        Number of Lines / Boxes (Decided by Faculty)
+                                      </label>
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="20"
+                                          value={q.writing_guide_rows || 2}
+                                          onChange={(e) => {
+                                            const val = Math.max(1, Math.min(20, Number(e.target.value) || 1));
+                                            const updated = [...paperForm.sections];
+                                            updated[secIdx].questions[qIdx].writing_guide_rows = val;
+                                            setPaperForm({ ...paperForm, sections: updated });
+                                          }}
+                                          className="w-16 bg-white border border-sky-300 rounded-lg px-2 py-1 font-mono font-bold text-sky-950 text-xs text-center"
+                                        />
+                                        <div className="flex gap-1 flex-wrap">
+                                          {[1, 2, 3, 4, 5, 8, 10, 15].map((num) => (
+                                            <button
+                                              key={num}
+                                              type="button"
+                                              onClick={() => {
+                                                const updated = [...paperForm.sections];
+                                                updated[secIdx].questions[qIdx].writing_guide_rows = num;
+                                                setPaperForm({ ...paperForm, sections: updated });
+                                              }}
+                                              className={`px-2 py-0.5 text-[10px] font-bold rounded transition ${
+                                                (q.writing_guide_rows || 2) === num
+                                                  ? "bg-sky-600 text-white"
+                                                  : "bg-white border border-sky-200 text-sky-800 hover:bg-sky-100"
+                                              }`}
+                                            >
+                                              {num}L
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
 
@@ -1864,21 +1971,53 @@ export default function QuestionPaperGeneratorPage() {
 
               {/* WORKSHEET WRITING LINE GUIDES */}
               <div className="p-3 bg-sky-50/60 border border-sky-200 rounded-2xl space-y-2">
-                <label className="font-bold text-sky-950 block">Worksheet Writing Lines / Math Grid</label>
-                <select
-                  value={qForm.writing_guide_type}
-                  onChange={(e) => setQForm({ ...qForm, writing_guide_type: e.target.value as WritingGuideType })}
-                  className="w-full bg-white border border-sky-300 rounded-xl px-3 py-2 font-bold text-sky-950"
-                >
-                  <option value="none">None (Plain Space)</option>
-                  <option value="english_4lines">English 4-Lines Guide (Red/Blue Ruled)</option>
-                  <option value="hindi_2lines">Hindi 2-Lines Guide (Shirorekha Ruled)</option>
-                  <option value="math_grid">Math Square-Grid Box (Digits / Geometry)</option>
-                  <option value="math_column">Math Arithmetic Column (Place Value H T O)</option>
-                </select>
+                <label className="font-bold text-sky-950 block">Worksheet Writing Lines / Answer Space Guide</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={qForm.writing_guide_type}
+                    onChange={(e) => setQForm({ ...qForm, writing_guide_type: e.target.value as WritingGuideType })}
+                    className="w-full bg-white border border-sky-300 rounded-xl px-3 py-2 font-bold text-sky-950 text-xs"
+                  >
+                    <option value="none">None — Questions Only (No ruled lines)</option>
+                    <option value="english_4lines">🇬🇧 English 4-Lines (Red / Sky Blue / Red)</option>
+                    <option value="hindi_5lines">🇮🇳 Hindi 5-Lines (Primary Devanagari 5-Line)</option>
+                    <option value="math_grid">📐 Maths Square Boxes (Arithmetic Grid)</option>
+                    <option value="hindi_2lines">🇮🇳 Hindi 2-Lines (Shirorekha &amp; Baseline)</option>
+                    <option value="blank_drawing_box">🎨 Blank Drawing / Working Box</option>
+                    <option value="math_column">🧮 Math Place Value Column (H T O)</option>
+                  </select>
+
+                  {qForm.writing_guide_type && qForm.writing_guide_type !== "none" && qForm.writing_guide_type !== "math_column" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-sky-950 whitespace-nowrap">Lines:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={qForm.writing_guide_rows}
+                        onChange={(e) => setQForm({ ...qForm, writing_guide_rows: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })}
+                        className="w-16 bg-white border border-sky-300 rounded-lg px-2 py-1 font-mono font-bold text-sky-950 text-xs text-center"
+                      />
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5, 8].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setQForm({ ...qForm, writing_guide_rows: num })}
+                            className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                              qForm.writing_guide_rows === num ? "bg-sky-600 text-white" : "bg-white border border-sky-200 text-sky-800"
+                            }`}
+                          >
+                            {num}L
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {qForm.writing_guide_type && qForm.writing_guide_type !== "none" && (
-                  <div className="pt-2">
+                  <div className="pt-2 bg-white p-2.5 rounded-xl border border-sky-200">
                     <WritingGuideRenderer
                       type={qForm.writing_guide_type}
                       rows={qForm.writing_guide_rows}

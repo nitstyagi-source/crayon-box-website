@@ -1320,7 +1320,8 @@ export async function getGeneratedPapers(
   session = '2026-2027', 
   className?: string, 
   subjectId?: string,
-  teacherName?: string
+  teacherName?: string,
+  docType?: string
 ) {
   try {
     const supabase = getSupabaseAdmin();
@@ -1332,19 +1333,37 @@ export async function getGeneratedPapers(
         id, academic_session, class_name, subject_id, exam_title,
         max_marks, duration_minutes, general_instructions, sections,
         marking_scheme, pdf_url, status, created_by, created_at,
-        academic_subjects!inner (id, name, class_name, code, teacher_name)
+        academic_subjects (id, name, class_name, code, teacher_name)
       `)
       .eq('campus_id', resolvedCampusId)
       .eq('academic_session', session);
 
     if (className && className !== 'All') query = query.eq('class_name', className);
     if (subjectId && subjectId !== 'All') query = query.eq('subject_id', subjectId);
-    if (teacherName && teacherName !== 'All') query = query.ilike('academic_subjects.teacher_name', `%${teacherName}%`);
+    if (teacherName && teacherName !== 'All') {
+      query = query.or(`created_by.ilike.%${teacherName}%,academic_subjects.teacher_name.ilike.%${teacherName}%`);
+    }
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
 
-    return { success: true, data: data || [] };
+    let filteredData = data || [];
+    if (docType && docType !== 'All') {
+      if (docType === 'worksheet') {
+        filteredData = filteredData.filter((p: any) => 
+          p.exam_title?.toLowerCase().includes('worksheet') ||
+          p.exam_title?.toLowerCase().includes('activity') ||
+          p.sections?.some((s: any) => s.section_name?.toLowerCase().includes('activity'))
+        );
+      } else if (docType === 'paper') {
+        filteredData = filteredData.filter((p: any) => 
+          !p.exam_title?.toLowerCase().includes('worksheet') &&
+          !p.exam_title?.toLowerCase().includes('activity')
+        );
+      }
+    }
+
+    return { success: true, data: filteredData };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -1461,7 +1480,10 @@ export async function saveGeneratedPaper(payload: {
       result = data;
     }
 
-    revalidatePath('/admin/syllabus/question-papers');
+    try {
+      revalidatePath('/admin/syllabus/question-papers');
+      revalidatePath('/admin/exams');
+    } catch {}
     return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -1473,7 +1495,10 @@ export async function deleteGeneratedPaper(id: string) {
     const supabase = getSupabaseAdmin();
     const { error } = await supabase.from('syllabus_generated_papers').delete().eq('id', id);
     if (error) throw error;
-    revalidatePath('/admin/syllabus/question-papers');
+    try {
+      revalidatePath('/admin/syllabus/question-papers');
+      revalidatePath('/admin/exams');
+    } catch {}
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

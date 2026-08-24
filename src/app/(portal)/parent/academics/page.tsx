@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSiblingContext } from "@/components/providers/SiblingProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   BookOpen, FileText, Download, CheckCircle2, Circle, Clock, 
   BarChart3, Sparkles, Award, FileQuestion, ChevronRight, Check
@@ -12,6 +13,7 @@ import PdfUploader from "@/components/ui/PdfUploader";
 
 export default function AcademicsHub() {
   const { activeSibling } = useSiblingContext();
+  const { selectedInstitutionObj } = useInstitution();
 
   const studentGrade = activeSibling?.grade || "Grade 5";
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -322,7 +324,7 @@ export default function AcademicsHub() {
               <Download className="w-4 h-4" /> Download Signed Term Report Card (PDF)
             </button>
             <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Authorized by Crayon Box School
+              Authorized by {selectedInstitutionObj?.name || 'School Administration'}
             </p>
           </div>
 

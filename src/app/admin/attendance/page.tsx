@@ -1,363 +1,497 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { 
-  Users, MapPin, CheckCircle2, XCircle, Clock, AlertCircle, 
-  Settings, ArrowRight, ShieldCheck, Filter, Search, Eye, 
-  Sparkles, ShieldAlert, Check, X, Camera, RefreshCw, Radio
-} from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
-import { 
-  getAttendanceLiveDashboard, 
-  reviewAttendanceCorrection 
-} from "@/app/actions/attendance";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  GraduationCap, Calendar, CheckCircle2, XCircle, Clock,
+  Save, RefreshCw, Users, ShieldCheck, Sparkles, Plus, AlertCircle, ArrowRight,
+  UserCheck, AlertTriangle, HelpCircle, Check, X, FileText
+} from 'lucide-react';
+import {
+  getSectionAttendanceRoster,
+  submitDailyAttendanceAction,
+  getInstitutionClassesAction,
+  getAcademicStages,
+  AttendanceEntry
+} from '@/app/actions/attendance-actions';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
-export default function AttendanceLiveDashboard() {
-  const { activeCampusId } = useCampusContext();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dashboardData, setDashboardData] = useState<any>(null);
+export default function DailyAttendancePage() {
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+
+  const [selectedInst, setSelectedInst] = useState<string>(currentInstitution === 'ALL' ? 'CBS' : currentInstitution);
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+  const [availableSections, setAvailableSections] = useState<string[]>(['A', 'B', 'C']);
+  const [selectedClass, setSelectedClass] = useState<string>('Class 1');
+  const [selectedSection, setSelectedSection] = useState<string>('A');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  const [roster, setRoster] = useState<any[]>([]);
+  const [stages, setStages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
-  // Corrections Drawer
-  const [showCorrections, setShowCorrections] = useState(false);
-  const [isReviewing, setIsReviewing] = useState(false);
+  // Sync with top header switcher
+  useEffect(() => {
+    const activeCode = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
+    setSelectedInst(activeCode);
+  }, [currentInstitution]);
+
+  // Load available classes whenever institution changes
+  useEffect(() => {
+    const loadInstitutionClasses = async () => {
+      const res = await getInstitutionClassesAction(selectedInst);
+      if (res.success && res.classes && res.classes.length > 0) {
+        // Natural sort classes (Pre-Nursery, Nursery, LKG, UKG, Class 1, Class 2...)
+        const orderWeight = (name: string) => {
+          if (name.toLowerCase().includes('pre-nursery')) return 0;
+          if (name.toLowerCase().includes('nursery')) return 1;
+          if (name.toLowerCase().includes('lkg')) return 2;
+          if (name.toLowerCase().includes('ukg') || name.toLowerCase().includes('kindergarten')) return 3;
+          const match = name.match(/\d+/);
+          return match ? 10 + parseInt(match[0], 10) : 50;
+        };
+
+        const classList: string[] = res.classes as string[];
+        const sorted: string[] = [...classList].sort((a: string, b: string) => orderWeight(a) - orderWeight(b));
+        setAvailableClasses(sorted);
+        if (res.sections && res.sections.length > 0) {
+          setAvailableSections(res.sections as string[]);
+        }
+
+        // Set default class if current selection is not in list
+        if (!sorted.includes(selectedClass)) {
+          setSelectedClass(sorted[0]);
+        }
+      }
+    };
+    loadInstitutionClasses();
+  }, [selectedInst]);
+
+  const activeInstObj = VANI_TRUST_INSTITUTIONS.find(i => i.code === selectedInst) || VANI_TRUST_INSTITUTIONS[0];
+
+  const fetchRoster = async () => {
+    if (!selectedClass) return;
+    setIsLoading(true);
+    const res = await getSectionAttendanceRoster(selectedInst, selectedClass, selectedSection, selectedDate);
+    if (res.success) {
+      setRoster(res.students || []);
+    } else {
+      setRoster([]);
+    }
+    setIsLoading(false);
+  };
+
+  const fetchStages = async () => {
+    const res = await getAcademicStages();
+    if (res.success) setStages(res.data);
+  };
 
   useEffect(() => {
-    loadDashboard();
-  }, [activeCampusId, selectedDate]);
+    fetchStages();
+  }, []);
 
-  async function loadDashboard() {
-    setIsLoading(true);
-    try {
-      const res = await getAttendanceLiveDashboard(activeCampusId, selectedDate);
-      if (res.success && res.data) {
-        setDashboardData(res.data);
-      }
-    } catch (e) {
-      console.error("Dashboard error:", e);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (selectedClass) {
+      fetchRoster();
     }
-  }
+  }, [selectedInst, selectedClass, selectedSection, selectedDate]);
 
-  async function handleReviewCorrection(correctionId: string, status: 'Approved' | 'Rejected') {
-    setIsReviewing(true);
-    const res = await reviewAttendanceCorrection(correctionId, status, "Principal Office");
+  const handleStatusChange = (studentId: string, newStatus: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY') => {
+    setRoster(prev =>
+      prev.map(s => (s.studentId === studentId ? { ...s, status: newStatus } : s))
+    );
+  };
+
+  const handleRemarksChange = (studentId: string, remarks: string) => {
+    setRoster(prev =>
+      prev.map(s => (s.studentId === studentId ? { ...s, remarks } : s))
+    );
+  };
+
+  const handleMarkAll = (status: 'PRESENT' | 'ABSENT' | 'LATE') => {
+    setRoster(prev => prev.map(s => ({ ...s, status })));
+  };
+
+  const handleSubmitAttendance = async () => {
+    if (roster.length === 0) return;
+    setIsSubmitting(true);
+    const entries: AttendanceEntry[] = roster.map(s => ({
+      studentId: s.studentId,
+      status: s.status,
+      remarks: s.remarks,
+    }));
+
+    const res = await submitDailyAttendanceAction(selectedInst, selectedClass, selectedSection, selectedDate, entries);
     if (res.success) {
-      loadDashboard();
+      setSaveFeedback(`✅ Daily Attendance successfully saved for ${res.count} students on ${selectedDate}`);
+      setTimeout(() => setSaveFeedback(null), 4000);
+      fetchRoster();
     } else {
-      alert("Error reviewing correction: " + res.error);
+      alert('Error saving attendance: ' + (res.error || 'Unknown error'));
     }
-    setIsReviewing(false);
-  }
+    setIsSubmitting(false);
+  };
 
-  const logs = dashboardData?.logs || [];
-  const corrections = dashboardData?.corrections || [];
-  const config = dashboardData?.config || {};
-
-  const filteredLogs = logs.filter((log: any) => {
-    if (statusFilter !== "All" && log.status !== statusFilter) return false;
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const staffName = `${log.staff?.first_name || ''} ${log.staff?.last_name || ''}`.toLowerCase();
-    const dept = (log.staff?.department || '').toLowerCase();
-    return staffName.includes(term) || dept.includes(term);
-  });
+  const presentCount = roster.filter(s => s.status === 'PRESENT').length;
+  const absentCount = roster.filter(s => s.status === 'ABSENT').length;
+  const lateCount = roster.filter(s => s.status === 'LATE').length;
+  const halfDayCount = roster.filter(s => s.status === 'HALF_DAY').length;
+  const attendanceRate = roster.length > 0 ? Math.round((presentCount / roster.length) * 100) : 0;
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md flex items-center gap-1">
-              <Radio className="w-3 h-3 animate-pulse text-emerald-600" /> Live Geofence Radar
+            <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {activeInstObj.name} ({activeInstObj.code})
             </span>
-            <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">{config.school_name || "Main Campus"}</span>
+            <span className="text-slate-600 text-xs">•</span>
+            <span className="text-indigo-300 text-xs font-semibold">
+              {activeInstObj.institutionType === 'PRE_SCHOOL' ? 'Early Childhood Daily Attendance' : 'K-12 Daily Roll Call'}
+            </span>
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Staff Attendance Control Center</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">Real-time GPS geofence tracking, face verification logs, and exception approvals.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <GraduationCap className="w-8 h-8 text-emerald-400" />
+            {activeInstObj.name} Daily Attendance
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 font-medium">
+            1-tap classroom muster roll marking with instant synchronization to PostgreSQL student records and parent notifications.
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link href="/admin/gate-scanner">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-indigo-950/80 text-indigo-200 border-indigo-700/80 hover:bg-indigo-900 text-xs font-bold"
+              leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />}
+            >
+              🚪 Gate Entry/Exit Scanner
+            </Button>
+          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchRoster} 
+            isLoading={isLoading} 
+            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+          >
+            Refresh Roster
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSubmitAttendance}
+            isLoading={isSubmitting}
+            disabled={roster.length === 0}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20 text-xs"
+            leftIcon={<Save className="w-4 h-4" />}
+          >
+            Save Attendance
+          </Button>
+        </div>
+      </div>
+
+      {/* Save Feedback Banner */}
+      {saveFeedback && (
+        <div className="p-4 bg-emerald-50 text-emerald-950 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs font-bold animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>{saveFeedback}</span>
+          </div>
+          <button onClick={() => setSaveFeedback(null)} className="text-emerald-700 font-bold">✕</button>
+        </div>
+      )}
+
+      {/* Filter Ribbon: School + Dynamic Class Dropdown + Section + Date */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <Select
+          label="Operating Institution"
+          options={[
+            { value: 'CBS', label: 'Crayon Box International School (CBS)' },
+            { value: 'AVM', label: 'Avinya Vidya Mandir (AVM)' },
+            { value: 'AS', label: 'Avinya School (AS)' },
+            { value: 'CBPS', label: 'Crayon Box Pre School (CBPS)' },
+          ]}
+          value={selectedInst}
+          onChange={(e) => setSelectedInst(e.target.value)}
+        />
+
+        <Select
+          label="Class / Grade"
+          options={availableClasses.map(c => ({ value: c, label: c }))}
+          value={selectedClass}
+          onChange={(e) => setSelectedClass(e.target.value)}
+        />
+
+        <Select
+          label="Section"
+          options={availableSections.map(s => ({ value: s, label: `Section ${s}` }))}
+          value={selectedSection}
+          onChange={(e) => setSelectedSection(e.target.value)}
+        />
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            Attendance Date
+          </label>
           <input
             type="date"
             value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="bg-stone-50 border border-stone-200 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800"
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-2xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
           />
-
-          <Link
-            href="/admin/attendance/checkin"
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
-          >
-            <Clock className="w-3.5 h-3.5" /> Staff Check-In Terminal
-          </Link>
-
-          <Link
-            href="/admin/attendance/settings"
-            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold p-2.5 rounded-xl transition-all"
-            title="Geofence & Shift Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </Link>
         </div>
       </div>
 
-      {/* Real-Time KPI Matrix */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-[10px] font-bold text-stone-400 uppercase block">Total Staff</span>
-          <span className="text-2xl font-black text-stone-900 mt-1 block">{dashboardData?.totalStaff || 0}</span>
-          <span className="text-[10px] text-stone-500">Enrolled</span>
-        </div>
-
-        <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-800 uppercase block">Present</span>
-          <span className="text-2xl font-black text-emerald-700 mt-1 block">{dashboardData?.presentCount || 0}</span>
-          <span className="text-[10px] text-emerald-600">On Time</span>
-        </div>
-
-        <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs">
-          <span className="text-[10px] font-bold text-amber-800 uppercase block">Late</span>
-          <span className="text-2xl font-black text-amber-700 mt-1 block">{dashboardData?.lateCount || 0}</span>
-          <span className="text-[10px] text-amber-600">After 08:10</span>
-        </div>
-
-        <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 shadow-xs">
-          <span className="text-[10px] font-bold text-purple-800 uppercase block">Official Duty</span>
-          <span className="text-2xl font-black text-purple-700 mt-1 block">{dashboardData?.officialDutyCount || 0}</span>
-          <span className="text-[10px] text-purple-600">Off-Campus</span>
-        </div>
-
-        <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 shadow-xs">
-          <span className="text-[10px] font-bold text-blue-800 uppercase block">On Leave</span>
-          <span className="text-2xl font-black text-blue-700 mt-1 block">{dashboardData?.onLeaveCount || 0}</span>
-          <span className="text-[10px] text-blue-600">Approved</span>
-        </div>
-
-        <div className="p-4 bg-red-50/70 rounded-2xl border border-red-200 shadow-xs">
-          <span className="text-[10px] font-bold text-red-800 uppercase block">Absent</span>
-          <span className="text-2xl font-black text-red-700 mt-1 block">{dashboardData?.absentCount || 0}</span>
-          <span className="text-[10px] text-red-600">Unexplained</span>
-        </div>
-
-        <div className="p-4 bg-stone-100 rounded-2xl border border-stone-200 shadow-xs">
-          <span className="text-[10px] font-bold text-stone-600 uppercase block">Not Checked Out</span>
-          <span className="text-2xl font-black text-stone-800 mt-1 block">{dashboardData?.notCheckedOutCount || 0}</span>
-          <span className="text-[10px] text-stone-500">In Shift</span>
-        </div>
-
-        <div 
-          onClick={() => setShowCorrections(true)}
-          className="p-4 bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer rounded-2xl border border-amber-300 shadow-xs transition-all"
-        >
-          <span className="text-[10px] font-bold text-amber-900 uppercase block">Corrections</span>
-          <span className="text-2xl font-black text-amber-800 mt-1 block">{dashboardData?.pendingCorrectionsCount || 0}</span>
-          <span className="text-[10px] font-bold text-amber-700 underline">Review Requests →</span>
-        </div>
-      </div>
-
-      {/* Geofence Radar Visualization & Settings Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Visual Geofence Radar Card */}
-        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 lg:col-span-1">
-          <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-            <h3 className="font-black text-stone-900 text-sm flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-600" /> Geofence Perimeter ({config.geofence_radius_meters || 120}m)
-            </h3>
-            <span className="text-[10px] font-bold font-mono text-stone-400">GPS: ±{config.gps_accuracy_threshold_meters || 35}m</span>
+      {/* Roster Metric Summary */}
+      {roster.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Enrolled</span>
+            <p className="text-2xl font-black text-slate-900">{roster.length}</p>
+            <span className="text-[10px] text-slate-500 font-semibold">{selectedClass} ({selectedSection})</span>
           </div>
 
-          <div className="relative aspect-square max-h-64 mx-auto rounded-full bg-stone-50 border-2 border-dashed border-emerald-300 flex items-center justify-center p-4">
-            {/* Center Campus Landmark */}
-            <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-md z-10">
-              CBS
-            </div>
-            
-            {/* Concentric Circle Wave */}
-            <div className="absolute inset-4 rounded-full border border-emerald-200/60 pointer-events-none animate-ping opacity-20"></div>
-            <div className="absolute inset-12 rounded-full border border-emerald-300/40 pointer-events-none"></div>
-
-            {/* Random Floating Verified Pins */}
-            <div className="absolute top-8 left-12 w-3.5 h-3.5 rounded-full bg-emerald-500 shadow border border-white" title="Verified: Teacher 1 (24m)"></div>
-            <div className="absolute bottom-10 right-14 w-3.5 h-3.5 rounded-full bg-emerald-500 shadow border border-white" title="Verified: Teacher 2 (48m)"></div>
-            <div className="absolute top-16 right-10 w-3.5 h-3.5 rounded-full bg-amber-500 shadow border border-white" title="Late Check-in (35m)"></div>
-            <div className="absolute -top-1 right-4 w-3.5 h-3.5 rounded-full bg-red-500 shadow border border-white" title="Outside Perimeter Attempt"></div>
+          <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Present</span>
+            <p className="text-2xl font-black text-emerald-700">{presentCount}</p>
+            <span className="text-[10px] text-emerald-800/80 font-semibold">{attendanceRate}% Present</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-stone-600 pt-2">
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Inside Radius</div>
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Late In Radius</div>
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Official Duty</div>
-            <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Outside Attempt</div>
+          <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Late Arrival</span>
+            <p className="text-2xl font-black text-amber-700">{lateCount}</p>
+            <span className="text-[10px] text-amber-800/80 font-semibold">Tardy Students</span>
+          </div>
+
+          <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 shadow-xs space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Absent</span>
+            <p className="text-2xl font-black text-rose-700">{absentCount}</p>
+            <span className="text-[10px] text-rose-800/80 font-semibold">Parent SMS Alert</span>
+          </div>
+
+          <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 shadow-xs space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 block">Half Day</span>
+            <p className="text-2xl font-black text-blue-700">{halfDayCount}</p>
+            <span className="text-[10px] text-blue-800/80 font-semibold">Partial Attendance</span>
           </div>
         </div>
+      )}
 
-        {/* Live Attendance Table */}
-        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4 lg:col-span-2 flex flex-col justify-between">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-100 pb-3">
+      {/* Quick Mark All Ribbon */}
+      {roster.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-700">Quick Batch Actions:</span>
+            <span className="text-slate-400">Mark all students with 1 tap:</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
+              type="button" 
+              onClick={() => handleMarkAll('PRESENT')}
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 transition flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5" /> All Present
+            </button>
+            <button 
+              type="button" 
+              onClick={() => handleMarkAll('ABSENT')}
+              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 transition flex items-center gap-1.5"
+            >
+              <X className="w-3.5 h-3.5" /> All Absent
+            </button>
+            <button 
+              type="button" 
+              onClick={() => handleMarkAll('LATE')}
+              className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200 transition flex items-center gap-1.5"
+            >
+              <Clock className="w-3.5 h-3.5" /> All Late
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Roster Table or Clean Empty State */}
+      {roster.length === 0 ? (
+        <EmptyState
+          icon={<Users className="w-8 h-8 text-slate-400" />}
+          title={`No Students Enrolled in ${selectedInst} • ${selectedClass} (${selectedSection})`}
+          description={`Your database currently has 0 active enrollments for ${selectedClass} (${selectedSection}) in ${activeInstObj.name}. Try selecting another class or section above.`}
+          actionLabel="Go to Students Master"
+          onAction={() => window.location.href = '/admin/students'}
+        />
+      ) : (
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="font-black text-stone-900 text-base">Today&apos;s Staff Log Roster</h3>
-              <p className="text-xs text-stone-500">Live verified timestamps, distance, and selfie proofs.</p>
+              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <span>Daily Roll Call Roster:</span>
+                <span className="font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 text-xs">
+                  {selectedInst} • {selectedClass} - Section {selectedSection}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                Mark each student Present, Late, Absent, or Half Day with optional teacher notes.
+              </p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <div className="relative w-48">
-                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search staff..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="bg-stone-50 border border-stone-200 px-3 py-1.5 rounded-xl text-xs font-bold"
-              >
-                <option value="All">All Status</option>
-                <option value="Present">Present</option>
-                <option value="Late">Late</option>
-                <option value="Official Duty">Official Duty</option>
-                <option value="On Leave">On Leave</option>
-              </select>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200">
+                📅 {selectedDate}
+              </span>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider border-b border-stone-200">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
                 <tr>
-                  <th className="p-3">Staff Member</th>
-                  <th className="p-3">In Time</th>
-                  <th className="p-3">Out Time</th>
-                  <th className="p-3">Hours</th>
-                  <th className="p-3">Distance</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Verification</th>
+                  <th className="py-3 px-5 w-16">Roll #</th>
+                  <th className="py-3 px-5">Student Information</th>
+                  <th className="py-3 px-5">Admission #</th>
+                  <th className="py-3 px-5 text-center">Daily Status</th>
+                  <th className="py-3 px-5">Teacher Remarks / Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
-                {filteredLogs.map((log: any) => (
-                  <tr key={log.id} className="hover:bg-stone-50/60">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2.5">
-                        {log.staff?.photo_url ? (
-                          <img src={log.staff.photo_url} alt="" className="w-8 h-8 rounded-xl object-cover border border-stone-200" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px]">
-                            {log.staff?.first_name?.[0]}
-                          </div>
-                        )}
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {roster.map((student) => (
+                  <tr key={student.studentId} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-5 font-mono font-bold text-slate-500">
+                      #{student.rollNo}
+                    </td>
+
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                          {student.name.charAt(0)}
+                        </div>
                         <div>
-                          <p className="font-bold text-stone-900">{log.staff?.first_name} {log.staff?.last_name}</p>
-                          <p className="text-[10px] text-stone-400">{log.staff?.department}</p>
+                          <strong className="font-bold text-slate-900 block text-xs sm:text-sm">{student.name}</strong>
+                          <span className="text-[10px] text-slate-400 font-medium">{student.gender} • {student.className}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 font-mono font-bold text-emerald-700">{log.check_in_time || '—'}</td>
-                    <td className="p-3 font-mono font-bold text-blue-700">{log.check_out_time || 'In Shift'}</td>
-                    <td className="p-3 font-bold text-stone-800">{log.working_hours || 0} hrs</td>
-                    <td className="p-3 font-mono text-stone-600">
-                      {log.check_in_distance_meters !== null ? `${log.check_in_distance_meters}m` : '—'}
+
+                    <td className="py-3.5 px-5 font-mono text-slate-500 text-xs">
+                      {student.admissionNo}
                     </td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        log.status === 'Present' ? 'bg-green-100 text-green-800' :
-                        log.status === 'Late' ? 'bg-amber-100 text-amber-800' :
-                        log.status === 'Official Duty' ? 'bg-purple-100 text-purple-800' : 'bg-stone-200 text-stone-700'
-                      }`}>
-                        {log.status}
-                      </span>
+
+                    <td className="py-3.5 px-5 text-center">
+                      <div className="inline-flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(student.studentId, 'PRESENT')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                            student.status === 'PRESENT'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Present
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(student.studentId, 'LATE')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                            student.status === 'LATE'
+                              ? 'bg-amber-500 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Late
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(student.studentId, 'HALF_DAY')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                            student.status === 'HALF_DAY'
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Half Day
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(student.studentId, 'ABSENT')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                            student.status === 'ABSENT'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Absent
+                        </button>
+                      </div>
                     </td>
-                    <td className="p-3 text-[11px] text-stone-500 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> {log.verification_method}
+
+                    <td className="py-3.5 px-5">
+                      <input
+                        type="text"
+                        placeholder="Optional remarks (e.g. medical leave)..."
+                        value={student.remarks || ''}
+                        onChange={(e) => handleRemarksChange(student.studentId, e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-hidden"
+                      />
                     </td>
                   </tr>
                 ))}
-                {filteredLogs.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-stone-400 font-medium">
-                      No attendance records found for this criteria.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
-        </div>
 
-      </div>
-
-      {/* Corrections Exception Drawer / Modal */}
-      {showCorrections && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-stone-900">Attendance Exception & Correction Requests</h3>
-                <p className="text-xs text-stone-500">Review employee requests for missed GPS check-ins and official duty approvals.</p>
-              </div>
-              <button onClick={() => setShowCorrections(false)} className="p-1 text-stone-400 hover:text-stone-800">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {corrections.map((corr: any) => (
-                <div key={corr.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-stone-900 text-xs">{corr.staff?.first_name} {corr.staff?.last_name}</h4>
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded mr-2">
-                        {corr.reason_type}
-                      </span>
-                      <span className="text-[10px] text-stone-400">Date: {corr.date}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        disabled={isReviewing}
-                        onClick={() => handleReviewCorrection(corr.id, 'Approved')}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Approve
-                      </button>
-                      <button
-                        disabled={isReviewing}
-                        onClick={() => handleReviewCorrection(corr.id, 'Rejected')}
-                        className="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-1.5 rounded-xl"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-stone-600 bg-white p-2.5 rounded-xl border border-stone-200">
-                    &quot;{corr.reason_description}&quot;
-                  </p>
-                </div>
-              ))}
-
-              {corrections.length === 0 && (
-                <div className="py-12 text-center text-stone-400 text-xs">
-                  No pending correction requests.
-                </div>
-              )}
-            </div>
+          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500 font-medium">
+              Showing {roster.length} students enrolled in {selectedClass} ({selectedSection}).
+            </span>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSubmitAttendance}
+              isLoading={isSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+              leftIcon={<Save className="w-3.5 h-3.5" />}
+            >
+              Save Attendance Record
+            </Button>
           </div>
         </div>
       )}
+
+      {/* 5 Adaptive Academic Stages Radar */}
+      <div className="space-y-3 pt-4">
+        <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-indigo-600" /> 5-Stage Adaptive Academic Architecture
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          {stages.map((stg) => (
+            <Card key={stg.code} padding="sm" className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
+                {stg.code}
+              </span>
+              <h4 className="text-xs font-bold text-slate-900">{stg.name}</h4>
+              <p className="text-[11px] text-slate-500 font-medium">{stg.grade_range}</p>
+              <span className="inline-block text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                {stg.assessment_model}
+              </span>
+            </Card>
+          ))}
+        </div>
+      </div>
 
     </div>
   );

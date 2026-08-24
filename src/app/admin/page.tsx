@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import AdminDashboard from '@/app/admin/dashboard/page';
 
-export default function AdminRoot() {
-  // Redirect the root /admin path to the main dashboard
-  redirect("/admin/dashboard");
+export default function AdminRootPage() {
+  return <AdminDashboard />;
 }

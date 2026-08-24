@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, BookOpen, MessageSquare, Wallet, Bus, Bell, User, ChevronDown, Grid, Radio } from "lucide-react";
 import { SiblingProvider, useSiblingContext } from "@/components/providers/SiblingProvider";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
@@ -73,10 +74,7 @@ function PortalLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <NotificationCenter role="PARENT" institutionCode="CBS" />
             <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
                <User className="w-5 h-5 text-slate-500" />
             </div>
