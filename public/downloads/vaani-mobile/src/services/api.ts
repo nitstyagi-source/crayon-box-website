@@ -23,6 +23,12 @@ export const MobileApi = {
   login: async (credentials: any) => {
     return apiClient.post('/auth/login', credentials);
   },
+  sendOtp: async (mobileNumber: string) => {
+    return apiClient.post('/auth/otp/send', { mobileNumber });
+  },
+  verifyOtp: async (payload: { mobileNumber: string; otp: string; reqId?: string }) => {
+    return apiClient.post('/auth/otp/verify', payload);
+  },
   switchProfile: async (payload: { role: string; childId?: string }) => {
     return apiClient.post('/auth/switch-profile', payload);
   },
