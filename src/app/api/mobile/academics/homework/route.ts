@@ -48,17 +48,25 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, subject, description, dueDate, teacherName, targetClass, periodNumber = 1 } = body;
+    const { title, subject, description, dueDate, teacherName, targetClass, periodNumber = 1, campusId = 'c3d782a9-a50b-4708-a3fc-6b146f456662' } = body;
 
     const res = await client.query(`
       INSERT INTO public.digital_diary_entries (
-        academic_session, date, day_of_week, period_number, period_label, class_name, section_name, subject_name,
+        campus_id, academic_session, date, day_of_week, period_number, period_label, class_name, section_name, subject_name,
         teacher_name, homework_title, homework_description, homework_due_date, created_at, updated_at
       ) VALUES (
-        '2026-27', CURRENT_DATE, TO_CHAR(CURRENT_DATE, 'Day'), $1, 'Period 1', $2, 'A', $3,
-        $4, $5, $6, $7, NOW(), NOW()
-      ) RETURNING id, subject_name as subject, homework_title as title, homework_due_date as "dueDate", teacher_name as teacher, homework_description as description;
-    `, [periodNumber, targetClass || 'Grade 5', subject || 'General', teacherName || 'Faculty', title, description || '', dueDate ? new Date(dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]]);
+        $1, '2026-27', CURRENT_DATE, TO_CHAR(CURRENT_DATE, 'Day'), $2, 'Period 1', $3, 'A', $4,
+        $5, $6, $7, $8, NOW(), NOW()
+      )
+      ON CONFLICT (campus_id, date, class_name, section_name, period_number) DO UPDATE
+      SET homework_title = EXCLUDED.homework_title,
+          homework_description = EXCLUDED.homework_description,
+          homework_due_date = EXCLUDED.homework_due_date,
+          subject_name = EXCLUDED.subject_name,
+          teacher_name = EXCLUDED.teacher_name,
+          updated_at = NOW()
+      RETURNING id, subject_name as subject, homework_title as title, homework_due_date as "dueDate", teacher_name as teacher, homework_description as description;
+    `, [campusId, periodNumber, targetClass || 'Grade 5', subject || 'General', teacherName || 'Faculty', title, description || '', dueDate ? new Date(dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]]);
 
     return NextResponse.json({
       success: true,

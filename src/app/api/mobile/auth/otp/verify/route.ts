@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { mobileNumber, otp, reqId } = body;
+    const { mobileNumber, otp, reqId, deviceInfo = 'Vaani Mobile Super App (iOS/Android)' } = body;
 
     const rawNumber = (mobileNumber || '').replace(/[^0-9]/g, '');
     const cleanNumber = rawNumber.length === 12 && rawNumber.startsWith('91') 
@@ -145,14 +145,15 @@ export async function POST(request: Request) {
       mappedRole = 'Parent';
     }
 
-    // Log Login Audit
+    // Log Login Audit with device_info
+    const userAccId = profile.id.includes('-') && profile.id.length === 36 ? profile.id : null;
     await client.query(`
       INSERT INTO public.login_audit_logs (
-        user_id, username, auth_method, ip_address, created_at
+        username, user_account_id, auth_method, device_info, ip_address, status, created_at
       ) VALUES (
-        $1, $2, 'MSG91_OTP', '127.0.0.1', NOW()
+        $1, $2, 'MSG91_OTP', $3, '127.0.0.1', 'SUCCESS', NOW()
       );
-    `, [profile.id, profile.fullName]);
+    `, [profile.fullName, userAccId, deviceInfo]);
 
     return NextResponse.json({
       success: true,
