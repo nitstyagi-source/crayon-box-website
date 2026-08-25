@@ -1,76 +1,73 @@
 import { NextResponse } from 'next/server';
+import pg from 'pg';
+
+const { Pool } = pg;
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+
+let globalPool: pg.Pool | null = null;
+function getPool() {
+  if (!globalPool) {
+    globalPool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const grade = searchParams.get('grade') || 'Grade 4';
+  const grade = searchParams.get('grade') || '';
 
-  const homeworkFeed = [
-    {
-      id: 'HW-101',
-      subject: 'Mathematics',
-      title: 'Fractions & Decimals Problem Set',
-      assignedDate: '2026-08-22',
-      dueDate: '2026-08-24',
-      teacherName: 'Dr. Meenakshi Sundaram',
-      targetClass: grade,
-      instructions: 'Complete exercises 5.1 through 5.3 from textbook pages 88-92. Show all calculation steps.',
-      hasAttachment: true,
-      attachmentName: 'fractions_worksheet_aug26.pdf',
-    },
-    {
-      id: 'HW-102',
-      subject: 'Science & Robotics',
-      title: 'Solar System Planetary Orbit Simulation',
-      assignedDate: '2026-08-21',
-      dueDate: '2026-08-25',
-      teacherName: 'Mr. Arvind Gupta',
-      targetClass: grade,
-      instructions: 'Draw and color the relative distance chart of inner planets and explain Kepler’s third law.',
-      hasAttachment: false,
-    },
-    {
-      id: 'HW-103',
-      subject: 'Social Studies',
-      title: 'Indus Valley Civilization Artifact Chart',
-      assignedDate: '2026-08-20',
-      dueDate: '2026-08-26',
-      teacherName: 'Mrs. Kavita Iyer',
-      targetClass: grade,
-      instructions: 'Paste 5 pictures of Mohenjo-daro architecture and summarize the Great Bath drainage system.',
-      hasAttachment: true,
-      attachmentName: 'harappan_civilization_reference.pdf',
-    },
-  ];
+  const pool = getPool();
+  try {
+    let sql = `
+      SELECT id, subject_name as subject, homework_title as title, homework_due_date as "dueDate",
+             teacher_name as teacher, 'Active' as status, homework_description as description,
+             date as "assignedDate"
+      FROM public.digital_diary_entries
+      WHERE homework_title IS NOT NULL AND homework_title != ''
+    `;
+    const params: any[] = [];
+    if (grade) {
+      params.push(`%${grade}%`);
+      sql += ` AND (class_name ILIKE $1 OR homework_title ILIKE $1)`;
+    }
+    sql += ` ORDER BY date DESC LIMIT 20;`;
 
-  return NextResponse.json({ success: true, count: homeworkFeed.length, data: homeworkFeed });
+    const res = await pool.query(sql, params);
+    return NextResponse.json({ success: true, data: res.rows });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
+  const pool = getPool();
+  const client = await pool.connect();
+
   try {
     const body = await request.json();
-    const { subject, title, dueDate, targetClass, instructions, teacherId } = body;
+    const { title, subject, description, dueDate, teacherName, targetClass, periodNumber = 1 } = body;
 
-    const newAssignment = {
-      id: `HW-${Date.now().toString().slice(-4)}`,
-      subject,
-      title,
-      assignedDate: new Date().toISOString().split('T')[0],
-      dueDate,
-      teacherName: 'Faculty User',
-      targetClass,
-      instructions,
-      hasAttachment: false,
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log(`[HOMEWORK CREATED & SYNCED] ${title} for ${targetClass} by ${teacherId}`);
+    const res = await client.query(`
+      INSERT INTO public.digital_diary_entries (
+        academic_session, date, day_of_week, period_number, period_label, class_name, section_name, subject_name,
+        teacher_name, homework_title, homework_description, homework_due_date, created_at, updated_at
+      ) VALUES (
+        '2026-27', CURRENT_DATE, TO_CHAR(CURRENT_DATE, 'Day'), $1, 'Period 1', $2, 'A', $3,
+        $4, $5, $6, $7, NOW(), NOW()
+      ) RETURNING id, subject_name as subject, homework_title as title, homework_due_date as "dueDate", teacher_name as teacher, homework_description as description;
+    `, [periodNumber, targetClass || 'Grade 5', subject || 'General', teacherName || 'Faculty', title, description || '', dueDate ? new Date(dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]]);
 
     return NextResponse.json({
       success: true,
-      message: 'Assignment published and pushed to student/parent digital diaries.',
-      data: newAssignment,
+      message: `✓ Vaani published '${title}' to student & parent digital diaries!`,
+      data: res.rows[0]
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } finally {
+    client.release();
   }
 }

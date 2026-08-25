@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Vaani - Crayon Box ERP",
+    "slug": "vaani",
+    "version": "2.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vaani",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#090d16"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vanitrust.vaani",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Vaani requires camera access to scan student QR codes, library barcodes, and upload homework.",
+        "NSLocationWhenInUseUsageDescription": "Vaani requires GPS access for live bus telematics and teacher geofenced attendance.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Vaani uses background location to broadcast live bus tracking for school routes.",
+        "NSFaceIDUsageDescription": "Vaani uses Face ID / Touch ID to securely protect your institutional ERP session."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#090d16"
+      },
+      "package": "com.vanitrust.vaani",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Vaani to access your camera for QR scanning."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Vaani to use your location for live bus telematics & attendance."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Vaani to use biometric authentication."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}

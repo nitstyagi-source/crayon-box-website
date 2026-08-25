@@ -64,6 +64,15 @@ export default function MobileBottomNav() {
           { label: "Profile", href: "/mobile/settings", icon: User },
         ];
 
+      case "Driver":
+        return [
+          { label: "Home", href: "/mobile", icon: Home },
+          { label: "Cockpit", href: "/mobile/driver", icon: Bus },
+          { label: "Scan QR", href: "/mobile/qr-scanner", icon: QrCode },
+          { label: "Alerts", href: "/mobile/notifications", icon: Bell },
+          { label: "Settings", href: "/mobile/settings", icon: Settings },
+        ];
+
       default:
         return [
           { label: "Home", href: "/mobile", icon: Home },

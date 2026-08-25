@@ -15,19 +15,24 @@ function getPool() {
   return globalPool;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get('search') || '';
+
   const pool = getPool();
   try {
-    const res = await pool.query(`
-      SELECT lr.id, lr.leave_type as type, 
-             CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) as requester,
-             lr.reason as details, lr.status, lr.created_at::text as date
-      FROM public.leave_requests lr
-      LEFT JOIN public.staff s ON s.id = lr.staff_id
-      ORDER BY lr.created_at DESC
-      LIMIT 20;
-    `);
+    let sql = `
+      SELECT id, title, author, isbn, category, total_copies as "totalCopies", available_copies as "availableCopies"
+      FROM public.library_books
+    `;
+    const params: any[] = [];
+    if (search) {
+      params.push(`%${search}%`);
+      sql += ` WHERE title ILIKE $1 OR author ILIKE $1 OR category ILIKE $1`;
+    }
+    sql += ` ORDER BY title ASC LIMIT 20;`;
 
+    const res = await pool.query(sql, params);
     return NextResponse.json({ success: true, data: res.rows });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -40,20 +45,20 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, action, remarks } = body;
+    const { loanId } = body;
 
-    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
-
+    // +7 days renewal in library_transactions
     await client.query(`
-      UPDATE public.leave_requests
-      SET status = $1, reason = COALESCE($2, reason)
-      WHERE id = $3;
-    `, [newStatus, remarks || null, id]);
+      UPDATE public.library_transactions
+      SET due_date = due_date + INTERVAL '7 days', 
+          renewal_count = COALESCE(renewal_count, 0) + 1,
+          updated_at = NOW()
+      WHERE id = $1;
+    `, [loanId]);
 
     return NextResponse.json({
       success: true,
-      message: `✓ Vaani: Approval #${id} marked as ${newStatus}.`,
-      status: newStatus
+      message: "✓ Vaani: Book loan successfully renewed for +7 additional days!"
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

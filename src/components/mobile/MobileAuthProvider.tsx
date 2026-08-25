@@ -15,6 +15,7 @@ export type RoleType =
   | "Nurse" 
   | "Security" 
   | "Front Office" 
+  | "Driver"
   | "Parent" 
   | "Student";
 
