@@ -131,6 +131,20 @@ export async function authenticateUserLogin(payload: {
       `, [user.username || cleanId, user.id, payload.authMethod === "password" ? "Password" : "MSG91 OTP", device, clientIp]);
     } catch {}
 
+    // Set cookies for session persistence
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set("cb_auth_token", `SESSION_TOKEN_${user.id}_${Date.now()}`, {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7
+      });
+      cookieStore.set("cb_user_role", user.primary_role || "Super Admin", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+      cookieStore.set("cb_user_email", user.email || cleanId, { path: "/", maxAge: 60 * 60 * 24 * 7 });
+      cookieStore.set("cb_user_name", user.full_name || "Administrator", { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    } catch {}
+
     // Determine default redirect
     let defaultRedirect = "/admin/dashboard";
     const roleLower = (user.primary_role || '').toLowerCase();
