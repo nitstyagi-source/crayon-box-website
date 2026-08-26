@@ -331,7 +331,7 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
         {/* Official Footer */}
         <div className="mt-6 pt-2 border-t-2 border-slate-900 flex items-center justify-between text-[10px] text-slate-600 font-medium print:mt-3">
           <div>
-            <span>Tel. +91 9811102008</span> • <span>info@crayonboxpreschool.in</span> • <span>www.crayonboxpreschool.in</span>
+            <span>Tel. +91 9811102008</span> • <span>info@crayonboxschool.com</span> • <span>www.crayonboxschool.com</span>
           </div>
           <div>
             <span>Kh. No. 6/20, D-Block, Shastri Park Ext. Burari, Delhi-110084</span>
