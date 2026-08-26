@@ -28,19 +28,24 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+  } catch {}
+
+  const hasIamAuth = request.cookies.has('cb_auth_token') || request.cookies.has('cb_user_role') || request.cookies.has('cb_user_email');
+  const isAuthenticated = Boolean(user) || hasIamAuth;
 
   const url = request.nextUrl.clone();
   
   if (url.pathname.startsWith('/admin')) {
     if (url.pathname === '/admin/login') {
-      if (user) return NextResponse.redirect(new URL('/admin/cms', request.url));
+      if (isAuthenticated) return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       return supabaseResponse;
     }
     
-    if (!user) {
+    if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
