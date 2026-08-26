@@ -1,27 +1,26 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
+import { requireServerEnv } from '@/lib/server-env';
 
 const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let globalPool: pg.Pool | null = null;
 function getPool() {
   if (!globalPool) {
     globalPool = new Pool({
-      connectionString,
+      connectionString: requireServerEnv('DATABASE_URL'),
       ssl: { rejectUnauthorized: false }
     });
   }
   return globalPool;
 }
 
-const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '319435TL9QVRfp6n6a89bdeaP1';
-
 export async function POST(request: Request) {
-  const pool = getPool();
-  const client = await pool.connect();
+  let client: any = null;
 
   try {
+    const pool = getPool();
+    client = await pool.connect();
     const body = await request.json();
     const { mobileNumber, otp, reqId, deviceInfo = 'Vaani Mobile Super App (iOS/Android)' } = body;
 
@@ -32,34 +31,17 @@ export async function POST(request: Request) {
         ? rawNumber 
         : rawNumber.slice(-10);
 
-    if (!cleanNumber || !otp) {
+    if (!/^\d{10}$/.test(cleanNumber) || !/^\d{4,6}$/.test(otp || '')) {
       return NextResponse.json({ success: false, error: 'Mobile number and OTP are required.' }, { status: 400 });
     }
 
-    let isVerified = false;
-
-    // 1. Verify via MSG91 API if live
-    try {
-      const formattedPhone = `91${cleanNumber}`;
-      const verifyUrl = `https://control.msg91.com/api/v5/otp/verify?otp=${otp}&mobile=${formattedPhone}&authkey=${MSG91_AUTH_KEY}`;
-      const apiRes = await fetch(verifyUrl, {
-        method: 'POST',
-        headers: { 'authkey': MSG91_AUTH_KEY }
-      });
-      const data = await apiRes.json();
-      if (data.type === 'success' || data.message === 'OTP verified success') {
-        isVerified = true;
-      }
-    } catch (e) {
-      console.warn('MSG91 verify API error:', e);
-    }
-
-    // Allow fallback pass for standard verification
-    if (otp === '123456' || otp === '999999' || otp.length === 6) {
-      isVerified = true;
-    }
-
-    if (!isVerified) {
+    // 1. Verify only with MSG91; never accept locally generated test codes.
+    const authKey = requireServerEnv('MSG91_AUTH_KEY');
+    const formattedPhone = `91${cleanNumber}`;
+    const verifyUrl = `https://control.msg91.com/api/v5/otp/verify?otp=${encodeURIComponent(otp)}&mobile=${formattedPhone}`;
+    const apiRes = await fetch(verifyUrl, { method: 'POST', headers: { authkey: authKey } });
+    const verification = await apiRes.json();
+    if (!apiRes.ok || (verification.type !== 'success' && verification.message !== 'OTP verified success')) {
       return NextResponse.json({ success: false, error: 'Invalid or expired OTP. Please try again.' }, { status: 401 });
     }
 
@@ -110,25 +92,8 @@ export async function POST(request: Request) {
       if (parentRes.rows.length > 0) profile = parentRes.rows[0];
     }
 
-    // Super Admin check
-    if (!profile && cleanNumber === '9876543452') {
-      profile = {
-        id: 'cb-superadmin-001',
-        fullName: 'Nitin Tyagi (Executive Director)',
-        email: 'nits.tyagi@gmail.com',
-        phoneNumber: cleanNumber,
-        role: 'Super Admin'
-      };
-    }
-
     if (!profile) {
-      profile = {
-        id: `USR-${cleanNumber}`,
-        fullName: `User (${cleanNumber})`,
-        email: `${cleanNumber}@crayonboxschool.com`,
-        phoneNumber: cleanNumber,
-        role: 'Parent'
-      };
+      return NextResponse.json({ success: false, error: 'No account is associated with this mobile number.' }, { status: 404 });
     }
 
     // Map role to app standard
@@ -158,11 +123,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: `✓ Phone verified via MSG91! Welcome, ${profile.fullName}.`,
-      token: `VAANI_SESSION_${Date.now()}_${cleanNumber}`,
       user: {
         id: profile.id,
         fullName: profile.fullName,
-        email: profile.email || `${cleanNumber}@crayonboxschool.com`,
+        email: profile.email || null,
         phoneNumber: profile.phoneNumber,
         role: mappedRole,
         originalRole: profile.role
@@ -171,8 +135,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error verifying MSG91 OTP:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Verification service is unavailable.' }, { status: 503 });
   } finally {
-    client.release();
+    client?.release();
   }
 }

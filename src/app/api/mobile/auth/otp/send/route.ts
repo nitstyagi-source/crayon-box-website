@@ -1,30 +1,26 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
+import { requireServerEnv } from '@/lib/server-env';
 
 const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let globalPool: pg.Pool | null = null;
 function getPool() {
   if (!globalPool) {
     globalPool = new Pool({
-      connectionString,
+      connectionString: requireServerEnv('DATABASE_URL'),
       ssl: { rejectUnauthorized: false }
     });
   }
   return globalPool;
 }
 
-// MSG91 Credentials (Configurable via .env.local or MSG91 Dashboard)
-const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '319435TL9QVRfp6n6a89bdeaP1';
-const MSG91_WIDGET_ID = process.env.MSG91_WIDGET_ID || process.env.NEXT_PUBLIC_MSG91_WIDGET_ID || '3668766f6a71323234393034';
-const MSG91_TEMPLATE_ID = process.env.MSG91_OTP_TEMPLATE_ID || '64df29c2d6fc0524450c2ea2';
-
 export async function POST(request: Request) {
-  const pool = getPool();
-  const client = await pool.connect();
+  let client: any = null;
 
   try {
+    const pool = getPool();
+    client = await pool.connect();
     const body = await request.json();
     const { mobileNumber, email } = body;
 
@@ -36,8 +32,8 @@ export async function POST(request: Request) {
         ? rawNumber 
         : rawNumber.slice(-10);
 
-    if (!cleanNumber && !email) {
-      return NextResponse.json({ success: false, error: 'Mobile number or email is required.' }, { status: 400 });
+    if (!/^\d{10}$/.test(cleanNumber)) {
+      return NextResponse.json({ success: false, error: 'A valid 10-digit mobile number is required.' }, { status: 400 });
     }
 
     console.log(`[MSG91 OTP] Looking up profile for mobile: ${cleanNumber}`);
@@ -56,21 +52,7 @@ export async function POST(request: Request) {
       identifiedUser = userRes.rows[0];
     }
 
-    // B. Check Superadmins
-    if (!identifiedUser) {
-      const superRes = await client.query(`
-        SELECT id, 'Nitin Tyagi (Executive Director)' as "fullName", email, '9876543452' as "phoneNumber", 'Super Admin' as role
-        FROM public.superadmins
-        WHERE email ILIKE $1 OR email ILIKE '%tyagi%'
-        LIMIT 1;
-      `, [email || '%tyagi%']);
-
-      if (superRes.rows.length > 0 && cleanNumber === '9876543452') {
-        identifiedUser = superRes.rows[0];
-      }
-    }
-
-    // C. Check Staff / Faculty
+    // B. Check Staff / Faculty
     if (!identifiedUser) {
       const staffRes = await client.query(`
         SELECT id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as "fullName", email, phone as "phoneNumber", 
@@ -84,7 +66,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // D. Check Transport Drivers
+    // C. Check Transport Drivers
     if (!identifiedUser) {
       const driverRes = await client.query(`
         SELECT id, driver_name as "fullName", driver_phone as "phoneNumber", 'Driver' as role, bus_number as "busNumber"
@@ -97,7 +79,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // E. Check Parents
+    // D. Check Parents
     if (!identifiedUser) {
       const parentRes = await client.query(`
         SELECT p.id, CONCAT(p.first_name, ' ', COALESCE(p.last_name, '')) as "fullName", 
@@ -111,37 +93,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Default Fallback Persona if new mobile
     if (!identifiedUser) {
-      identifiedUser = {
-        id: `USR-${cleanNumber}`,
-        fullName: cleanNumber === '9876543452' ? 'Nitin Tyagi' : `User (${cleanNumber})`,
-        phoneNumber: cleanNumber,
-        email: cleanNumber === '9876543452' ? 'nits.tyagi@gmail.com' : `${cleanNumber}@crayonboxschool.com`,
-        role: cleanNumber === '9876543452' ? 'Super Admin' : 'Parent'
-      };
+      return NextResponse.json({ success: false, error: 'This mobile number is not registered.' }, { status: 404 });
     }
 
-    // 2. Dispatch OTP via MSG91 API
-    let msg91Response: any = { type: 'success', message: 'OTP sent' };
+    // 2. Dispatch OTP via MSG91 API. These credentials are server-only.
+    const authKey = requireServerEnv('MSG91_AUTH_KEY');
+    const templateId = requireServerEnv('MSG91_OTP_TEMPLATE_ID');
     const formattedPhone = `91${cleanNumber}`;
-    const generatedReqId = `REQ_MSG91_${Date.now()}`;
+    const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${encodeURIComponent(templateId)}&mobile=${formattedPhone}`;
+    const apiRes = await fetch(msg91Url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', authkey: authKey }
+    });
+    const msg91Response = await apiRes.json();
 
-    try {
-      // MSG91 v5 OTP Dispatch
-      const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${MSG91_TEMPLATE_ID}&mobile=${formattedPhone}&authkey=${MSG91_AUTH_KEY}`;
-      const apiRes = await fetch(msg91Url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'authkey': MSG91_AUTH_KEY
-        }
-      });
-      const data = await apiRes.json();
-      msg91Response = data;
-      console.log('MSG91 API Dispatch Result:', data);
-    } catch (e: any) {
-      console.warn('MSG91 Network dispatch fallback:', e.message);
+    if (!apiRes.ok || msg91Response?.type !== 'success') {
+      console.error('MSG91 OTP dispatch failed', { status: apiRes.status, type: msg91Response?.type });
+      return NextResponse.json({ success: false, error: 'Unable to send a verification code.' }, { status: 502 });
     }
 
     // Log OTP Audit in Database
@@ -156,11 +125,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: `✓ MSG91 OTP dispatched to +91 ${cleanNumber}`,
-      reqId: msg91Response?.request_id || generatedReqId,
+      reqId: msg91Response?.request_id || null,
       profile: {
         id: identifiedUser.id,
         fullName: identifiedUser.fullName,
-        email: identifiedUser.email || `${cleanNumber}@crayonboxschool.com`,
+        email: identifiedUser.email || null,
         phoneNumber: identifiedUser.phoneNumber,
         role: identifiedUser.role,
       }
@@ -168,8 +137,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error sending MSG91 OTP:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Verification service is unavailable.' }, { status: 503 });
   } finally {
-    client.release();
+    client?.release();
   }
 }
