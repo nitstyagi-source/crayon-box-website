@@ -781,4 +781,139 @@ export async function getInstitutionsListAction() {
   }
 }
 
+// -------------------------------------------------------------
+// 13. GET & UPDATE VAANI EDUCATIONAL TRUST DETAILS (INCLUDING LOGO)
+// -------------------------------------------------------------
+export async function getTrustDetailsAction() {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    const res = await client.query(`
+      SELECT * FROM public.trusts LIMIT 1;
+    `);
+    if (res.rows.length === 0) {
+      return {
+        success: true,
+        trust: {
+          id: '5a07b06c-bad9-4bd7-b599-1ac5973a34c6',
+          code: 'VET',
+          name: 'Vaani Educational Trust',
+          registrationNumber: 'VET/REG/2018/DEL-8891',
+          headquarters: 'Shastri Park Ext., Burari, Delhi - 110084',
+          contactEmail: 'trust@crayonboxschool.com',
+          contactPhone: '+91 9811102008',
+          website: 'https://crayonboxschool.com',
+          logoUrl: '/logo.png',
+          panNumber: 'AAATV1234F',
+          taxExemption80g: '80G/CIT/DEL/2019/8821',
+          chairmanName: 'Nitin Tyagi',
+          trusteeNames: 'Nitin Tyagi, Vaani Tyagi'
+        }
+      };
+    }
+    const t = res.rows[0];
+    return {
+      success: true,
+      trust: {
+        id: t.id,
+        code: t.code,
+        name: t.name,
+        registrationNumber: t.registration_number,
+        headquarters: t.headquarters,
+        contactEmail: t.contact_email,
+        contactPhone: t.contact_phone,
+        website: t.website,
+        logoUrl: t.logo_url || '/logo.png',
+        panNumber: t.pan_number || 'AAATV1234F',
+        taxExemption80g: t.tax_exemption_80g || '80G/CIT/DEL/2019/8821',
+        chairmanName: t.chairman_name || 'Nitin Tyagi',
+        trusteeNames: t.trustee_names || 'Nitin Tyagi, Vaani Tyagi'
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateTrustDetailsAction(payload: {
+  name: string;
+  registrationNumber?: string;
+  headquarters?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  logoUrl?: string;
+  panNumber?: string;
+  taxExemption80g?: string;
+  chairmanName?: string;
+  trusteeNames?: string;
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    const existing = await client.query(`SELECT id FROM public.trusts LIMIT 1;`);
+    
+    if (existing.rows.length > 0) {
+      const trustId = existing.rows[0].id;
+      await client.query(`
+        UPDATE public.trusts
+        SET name = $1,
+            registration_number = $2,
+            headquarters = $3,
+            contact_email = $4,
+            contact_phone = $5,
+            website = $6,
+            logo_url = $7,
+            pan_number = $8,
+            tax_exemption_80g = $9,
+            chairman_name = $10,
+            trustee_names = $11
+        WHERE id = $12;
+      `, [
+        payload.name,
+        payload.registrationNumber || '',
+        payload.headquarters || '',
+        payload.contactEmail || '',
+        payload.contactPhone || '',
+        payload.website || '',
+        payload.logoUrl || '',
+        payload.panNumber || '',
+        payload.taxExemption80g || '',
+        payload.chairmanName || '',
+        payload.trusteeNames || '',
+        trustId
+      ]);
+    } else {
+      await client.query(`
+        INSERT INTO public.trusts (code, name, registration_number, headquarters, contact_email, contact_phone, website, logo_url, pan_number, tax_exemption_80g, chairman_name, trustee_names)
+        VALUES ('VET', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+      `, [
+        payload.name,
+        payload.registrationNumber || '',
+        payload.headquarters || '',
+        payload.contactEmail || '',
+        payload.contactPhone || '',
+        payload.website || '',
+        payload.logoUrl || '',
+        payload.panNumber || '',
+        payload.taxExemption80g || '',
+        payload.chairmanName || '',
+        payload.trusteeNames || ''
+      ]);
+    }
+
+    safeRevalidate('/admin/trust');
+    safeRevalidate('/admin/dashboard');
+    safeRevalidate('/admin/master-data');
+    return { success: true, message: 'Vaani Educational Trust details and logo updated successfully.' };
+  } catch (error: any) {
+    console.error('Error in updateTrustDetailsAction:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
 
