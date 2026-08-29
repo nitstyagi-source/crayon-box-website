@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { Student360ProfileModal } from '@/components/students/Student360ProfileModal';
 import {
   getFilteredUniversalStudentsAction,
   enrollUniversalStudentTransactionalAction,
@@ -57,6 +58,7 @@ export default function UniversalStudentsDirectoryPage() {
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [targetStudentForArchive, setTargetStudentForArchive] = useState<any>(null);
   const [archiveReason, setArchiveReason] = useState('Parent relocation');
+  const [selectedStudentFor360, setSelectedStudentFor360] = useState<any>(null);
 
   // Debounce search input to eliminate typing lag
   useEffect(() => {
@@ -476,11 +478,14 @@ export default function UniversalStudentsDirectoryPage() {
             </Button>
           )}
 
-          <Link href={`/admin/students/${row.id}`}>
-            <Button size="sm" variant="outline" leftIcon={<Eye className="w-3.5 h-3.5" />}>
-              Dossier
-            </Button>
-          </Link>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setSelectedStudentFor360(row)}
+            leftIcon={<Eye className="w-3.5 h-3.5" />}
+          >
+            Dossier
+          </Button>
           
           {row.is_test_record ? (
             <button
@@ -1487,6 +1492,13 @@ export default function UniversalStudentsDirectoryPage() {
           <span>{readmitToastMsg}</span>
         </div>
       )}
+
+      {/* Universal 360° Student Profile Popup Modal */}
+      <Student360ProfileModal
+        isOpen={!!selectedStudentFor360}
+        onClose={() => setSelectedStudentFor360(null)}
+        student={selectedStudentFor360}
+      />
 
     </div>
   );
