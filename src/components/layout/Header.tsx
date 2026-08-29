@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { User, CreditCard, Search, Globe, ChevronDown } from "lucide-react";
+import { Search, Globe, ChevronDown } from "lucide-react";
 import { getPageContent } from "@/app/actions/cms";
 
 const NAV_LINKS = [
@@ -28,7 +28,7 @@ export default async function Header() {
   const globalData = globalRes.data || {};
   
   return (
-    <header className="sticky top-0 z-40 w-full glass-nav bg-white/90 backdrop-blur-md shadow-sm border-b border-stone-200">
+    <header className="sticky top-0 z-40 w-full glass-nav bg-white/90 backdrop-blur-md shadow-xs border-b border-stone-200">
       <div className="container mx-auto px-4">
         <div className="flex h-20 items-center justify-between gap-4">
           
@@ -67,7 +67,7 @@ export default async function Header() {
             ))}
           </nav>
 
-          {/* Section 3: Right Utility (Search, Lang, Actions) */}
+          {/* Section 3: Right Utility (Search, Lang, Apply Now) */}
           <div className="flex items-center gap-4 shrink-0">
             {/* Predictive Search Mockup */}
             <div className="hidden md:flex relative group items-center">
@@ -77,23 +77,10 @@ export default async function Header() {
               </button>
             </div>
 
-            {/* Language Switcher Mockup */}
+            {/* Language Switcher */}
             <div className="hidden md:flex items-center gap-1 text-stone-600 hover:text-primary cursor-pointer border border-stone-200 rounded-full px-3 py-1.5 text-xs font-bold transition-colors">
               <Globe className="w-4 h-4" />
               <span>EN</span>
-            </div>
-
-            <div className="hidden xl:flex items-center gap-4 text-sm font-semibold text-stone-600 ml-2">
-              <Link 
-                href="/mobile" 
-                className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-amber-100 transition-colors shadow-2xs"
-              >
-                <span>📱 Mobile App</span>
-              </Link>
-              <Link href="/login" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                <User className="h-4 w-4" />
-                <span>Portal</span>
-              </Link>
             </div>
             
             <Link 

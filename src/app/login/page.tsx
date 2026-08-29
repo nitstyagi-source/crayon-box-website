@@ -79,11 +79,7 @@ export default function CentralLoginPage() {
       });
 
       // Route according to role
-      if (detectedRole === "PARENT" || detectedRole === "STUDENT") {
-        router.push("/family/dashboard");
-      } else {
-        router.push("/admin/dashboard");
-      }
+      router.push("/admin/dashboard");
     } catch (err: any) {
       setError(err.message || "Authentication error occurred.");
     } finally {
@@ -148,7 +144,7 @@ export default function CentralLoginPage() {
         });
       }
 
-      router.push("/family/dashboard");
+      router.push("/admin/dashboard");
     } catch (err: any) {
       setError(err.message || "OTP verification failed.");
     } finally {
@@ -175,12 +171,7 @@ export default function CentralLoginPage() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/mobile"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-slate-700 transition"
-          >
-            <span>📱 Mobile App</span>
-          </Link>
+          
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>IAM Gateway Online</span>

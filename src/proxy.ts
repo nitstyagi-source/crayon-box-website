@@ -51,9 +51,7 @@ export async function proxy(request: NextRequest) {
   if (url.pathname === '/login' && isAuthenticated) {
     // Already logged in
     const role = request.cookies.get('cb_user_role')?.value;
-    if (role === 'PARENT' || role === 'STUDENT' || role === 'Parent' || role === 'Student') {
-      return NextResponse.redirect(new URL('/family/dashboard', request.url));
-    }
+    
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
 
