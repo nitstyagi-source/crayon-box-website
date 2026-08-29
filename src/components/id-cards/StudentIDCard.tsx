@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { QrCode, Phone, MapPin, Bus, Heart, ShieldCheck, GraduationCap } from 'lucide-react';
+import { QrCode, Phone, MapPin, Globe, ShieldCheck, User, Calendar, Droplet, ChevronRight } from 'lucide-react';
 import { StudentQRCode } from './StudentQRCode';
 
 export interface StudentIDCardProps {
@@ -44,189 +44,224 @@ export function StudentIDCard({
   session = '2026–2027',
   layoutMode = 'DUAL'
 }: StudentIDCardProps) {
-  const sName = `${student.first_name || ''} ${student.middle_name ? `${student.middle_name} ` : ''}${student.last_name || student.lastName || ''}`.trim();
-  const admNo = student.admission_number || student.admission_no || 'CBS-2026-0042';
+  const sName = `${student.first_name || ''} ${student.middle_name ? `${student.middle_name} ` : ''}${student.last_name || student.lastName || ''}`.trim() || 'Arav Tyagi';
+  const admNo = student.admission_number || student.admission_no || 'CBS/24-25/0412';
   const uId = student.universal_id || 'STU-VET-000042';
   const instCode = student.institution_code || 'CBS';
-  const fullSchoolName = instCode === 'AVM' ? 'AVINYA VIDYA MANDIR' : instCode === 'AS' ? 'AVINYA SCHOOL' : instCode === 'CBPS' ? 'CRAYON BOX PRE SCHOOL' : 'CRAYON BOX SCHOOL';
+  const className = student.class_name ? (student.class_name.includes('Class') ? student.class_name : `Class : ${student.class_name}${student.section_name ? ` - ${student.section_name}` : ''}`) : 'Class : 4 - A';
+  const bloodGroup = student.blood_group || 'O+';
+  const phone = student.guardian_phone || '9876543210';
+  const address = student.primary_address || '123, Green Park, New Delhi - 110016';
 
   // Safe DOB string formatting
-  let formattedDob = '14-04-2016';
+  let formattedDob = '15 May 2014';
   if (student.dob) {
     if (student.dob instanceof Date) {
-      formattedDob = student.dob.toISOString().split('T')[0];
+      formattedDob = student.dob.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     } else if (typeof student.dob === 'string') {
-      formattedDob = student.dob.split('T')[0];
-    } else {
-      formattedDob = String(student.dob);
+      try {
+        const d = new Date(student.dob);
+        if (!isNaN(d.getTime())) {
+          formattedDob = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } else {
+          formattedDob = student.dob;
+        }
+      } catch {
+        formattedDob = student.dob;
+      }
     }
   }
+
+  // Attendance QR Payload verified for gate scanning
+  const qrPayload = `VET:STU:${uId}:${student.id}:${instCode}:${admNo}`;
 
   const showFront = layoutMode === 'DUAL' || layoutMode === 'FRONT_ONLY';
   const showBack = layoutMode === 'DUAL' || layoutMode === 'BACK_ONLY';
 
   return (
-    <div className="flex flex-wrap gap-4 items-center justify-center p-2.5 bg-slate-50/80 rounded-2xl border border-slate-200/60 print:p-0 print:bg-white print:border-none font-sans max-w-full">
+    <div className="flex flex-wrap gap-6 items-center justify-center p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 print:p-0 print:bg-white print:border-none font-sans max-w-full">
       
-      {/* 🌟 FRONT OF PVC CARD (Standard ISO/IEC 7810 ID-1 / CR80: 53.98mm × 85.60mm) */}
+      {/* ========================================================================= */}
+      {/* 🌟 FRONT SIDE OF CR80 CARD (54mm × 85.6mm)                                */}
+      {/* ========================================================================= */}
       {showFront && (
-        <div className="w-[240px] h-[380px] bg-white rounded-xl shadow-md border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none">
+        <div className="w-[260px] h-[412px] print:w-[54mm] print:h-[85.6mm] bg-white rounded-3xl shadow-xl border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none text-center">
           
-          {/* Top Header */}
-          <div className="bg-slate-900 text-white py-2 px-2.5 text-center relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 w-12 h-12 bg-indigo-600/30 rounded-full blur-xs" />
-            <div className="flex items-center justify-center gap-1.5">
-              <div className="w-5 h-5 rounded-full bg-white text-slate-900 flex items-center justify-center font-bold text-[9px]">
-                <GraduationCap className="w-3 h-3 text-slate-900" />
-              </div>
-              <h3 className="font-black text-[10px] uppercase tracking-wider truncate">{fullSchoolName}</h3>
+          {/* Top Curved Navy Arc */}
+          <div className="bg-[#0A2558] h-24 flex items-end justify-center pb-2 relative overflow-visible">
+            {/* School Crest in Gold Circle */}
+            <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center absolute -bottom-7 shadow-md z-10">
+              <img src="/trust-logo.png" alt="Crayon Box School" className="w-14 h-14 object-contain" />
             </div>
-            <span className="text-[7.5px] font-bold text-indigo-300 block uppercase tracking-widest mt-0.5">
-              Student Identity Card • {session}
-            </span>
+            {/* Golden Trim Curve */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
           </div>
 
-          {/* Center: Photo & Name */}
-          <div className="px-3 flex flex-col items-center text-center space-y-1.5 my-auto">
-            
-            {/* Photo Frame */}
-            <div className="w-16 h-16 rounded-xl bg-slate-800 text-white font-black text-lg flex items-center justify-center overflow-hidden border-2 border-indigo-600 shadow-sm">
+          {/* School Brand Typography */}
+          <div className="mt-8 px-2">
+            <h1 className="text-base font-black tracking-wider text-[#0A2558] leading-tight">CRAYON BOX</h1>
+            <div className="text-[10px] font-extrabold text-red-600 tracking-widest uppercase">— S C H O O L —</div>
+            <div className="text-[7.5px] font-bold text-slate-500 tracking-wider mt-0.5">LEARN • GROW • SHINE</div>
+          </div>
+
+          {/* Student Circular Portrait */}
+          <div className="mt-2 flex justify-center">
+            <div className="w-20 h-20 rounded-full bg-slate-900 border-2.5 border-[#0A2558] overflow-hidden shadow-sm flex items-center justify-center">
               {student.photo_url ? (
                 <img src={student.photo_url} alt={sName} className="w-full h-full object-cover" />
               ) : (
-                <span>{student.first_name?.[0]}{student.last_name?.[0]}</span>
+                <span className="text-amber-300 font-black text-xl">
+                  {sName.slice(0, 2).toUpperCase()}
+                </span>
               )}
             </div>
-
-            <div className="space-y-0.5">
-              <h2 className="text-[11px] font-black text-slate-900 leading-tight uppercase truncate max-w-[210px]">{sName}</h2>
-              <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 font-mono font-bold text-[8.5px] border border-indigo-200 inline-block">
-                {uId}
-              </span>
-            </div>
-
-            {/* Class & Section Banner */}
-            <div className="w-full bg-indigo-600 text-white py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider">
-              {student.class_name || 'Class 4'} — Section {student.section_name || 'A'} • Roll #{student.roll_number || '1'}
-            </div>
-
-            {/* Quick Details + Front Gate QR */}
-            <div className="w-full grid grid-cols-12 gap-1.5 text-[7.5px] text-left pt-0.5 items-center">
-              
-              {/* Left 7 Cols: Demographics */}
-              <div className="col-span-7 space-y-0.5">
-                <div className="bg-slate-50 p-1 rounded-md border border-slate-200">
-                  <span className="text-slate-400 block text-[6.5px] font-medium">Admission No</span>
-                  <strong className="font-mono text-slate-900 text-[8.5px] block truncate">{admNo}</strong>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="bg-slate-50 p-0.5 px-1 rounded-md border border-slate-200">
-                    <span className="text-slate-400 block text-[6.5px]">Blood</span>
-                    <strong className="text-rose-600 font-bold text-[7.5px]">{student.blood_group || 'O+'}</strong>
-                  </div>
-                  <div className="bg-slate-50 p-0.5 px-1 rounded-md border border-slate-200">
-                    <span className="text-slate-400 block text-[6.5px]">DOB</span>
-                    <strong className="text-slate-800 text-[7.5px] truncate block">{formattedDob}</strong>
-                  </div>
-                </div>
-                <div className="bg-slate-50 p-0.5 px-1 rounded-md border border-slate-200">
-                  <span className="text-slate-400 block text-[6.5px]">Emergency</span>
-                  <strong className="text-slate-800 font-mono text-[7.5px] block truncate">{student.guardian_phone || '9810011001'}</strong>
-                </div>
-              </div>
-
-              {/* Right 5 Cols: Front Gate QR Code */}
-              <div className="col-span-5 flex flex-col items-center justify-center p-1 bg-slate-50 rounded-lg border border-slate-200 text-center">
-                <StudentQRCode
-                  payload={`VET:STU:${uId}:${student.id}:${instCode}:${admNo}`}
-                  size={58}
-                />
-                <span className="text-[6px] font-black uppercase text-indigo-900 tracking-wider mt-0.5 block">
-                  ⚡ GATE QR
-                </span>
-              </div>
-
-            </div>
-
           </div>
 
-          {/* Bottom Bar: Hologram + Principal Signature */}
-          <div className="border-t border-slate-200 bg-slate-50 px-2.5 py-1 flex items-center justify-between text-[7px] text-slate-500 font-bold">
-            <div className="flex items-center gap-1 text-emerald-700">
-              <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
-              <span>CR80 PVC</span>
+          {/* Student Name Solid Navy Banner */}
+          <div className="mt-2 mx-auto bg-[#0A2558] text-white px-5 py-1 rounded-xl text-xs font-black tracking-wide shadow-2xs max-w-[220px] truncate">
+            {sName.toUpperCase()}
+          </div>
+
+          {/* Class Ribbon Badge (No Roll No) */}
+          <div className="mt-1 flex items-center justify-center">
+            <div className="w-2.5 h-4.5 bg-red-600 rounded-l-sm -mr-0.5" />
+            <div className="bg-amber-500 text-white text-[10px] font-black px-4 py-0.5 rounded-xs z-2">
+              {className}
             </div>
-            <div className="text-center">
-              <div className="h-2.5 border-b border-dashed border-slate-400 w-12 mb-0.5" />
-              <span className="text-[6.5px] uppercase tracking-wider text-slate-800">Principal</span>
+            <div className="w-2.5 h-4.5 bg-red-600 rounded-r-sm -ml-0.5" />
+          </div>
+
+          {/* Attendance QR Code Box */}
+          <div className="my-2 mx-auto w-32 h-32 border-1.5 border-rose-500 rounded-xl flex flex-col items-center justify-center relative pt-1 bg-white shadow-2xs">
+            <div className="absolute -top-2 bg-rose-600 text-white text-[7px] font-black px-2.5 py-0.5 rounded-sm uppercase tracking-wider">
+              ATTENDANCE QR
+            </div>
+            <StudentQRCode payload={qrPayload} size={98} />
+          </div>
+
+          {/* Bottom Solid Navy Bar: Admission Number (Replaced ID No) */}
+          <div className="bg-[#0A2558] text-white py-2 px-3 border-t-2 border-amber-500 flex items-center justify-center gap-2 mt-auto">
+            <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <div className="h-4 w-px bg-white/20" />
+            <div className="text-left">
+              <span className="text-[7.5px] text-slate-300 block leading-none">Admission No. :</span>
+              <span className="font-mono text-[9.5px] font-black text-white leading-tight">{admNo}</span>
             </div>
           </div>
 
         </div>
       )}
 
-      {/* 🌟 BACK OF PVC CARD */}
+      {/* ========================================================================= */}
+      {/* 🌟 BACK SIDE OF CR80 CARD (54mm × 85.6mm)                                 */}
+      {/* ========================================================================= */}
       {showBack && (
-        <div className="w-[240px] h-[380px] bg-white rounded-xl shadow-md border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none">
+        <div className="w-[260px] h-[412px] print:w-[54mm] print:h-[85.6mm] bg-white rounded-3xl shadow-xl border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none text-left">
           
-          <div className="bg-slate-900 text-white py-1.5 px-2.5 text-center">
-            <span className="text-[7.5px] font-bold uppercase tracking-widest text-indigo-300">
-              Emergency & Transport Telematics
-            </span>
+          {/* Top Navy Arc with Crest */}
+          <div className="bg-[#0A2558] h-24 flex items-center justify-center relative">
+            <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center shadow-md">
+              <img src="/trust-logo.png" alt="Crayon Box School" className="w-14 h-14 object-contain" />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
           </div>
 
-          <div className="p-3 space-y-1.5 text-[8px] my-auto">
-            
-            {/* Guardian Information */}
-            <div className="space-y-0.5 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
-              <span className="font-bold text-slate-400 uppercase block text-[7px]">Parent Contact</span>
-              <div className="font-bold text-slate-900 truncate">
-                Father: {student.father_name || (student.guardian_first ? `${student.guardian_first} ${student.guardian_last || ''}` : 'Mr. Rajesh Sharma')}
-              </div>
-              <div className="text-slate-700 truncate">
-                Mother: {student.mother_name || 'Mrs. Priya Sharma'}
-              </div>
-              <div className="font-mono text-indigo-700 font-bold pt-0.5 text-[8px]">
-                📞 {student.guardian_phone || '9810011001'}
-              </div>
-            </div>
-
-            {/* Transport Details */}
-            <div className="space-y-0.5 bg-amber-50/80 p-1.5 rounded-lg border border-amber-200 text-amber-950 text-[7.5px]">
-              <span className="font-bold text-amber-800 uppercase block text-[6.5px]">Transport Telematics</span>
-              <div className="font-bold truncate">
-                🚌 {student.transport_mode ? student.transport_mode.replace('_', ' ') : 'SCHOOL BUS'}
-              </div>
-              <div className="truncate">
-                {student.transport_route || 'Shastri Park Express'} ({student.transport_bus_no || 'Bus #04'})
-              </div>
-            </div>
-
-            {/* Residential Address */}
-            <div className="space-y-0.5 text-slate-700 text-[7px]">
-              <span className="font-bold text-slate-400 uppercase block text-[6.5px]">Residential Address</span>
-              <p className="leading-tight line-clamp-2">
-                {student.primary_address || 'Lotus Court, Shastri Park Extn. Delhi-110084'}
-              </p>
-            </div>
-
-            {/* QR Code Block */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-              <div className="space-y-0.5">
-                <span className="font-bold text-slate-900 block text-[7.5px]">Gate QR Tap</span>
-                <span className="text-[6.5px] text-slate-500">Scan for Attendance</span>
-              </div>
-              <StudentQRCode
-                payload={`VET:STU:${uId}:${student.id}:${instCode}:${admNo}`}
-                size={48}
-              />
-            </div>
-
+          {/* School Brand on Back */}
+          <div className="text-center mt-2 px-2">
+            <div className="text-xs font-black tracking-wider text-[#0A2558]">CRAYON BOX</div>
+            <div className="text-[8.5px] font-bold text-red-600 tracking-widest uppercase">— S C H O O L —</div>
+            <div className="text-[6.5px] font-bold text-slate-500 tracking-wider">LEARN • GROW • SHINE</div>
+            <div className="w-24 h-0.5 bg-amber-500 mx-auto mt-1.5" />
           </div>
 
-          {/* Footer Instructions */}
-          <div className="bg-slate-100 p-1.5 text-center text-[6.5px] text-slate-500 border-t border-slate-200 leading-tight">
-            Return to School Reception if found • +91 9811102008
+          {/* Student Details Grid (No Roll No) */}
+          <div className="px-4 py-1.5 space-y-1 text-[9.5px]">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
+              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
+                <User className="w-2.5 h-2.5" />
+              </div>
+              <span className="w-20 text-slate-500 font-semibold text-[9px]">Name</span>
+              <span className="text-slate-400">:</span>
+              <span className="font-bold text-slate-900 truncate text-[9.5px]">{sName}</span>
+            </div>
+
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
+              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
+                <Calendar className="w-2.5 h-2.5" />
+              </div>
+              <span className="w-20 text-slate-500 font-semibold text-[9px]">DOB</span>
+              <span className="text-slate-400">:</span>
+              <span className="font-bold text-slate-900 font-mono text-[9px]">{formattedDob}</span>
+            </div>
+
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
+              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
+                <Droplet className="w-2.5 h-2.5" />
+              </div>
+              <span className="w-20 text-slate-500 font-semibold text-[9px]">Blood Group</span>
+              <span className="text-slate-400">:</span>
+              <span className="font-black text-rose-600 text-[9.5px]">{bloodGroup}</span>
+            </div>
+
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
+              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
+                <Phone className="w-2.5 h-2.5" />
+              </div>
+              <span className="w-20 text-slate-500 font-semibold text-[9px]">Parent Contact</span>
+              <span className="text-slate-400">:</span>
+              <span className="font-bold text-slate-900 font-mono text-[9px]">{phone}</span>
+            </div>
+
+            <div className="flex items-start gap-2 border-b border-slate-100 pb-0.5">
+              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin className="w-2.5 h-2.5" />
+              </div>
+              <span className="w-20 text-slate-500 font-semibold text-[9px]">Address</span>
+              <span className="text-slate-400">:</span>
+              <span className="font-medium text-slate-700 text-[8.5px] leading-tight flex-1 line-clamp-2">{address}</span>
+            </div>
+          </div>
+
+          {/* Instructions Box with Chevrons (No Signature) */}
+          <div className="mx-3.5 my-1 border border-red-500 bg-red-50/40 rounded-xl p-2 relative">
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider flex items-center gap-1">
+              <span>◆</span>
+              <span>INSTRUCTIONS</span>
+              <span>◆</span>
+            </div>
+            <div className="space-y-0.5 mt-1 text-[7.5px] text-slate-800 font-medium">
+              <div className="flex items-start gap-1">
+                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
+                <span>This card is the property of Crayon Box School.</span>
+              </div>
+              <div className="flex items-start gap-1">
+                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
+                <span>This card must be worn every day.</span>
+              </div>
+              <div className="flex items-start gap-1">
+                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
+                <span>In case of loss, inform the school immediately.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Back Bottom Navy Footer: 3 Columns (Website: www.crayonboxschool.com, Phone: 9811102008, Motto) */}
+          <div className="bg-[#0A2558] text-white py-2 px-2 text-[8px] flex items-center justify-between border-t-2 border-amber-500 mt-auto">
+            <div className="flex-1 text-center font-semibold text-slate-200">
+              <Globe className="w-2.5 h-2.5 text-amber-400 inline mr-0.5" />
+              <span>www.crayonboxschool.com</span>
+            </div>
+            <div className="w-px h-5 bg-white/20" />
+            <div className="flex-1 text-center font-bold text-white font-mono">
+              <Phone className="w-2.5 h-2.5 text-amber-400 inline mr-0.5" />
+              <span>9811102008</span>
+            </div>
+            <div className="w-px h-5 bg-white/20" />
+            <div className="flex-1 text-center font-semibold text-amber-300 text-[7px] leading-tight">
+              Excellence in Education. Values for Life.
+            </div>
           </div>
 
         </div>
