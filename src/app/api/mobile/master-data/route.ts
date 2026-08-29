@@ -14,11 +14,19 @@ function getPool() {
 export async function GET(request: NextRequest) {
   const pool = getPool();
   try {
-    // 1. Fetch Classes & Sections
+    // 1. Fetch Classes & Sections with real Student Enrollment count
     const classesRes = await pool.query(
-      `SELECT id, grade, section, room_number as room_no, COALESCE(capacity, 35) as capacity 
-       FROM public.classes 
-       ORDER BY created_at ASC;`
+      `SELECT 
+        c.id, 
+        c.grade, 
+        c.section, 
+        c.room_number as room_no, 
+        COALESCE(c.capacity, 35) as capacity,
+        COUNT(s.id)::int as student_count
+       FROM public.classes c
+       LEFT JOIN public.students s ON s.class_id = c.id
+       GROUP BY c.id, c.grade, c.section, c.room_number, c.capacity, c.created_at
+       ORDER BY c.created_at ASC;`
     ).catch(() => ({ rows: [] }));
 
     // 2. Fetch Institutions
