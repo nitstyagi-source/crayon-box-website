@@ -36,11 +36,12 @@ export function SidebarNav({ currentRole }: SidebarNavProps) {
   const allGroups: NavGroup[] = [
     {
       group: 'Overview & Governance',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
       items: [
         { name: '🏛️ Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
+        { name: '⚖️ Executive Approvals', href: '/admin/approvals', icon: ShieldCheck },
         { name: 'Institutional Analytics', href: '/admin/analytics', icon: FileBarChart },
-        { name: 'Master Data Quality (100%)', href: '/admin/data-quality', icon: ShieldCheck },
+        { name: 'Master Data Quality (100%)', href: '/admin/data-quality', icon: Database },
       ],
     },
     {
