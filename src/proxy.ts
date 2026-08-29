@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
-  })
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co',
@@ -13,20 +12,20 @@ export async function proxy(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
-          })
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
-          )
+          );
         },
       },
     }
-  )
+  );
 
   let user = null;
   try {
@@ -39,15 +38,23 @@ export async function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   
+  if (url.pathname === '/admin/login') {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
   if (url.pathname.startsWith('/admin')) {
-    if (url.pathname === '/admin/login') {
-      if (isAuthenticated) return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      return supabaseResponse;
-    }
-    
     if (!isAuthenticated) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
+  }
+
+  if (url.pathname === '/login' && isAuthenticated) {
+    // Already logged in
+    const role = request.cookies.get('cb_user_role')?.value;
+    if (role === 'PARENT' || role === 'STUDENT' || role === 'Parent' || role === 'Student') {
+      return NextResponse.redirect(new URL('/family/dashboard', request.url));
+    }
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
 
   return supabaseResponse;
