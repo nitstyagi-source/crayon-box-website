@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Upload, Link as LinkIcon, X, FileText, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
+import { Upload, Link as LinkIcon, X, FileText, Image as ImageIcon, CheckCircle2, Sparkles } from 'lucide-react';
+import { standardizePhotoBackground } from '@/lib/utils/photo-standardizer';
 
 export interface DualFileUploadProps {
   label?: string;
@@ -12,6 +13,7 @@ export interface DualFileUploadProps {
   placeholder?: string;
   allowDocument?: boolean;
   required?: boolean;
+  standardizeBackground?: boolean;
 }
 
 export function DualFileUpload({
@@ -22,12 +24,14 @@ export function DualFileUpload({
   accept = "image/*,.pdf",
   placeholder = "https://example.com/image.png or /logo.png",
   allowDocument = true,
-  required = false
+  required = false,
+  standardizeBackground = true
 }: DualFileUploadProps) {
   const [activeTab, setActiveTab] = useState<'upload' | 'url'>(
     value && value.startsWith('http') ? 'url' : 'upload'
   );
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,14 +50,26 @@ export function DualFileUpload({
     value.includes('pdf')
   );
 
-  const handleFileChange = (file: File | null) => {
+  const handleFileChange = async (file: File | null) => {
     if (!file) return;
 
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      onChange(result);
+    reader.onload = async (e) => {
+      const rawResult = e.target?.result as string;
+      if (file.type.startsWith('image/') && standardizeBackground && !file.name.includes('logo')) {
+        setIsProcessing(true);
+        try {
+          const standardized = await standardizePhotoBackground(rawResult, { backgroundType: 'studio-gradient-dark' });
+          onChange(standardized);
+        } catch (err) {
+          onChange(rawResult);
+        } finally {
+          setIsProcessing(false);
+        }
+      } else {
+        onChange(rawResult);
+      }
     };
     reader.readAsDataURL(file);
   };
