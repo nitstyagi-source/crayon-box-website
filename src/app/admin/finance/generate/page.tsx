@@ -8,7 +8,7 @@ import {
   Filter, UserCheck, UserX, Info, Eye, Printer, Edit3, Save
 } from "lucide-react";
 import Link from "next/link";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   searchStudentsForFeeCollection, 
   generateIndividualInvoice, 
@@ -18,11 +18,11 @@ import {
   getBulkTargetStudents
 } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
-import { useInstitution } from "@/components/providers/InstitutionContext";
+
 import { convertAmountToWords } from "@/lib/number-to-words";
 
 export default function GenerateInvoicesPage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">("individual");
 
@@ -106,7 +106,7 @@ export default function GenerateInvoicesPage() {
 
   useEffect(() => {
     loadFeeHeads();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   useEffect(() => {
     if (activeTab === "bulk") {
@@ -141,18 +141,18 @@ export default function GenerateInvoicesPage() {
       }
       setBulkBatchItems(items);
     }
-  }, [activeCampusId, selectedClass, selectedSection, activeTab]);
+  }, [currentInstitution, selectedClass, selectedSection, activeTab]);
 
   useEffect(() => {
     if (activeTab === "individual") {
       loadIndividualStudents();
     }
-  }, [activeCampusId, individualClass, individualSection, activeTab]);
+  }, [currentInstitution, individualClass, individualSection, activeTab]);
 
   async function loadIndividualStudents() {
     setIsLoadingIndStudents(true);
     try {
-      const res = await getBulkTargetStudents(activeCampusId, individualClass, individualSection);
+      const res = await getBulkTargetStudents(currentInstitution, individualClass, individualSection);
       if (res.success && res.data) {
         setIndividualClassStudents(res.data.students || []);
       }
@@ -165,7 +165,7 @@ export default function GenerateInvoicesPage() {
 
   async function loadFeeHeads() {
     try {
-      const res = await getFeeHeads(activeCampusId);
+      const res = await getFeeHeads(currentInstitution);
       if (res.success) {
         setAvailableHeads(res.data || []);
       }
@@ -210,7 +210,7 @@ export default function GenerateInvoicesPage() {
     setIsSavingHead(true);
     try {
       const res = await saveFeeHead({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         id: headFormData.id || undefined,
         name: headFormData.name.trim(),
         code: headFormData.code.trim().toUpperCase() || headFormData.name.slice(0, 3).toUpperCase(),
@@ -256,7 +256,7 @@ export default function GenerateInvoicesPage() {
   async function loadBulkStudents() {
     setIsLoadingStudents(true);
     try {
-      const res = await getBulkTargetStudents(activeCampusId, selectedClass, selectedSection);
+      const res = await getBulkTargetStudents(currentInstitution, selectedClass, selectedSection);
       if (res.success && res.data) {
         const studentList = res.data.students || [];
         setBulkStudents(studentList);
@@ -301,7 +301,7 @@ export default function GenerateInvoicesPage() {
       return;
     }
     try {
-      const res = await searchStudentsForFeeCollection(activeCampusId, q);
+      const res = await searchStudentsForFeeCollection(currentInstitution, q);
       if (res.success) {
         setSearchResults(res.data || []);
       }
@@ -437,7 +437,7 @@ export default function GenerateInvoicesPage() {
 
     try {
       const res = await generateIndividualInvoice({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         student_id: selectedStudent.id,
         billing_period: billingPeriod,
         due_date: dueDate,
@@ -563,7 +563,7 @@ export default function GenerateInvoicesPage() {
 
     try {
       const res = await generateBulkInvoices({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         class_name: selectedClass,
         section_name: selectedSection,
         selected_student_ids: selectedStudentIds,

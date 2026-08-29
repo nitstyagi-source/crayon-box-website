@@ -127,8 +127,9 @@ export async function getSectionAttendanceRoster(
       SELECT student_id, status, remarks, time, event_type, verification_method, created_at
       FROM public.student_attendance_records
       WHERE student_id = ANY($1::uuid[])
-        AND date = $2;
-    `, [studentIds, targetDate]);
+        AND date = $2
+        AND (institution_code = $3 OR $3 = 'ALL');
+    `, [studentIds, targetDate, inst]);
 
     const attMap: Record<string, any> = {};
     attRes.rows.forEach((att: any) => {
@@ -201,8 +202,8 @@ export async function submitDailyAttendanceAction(
       // Check if record exists for student on this date
       const checkRes = await client.query(`
         SELECT id FROM public.student_attendance_records
-        WHERE student_id = $1 AND date = $2;
-      `, [entry.studentId, targetDate]);
+        WHERE student_id = $1 AND date = $2 AND (institution_code = $3 OR $3 = 'ALL');
+      `, [entry.studentId, targetDate, inst]);
 
       if (checkRes.rows.length > 0) {
         // Update existing record
@@ -221,15 +222,16 @@ export async function submitDailyAttendanceAction(
         // Insert new record with all required non-null constraints satisfied
         await client.query(`
           INSERT INTO public.student_attendance_records (
-            student_id, campus_id, date, time, academic_session,
+            institution_code, student_id, campus_id, date, time, academic_session,
             class_name, section_name, event_type, status,
             verification_method, remarks, parent_notified, created_at
           ) VALUES (
-            $1, $2, $3, CURRENT_TIME, '2026-2027',
-            $4, $5, 'Classroom', $6,
-            'Manual', $7, $8, NOW()
+            $1, $2, $3, $4, CURRENT_TIME, '2026-2027',
+            $5, $6, 'Classroom', $7,
+            'Manual', $8, $9, NOW()
           );
         `, [
+          inst === 'ALL' ? 'CBS' : inst,
           entry.studentId,
           campusId,
           targetDate,
@@ -265,14 +267,15 @@ export async function submitDailyAttendanceAction(
 /**
  * Delete / Clear an attendance record for a student on a specific date
  */
-export async function deleteAttendanceRecordAction(studentId: string, date: string) {
+export async function deleteAttendanceRecordAction(studentId: string, date: string, institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
   try {
+    const inst = institutionCode && institutionCode !== 'ALL' ? institutionCode : 'CBS';
     await client.query(`
       DELETE FROM public.student_attendance_records
-      WHERE student_id = $1 AND date = $2;
-    `, [studentId, date]);
+      WHERE student_id = $1 AND date = $2 AND (institution_code = $3 OR $3 = 'ALL');
+    `, [studentId, date, inst]);
 
     safeRevalidate('/admin/attendance');
     return { success: true };

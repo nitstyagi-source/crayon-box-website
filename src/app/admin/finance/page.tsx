@@ -10,15 +10,18 @@ import { createClient } from '@/lib/supabase/client';
 import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
 import { Button } from '@/components/ui/Button';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function ExecutiveFinancePage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentInstitution } = useInstitution();
 
   const fetchInvoices = async () => {
     setIsLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
+    
+    let query = supabase
       .from('student_invoices')
       .select(`
         id,
@@ -31,6 +34,12 @@ export default function ExecutiveFinancePage() {
         students (first_name, last_name, admission_no)
       `)
       .order('created_at', { ascending: false });
+      
+    if (currentInstitution !== 'ALL') {
+      query = query.eq('institution_code', currentInstitution);
+    }
+
+    const { data } = await query;
 
     setInvoices(data || []);
     setIsLoading(false);
@@ -38,7 +47,7 @@ export default function ExecutiveFinancePage() {
 
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  }, [currentInstitution]);
 
   const totalBilled = invoices.reduce((acc, inv) => acc + (Number(inv.total_amount) || 0), 0);
   const totalCollected = invoices.reduce((acc, inv) => acc + (Number(inv.amount_paid) || 0), 0);

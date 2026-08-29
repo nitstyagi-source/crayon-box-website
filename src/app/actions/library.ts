@@ -33,20 +33,20 @@ function safeDateStr(d: any): string {
 // -------------------------------------------------------------
 // 1. LIBRARY DASHBOARD STATS
 // -------------------------------------------------------------
-export async function getLibraryDashboardStats(campusId?: string) {
+export async function getLibraryDashboardStats(institutionCode?: string) {
   const pool = getPool();
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (campusId && campusId !== 'all' && campusId !== 'default') ? campusId : defaultCampus;
+    const cid = (institutionCode && institutionCode !== 'all' && institutionCode !== 'default') ? institutionCode : defaultCampus;
 
     const [booksRes, copiesRes, txsRes, resRes] = await Promise.all([
-      pool.query(`SELECT count(*) as total_titles, COALESCE(sum(total_copies), 0) as total_volumes FROM public.library_books WHERE campus_id = $1 OR $1 IS NULL`, [cid]),
+      pool.query(`SELECT count(*) as total_titles, COALESCE(sum(total_copies), 0) as total_volumes FROM public.library_books WHERE institution_code = $1 OR $1 = 'ALL'`, [cid]),
       pool.query(`
         SELECT status, count(*) as count 
         FROM public.library_book_copies c
         JOIN public.library_books b ON b.id = c.book_id
-        WHERE b.campus_id = $1 OR $1 IS NULL
+        WHERE b.institution_code = $1 OR $1 = 'ALL'
         GROUP BY status
       `, [cid]),
       pool.query(`
@@ -57,9 +57,9 @@ export async function getLibraryDashboardStats(campusId?: string) {
           COALESCE(sum(CASE WHEN fine_status = 'Pending' THEN fine_amount ELSE 0 END), 0) as pending_fines,
           COALESCE(sum(CASE WHEN fine_status = 'Paid' THEN fine_amount ELSE 0 END), 0) as collected_fines
         FROM public.library_transactions
-        WHERE campus_id = $1 OR $1 IS NULL
+        WHERE institution_code = $1 OR $1 = 'ALL'
       `, [cid]),
-      pool.query(`SELECT count(*) as active_reservations FROM public.library_reservations WHERE status = 'Active' AND (campus_id = $1 OR $1 IS NULL)`, [cid])
+      pool.query(`SELECT count(*) as active_reservations FROM public.library_reservations WHERE status = 'Active' AND (institution_code = $1 OR $1 = 'ALL')`, [cid])
     ]);
 
     const totalTitles = Number(booksRes.rows[0]?.total_titles || 5);
@@ -123,7 +123,7 @@ export async function getLibraryDashboardStats(campusId?: string) {
 // 2. GET BOOKS CATALOG WITH COPIES & CATEGORY FILTER
 // -------------------------------------------------------------
 export async function getLibraryBooksCatalog(payload?: {
-  campusId?: string;
+  institutionCode?: string;
   category?: string;
   search?: string;
 }) {
@@ -132,8 +132,8 @@ export async function getLibraryBooksCatalog(payload?: {
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (payload?.campusId && payload.campusId !== 'all' && payload.campusId !== 'default') 
-      ? payload.campusId 
+    const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
+      ? payload.institutionCode 
       : defaultCampus;
 
     let query = `
@@ -152,7 +152,7 @@ export async function getLibraryBooksCatalog(payload?: {
              ) as copies
       FROM public.library_books b
       LEFT JOIN public.library_book_copies c ON c.book_id = b.id
-      WHERE (b.campus_id = $1 OR $1 IS NULL)
+      WHERE (b.institution_code = $1 OR $1 = 'ALL')
     `;
     const values: any[] = [cid];
 
@@ -195,7 +195,7 @@ export async function getLibraryBooksCatalog(payload?: {
 // 3. GET ACTIVE TRANSACTIONS LIST
 // -------------------------------------------------------------
 export async function getLibraryTransactions(payload?: {
-  campusId?: string;
+  institutionCode?: string;
   status?: string; // 'All' | 'Issued' | 'Overdue' | 'Returned'
   studentId?: string;
   search?: string;
@@ -205,8 +205,8 @@ export async function getLibraryTransactions(payload?: {
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (payload?.campusId && payload.campusId !== 'all' && payload.campusId !== 'default') 
-      ? payload.campusId 
+    const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
+      ? payload.institutionCode 
       : defaultCampus;
 
     let query = `
@@ -220,7 +220,7 @@ export async function getLibraryTransactions(payload?: {
       LEFT JOIN public.library_books b ON b.id = tx.book_id
       LEFT JOIN public.students s ON s.id = tx.student_id
       LEFT JOIN public.parents p ON p.id = s.parent_id
-      WHERE (tx.campus_id = $1 OR $1 IS NULL)
+      WHERE (tx.institution_code = $1 OR $1 = 'ALL')
     `;
     const values: any[] = [cid];
 
@@ -268,7 +268,7 @@ export async function getLibraryTransactions(payload?: {
 // 4. GET MASTER ACCESSION REGISTER
 // -------------------------------------------------------------
 export async function getLibraryAccessionRegister(payload?: {
-  campusId?: string;
+  institutionCode?: string;
   status?: string;
   search?: string;
 }) {
@@ -277,8 +277,8 @@ export async function getLibraryAccessionRegister(payload?: {
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (payload?.campusId && payload.campusId !== 'all' && payload.campusId !== 'default') 
-      ? payload.campusId 
+    const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
+      ? payload.institutionCode 
       : defaultCampus;
 
     let query = `
@@ -294,7 +294,7 @@ export async function getLibraryAccessionRegister(payload?: {
       FROM public.library_book_copies c
       JOIN public.library_books b ON b.id = c.book_id
       LEFT JOIN public.library_transactions tx ON tx.copy_id = c.id AND (tx.status = 'Issued' OR tx.status = 'Overdue')
-      WHERE (b.campus_id = $1 OR $1 IS NULL)
+      WHERE (b.institution_code = $1 OR $1 = 'ALL')
     `;
     const values: any[] = [cid];
 
@@ -335,7 +335,7 @@ export async function getLibraryAccessionRegister(payload?: {
 // 5. ISSUE BOOK (FAST ACCESSION / BARCODE SCAN)
 // -------------------------------------------------------------
 export async function issueBookTransaction(payload: {
-  campusId?: string;
+  institutionCode?: string;
   bookId?: string;
   accessionNumber: string;
   borrowerType?: "Student" | "Teacher";
@@ -350,8 +350,8 @@ export async function issueBookTransaction(payload: {
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (payload.campusId && payload.campusId !== 'all' && payload.campusId !== 'default') 
-      ? payload.campusId 
+    const cid = (payload.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
+      ? payload.institutionCode 
       : defaultCampus;
 
     // 1. Fetch Copy & Book
@@ -385,7 +385,7 @@ export async function issueBookTransaction(payload: {
     // 2. Insert Transaction
     const insertRes = await client.query(`
       INSERT INTO public.library_transactions (
-        campus_id, transaction_code, book_id, copy_id, accession_number,
+        institution_code, transaction_code, book_id, copy_id, accession_number,
         book_title, borrower_type, student_id, student_name, class_name,
         issue_date, due_date, status, fine_amount, fine_status, remarks,
         created_at, updated_at
@@ -569,7 +569,7 @@ export async function renewBookLoanAction(payload: {
 // 8. ADD NEW BOOK TITLE WITH AUTO ACCESSIONS
 // -------------------------------------------------------------
 export async function addNewBookTitleAction(payload: {
-  campusId?: string;
+  institutionCode?: string;
   title: string;
   author: string;
   publisher: string;
@@ -588,8 +588,8 @@ export async function addNewBookTitleAction(payload: {
 
   try {
     const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
-    const cid = (payload.campusId && payload.campusId !== 'all' && payload.campusId !== 'default') 
-      ? payload.campusId 
+    const cid = (payload.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
+      ? payload.institutionCode 
       : defaultCampus;
 
     const bookCode = `BK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -598,7 +598,7 @@ export async function addNewBookTitleAction(payload: {
     // 1. Insert Title
     const bookRes = await client.query(`
       INSERT INTO public.library_books (
-        campus_id, book_code, title, author, publisher, isbn, edition,
+        institution_code, book_code, title, author, publisher, isbn, edition,
         category, language, class_grade, rack_location, price,
         total_copies, available_copies, description, created_at, updated_at
       ) VALUES (

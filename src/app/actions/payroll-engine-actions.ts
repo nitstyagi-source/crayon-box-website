@@ -78,15 +78,16 @@ export async function getMonthlyPayrollSummaryAction(params: {
   try {
     const month = params.month || 'August 2026';
 
+    const instCode = params.institutionCode && params.institutionCode !== 'ALL' ? params.institutionCode : 'CBS';
+    
     // 1. Fetch Active Staff
     const staffRes = await client.query(`
-      SELECT s.*, 
-             COALESCE(ea.institution_code, 'CBS') as institution_code
+      SELECT s.*, s.institution_code
       FROM public.staff s
-      LEFT JOIN public.employee_assignments ea ON ea.staff_id = s.id
-      WHERE s.status = 'ACTIVE'
+      WHERE s.status = 'ACTIVE' 
+        AND (s.institution_code = $1 OR $1 = 'ALL')
       ORDER BY s.first_name ASC, s.last_name ASC
-    `);
+    `, [params.institutionCode === 'ALL' ? 'ALL' : instCode]);
     const staff = staffRes.rows;
 
     // 2. Fetch Processed Payslips for this month
@@ -198,21 +199,23 @@ export async function getMonthlyPayrollSummaryAction(params: {
 // -------------------------------------------------------------
 export async function processMonthlyPayrollRunAction(params: {
   month: string;
+  institutionCode: string;
   overrideLwpMap?: Record<string, number>;
 }) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    const { month, overrideLwpMap = {} } = params;
+    const { month, institutionCode, overrideLwpMap = {} } = params;
+    const instCode = institutionCode && institutionCode !== 'ALL' ? institutionCode : 'CBS';
 
     // 1. Fetch all active staff
     const staffRes = await client.query(`
-      SELECT s.*, COALESCE(ea.institution_code, 'CBS') as institution_code
+      SELECT s.*, s.institution_code
       FROM public.staff s
-      LEFT JOIN public.employee_assignments ea ON ea.staff_id = s.id
       WHERE s.status = 'ACTIVE'
-    `);
+        AND (s.institution_code = $1 OR $1 = 'ALL')
+    `, [institutionCode === 'ALL' ? 'ALL' : instCode]);
     const staff = staffRes.rows;
 
     let processed = 0;
@@ -303,12 +306,13 @@ export async function processMonthlyPayrollRunAction(params: {
       // Record in payroll_ledgers
       await client.query(`
         INSERT INTO public.payroll_ledgers (
-          staff_id, month, base_salary, lwp_days, lwp_deduction,
+          institution_code, staff_id, month, base_salary, lwp_days, lwp_deduction,
           allowances, net_payable, payment_status, processed_at, created_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, 'DISBURSED', NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, 'DISBURSED', NOW(), NOW()
         )
         ON CONFLICT (staff_id, month) DO UPDATE SET
+          institution_code = EXCLUDED.institution_code,
           base_salary = EXCLUDED.base_salary,
           lwp_days = EXCLUDED.lwp_days,
           lwp_deduction = EXCLUDED.lwp_deduction,
@@ -316,7 +320,7 @@ export async function processMonthlyPayrollRunAction(params: {
           net_payable = EXCLUDED.net_payable,
           payment_status = 'DISBURSED',
           processed_at = NOW();
-      `, [st.id, month, basic, lwpDays, lwpDeduction, hra + special, netPayable]);
+      `, [st.institution_code || 'CBS', st.id, month, basic, lwpDays, lwpDeduction, hra + special, netPayable]);
 
       processed++;
       totalGross += earnedGross;

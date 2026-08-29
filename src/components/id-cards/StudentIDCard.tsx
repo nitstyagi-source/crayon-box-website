@@ -1,272 +1,253 @@
 "use client";
 
 import React from 'react';
-import { QrCode, Phone, MapPin, Globe, ShieldCheck, User, Calendar, Droplet, ChevronRight } from 'lucide-react';
+import { User, Calendar, Globe, Droplet, Phone, MapPin, ChevronRight, BookOpen } from 'lucide-react';
 import { StudentQRCode } from './StudentQRCode';
 
 export interface StudentIDCardProps {
-  student: {
-    id: string;
-    first_name: string;
-    middle_name?: string;
-    lastName?: string;
-    last_name?: string;
-    universal_id?: string;
-    admission_number?: string;
-    admission_no?: string;
-    dob?: string | Date | any;
-    blood_group?: string;
-    photo_url?: string;
-    pen_no?: string;
-    institution_code?: string;
-    class_name?: string;
-    section_name?: string;
-    roll_number?: string;
-    transport_mode?: string;
-    transport_bus_no?: string;
-    transport_route?: string;
-    guardian_first?: string;
-    guardian_last?: string;
-    guardian_phone?: string;
-    father_name?: string;
-    mother_name?: string;
-    family_name?: string;
-    primary_address?: string;
-  };
-  schoolName?: string;
-  session?: string;
-  layoutMode?: 'DUAL' | 'FRONT_ONLY' | 'BACK_ONLY';
+  student: any;
+  schoolInfo?: any;
+  isBack?: boolean;
+  layoutMode?: any;
 }
 
-export function StudentIDCard({
-  student,
-  schoolName = 'CRAYON BOX SCHOOL',
-  session = '2026–2027',
-  layoutMode = 'DUAL'
-}: StudentIDCardProps) {
-  const sName = `${student.first_name || ''} ${student.middle_name ? `${student.middle_name} ` : ''}${student.last_name || student.lastName || ''}`.trim() || 'Arav Tyagi';
-  const admNo = student.admission_number || student.admission_no || 'CBS/24-25/0412';
-  const uId = student.universal_id || 'STU-VET-000042';
-  const instCode = student.institution_code || 'CBS';
-  const className = student.class_name ? (student.class_name.includes('Class') ? student.class_name : `Class : ${student.class_name}${student.section_name ? ` - ${student.section_name}` : ''}`) : 'Class : 4 - A';
+export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: StudentIDCardProps) {
+  const name = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Arav Tyagi';
+  const className = student.class_name || '4 - A';
+  const rollNo = student.roll_number || student.roll_no || '12';
+  const idNo = student.universal_id || student.admission_number || student.admission_no || 'CBS/24-25/0412';
+  const dob = student.dob ? new Date(student.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '15 May 2014';
   const bloodGroup = student.blood_group || 'O+';
-  const phone = student.guardian_phone || '9876543210';
-  const address = student.primary_address || '123, Green Park, New Delhi - 110016';
+  const parentContact = student.guardian_phone || student.father_phone || '9876543210';
+  const address = student.address || student.residential_address || '123, Green Park, New Delhi - 110016';
+  
+  const schName = schoolInfo.name || 'Crayon Box School';
+  const schWebsite = schoolInfo.website || 'www.crayonboxschool.edu.in';
+  const schPhone = schoolInfo.phone || '011-45678901';
 
-  // Safe DOB string formatting
-  let formattedDob = '15 May 2014';
-  if (student.dob) {
-    if (student.dob instanceof Date) {
-      formattedDob = student.dob.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    } else if (typeof student.dob === 'string') {
-      try {
-        const d = new Date(student.dob);
-        if (!isNaN(d.getTime())) {
-          formattedDob = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        } else {
-          formattedDob = student.dob;
-        }
-      } catch {
-        formattedDob = student.dob;
-      }
-    }
+  // Helper for top header which is same on front and back
+  const renderHeader = () => (
+    <div className="relative pt-6 pb-2 z-10 flex flex-col items-center">
+      {/* Logo Placeholder */}
+      <div className="w-[88px] h-[88px] rounded-full bg-white border-[3px] border-yellow-500 shadow-sm flex items-center justify-center mb-2 overflow-hidden relative">
+         {/* Inner blue ring */}
+         <div className="absolute inset-1 rounded-full border-[2px] border-[#0A1A44]" />
+         <img src="/tree-logo.png" alt="Logo" className="w-[60px] h-[60px] object-contain z-10" 
+              onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} />
+         <div className="hidden w-12 h-12 rounded-full bg-[#0A1A44] flex items-center justify-center z-10">
+           <BookOpen className="text-yellow-400 w-6 h-6" />
+         </div>
+      </div>
+      
+      <div className="text-center w-full">
+        <h1 className="font-serif text-[26px] leading-none font-bold text-[#0A1A44] tracking-wider uppercase">Crayon Box</h1>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <div className="h-[1px] w-12 bg-yellow-500"></div>
+          <h2 className="font-serif text-[18px] leading-none text-[#C8102E] tracking-[0.2em] font-semibold uppercase">School</h2>
+          <div className="h-[1px] w-12 bg-yellow-500"></div>
+        </div>
+        <p className="font-sans text-[10px] font-bold text-[#0A1A44] tracking-[0.2em] mt-2 uppercase">
+          Learn <span className="text-yellow-500 mx-1">•</span> Grow <span className="text-[#00B050] mx-1">•</span> Shine
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderBackground = () => (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {/* Top curved blue background */}
+      <svg className="absolute top-0 w-full" viewBox="0 0 400 160" fill="none" preserveAspectRatio="none">
+        {/* Yellow swoop */}
+        <path d="M0,0 L400,0 L400,100 C300,150 100,50 0,130 Z" fill="#EAB308" />
+        {/* Blue swoop */}
+        <path d="M0,0 L400,0 L400,85 C300,135 100,35 0,115 Z" fill="#0A1A44" />
+        {/* Subtle leaf overlay in top left */}
+        <path d="M-20,-20 Q50,-10 60,30 Q40,60 -10,50 Z" fill="rgba(255,255,255,0.05)" />
+      </svg>
+      
+      {/* Bottom curved blue background */}
+      <svg className="absolute bottom-0 w-full h-[100px]" viewBox="0 0 400 100" fill="none" preserveAspectRatio="none">
+        {/* Yellow swoop */}
+        <path d="M0,30 C150,80 250,-20 400,30 L400,100 L0,100 Z" fill="#EAB308" />
+        {/* Blue swoop */}
+        <path d="M0,45 C150,95 250,-5 400,45 L400,100 L0,100 Z" fill="#0A1A44" />
+      </svg>
+
+      {/* Center faint leaf pattern */}
+      <div className="absolute top-[35%] left-0 w-full h-40 opacity-5 flex justify-between px-2">
+        <svg viewBox="0 0 100 200" className="h-full fill-current text-gray-900">
+           <path d="M50,0 Q100,50 50,100 Q0,50 50,0 Z M50,100 Q100,150 50,200 Q0,150 50,100 Z" />
+        </svg>
+        <svg viewBox="0 0 100 200" className="h-full fill-current text-gray-900" style={{ transform: 'scaleX(-1)' }}>
+           <path d="M50,0 Q100,50 50,100 Q0,50 50,0 Z M50,100 Q100,150 50,200 Q0,150 50,100 Z" />
+        </svg>
+      </div>
+    </div>
+  );
+
+  if (isBack) {
+    return (
+      <div className="w-[330px] h-[520px] bg-white rounded-xl shadow-lg relative overflow-hidden flex flex-col font-sans border border-gray-200 print:shadow-none print:border-gray-100 print:rounded-none">
+        {renderBackground()}
+        {renderHeader()}
+        
+        <div className="flex-1 px-8 pt-4 pb-20 z-10 flex flex-col">
+          {/* Details List */}
+          <div className="space-y-3 mb-5">
+            <DetailRow icon={<User size={14}/>} label="Name" value={name} color="bg-[#9E1B32]" />
+            <DetailRow icon={<Calendar size={14}/>} label="DOB" value={dob} color="bg-[#9E1B32]" />
+            <DetailRow icon={<Droplet size={14}/>} label="Blood Group" value={bloodGroup} color="bg-[#9E1B32]" />
+            <DetailRow icon={<Phone size={14}/>} label="Parent Contact" value={parentContact} color="bg-[#9E1B32]" />
+            <DetailRow icon={<MapPin size={14}/>} label="Address" value={address} color="bg-[#9E1B32]" isMultiline />
+          </div>
+
+          {/* Instructions Box */}
+          <div className="border border-[#9E1B32]/30 rounded-lg p-3 pt-4 relative mt-2 bg-white/50">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#9E1B32] text-white text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-wider flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-yellow-400" />
+              Instructions
+              <div className="w-1 h-1 rounded-full bg-yellow-400" />
+            </div>
+            <ul className="text-[9px] text-[#0A1A44] space-y-1.5 leading-tight font-medium">
+              <li className="flex items-start gap-1.5">
+                <ChevronRight size={12} className="text-[#9E1B32] shrink-0 mt-[1px]" />
+                This card is the property of Crayon Box School.
+              </li>
+              <li className="flex items-start gap-1.5">
+                <ChevronRight size={12} className="text-[#9E1B32] shrink-0 mt-[1px]" />
+                This card must be worn every day.
+              </li>
+              <li className="flex items-start gap-1.5">
+                <ChevronRight size={12} className="text-[#9E1B32] shrink-0 mt-[1px]" />
+                In case of loss, inform the school immediately.
+              </li>
+            </ul>
+          </div>
+          
+          {/* Signature */}
+          <div className="mt-auto self-center flex flex-col items-center">
+            <img src="/signatures/principal.png" className="h-8 object-contain opacity-80" alt="Signature" onError={(e) => e.currentTarget.style.display='none'} />
+            <div className="h-[1px] w-24 bg-[#0A1A44] mb-1" />
+            <span className="text-[10px] font-bold text-[#0A1A44]">Principal</span>
+          </div>
+        </div>
+
+        {/* Back Footer */}
+        <div className="absolute bottom-0 w-full h-[65px] z-10 flex flex-row items-center justify-between px-6 pt-6 pb-2">
+           <div className="flex flex-col items-center justify-center">
+             <Globe size={14} className="text-yellow-500 mb-0.5" />
+             <span className="text-white text-[8px] font-medium">{schWebsite}</span>
+           </div>
+           <div className="h-6 w-[1px] bg-white/20 mx-2" />
+           <div className="flex flex-col items-center justify-center">
+             <Phone size={14} className="text-yellow-500 mb-0.5" />
+             <span className="text-white text-[8px] font-medium leading-tight text-center">{schPhone}<br/>9999999999</span>
+           </div>
+           <div className="h-6 w-[1px] bg-white/20 mx-2" />
+           <div className="flex flex-col items-center justify-center text-center">
+             <div className="w-5 h-6 border border-yellow-500 flex items-center justify-center rounded-b-md relative">
+               <BookOpen size={10} className="text-yellow-500" />
+               <div className="absolute -top-1 w-1 h-1 bg-yellow-500 rounded-full" />
+             </div>
+             <span className="text-white text-[7px] mt-0.5 leading-tight">Excellence in Education.<br/>Values for Life.</span>
+           </div>
+        </div>
+      </div>
+    );
   }
 
-  // Attendance QR Payload verified for gate scanning
-  const qrPayload = `VET:STU:${uId}:${student.id}:${instCode}:${admNo}`;
-
-  const showFront = layoutMode === 'DUAL' || layoutMode === 'FRONT_ONLY';
-  const showBack = layoutMode === 'DUAL' || layoutMode === 'BACK_ONLY';
-
+  // FRONT
   return (
-    <div className="flex flex-wrap gap-6 items-center justify-center p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 print:p-0 print:bg-white print:border-none font-sans max-w-full">
-      
-      {/* ========================================================================= */}
-      {/* 🌟 FRONT SIDE OF CR80 CARD (54mm × 85.6mm)                                */}
-      {/* ========================================================================= */}
-      {showFront && (
-        <div className="w-[260px] h-[412px] print:w-[54mm] print:h-[85.6mm] bg-white rounded-3xl shadow-xl border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none text-center">
-          
-          {/* Top Curved Navy Arc */}
-          <div className="bg-[#0A2558] h-24 flex items-end justify-center pb-2 relative overflow-visible">
-            {/* School Crest in Gold Circle */}
-            <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center absolute -bottom-7 shadow-md z-10">
-              <img src="/trust-logo.png" alt="Crayon Box School" className="w-14 h-14 object-contain" />
+    <div className="w-[330px] h-[520px] bg-white rounded-xl shadow-lg relative overflow-hidden flex flex-col font-sans border border-gray-200 print:shadow-none print:border-gray-100 print:rounded-none">
+      {renderBackground()}
+      {renderHeader()}
+
+      <div className="flex-1 flex flex-col items-center pt-2 z-10">
+        {/* Photo */}
+        <div className="relative w-[110px] h-[110px] rounded-full p-1 bg-white border-2 border-[#0A1A44] shadow-md mb-4 overflow-hidden">
+          {student.photo_url ? (
+            <img src={student.photo_url} alt={name} className="w-full h-full object-cover rounded-full bg-gray-100" />
+          ) : (
+            <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-[#0A1A44]">
+              <User size={40} />
             </div>
-            {/* Golden Trim Curve */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
-          </div>
-
-          {/* School Brand Typography */}
-          <div className="mt-8 px-2">
-            <h1 className="text-base font-black tracking-wider text-[#0A2558] leading-tight">CRAYON BOX</h1>
-            <div className="text-[10px] font-extrabold text-red-600 tracking-widest uppercase">— S C H O O L —</div>
-            <div className="text-[7.5px] font-bold text-slate-500 tracking-wider mt-0.5">LEARN • GROW • SHINE</div>
-          </div>
-
-          {/* Student Circular Portrait */}
-          <div className="mt-2 flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-slate-900 border-2.5 border-[#0A2558] overflow-hidden shadow-sm flex items-center justify-center">
-              {student.photo_url ? (
-                <img src={student.photo_url} alt={sName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-amber-300 font-black text-xl">
-                  {sName.slice(0, 2).toUpperCase()}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Student Name Solid Navy Banner */}
-          <div className="mt-2 mx-auto bg-[#0A2558] text-white px-5 py-1 rounded-xl text-xs font-black tracking-wide shadow-2xs max-w-[220px] truncate">
-            {sName.toUpperCase()}
-          </div>
-
-          {/* Class Ribbon Badge (No Roll No) */}
-          <div className="mt-1 flex items-center justify-center">
-            <div className="w-2.5 h-4.5 bg-red-600 rounded-l-sm -mr-0.5" />
-            <div className="bg-amber-500 text-white text-[10px] font-black px-4 py-0.5 rounded-xs z-2">
-              {className}
-            </div>
-            <div className="w-2.5 h-4.5 bg-red-600 rounded-r-sm -ml-0.5" />
-          </div>
-
-          {/* Attendance QR Code Box */}
-          <div className="my-2 mx-auto w-32 h-32 border-1.5 border-rose-500 rounded-xl flex flex-col items-center justify-center relative pt-1 bg-white shadow-2xs">
-            <div className="absolute -top-2 bg-rose-600 text-white text-[7px] font-black px-2.5 py-0.5 rounded-sm uppercase tracking-wider">
-              ATTENDANCE QR
-            </div>
-            <StudentQRCode payload={qrPayload} size={98} />
-          </div>
-
-          {/* Bottom Solid Navy Bar: Admission Number (Replaced ID No) */}
-          <div className="bg-[#0A2558] text-white py-2 px-3 border-t-2 border-amber-500 flex items-center justify-center gap-2 mt-auto">
-            <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            </div>
-            <div className="h-4 w-px bg-white/20" />
-            <div className="text-left">
-              <span className="text-[7.5px] text-slate-300 block leading-none">Admission No. :</span>
-              <span className="font-mono text-[9.5px] font-black text-white leading-tight">{admNo}</span>
-            </div>
-          </div>
-
+          )}
         </div>
-      )}
 
-      {/* ========================================================================= */}
-      {/* 🌟 BACK SIDE OF CR80 CARD (54mm × 85.6mm)                                 */}
-      {/* ========================================================================= */}
-      {showBack && (
-        <div className="w-[260px] h-[412px] print:w-[54mm] print:h-[85.6mm] bg-white rounded-3xl shadow-xl border border-slate-300 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-slate-800 text-slate-900 shrink-0 select-none text-left">
-          
-          {/* Top Navy Arc with Crest */}
-          <div className="bg-[#0A2558] h-24 flex items-center justify-center relative">
-            <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center shadow-md">
-              <img src="/trust-logo.png" alt="Crayon Box School" className="w-14 h-14 object-contain" />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
-          </div>
-
-          {/* School Brand on Back */}
-          <div className="text-center mt-2 px-2">
-            <div className="text-xs font-black tracking-wider text-[#0A2558]">CRAYON BOX</div>
-            <div className="text-[8.5px] font-bold text-red-600 tracking-widest uppercase">— S C H O O L —</div>
-            <div className="text-[6.5px] font-bold text-slate-500 tracking-wider">LEARN • GROW • SHINE</div>
-            <div className="w-24 h-0.5 bg-amber-500 mx-auto mt-1.5" />
-          </div>
-
-          {/* Student Details Grid (No Roll No) */}
-          <div className="px-4 py-1.5 space-y-1 text-[9.5px]">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
-              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
-                <User className="w-2.5 h-2.5" />
-              </div>
-              <span className="w-20 text-slate-500 font-semibold text-[9px]">Name</span>
-              <span className="text-slate-400">:</span>
-              <span className="font-bold text-slate-900 truncate text-[9.5px]">{sName}</span>
-            </div>
-
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
-              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
-                <Calendar className="w-2.5 h-2.5" />
-              </div>
-              <span className="w-20 text-slate-500 font-semibold text-[9px]">DOB</span>
-              <span className="text-slate-400">:</span>
-              <span className="font-bold text-slate-900 font-mono text-[9px]">{formattedDob}</span>
-            </div>
-
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
-              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
-                <Droplet className="w-2.5 h-2.5" />
-              </div>
-              <span className="w-20 text-slate-500 font-semibold text-[9px]">Blood Group</span>
-              <span className="text-slate-400">:</span>
-              <span className="font-black text-rose-600 text-[9.5px]">{bloodGroup}</span>
-            </div>
-
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-0.5">
-              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0">
-                <Phone className="w-2.5 h-2.5" />
-              </div>
-              <span className="w-20 text-slate-500 font-semibold text-[9px]">Parent Contact</span>
-              <span className="text-slate-400">:</span>
-              <span className="font-bold text-slate-900 font-mono text-[9px]">{phone}</span>
-            </div>
-
-            <div className="flex items-start gap-2 border-b border-slate-100 pb-0.5">
-              <div className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-                <MapPin className="w-2.5 h-2.5" />
-              </div>
-              <span className="w-20 text-slate-500 font-semibold text-[9px]">Address</span>
-              <span className="text-slate-400">:</span>
-              <span className="font-medium text-slate-700 text-[8.5px] leading-tight flex-1 line-clamp-2">{address}</span>
-            </div>
-          </div>
-
-          {/* Instructions Box with Chevrons (No Signature) */}
-          <div className="mx-3.5 my-1 border border-red-500 bg-red-50/40 rounded-xl p-2 relative">
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-2 py-0.5 rounded-sm uppercase tracking-wider flex items-center gap-1">
-              <span>◆</span>
-              <span>INSTRUCTIONS</span>
-              <span>◆</span>
-            </div>
-            <div className="space-y-0.5 mt-1 text-[7.5px] text-slate-800 font-medium">
-              <div className="flex items-start gap-1">
-                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
-                <span>This card is the property of Crayon Box School.</span>
-              </div>
-              <div className="flex items-start gap-1">
-                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
-                <span>This card must be worn every day.</span>
-              </div>
-              <div className="flex items-start gap-1">
-                <ChevronRight className="w-2.5 h-2.5 text-red-600 shrink-0 mt-0.5" />
-                <span>In case of loss, inform the school immediately.</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Back Bottom Navy Footer: 3 Columns (Website: www.crayonboxschool.com, Phone: 9811102008, Motto) */}
-          <div className="bg-[#0A2558] text-white py-2 px-2 text-[8px] flex items-center justify-between border-t-2 border-amber-500 mt-auto">
-            <div className="flex-1 text-center font-semibold text-slate-200">
-              <Globe className="w-2.5 h-2.5 text-amber-400 inline mr-0.5" />
-              <span>www.crayonboxschool.com</span>
-            </div>
-            <div className="w-px h-5 bg-white/20" />
-            <div className="flex-1 text-center font-bold text-white font-mono">
-              <Phone className="w-2.5 h-2.5 text-amber-400 inline mr-0.5" />
-              <span>9811102008</span>
-            </div>
-            <div className="w-px h-5 bg-white/20" />
-            <div className="flex-1 text-center font-semibold text-amber-300 text-[7px] leading-tight">
-              Excellence in Education. Values for Life.
-            </div>
-          </div>
-
+        {/* Name Ribbon */}
+        <div className="relative w-[240px] h-10 bg-[#0A1A44] flex items-center justify-center shadow-sm mb-1">
+           {/* Ribbon Tails */}
+           <div className="absolute -left-3 top-0 w-0 h-0 border-t-[20px] border-b-[20px] border-r-[12px] border-transparent border-r-[#0A1A44]" />
+           <div className="absolute -right-3 top-0 w-0 h-0 border-t-[20px] border-b-[20px] border-l-[12px] border-transparent border-l-[#0A1A44]" />
+           
+           <h2 className="text-white font-bold text-lg uppercase tracking-wider">{name}</h2>
         </div>
-      )}
 
+        {/* Class Trapezoid */}
+        <div className="relative mb-2">
+           {/* Decorators */}
+           <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-3 h-5 bg-[#D41B44] skew-x-[-20deg]" />
+           <div className="absolute -right-5 top-1/2 -translate-y-1/2 w-3 h-5 bg-[#D41B44] skew-x-[20deg]" />
+           
+           {/* Main Yellow Banner */}
+           <div className="bg-yellow-500 px-8 py-1 transform skew-x-[-10deg]">
+             <span className="block transform skew-x-[10deg] text-[#0A1A44] font-bold text-[14px]">
+               Class : {className}
+             </span>
+           </div>
+        </div>
+
+        {/* Roll No */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-[1px] w-10 bg-yellow-500" />
+          <span className="text-[#0A1A44] font-bold text-[13px]">Roll No. : {rollNo}</span>
+          <div className="h-[1px] w-10 bg-yellow-500" />
+        </div>
+
+        {/* QR Section */}
+        <div className="relative mt-2">
+          {/* Badge Label */}
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#D41B44] text-white text-[9px] font-bold px-3 py-0.5 rounded-full z-10 shadow-sm uppercase tracking-wider whitespace-nowrap">
+            Attendance QR
+          </div>
+          
+          <div className="border border-[#D41B44] rounded-lg p-2 bg-white relative">
+            <StudentQRCode payload={idNo} size={65} />
+          </div>
+        </div>
+      </div>
+
+      {/* Front Footer */}
+      <div className="absolute bottom-0 w-full h-[65px] z-10 flex items-center justify-center px-8 pt-4 pb-2">
+         <div className="flex items-center justify-center gap-4 w-full">
+            <div className="w-8 h-9 border border-yellow-500 flex items-center justify-center rounded-b-lg relative shrink-0">
+               <BookOpen size={16} className="text-yellow-500" />
+               <div className="absolute -top-1.5 w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+            </div>
+            
+            <div className="h-8 w-[1px] bg-white/30" />
+            
+            <div className="flex flex-col flex-1">
+              <span className="text-white text-[11px] font-medium leading-tight">ID No. :</span>
+              <span className="text-white text-[12px] font-bold leading-tight">{idNo}</span>
+            </div>
+         </div>
+      </div>
     </div>
   );
 }
+
+const DetailRow = ({ icon, label, value, color, isMultiline }: { icon: React.ReactNode, label: string, value: string, color: string, isMultiline?: boolean }) => (
+  <div className={`flex ${isMultiline ? 'items-start' : 'items-center'} gap-3 text-[11px]`}>
+    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${color}`}>
+      {icon}
+    </div>
+    <div className="flex w-[80px] shrink-0 items-center justify-between font-bold text-[#0A1A44]">
+      <span>{label}</span>
+      <span>:</span>
+    </div>
+    <div className="font-medium text-[#1E293B] leading-tight flex-1">
+      {value}
+    </div>
+  </div>
+);

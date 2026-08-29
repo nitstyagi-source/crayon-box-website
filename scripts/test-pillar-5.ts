@@ -51,7 +51,7 @@ async function testPillar5Finance() {
 
   // 2. STATUTORY INDIAN PAYROLL ENGINE
   console.log('\n📌 2. Testing Statutory Indian Payroll Engine (EPF, ESIC, PT, TDS)...');
-  const payRes = await getMonthlyPayrollSummaryAction({ month: 'August 2026' });
+  const payRes = await getMonthlyPayrollSummaryAction({ month: 'August 2026', institutionCode: 'CBS' });
   assert(payRes.success === true, 'Payroll Dashboard API fetch success');
   assert((payRes.roster?.length ?? 0) >= 100, 'Employees included in payroll', `${payRes.roster?.length} staff`);
   assert((payRes.counts?.totalGrossBill ?? 0) > 1000000, 'Total Gross Salary Bill', `₹${payRes.counts?.totalGrossBill?.toLocaleString('en-IN')}`);
@@ -59,7 +59,7 @@ async function testPillar5Finance() {
   assert((payRes.counts?.totalNetDisbursed ?? 0) > 0, 'Total Net Disbursed', `₹${payRes.counts?.totalNetDisbursed?.toLocaleString('en-IN')}`);
 
   // Test 1-click payroll disbursement run
-  const disburseRes = await processMonthlyPayrollRunAction({ month: 'August 2026' });
+  const disburseRes = await processMonthlyPayrollRunAction({ month: 'August 2026', institutionCode: 'CBS' });
   assert(disburseRes.success === true, '1-Click Payroll Run executed', disburseRes.message);
 
   // 3. FIXED ASSET REGISTER & STRAIGHT-LINE DEPRECIATION

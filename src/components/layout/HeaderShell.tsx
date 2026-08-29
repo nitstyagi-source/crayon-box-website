@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  Building2, Calendar, Search, Bell, User,
-  ChevronDown, ShieldCheck, Check, Sparkles, Globe
+  Search, Bell, User, ChevronDown, Check, Building2, CalendarDays
 } from 'lucide-react';
-import { VANI_TRUST_INSTITUTIONS, VANI_TRUST_ORGANIZATION } from '@/lib/core/institution/trust-hierarchy';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { NotificationCenter } from '@/components/layout/NotificationCenter';
 
@@ -21,229 +20,127 @@ export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
     selectedInstitutionObj,
     currentSession,
     setSession,
-    currentRole,
-    setRole,
+    currentRole
   } = useInstitution();
 
   const [isInstOpen, setIsInstOpen] = useState(false);
   const [isSessionOpen, setIsSessionOpen] = useState(false);
-  const [isRoleOpen, setIsRoleOpen] = useState(false);
 
-  const sessions = ['2026–2027 (Active)', '2025–2026 (Archived)'];
-  const roles = [
-    { label: 'Super Admin', value: 'SUPER_ADMIN' },
-    { label: 'Principal', value: 'PRINCIPAL' },
-    { label: 'Teacher', value: 'TEACHER' },
-    { label: 'Accounts Officer', value: 'ACCOUNTS' },
-    { label: 'Parent', value: 'PARENT' },
-  ];
+  const sessions = ['2025-26', '2026-27'];
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between font-sans z-30 shrink-0 sticky top-0">
+    <div className="flex flex-col bg-slate-50 border-b border-slate-200/50 px-6 pt-5 pb-4 font-sans shrink-0 relative z-30">
       
-      {/* Left: VET Brand & Global Institution Switcher */}
-      <div className="flex items-center gap-3 sm:gap-6">
+      {/* Top Row: User Greeting & Profile */}
+      <div className="flex items-center justify-between mb-5 w-full max-w-6xl mx-auto">
         
-        {/* Brand Link */}
-        <Link href="/admin" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs group-hover:bg-indigo-600 transition">
-            <Building2 className="w-4 h-4" />
+        {/* Left: Logo & Greeting */}
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-white border-2 border-yellow-500 shadow-sm flex items-center justify-center overflow-hidden">
+             <img src="/tree-logo.png" alt="Logo" className="w-10 h-10 object-contain" 
+                  onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} />
+             <Building2 className="hidden text-[#0A1A44] w-6 h-6" />
           </div>
-          <div className="hidden sm:block">
-            <span className="font-extrabold text-slate-900 text-sm tracking-tight block leading-none">
-              VET ERP
-            </span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-              Vani Educational Trust
-            </span>
+          <div className="flex flex-col">
+             <h2 className="text-[18px] text-slate-800 font-bold leading-tight">Good Morning,</h2>
+             <div className="flex items-center gap-1.5">
+               <h1 className="text-[20px] text-slate-900 font-extrabold leading-tight">Admin</h1>
+               <div className="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center">
+                 <Check className="w-3 h-3" strokeWidth={3} />
+               </div>
+             </div>
+             <p className="text-slate-500 text-[13px] font-medium mt-0.5">{selectedInstitutionObj?.name || 'All Institutions'}</p>
           </div>
-        </Link>
+        </div>
 
-        <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
+           {/* Notification Bell */}
+           <div className="relative cursor-pointer">
+             <Bell className="w-6 h-6 text-slate-600" />
+             <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-slate-50">
+               12
+             </div>
+           </div>
 
-        {/* Global Institution Switcher Dropdown */}
-        <div className="relative">
+           {/* Profile Picture */}
+           <div className="relative">
+             <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" className="w-11 h-11 rounded-full border-2 border-slate-200 object-cover" />
+             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+           </div>
+        </div>
+      </div>
+
+      {/* Bottom Row: Context Selectors */}
+      <div className="flex items-center gap-4 w-full max-w-6xl mx-auto">
+        {/* School Dropdown */}
+        <div className="relative flex-1 max-w-[280px]">
           <button
             onClick={() => setIsInstOpen(!isInstOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/80 hover:bg-slate-100 transition text-xs font-bold text-slate-800 shadow-2xs"
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition text-sm font-semibold text-slate-700 shadow-sm"
           >
-            {selectedInstitutionObj ? (
-              <span
-                className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-2xs"
-                style={{ backgroundColor: selectedInstitutionObj.brandColor || '#2563eb' }}
-              />
-            ) : (
-              <Globe className="w-3.5 h-3.5 text-indigo-600" />
-            )}
-            <span className="truncate max-w-[140px] sm:max-w-[220px]">
-              {selectedInstitutionObj ? selectedInstitutionObj.name : 'All Institutions (Trust HQ)'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-slate-400" />
+              <span className="truncate">{selectedInstitutionObj ? selectedInstitutionObj.name : 'All Institutions'}</span>
+            </div>
+            <ChevronDown className="w-4 h-4 text-slate-400" />
           </button>
-
+          
           {isInstOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsInstOpen(false)} />
-              <div className="absolute top-full left-0 mt-1.5 w-80 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Select Operating Institution
-                </div>
-
-                {/* All Institutions Option */}
+            <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+              <button
+                onClick={() => { setInstitution('ALL'); setIsInstOpen(false); }}
+                className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+              >
+                <span>Trust HQ (All)</span>
+                {currentInstitution === 'ALL' && <Check className="w-4 h-4" />}
+              </button>
+              {Object.values(VANI_TRUST_INSTITUTIONS).map((inst) => (
                 <button
-                  onClick={() => {
-                    setInstitution('ALL');
-                    setIsInstOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 text-left flex items-center justify-between text-xs font-semibold hover:bg-slate-50 transition border-b border-slate-100 ${
-                    currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/40 font-bold' : 'text-slate-700'
-                  }`}
+                  key={inst.code}
+                  onClick={() => { setInstitution(inst.code); setIsInstOpen(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px]">
-                      VET
-                    </div>
-                    <div>
-                      <span className="block font-bold">All Institutions (Trust HQ)</span>
-                      <span className="text-[10px] text-slate-400 font-medium">Consolidated Multi-School View</span>
-                    </div>
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: inst.brandColor }} />
+                    <span className="truncate">{inst.name}</span>
                   </div>
-                  {currentInstitution === 'ALL' && <Check className="w-4 h-4 text-indigo-600" />}
+                  {currentInstitution === inst.code && <Check className="w-4 h-4 text-indigo-600" />}
                 </button>
-
-                {/* 4 Member Institutions */}
-                {VANI_TRUST_INSTITUTIONS.map((inst) => (
-                  <button
-                    key={inst.code}
-                    onClick={() => {
-                      setInstitution(inst.code);
-                      setIsInstOpen(false);
-                    }}
-                    className={`w-full px-3 py-2.5 text-left flex items-center justify-between text-xs font-semibold hover:bg-slate-50 transition ${
-                      currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/40 font-bold' : 'text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-[10px]"
-                        style={{ backgroundColor: inst.brandColor }}
-                      >
-                        {inst.code}
-                      </div>
-                      <div>
-                        <span className="block font-bold">{inst.name}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {inst.code} • {inst.institutionType === 'PRE_SCHOOL' ? 'Kindergarten (Montessori)' : 'K-12 (CBSE)'}
-                        </span>
-                      </div>
-                    </div>
-                    {currentInstitution === inst.code && <Check className="w-4 h-4 text-indigo-600" />}
-                  </button>
-                ))}
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Academic Session Switcher */}
-        <div className="relative hidden md:block">
+        {/* Year Dropdown */}
+        <div className="relative w-[140px]">
           <button
             onClick={() => setIsSessionOpen(!isSessionOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition text-xs font-semibold text-slate-700 shadow-2xs"
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition text-sm font-semibold text-slate-700 shadow-sm"
           >
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>{currentSession}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-slate-400" />
+              <span>{currentSession.split(' ')[0]}</span>
+            </div>
+            <ChevronDown className="w-4 h-4 text-slate-400" />
           </button>
 
           {isSessionOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsSessionOpen(false)} />
-              <div className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Academic Session
-                </div>
-                {sessions.map((sess) => (
-                  <button
-                    key={sess}
-                    onClick={() => {
-                      setSession(sess);
-                      setIsSessionOpen(false);
-                    }}
-                    className="w-full px-3 py-2 text-left text-xs font-semibold hover:bg-slate-50 text-slate-700"
-                  >
-                    {sess}
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className="absolute top-full right-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+              {sessions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setSession(s); setIsSessionOpen(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                >
+                  <span>{s.split(' ')[0]}</span>
+                  {currentSession === s && <Check className="w-4 h-4" />}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Right: Quick Search + Role Persona Selector + User Menu */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        
-        {/* Global Quick Action Palette Trigger */}
-        <button
-          onClick={onOpenSearch}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/80 hover:bg-slate-100 transition text-xs font-medium text-slate-500 shadow-2xs"
-        >
-          <Search className="w-3.5 h-3.5 text-slate-400" />
-          <span className="hidden sm:inline">Search records...</span>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold bg-white border border-slate-200 rounded text-slate-400 shadow-2xs">
-            ⌘K
-          </kbd>
-        </button>
-
-        {/* Role Persona Switcher (For live testing) */}
-        <div className="relative">
-          <button
-            onClick={() => setIsRoleOpen(!isRoleOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/60 transition text-xs font-bold text-indigo-900 shadow-2xs"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden sm:inline">
-              {roles.find((r) => r.value === currentRole)?.label || 'Super Admin'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-indigo-400" />
-          </button>
-
-          {isRoleOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsRoleOpen(false)} />
-              <div className="absolute top-full right-0 mt-1.5 w-48 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Switch Active Role
-                </div>
-                {roles.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => {
-                      setRole(r.value);
-                      setIsRoleOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-left text-xs font-semibold hover:bg-slate-50 ${
-                      currentRole === r.value ? 'text-indigo-600 bg-indigo-50/40 font-bold' : 'text-slate-700'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Live Notification Center */}
-        <NotificationCenter role={currentRole} institutionCode={currentInstitution} />
-
-        {/* User Avatar */}
-        <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-xs shadow-xs">
-          AD
-        </div>
-      </div>
-
-    </header>
+    </div>
   );
 }

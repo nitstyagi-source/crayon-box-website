@@ -6,7 +6,7 @@ import {
   HelpCircle, ShieldCheck, Tag, DollarSign, Calendar, Clock, RefreshCw,
   Users, Sparkles, FileText, Send, ArrowRight, Zap, Check
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFeeHeads, saveFeeHead, getFeeStructures, saveFeeStructure } from "@/app/actions/finance-core";
 import {
   scanAndApplySiblingConcessionsAction,
@@ -15,7 +15,7 @@ import {
 } from "@/app/actions/finance-concession-actions";
 
 export default function FeeMasterAndStructurePage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [activeTab, setActiveTab] = useState<"heads" | "structures" | "concessions">("heads");
   const [feeHeads, setFeeHeads] = useState<any[]>([]);
   const [feeStructures, setFeeStructures] = useState<any[]>([]);
@@ -67,14 +67,14 @@ export default function FeeMasterAndStructurePage() {
 
   useEffect(() => {
     loadData();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadData() {
     setIsLoading(true);
     try {
       const [headsRes, structsRes, concRes] = await Promise.all([
-        getFeeHeads(activeCampusId),
-        getFeeStructures(activeCampusId),
+        getFeeHeads(currentInstitution),
+        getFeeStructures(currentInstitution),
         getFinanceConcessionsSummaryAction({})
       ]);
       if (headsRes.success) setFeeHeads(headsRes.data || []);
@@ -118,7 +118,7 @@ export default function FeeMasterAndStructurePage() {
   function handleOpenAddHead() {
     setHeadFormData({
       id: "",
-      campus_id: activeCampusId,
+      institution_code: currentInstitution,
       name: "",
       code: "",
       category: "Academic",
@@ -183,7 +183,7 @@ export default function FeeMasterAndStructurePage() {
     setIsSavingStruct(true);
     try {
       const res = await saveFeeStructure({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         id: structFormData.id,
         name: structFormData.name,
         class_name: structFormData.class_name,

@@ -8,7 +8,6 @@ import {
   CreditCard, Smartphone, Banknote, ShieldAlert, TrendingUp, Sparkles,
   Settings2, CheckSquare, Square, X, SlidersHorizontal, ArrowUpDown
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
 import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   getDailyManagementReportAction, 
@@ -24,7 +23,7 @@ import { getProcurementPurchaseOrdersAction } from "@/app/actions/helpdesk-procu
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function ManagementReportsModule() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const { selectedInstitutionObj } = useInstitution();
 
   const [activeTab, setActiveTab] = useState<"daily" | "monthly" | "procurement" | "defaulters">("daily");
@@ -84,7 +83,7 @@ export default function ManagementReportsModule() {
   useEffect(() => {
     async function loadColumns() {
       try {
-        const res = await getAvailableFeeMasterColumnsAction(activeCampusId);
+        const res = await getAvailableFeeMasterColumnsAction(currentInstitution);
         if (res.success && res.columns) {
           setAvailableColumns(res.columns);
           const initialSelected = res.columns.filter(c => c.defaultSelected).map(c => c.id);
@@ -95,7 +94,7 @@ export default function ManagementReportsModule() {
       }
     }
     loadColumns();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   // Active selected column definitions in order
   const activeSelectedColumns = useMemo(() => {
@@ -107,7 +106,7 @@ export default function ManagementReportsModule() {
     setIsLoadingDaily(true);
     try {
       const res = await getDailyManagementReportAction({
-        campusId: activeCampusId,
+        campusId: currentInstitution,
         fromDate: dailyFromDate,
         toDate: dailyToDate,
         className: dailyClass,
@@ -128,7 +127,7 @@ export default function ManagementReportsModule() {
     setIsLoadingMonthly(true);
     try {
       const res = await getMonthlyManagementReportAction({
-        campusId: activeCampusId,
+        campusId: currentInstitution,
         month: monthlyMonth,
         year: monthlyYear,
         className: monthlyClass
@@ -234,7 +233,7 @@ export default function ManagementReportsModule() {
     if (activeTab === "monthly") loadMonthlyReport();
     if (activeTab === "procurement") loadProcurementReport();
     if (activeTab === "defaulters") loadDefaulters();
-  }, [activeTab, dailyFromDate, dailyToDate, dailyClass, dailyChannel, monthlyMonth, monthlyYear, monthlyClass, activeCampusId]);
+  }, [activeTab, dailyFromDate, dailyToDate, dailyClass, dailyChannel, monthlyMonth, monthlyYear, monthlyClass, currentInstitution]);
 
   function formatINR(val: number) {
     return "₹" + Number(val || 0).toLocaleString("en-IN");

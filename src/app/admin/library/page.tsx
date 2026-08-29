@@ -9,8 +9,8 @@ import {
   ScanLine, Phone, DollarSign, Library, Sparkles, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useCampusContext } from "@/components/providers/CampusProvider";
 import { useInstitution } from "@/components/providers/InstitutionContext";
+
 import { 
   getLibraryDashboardStats,
   getLibraryBooksCatalog,
@@ -40,7 +40,7 @@ const CATEGORIES = [
 ];
 
 export default function LibraryManagementPage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const { selectedInstitutionObj } = useInstitution();
 
   // Sub-tabs
@@ -96,14 +96,14 @@ export default function LibraryManagementPage() {
     setIsLoading(true);
     try {
       const [statsRes, booksRes, txRes, accRes, stuRes] = await Promise.all([
-        getLibraryDashboardStats(activeCampusId),
+        getLibraryDashboardStats(currentInstitution),
         getLibraryBooksCatalog({
-          campusId: activeCampusId,
+          institutionCode: currentInstitution,
           category: selectedCategory,
           search: searchQuery
         }),
-        getLibraryTransactions({ campusId: activeCampusId, search: searchQuery }),
-        getLibraryAccessionRegister({ campusId: activeCampusId, search: searchQuery }),
+        getLibraryTransactions({ institutionCode: currentInstitution, search: searchQuery }),
+        getLibraryAccessionRegister({ institutionCode: currentInstitution, search: searchQuery }),
         getEnrolledStudentsForIncidentLookupAction()
       ]);
 
@@ -121,7 +121,7 @@ export default function LibraryManagementPage() {
 
   useEffect(() => {
     loadAllData();
-  }, [activeCampusId, selectedCategory, searchQuery]);
+  }, [currentInstitution, selectedCategory, searchQuery]);
 
   // Open Issue Modal for Specific Book
   function handleOpenIssueModal(book?: any, accessionNo?: string) {
@@ -144,7 +144,7 @@ export default function LibraryManagementPage() {
     setIsSubmitting(true);
     try {
       const res = await issueBookTransaction({
-        campusId: activeCampusId,
+        institutionCode: currentInstitution,
         bookId: selectedBookForIssue?.id,
         accessionNumber: accessionScanInput.trim(),
         studentId: selectedStudentObj?.id,
@@ -217,7 +217,7 @@ export default function LibraryManagementPage() {
     setIsSubmitting(true);
     try {
       const res = await addNewBookTitleAction({
-        campusId: activeCampusId,
+        institutionCode: currentInstitution,
         title: newBookTitle,
         author: newBookAuthor,
         publisher: newBookPublisher,

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { FileSignature, Plus, Trash2 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFeeTemplates, createFeeTemplate, deleteFeeTemplate } from "@/app/actions/fee-templates";
 import { getFeeHeads } from "@/app/actions/fee-heads";
 
 export default function TemplatesModule() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [templates, setTemplates] = useState<any[]>([]);
   const [feeHeads, setFeeHeads] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,16 +18,16 @@ export default function TemplatesModule() {
   const [selectedHeads, setSelectedHeads] = useState<any[]>([]);
 
   useEffect(() => {
-    if (activeCampusId) {
+    if (currentInstitution) {
       loadData();
     }
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadData() {
     setIsLoading(true);
     const [tRes, hRes] = await Promise.all([
-      getFeeTemplates(activeCampusId),
-      getFeeHeads(activeCampusId)
+      getFeeTemplates(currentInstitution),
+      getFeeHeads(currentInstitution)
     ]);
     if (tRes.success) setTemplates(tRes.data || []);
     if (hRes.success) setFeeHeads(hRes.data || []);
@@ -55,7 +55,7 @@ export default function TemplatesModule() {
   async function handleSaveTemplate() {
     if (!newTemplateName.trim()) return;
     setIsAdding(false);
-    const res = await createFeeTemplate(activeCampusId, newTemplateName, newAcademicYear, selectedHeads);
+    const res = await createFeeTemplate(currentInstitution, newTemplateName, newAcademicYear, selectedHeads);
     if (res.success) {
       setNewTemplateName("");
       setSelectedHeads([]);

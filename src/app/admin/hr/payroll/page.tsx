@@ -69,7 +69,8 @@ export default function PayrollEngine() {
   const handleRunPayroll = async () => {
     setIsProcessing(true);
     const res = await processMonthlyPayrollRunAction({
-      month: selectedMonth
+      month: selectedMonth,
+      institutionCode: currentInstitution
     });
     setIsProcessing(false);
     if (res.success) {

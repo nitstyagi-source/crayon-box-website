@@ -6,12 +6,12 @@ import {
   Building2, Phone, Mail, MapPin, Hash, CheckCircle2, ShieldCheck, 
   FileText, IndianRupee, Printer, AlertCircle, Clock
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFinanceSettings, saveFinanceSettings } from "@/app/actions/finance-core";
 import { resetFinanceData } from "@/app/actions/fee-heads";
 
 export default function SettingsModule() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -38,12 +38,12 @@ export default function SettingsModule() {
 
   useEffect(() => {
     loadSettings();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadSettings() {
     setIsLoading(true);
     try {
-      const res = await getFinanceSettings(activeCampusId);
+      const res = await getFinanceSettings(currentInstitution);
       if (res.success && res.data) {
         setFormData({
           institution_name: res.data.institution_name || "Crayon Box School",
@@ -82,7 +82,7 @@ export default function SettingsModule() {
 
     try {
       const res = await saveFinanceSettings({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         institution_name: formData.institution_name.trim(),
         school_id: formData.school_id.trim(),
         udise_code: formData.udise_code.trim(),
@@ -116,7 +116,7 @@ export default function SettingsModule() {
     const confirmation = prompt("DANGER: This will delete fee templates, ledgers, and transactions for this campus. Type 'RESET' to confirm.");
     if (confirmation === 'RESET') {
       setIsResetting(true);
-      const res = await resetFinanceData(activeCampusId);
+      const res = await resetFinanceData(currentInstitution);
       if (res.success) {
         alert("Finance Database successfully reset to a clean state.");
       } else {

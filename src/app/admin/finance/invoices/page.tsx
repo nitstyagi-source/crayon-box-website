@@ -7,13 +7,13 @@ import {
   Calendar, FileText, ArrowRight, Save, Plus, Trash2, Layers
 } from "lucide-react";
 import Link from "next/link";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getInvoices, updateIndividualInvoice, getFeeHeads, saveFeeHead, getInvoiceWithItemsAction } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
 import InvoiceA5PrintModal from "@/components/finance/InvoiceA5PrintModal";
 
 export default function InvoicesModule() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,16 +51,16 @@ export default function InvoicesModule() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeCampusId) {
+    if (currentInstitution) {
       loadData();
       loadHeads();
     }
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadData() {
     setIsLoading(true);
     try {
-      const res = await getInvoices(activeCampusId);
+      const res = await getInvoices(currentInstitution);
       if (res.success) setInvoices(res.data || []);
     } catch (e) {
       console.error("Error loading invoices:", e);
@@ -72,7 +72,7 @@ export default function InvoicesModule() {
   async function loadHeads() {
     setIsLoadingHeads(true);
     try {
-      const res = await getFeeHeads(activeCampusId);
+      const res = await getFeeHeads(currentInstitution);
       if (res.success) setFeeHeads(res.data || []);
     } catch (e) {
       console.error("Error loading fee heads:", e);
@@ -117,7 +117,7 @@ export default function InvoicesModule() {
     setIsSavingHead(true);
     try {
       const res = await saveFeeHead({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         id: headFormData.id || undefined,
         name: headFormData.name.trim(),
         code: headFormData.code.trim().toUpperCase() || headFormData.name.slice(0, 3).toUpperCase(),

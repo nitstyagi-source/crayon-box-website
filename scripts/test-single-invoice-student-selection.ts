@@ -38,7 +38,7 @@ async function testSingleInvoiceStudent() {
   if (sampleStudent && !sampleStudent.isEws) {
     console.log(`\n📌 3. Generating Single Invoice for ${sampleStudent.name}...`);
     const invRes = await generateIndividualInvoice({
-      campus_id: campusId,
+      institution_code: campusId,
       student_id: sampleStudent.id,
       billing_period: 'Q1 (April-June 2026)',
       due_date: '2026-04-15',

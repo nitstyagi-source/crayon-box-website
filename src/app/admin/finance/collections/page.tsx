@@ -6,7 +6,7 @@ import {
   Smartphone, User, CheckCircle2, AlertCircle, Printer, 
   Share2, ArrowRight, RefreshCw, X, Receipt, ShieldCheck, QrCode
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   searchStudentsForFeeCollection, 
   collectFeePayment, 
@@ -16,7 +16,7 @@ import { getDepartedStudentsPendingDuesAction } from "@/app/actions/finance-conc
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function CollectFeePOSPage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<any[]>([]);
   const [departedDues, setDepartedDues] = useState<any[]>([]);
@@ -41,7 +41,7 @@ export default function CollectFeePOSPage() {
   useEffect(() => {
     handleSearch();
     loadDepartedDues();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadDepartedDues() {
     try {
@@ -58,7 +58,7 @@ export default function CollectFeePOSPage() {
     setIsLoading(true);
     try {
       const [resActive, resDeparted] = await Promise.all([
-        searchStudentsForFeeCollection(activeCampusId, searchQuery),
+        searchStudentsForFeeCollection(currentInstitution, searchQuery),
         getDepartedStudentsPendingDuesAction({ search: searchQuery })
       ]);
       
@@ -123,7 +123,7 @@ export default function CollectFeePOSPage() {
     setIsProcessing(true);
     try {
       const res = await collectFeePayment({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         student_id: selectedStudent.id,
         admission_no: selectedStudent.admissionNo,
         student_name: selectedStudent.name,

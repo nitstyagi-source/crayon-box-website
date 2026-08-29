@@ -132,19 +132,7 @@ export function GlobalCommandPalette() {
   };
 
   if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 border border-slate-300/60 text-slate-500 text-xs font-semibold transition cursor-pointer"
-      >
-        <Search className="w-3.5 h-3.5 text-slate-400" />
-        <span>Universal Search...</span>
-        <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-300 font-mono text-[10px] text-slate-600 font-bold shadow-2xs">
-          ⌘K
-        </kbd>
-      </button>
-    );
+    return null;
   }
 
   return (

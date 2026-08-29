@@ -172,6 +172,16 @@ export default function DailyAttendancePage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <Link href="/admin/attendance/leaves">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-emerald-950/80 text-emerald-200 border-emerald-700/80 hover:bg-emerald-900 text-xs font-bold"
+              leftIcon={<FileText className="w-3.5 h-3.5 text-emerald-400" />}
+            >
+              📝 Leave Approvals
+            </Button>
+          </Link>
           <Link href="/admin/gate-scanner">
             <Button 
               variant="outline" 

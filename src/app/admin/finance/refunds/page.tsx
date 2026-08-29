@@ -5,11 +5,11 @@ import {
   RotateCcw, CheckCircle2, Plus, Search, Filter, RefreshCw, 
   DollarSign, ArrowRight, ShieldCheck, AlertCircle, Clock, FileText 
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFeeRefunds, processFeeRefund, searchStudentsForFeeCollection } from "@/app/actions/finance-core";
 
 export default function RefundsModule() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [refunds, setRefunds] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,12 +31,12 @@ export default function RefundsModule() {
 
   useEffect(() => {
     loadRefunds();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadRefunds() {
     setIsLoading(true);
     try {
-      const res = await getFeeRefunds(activeCampusId);
+      const res = await getFeeRefunds(currentInstitution);
       if (res.success) {
         setRefunds(res.data || []);
       }
@@ -54,7 +54,7 @@ export default function RefundsModule() {
       return;
     }
     try {
-      const res = await searchStudentsForFeeCollection(activeCampusId, q);
+      const res = await searchStudentsForFeeCollection(currentInstitution, q);
       if (res.success) {
         setSearchResults(res.data || []);
       }
@@ -83,7 +83,7 @@ export default function RefundsModule() {
     setIsProcessing(true);
     try {
       const res = await processFeeRefund({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         student_id: selectedStudent.id,
         student_name: selectedStudent.name,
         receipt_no: formData.receipt_no,

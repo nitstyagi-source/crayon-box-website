@@ -7,12 +7,12 @@ import {
   Send, CheckCircle2, Phone, User, RefreshCw, ShieldAlert,
   ArrowRight, CreditCard, FileText
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getDefaultersAging, sendFeeReminderNotification } from "@/app/actions/finance-core";
 import { getDepartedStudentsPendingDuesAction } from "@/app/actions/finance-concession-actions";
 
 export default function DefaultersAndAgingPage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const [defaulters, setDefaulters] = useState<any[]>([]);
   const [departedDefaulters, setDepartedDefaulters] = useState<any[]>([]);
   const [activeCategoryTab, setActiveCategoryTab] = useState<"ACTIVE" | "DEPARTED">("ACTIVE");
@@ -23,13 +23,13 @@ export default function DefaultersAndAgingPage() {
 
   useEffect(() => {
     loadAllDefaulters();
-  }, [activeCampusId]);
+  }, [currentInstitution]);
 
   async function loadAllDefaulters() {
     setIsLoading(true);
     try {
       const [resActive, resDeparted] = await Promise.all([
-        getDefaultersAging(activeCampusId),
+        getDefaultersAging(currentInstitution),
         getDepartedStudentsPendingDuesAction()
       ]);
 
@@ -51,7 +51,7 @@ export default function DefaultersAndAgingPage() {
     try {
       const message = `Dear Parent, this is a formal accounts notice from Crayon Box School. Pending fee balance of ₹${d.totalDue || d.pendingBalance} for ${d.name || d.studentName} (${d.className}) is overdue on ledger records. Kindly clear dues via accounts counter.`;
       const res = await sendFeeReminderNotification({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         student_id: d.studentId,
         student_name: d.name || d.studentName,
         parent_mobile: d.parentMobile || d.guardianPhone,

@@ -15,8 +15,8 @@ function isValidUUID(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
-async function resolveCampusId(supabase: any, campusId?: string): Promise<string> {
-  if (campusId && isValidUUID(campusId)) return campusId;
+async function resolveInstitutionCode(supabase: any, institutionCode?: string): Promise<string> {
+  if (institutionCode && isValidUUID(institutionCode)) return institutionCode;
   const { data } = await supabase.from('campuses').select('id').limit(1).single();
   if (!data?.id) throw new Error("No campuses found in database.");
   return data.id;
@@ -34,7 +34,7 @@ function safeRevalidatePath(path: string) {
 // BACKWARD COMPATIBILITY HELPERS
 // -------------------------------------------------------------
 export async function generateIndividualInvoice(payload: {
-  campus_id: string;
+  institution_code: string;
   student_id: string;
   billing_period: string;
   due_date: string;
@@ -48,7 +48,7 @@ export async function generateIndividualInvoice(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     // 1. Verify student and check EWS status
     const { data: student, error: stErr } = await supabase
@@ -100,7 +100,7 @@ export async function generateIndividualInvoice(payload: {
     const { data: invoice, error: invErr } = await supabase
       .from('student_invoices')
       .insert([{
-        campus_id: resolvedId,
+        institution_code: resolvedId,
         student_id: student.id,
         invoice_number: invoiceNumber,
         billing_period: payload.billing_period || 'Session 2026-27',
@@ -138,7 +138,7 @@ export async function generateIndividualInvoice(payload: {
 
     // 5. Post debit demand to student fee ledger
     await supabase.from('student_fee_ledgers').insert([{
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       student_id: student.id,
       academic_session: '2026-2027',
       transaction_date: new Date().toISOString().split('T')[0],
@@ -163,10 +163,10 @@ export async function generateIndividualInvoice(payload: {
   }
 }
 
-export async function getBulkTargetStudents(campusId: string, className?: string, sectionName?: string) {
+export async function getBulkTargetStudents(institutionCode: string, className?: string, sectionName?: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data: allStudents, error: stErr } = await supabase
       .from('students')
@@ -175,7 +175,7 @@ export async function getBulkTargetStudents(campusId: string, className?: string
         student_academic_history (class_name, section_name, is_current_session),
         student_fee_profiles (*)
       `)
-      .or(`campus_id.eq.${resolvedId},campus_id.is.null`)
+      .or(`institution_code.eq.${resolvedId},institution_code.is.null`)
       .order('first_name', { ascending: true });
 
     if (stErr) throw stErr;
@@ -240,7 +240,7 @@ export async function getBulkTargetStudents(campusId: string, className?: string
 }
 
 export async function generateBulkInvoices(payload: {
-  campus_id: string;
+  institution_code: string;
   class_name?: string; // 'All' or specific
   section_name?: string; // 'All' or specific
   selected_student_ids?: string[]; // Array of selected student IDs
@@ -260,13 +260,13 @@ export async function generateBulkInvoices(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     // Fetch fee heads master map for fallback IDs
     const { data: allHeads } = await supabase
       .from('fee_heads')
       .select('id, name')
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
     const headNameIdMap: Record<string, string> = {};
     (allHeads || []).forEach((h: any) => {
       headNameIdMap[h.name] = h.id;
@@ -281,7 +281,7 @@ export async function generateBulkInvoices(payload: {
         student_academic_history (class_name, section_name, is_current_session),
         student_fee_profiles (*)
       `)
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     const { data: allStudents, error: stErr } = await studentQuery;
     if (stErr) throw stErr;
@@ -321,7 +321,7 @@ export async function generateBulkInvoices(payload: {
     const { data: structures } = await supabase
       .from('fee_structures')
       .select('*, fee_structure_items(*)')
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     const structMap = (structures || []).reduce((acc: any, s: any) => {
       acc[s.class_name] = s;
@@ -403,7 +403,7 @@ export async function generateBulkInvoices(payload: {
       const { data: inv } = await supabase
         .from('student_invoices')
         .insert([{
-          campus_id: resolvedId,
+          institution_code: resolvedId,
           student_id: st.id,
           invoice_number: invNum,
           billing_period: payload.billing_period || 'Session 2026-27',
@@ -429,7 +429,7 @@ export async function generateBulkInvoices(payload: {
 
       // Ledger Debit
       await supabase.from('student_fee_ledgers').insert([{
-        campus_id: resolvedId,
+        institution_code: resolvedId,
         student_id: st.id,
         academic_session: '2026-2027',
         transaction_date: new Date().toISOString().split('T')[0],
@@ -536,7 +536,7 @@ export async function updateIndividualInvoice(payload: {
     // Post audit adjustment to student_fee_ledgers
     if (inv.student_id) {
       await supabase.from('student_fee_ledgers').insert([{
-        campus_id: inv.campus_id,
+        institution_code: inv.institution_code,
         student_id: inv.student_id,
         academic_session: '2026-2027',
         transaction_date: new Date().toISOString().split('T')[0],
@@ -560,16 +560,16 @@ export async function updateIndividualInvoice(payload: {
   }
 }
 
-export async function getInvoices(campusId: string) {
+export async function getInvoices(institutionCode: string) {
   try {
-    if (!campusId) return { success: true, data: [] };
+    if (!institutionCode) return { success: true, data: [] };
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
     
     const { data: invoices, error } = await supabase
       .from('student_invoices')
       .select('*, student_invoice_items(*)')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -647,15 +647,15 @@ export async function getInvoiceWithItemsAction(invoiceId: string) {
   }
 }
 
-export async function getPendingFees(campusId: string) {
+export async function getPendingFees(institutionCode: string) {
   try {
-    if (!campusId) return { success: true, totalPending: 0 };
+    if (!institutionCode) return { success: true, totalPending: 0 };
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
     const { data, error } = await supabase
       .from('student_invoices')
       .select('total_amount, amount_paid')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .in('status', ['Unpaid', 'Partial', 'Overdue']);
 
     if (error) throw error;
@@ -671,15 +671,15 @@ export async function getPendingFees(campusId: string) {
   }
 }
 
-export async function getDefaultersReport(campusId: string) {
-  return getDefaultersAging(campusId);
+export async function getDefaultersReport(institutionCode: string) {
+  return getDefaultersAging(institutionCode);
 }
 
-export async function getReceipts(campusId: string) {
-  return getOfficialReceipts(campusId);
+export async function getReceipts(institutionCode: string) {
+  return getOfficialReceipts(institutionCode);
 }
 
-export async function recordManualPayment(campusId: string, invoiceId: string, amount: number, mode: string) {
+export async function recordManualPayment(institutionCode: string, invoiceId: string, amount: number, mode: string) {
   try {
     const supabase = getSupabaseAdmin();
     const { data: invoice, error: fetchErr } = await supabase
@@ -718,16 +718,16 @@ export async function recordManualPayment(campusId: string, invoiceId: string, a
 // -------------------------------------------------------------
 // 1. EXECUTIVE FEE DASHBOARD METRICS (Principal & Accountant)
 // -------------------------------------------------------------
-export async function getFinanceExecutiveMetrics(campusId: string) {
+export async function getFinanceExecutiveMetrics(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     // Fetch Receipts
     const { data: receipts, error: recErr } = await supabase
       .from('fee_receipts')
       .select('*')
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     if (recErr) throw recErr;
 
@@ -735,7 +735,7 @@ export async function getFinanceExecutiveMetrics(campusId: string) {
     const { data: ledgers, error: ledErr } = await supabase
       .from('student_fee_ledgers')
       .select('*')
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     if (ledErr) throw ledErr;
 
@@ -743,7 +743,7 @@ export async function getFinanceExecutiveMetrics(campusId: string) {
     const { count: studentCount } = await supabase
       .from('students')
       .select('*', { count: 'exact', head: true })
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     let totalDemand = 0;
     let totalCollection = 0;
@@ -804,15 +804,15 @@ export async function getFinanceExecutiveMetrics(campusId: string) {
 // -------------------------------------------------------------
 // 2. FEE HEADS (Centralized Reusable Heads)
 // -------------------------------------------------------------
-export async function getFeeHeads(campusId: string) {
+export async function getFeeHeads(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('fee_heads')
       .select('*')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('name');
 
     if (error) throw error;
@@ -825,10 +825,10 @@ export async function getFeeHeads(campusId: string) {
 export async function saveFeeHead(payload: any) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const headData = {
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       name: payload.name,
       code: payload.code || payload.name.slice(0, 3).toUpperCase(),
       category: payload.category || 'Academic',
@@ -858,15 +858,15 @@ export async function saveFeeHead(payload: any) {
 // -------------------------------------------------------------
 // 3. FEE STRUCTURES & ITEMS
 // -------------------------------------------------------------
-export async function getFeeStructures(campusId: string) {
+export async function getFeeStructures(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data: structures, error } = await supabase
       .from('fee_structures')
       .select('*, fee_structure_items(*)')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('class_name');
 
     if (error) throw error;
@@ -878,7 +878,7 @@ export async function getFeeStructures(campusId: string) {
 
 export async function saveFeeStructure(payload: {
   id?: string;
-  campus_id: string;
+  institution_code: string;
   name: string;
   class_name: string;
   academic_session?: string;
@@ -895,7 +895,7 @@ export async function saveFeeStructure(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const totalAnnual = payload.items.reduce((sum, it) => {
       let multiplier = 1;
@@ -906,7 +906,7 @@ export async function saveFeeStructure(payload: {
     }, 0);
 
     const structureData = {
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       name: payload.name,
       class_name: payload.class_name,
       academic_session: payload.academic_session || '2026-2027',
@@ -962,15 +962,15 @@ export async function saveFeeStructure(payload: {
 // -------------------------------------------------------------
 // 3B. REFUNDS & ADJUSTMENTS
 // -------------------------------------------------------------
-export async function getFeeRefunds(campusId: string) {
+export async function getFeeRefunds(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('fee_refunds')
       .select('*')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -981,7 +981,7 @@ export async function getFeeRefunds(campusId: string) {
 }
 
 export async function processFeeRefund(payload: {
-  campus_id: string;
+  institution_code: string;
   student_id: string;
   student_name: string;
   receipt_no?: string;
@@ -995,10 +995,10 @@ export async function processFeeRefund(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const refundData = {
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       student_id: payload.student_id,
       student_name: payload.student_name,
       receipt_no: payload.receipt_no || null,
@@ -1022,7 +1022,7 @@ export async function processFeeRefund(payload: {
 
     // Post financial ledger entry for audit trail
     await supabase.from('student_fee_ledgers').insert([{
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       student_id: payload.student_id,
       transaction_type: 'Refund / Credit Note',
       particulars: `Fee Refund: ${payload.refund_reason} (${refundData.transaction_ref})`,
@@ -1044,10 +1044,10 @@ export async function processFeeRefund(payload: {
 // -------------------------------------------------------------
 // 4. STUDENT FEE PROFILES & SEARCH (POS Counter)
 // -------------------------------------------------------------
-export async function searchStudentsForFeeCollection(campusId: string, query: string) {
+export async function searchStudentsForFeeCollection(institutionCode: string, query: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     let queryBuilder = supabase
       .from('students')
@@ -1057,7 +1057,7 @@ export async function searchStudentsForFeeCollection(campusId: string, query: st
         student_parents (name, mobile, is_primary_contact),
         student_fee_profiles (*)
       `)
-      .or(`campus_id.eq.${resolvedId},campus_id.is.null`)
+      .or(`institution_code.eq.${resolvedId},institution_code.is.null`)
       .limit(50);
 
     if (query && query.trim().length > 0) {
@@ -1203,7 +1203,7 @@ export async function getStudentFeeLedger(studentId: string) {
 // 6. COLLECT FEE (POS Counter + Instant Receipt & Double Entry)
 // -------------------------------------------------------------
 export async function collectFeePayment(payload: {
-  campus_id: string;
+  institution_code: string;
   student_id: string;
   admission_no: string;
   student_name: string;
@@ -1224,7 +1224,7 @@ export async function collectFeePayment(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const paidAmt = Number(payload.net_amount_paid || 0);
     const dueAmt = Number(payload.total_amount_due || 0);
@@ -1247,7 +1247,7 @@ export async function collectFeePayment(payload: {
     const { data: receipt, error: recErr } = await supabase
       .from('fee_receipts')
       .insert([{
-        campus_id: resolvedId,
+        institution_code: resolvedId,
         receipt_no: receiptNo,
         receipt_date: new Date().toISOString().split('T')[0],
         student_id: payload.student_id,
@@ -1301,7 +1301,7 @@ export async function collectFeePayment(payload: {
 
     // 3. Insert Double-Entry Ledger Credit
     await supabase.from('student_fee_ledgers').insert([{
-      campus_id: resolvedId,
+      institution_code: resolvedId,
       student_id: payload.student_id,
       academic_session: '2026-2027',
       transaction_date: new Date().toISOString().split('T')[0],
@@ -1319,7 +1319,7 @@ export async function collectFeePayment(payload: {
     // 3. If Concession applied, post Concession Ledger entry
     if (concessionAmt > 0) {
       await supabase.from('student_fee_ledgers').insert([{
-        campus_id: resolvedId,
+        institution_code: resolvedId,
         student_id: payload.student_id,
         academic_session: '2026-2027',
         transaction_date: new Date().toISOString().split('T')[0],
@@ -1349,19 +1349,19 @@ export async function collectFeePayment(payload: {
 // -------------------------------------------------------------
 // 7. RECEIPTS HUB & SAFE CANCELLATION WORKFLOW
 // -------------------------------------------------------------
-export async function getOfficialReceipts(campusId: string, filters?: {
+export async function getOfficialReceipts(institutionCode: string, filters?: {
   payment_mode?: string;
   status?: string;
   search?: string;
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     let queryBuilder = supabase
       .from('fee_receipts')
       .select('*')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('receipt_date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(100);
@@ -1413,7 +1413,7 @@ export async function cancelFeeReceipt(receiptId: string, cancellationReason: st
 
     // 2. Post Reversal Ledger Entry (Debit to restore student's due balance)
     await supabase.from('student_fee_ledgers').insert([{
-      campus_id: receipt.campus_id,
+      institution_code: receipt.institution_code,
       student_id: receipt.student_id,
       academic_session: '2026-2027',
       transaction_date: new Date().toISOString().split('T')[0],
@@ -1440,10 +1440,10 @@ export async function cancelFeeReceipt(receiptId: string, cancellationReason: st
 // -------------------------------------------------------------
 // 8. DEFAULTERS & AGING REPORT
 // -------------------------------------------------------------
-export async function getDefaultersAging(campusId: string) {
+export async function getDefaultersAging(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     // Fetch all students with their ledger balances
     const { data: students, error: stErr } = await supabase
@@ -1454,7 +1454,7 @@ export async function getDefaultersAging(campusId: string) {
         student_parents (name, mobile, is_primary_contact),
         student_fee_ledgers (debit, credit, transaction_date)
       `)
-      .eq('campus_id', resolvedId);
+      .eq('institution_code', resolvedId);
 
     if (stErr) throw stErr;
 
@@ -1512,15 +1512,15 @@ export async function getDefaultersAging(campusId: string) {
 // -------------------------------------------------------------
 // 9. DAILY CASH CLOSING (Physical Counter Audit)
 // -------------------------------------------------------------
-export async function getDailyCashClosing(campusId: string) {
+export async function getDailyCashClosing(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('daily_cash_closings')
       .select('*')
-      .eq('campus_id', resolvedId)
+      .eq('institution_code', resolvedId)
       .order('closing_date', { ascending: false })
       .limit(1)
       .single();
@@ -1536,7 +1536,7 @@ export async function getDailyCashClosing(campusId: string) {
 // 10. MULTICHANNEL FEE REMINDERS (WhatsApp / SMS / Email)
 // -------------------------------------------------------------
 export async function sendFeeReminderNotification(payload: {
-  campus_id: string;
+  institution_code: string;
   student_id: string;
   student_name: string;
   parent_mobile: string;
@@ -1546,12 +1546,12 @@ export async function sendFeeReminderNotification(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const { data, error } = await supabase
       .from('fee_reminders_log')
       .insert([{
-        campus_id: resolvedId,
+        institution_code: resolvedId,
         student_id: payload.student_id,
         student_name: payload.student_name,
         parent_mobile: payload.parent_mobile,
@@ -1574,10 +1574,10 @@ export async function sendFeeReminderNotification(payload: {
 // -------------------------------------------------------------
 // 11. FINANCE & INSTITUTIONAL SETTINGS
 // -------------------------------------------------------------
-export async function getFinanceSettings(campusId: string) {
+export async function getFinanceSettings(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data: campus, error } = await supabase
       .from('campuses')
@@ -1644,7 +1644,7 @@ export async function getFinanceSettings(campusId: string) {
 }
 
 export async function saveFinanceSettings(payload: {
-  campus_id: string;
+  institution_code: string;
   institution_name: string;
   school_id: string;
   udise_code: string;
@@ -1659,7 +1659,7 @@ export async function saveFinanceSettings(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     const { data, error } = await supabase
       .from('campuses')
@@ -1780,10 +1780,10 @@ export interface ReceiptTemplateSettings {
   copies_format: string; // 'A5_SINGLE' | 'A4_DOUBLE' | 'A4_TRIPLICATE'
 }
 
-export async function getReceiptTemplateSettingsAction(campusId?: string) {
+export async function getReceiptTemplateSettingsAction(institutionCode?: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, campusId);
+    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
 
     const { data: campus } = await supabase
       .from('campuses')
@@ -1840,12 +1840,12 @@ export async function getReceiptTemplateSettingsAction(campusId?: string) {
 }
 
 export async function saveReceiptTemplateSettingsAction(payload: {
-  campus_id?: string;
+  institution_code?: string;
   settings: Partial<ReceiptTemplateSettings>;
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = await resolveCampusId(supabase, payload.campus_id);
+    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
 
     if (payload.settings.institution_name || payload.settings.address || payload.settings.contact_phone) {
       await supabase.from('campuses').update({

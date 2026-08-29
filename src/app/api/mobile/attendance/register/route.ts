@@ -44,9 +44,9 @@ export async function POST(request: Request) {
         if (resolvedId) {
           await client.query(`
             INSERT INTO public.student_attendance_records (
-              student_id, date, status, remarks, class_name, section_name, event_type, verification_method, created_at
+              institution_code, student_id, date, status, remarks, class_name, section_name, event_type, verification_method, created_at
             ) VALUES (
-              $1, $2, $3, $4, $5, $6, 'Classroom', 'Mobile App', NOW()
+              'CBS', $1, $2, $3, $4, $5, $6, 'Classroom', 'Mobile App', NOW()
             )
             ON CONFLICT (student_id, date, event_type) DO UPDATE
             SET status = EXCLUDED.status, 

@@ -7,7 +7,7 @@ import {
   ArrowRightLeft, FileText, Ban, Edit3, Settings2, Save, X,
   Building2, User, CreditCard, Sparkles, Check, FileCheck, Layers
 } from "lucide-react";
-import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   getOfficialReceipts, 
   cancelFeeReceipt,
@@ -17,10 +17,10 @@ import {
   ReceiptTemplateSettings
 } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
-import { useInstitution } from "@/components/providers/InstitutionContext";
+
 
 export default function OfficialReceiptsHubPage() {
-  const { activeCampusId } = useCampusContext();
+  const { currentInstitution } = useInstitution();
   const { selectedInstitutionObj } = useInstitution();
   const [receipts, setReceipts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,12 +68,12 @@ export default function OfficialReceiptsHubPage() {
   useEffect(() => {
     loadReceipts();
     loadTemplateSettings();
-  }, [activeCampusId, selectedMode, selectedStatus]);
+  }, [currentInstitution, selectedMode, selectedStatus]);
 
   async function loadReceipts() {
     setIsLoading(true);
     try {
-      const res = await getOfficialReceipts(activeCampusId, {
+      const res = await getOfficialReceipts(currentInstitution, {
         payment_mode: selectedMode,
         status: selectedStatus,
         search: searchQuery
@@ -90,7 +90,7 @@ export default function OfficialReceiptsHubPage() {
 
   async function loadTemplateSettings() {
     try {
-      const res = await getReceiptTemplateSettingsAction(activeCampusId);
+      const res = await getReceiptTemplateSettingsAction(currentInstitution);
       if (res.success && res.data) {
         setTemplateSettings(res.data);
       }
@@ -157,7 +157,7 @@ export default function OfficialReceiptsHubPage() {
     setIsSavingSettings(true);
     try {
       const res = await saveReceiptTemplateSettingsAction({
-        campus_id: activeCampusId,
+        institution_code: currentInstitution,
         settings: templateSettings
       });
       if (res.success) {
