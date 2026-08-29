@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { HeaderShell } from '@/components/layout/HeaderShell';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import GlobalSearchModal from '@/components/layout/GlobalSearchModal';
+import { GlobalCommandPalette } from '@/components/common/GlobalCommandPalette';
 import { InstitutionProvider, useInstitution } from '@/components/providers/InstitutionContext';
 import { CampusProvider } from '@/components/providers/CampusProvider';
 
@@ -14,6 +15,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-slate-100/90 overflow-hidden font-sans text-slate-800 antialiased">
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <GlobalCommandPalette />
 
       {/* Role-Based Sidebar Navigation */}
       <SidebarNav currentRole={currentRole} />

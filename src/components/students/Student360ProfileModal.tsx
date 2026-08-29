@@ -44,7 +44,7 @@ export function Student360ProfileModal({
 }: Student360ProfileModalProps) {
   const [modalView, setModalView] = useState<'dossier' | 'edit' | 'id_card' | 'tc'>('dossier');
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'family' | 'academics' | 'attendance' | 'fees' | 'transport' | 'documents'
+    'overview' | 'family' | 'academics' | 'attendance' | 'fees' | 'transport' | 'documents' | 'lifecycle'
   >('overview');
 
   // Form State for Edit Mode
@@ -216,6 +216,7 @@ export function Student360ProfileModal({
                 { id: 'fees', label: 'Fee Ledger' },
                 { id: 'transport', label: 'Transport & Route' },
                 { id: 'documents', label: 'Documents & Certs' },
+                { id: 'lifecycle', label: '🔄 Lifecycle & Progression' },
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -237,6 +238,70 @@ export function Student360ProfileModal({
 
             {/* 3. SCROLLABLE TAB CONTENT */}
             <div className="p-6 sm:p-7 overflow-y-auto flex-1 bg-slate-50/50 space-y-6">
+                            {activeTab === 'lifecycle' && (
+                <div className="space-y-6">
+                  {/* Action Bar */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">Student Lifecycle & Progression Governance</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Permanent Universal ID: <strong className="text-indigo-600 font-mono">{universalId}</strong> • Immutable audit history
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => alert(`Promoting ${fullName} to next academic session with historical snapshot retention.`)}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      >
+                        🎓 Promote Session
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Transferring ${fullName} to sister institution within Vaani Trust.`)}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      >
+                        🔄 Transfer School
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alert(`Marking ${fullName} as WITHDRAWN. All historical data & Universal ID will remain preserved.`)}
+                        className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      >
+                        ⛔ Mark Withdrawal
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progression Timeline */}
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Historical Progression Snapshots</h4>
+                    <div className="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200">
+                      {[
+                        { date: '01 Apr 2026', state: 'ACTIVE', title: 'Enrolled in AY 2026-2027 (Class 11-Science-A)', by: 'Registrar (Admin)' },
+                        { date: '15 Mar 2026', state: 'PROMOTED', title: 'Successfully Promoted from Class 10-A (AY 2025-26)', by: 'Academic Council' },
+                        { date: '10 Apr 2025', state: 'ACTIVE', title: 'Session AY 2025-2026 Started', by: 'System Automation' },
+                        { date: '05 Jan 2024', state: 'ADMISSION', title: 'Initial Admission Confirmed under Universal ID STU-AVM-001092', by: 'Admissions Officer' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="relative flex items-start gap-4 pl-8">
+                          <div className="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-indigo-600 border-2 border-white ring-2 ring-indigo-200" />
+                          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <strong className="text-slate-900 font-bold">{item.title}</strong>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">{item.state}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                              Recorded on {item.date} • Action by: {item.by}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'overview' && (
                 <>
                   {/* Top 3 KPI Cards */}

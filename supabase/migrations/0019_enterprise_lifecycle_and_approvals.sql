@@ -78,3 +78,9 @@ CREATE INDEX IF NOT EXISTS idx_approval_requests_entity ON approval_requests(ent
 CREATE INDEX IF NOT EXISTS idx_lifecycle_universal ON student_lifecycle_history(universal_id);
 CREATE INDEX IF NOT EXISTS idx_lifecycle_student_session ON student_lifecycle_history(student_id, academic_session);
 CREATE INDEX IF NOT EXISTS idx_helpdesk_inst_status ON helpdesk_tickets(institution_code, status);
+
+-- 5. STUDENTS MASTER MULTI-TENANT BOUNDARY INDEXES (PHASE 1)
+CREATE INDEX IF NOT EXISTS idx_students_inst_univ ON students(institution_code, universal_id);
+CREATE INDEX IF NOT EXISTS idx_students_inst_adm ON students(institution_code, admission_number);
+CREATE INDEX IF NOT EXISTS idx_students_inst_status ON students(institution_code, status);
+CREATE INDEX IF NOT EXISTS idx_students_inst_session_class ON students(institution_code, academic_session, class_name);
