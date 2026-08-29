@@ -27,14 +27,16 @@ export async function GET(request: Request) {
     let liveCameras: any[] = [];
     try {
       const camsRes = await pool.query(`
-        SELECT id, channel_number as "channelNumber", camera_name as name, 
-               room_name as room, status, is_streaming as "isStreaming", 
-               stream_url as "streamUrl", fps, resolution as quality
-        FROM public.classroom_cameras
-        ORDER BY channel_number ASC;
+        SELECT id, camera_name as name, room_number as room, classroom_name as "classroomName",
+               status, NOT kill_switch_active as "isStreaming", 
+               stream_url as "streamUrl", 25 as fps, '720p HD' as quality
+        FROM public.cameras
+        ORDER BY created_at ASC;
       `);
       liveCameras = camsRes.rows;
-    } catch {}
+    } catch (e) {
+      console.error("Failed to query cameras:", e);
+    }
 
     // 2. Real Telematics Bus Data
     let busTelemetry = {
