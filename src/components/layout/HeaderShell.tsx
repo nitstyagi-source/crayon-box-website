@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Building2, Calendar, ChevronDown, Check, 
-  Search, Bell, LogOut, User, ShieldCheck, Menu
+  Search, Bell, LogOut, User, ShieldCheck, Menu, Sparkles
 } from 'lucide-react';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
@@ -22,9 +22,11 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
     currentInstitution,
     selectedInstitutionObj,
     setInstitution,
+    institutionsList,
     currentSession,
     setSession,
     currentRole,
+    isAllInstitutions,
   } = useInstitution();
 
   const [isInstOpen, setIsInstOpen] = useState(false);
@@ -47,47 +49,63 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
     }
   };
 
+  const activeLogo = selectedInstitutionObj?.logoUrl || '/logo.png';
+  const activeName = isAllInstitutions 
+    ? 'All Campuses (Trust HQ)' 
+    : (selectedInstitutionObj?.name || 'Crayon Box School');
+  const activeBrandColor = selectedInstitutionObj?.brandColor || '#2563eb';
+  const activeAffiliation = selectedInstitutionObj?.boardAffiliation || 'CBSE';
+
   return (
     <div className="flex flex-col bg-white border-b border-slate-200/80 px-4 sm:px-6 pt-4 pb-3 sm:pt-5 sm:pb-4 font-sans shrink-0 relative z-30 shadow-xs">
       
-      {/* Top Row: Mobile Menu Button + User Greeting & Profile */}
+      {/* Top Row: Mobile Menu Button + User Greeting & Active School Profile */}
       <div className="flex items-center justify-between mb-3 sm:mb-4 w-full max-w-7xl mx-auto gap-3">
         
-        {/* Left: Mobile Menu Toggle + Logo & Greeting */}
+        {/* Left: Mobile Menu Toggle + School Logo & Dynamic Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           {/* Mobile Hamburger Button */}
           {onToggleMobileMenu && (
             <button
               onClick={onToggleMobileMenu}
-              className="lg:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              className="lg:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
               title="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
 
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-xs flex items-center justify-center overflow-hidden p-1 shrink-0">
+          {/* Active School Emblem */}
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-white border-2 shadow-xs flex items-center justify-center overflow-hidden p-1 shrink-0"
+               style={{ borderColor: activeBrandColor }}>
              <img 
-               src="/logo.png" 
-               alt="Crayon Box School Logo" 
+               src={activeLogo} 
+               alt={activeName} 
                className="w-full h-full object-contain" 
-               onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} 
+               onError={(e) => { e.currentTarget.src = '/logo.png'; }} 
              />
-             <Building2 className="hidden text-[#0A1A44] w-5 h-5" />
           </div>
 
           <div className="flex flex-col min-w-0">
              <div className="flex items-center gap-1.5 flex-wrap">
                <h1 className="text-[16px] sm:text-[19px] text-slate-900 font-black leading-tight truncate">
-                 {currentRole.replace(/_/g, ' ')}
+                 {activeName}
                </h1>
-               <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 Live
+               <span 
+                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase"
+                 style={{ 
+                   backgroundColor: `${activeBrandColor}15`, 
+                   color: activeBrandColor 
+                 }}
+               >
+                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeBrandColor }} />
+                 {isAllInstitutions ? 'TRUST HQ' : activeAffiliation}
                </span>
              </div>
              <p className="text-slate-500 text-[11px] sm:text-[12px] font-medium truncate mt-0.5">
-               {selectedInstitutionObj?.name || 'All Institutions (Trust HQ)'}
+               {isAllInstitutions 
+                 ? 'Vani Educational Trust Central Governance • 4 Campuses' 
+                 : `${selectedInstitutionObj?.address || 'Delhi NCR'} • Session 2026–2027`}
              </p>
           </div>
         </div>
@@ -98,7 +116,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
            {onOpenSearch && (
              <button 
                onClick={onOpenSearch} 
-               className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition shadow-2xs"
+               className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
                title="Search (⌘K)"
              >
                <Search className="w-4 h-4" />
@@ -116,7 +134,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                </div>
                <div className="hidden md:flex flex-col text-left">
                  <span className="text-xs font-bold text-slate-800 leading-tight">Admin</span>
-                 <span className="text-[10px] font-medium text-slate-500">Super Admin</span>
+                 <span className="text-[10px] font-medium text-slate-500">{currentRole.replace(/_/g, ' ')}</span>
                </div>
                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
              </button>
@@ -158,38 +176,44 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
         </div>
       </div>
 
-      {/* Bottom Row: Context Selectors (Responsive Grid) */}
+      {/* Bottom Row: Context Selectors (Switch Active Campus Instantly) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full max-w-7xl mx-auto">
         {/* School Dropdown */}
-        <div className="relative flex-1 sm:max-w-[280px]">
+        <div className="relative flex-1 sm:max-w-[320px]">
           <button
             onClick={() => setIsInstOpen(!isInstOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-700 shadow-2xs"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-800 shadow-2xs cursor-pointer"
           >
             <div className="flex items-center gap-2 truncate">
-              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate">{selectedInstitutionObj ? selectedInstitutionObj.name : 'All Institutions'}</span>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeBrandColor }} />
+              <span className="truncate">{activeName}</span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           </button>
           
           {isInstOpen && (
-            <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in">
               <button
                 onClick={() => { setInstitution('ALL'); setIsInstOpen(false); }}
-                className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
               >
-                <span>Trust HQ (All)</span>
-                {currentInstitution === 'ALL' && <Check className="w-4 h-4" />}
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <span>🏛️ Trust HQ (All Campuses)</span>
+                </div>
+                {currentInstitution === 'ALL' && <Check className="w-4 h-4 text-indigo-600" />}
               </button>
-              {Object.values(VANI_TRUST_INSTITUTIONS).map((inst) => (
+
+              <div className="my-1 border-t border-slate-100" />
+
+              {institutionsList.map((inst) => (
                 <button
                   key={inst.code}
                   onClick={() => { setInstitution(inst.code); setIsInstOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: inst.brandColor }} />
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: inst.brandColor || '#2563eb' }} />
                     <span className="truncate">{inst.name}</span>
                   </div>
                   {currentInstitution === inst.code && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
@@ -200,10 +224,10 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
         </div>
 
         {/* Year Dropdown */}
-        <div className="relative sm:w-[150px]">
+        <div className="relative sm:w-[160px]">
           <button
             onClick={() => setIsSessionOpen(!isSessionOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-700 shadow-2xs"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-700 shadow-2xs cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -218,7 +242,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                 <button
                   key={s}
                   onClick={() => { setSession(s); setIsSessionOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                  className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between cursor-pointer ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
                 >
                   <span>{s.split(' ')[0]}</span>
                   {currentSession === s && <Check className="w-4 h-4 text-indigo-600" />}

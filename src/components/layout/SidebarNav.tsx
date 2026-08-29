@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { clearServerAuthSession } from '@/app/actions/auth';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 interface SidebarNavProps {
   currentRole?: string;
@@ -47,6 +48,7 @@ interface SidebarNavProps {
 export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, onCloseMobile }: SidebarNavProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -60,6 +62,13 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       window.location.href = '/login';
     }
   };
+
+  const activeSchoolName = isAllInstitutions 
+    ? 'Trust HQ (All Campuses)' 
+    : (selectedInstitutionObj?.name || 'Crayon Box School');
+    
+  const activeLogo = selectedInstitutionObj?.logoUrl || '/logo.png';
+  const activeBrandColor = selectedInstitutionObj?.brandColor || '#2563eb';
 
   const allGroups = [
     {
@@ -161,15 +170,27 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
   const sidebarContent = (
     <aside className="w-72 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-2xl rounded-r-3xl z-40">
       
-      {/* Top Sidebar Header */}
+      {/* Top Sidebar Header with Dynamic Active School Branding */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white/10 p-1 flex items-center justify-center">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-xs">
+            <img 
+              src={activeLogo} 
+              alt="School Logo" 
+              className="w-full h-full object-contain" 
+              onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+            />
           </div>
-          <div>
-            <span className="text-xs font-black tracking-tight text-white block">ERP CONSOLE</span>
-            <span className="text-[10px] text-white/50 block font-semibold">Crayon Box School</span>
+          <div className="min-w-0">
+            <span className="text-xs font-black tracking-tight text-white block truncate">
+              {activeSchoolName}
+            </span>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeBrandColor }} />
+              <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider block truncate">
+                {isAllInstitutions ? 'TRUST HQ' : (selectedInstitutionObj?.code || 'CAMPUS')}
+              </span>
+            </div>
           </div>
         </div>
         
@@ -177,7 +198,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition"
+            className="lg:hidden p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
