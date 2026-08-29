@@ -32,7 +32,8 @@ export default function AdminLiveStreamPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"videowall" | "cameras" | "parents" | "standalone" | "logs" | "security" | "settings">("videowall");
   
-  // Video Wall Spotlight State
+  // Video Wall Spotlight & School Filter State
+  const [selectedSchoolFilter, setSelectedSchoolFilter] = useState("ALL");
   const [spotlightCamera, setSpotlightCamera] = useState<any>(null);
   const [gridColumns, setGridColumns] = useState<2 | 3 | 4>(3);
 
@@ -535,6 +536,33 @@ export default function AdminLiveStreamPage() {
       {activeTab === "videowall" && (
         <div className="space-y-6">
           
+          {/* School Differentiated Selector Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {[
+              { code: "ALL", label: "🏫 All Trust Schools (22 Cams)" },
+              { code: "CBS", label: "🎒 Crayon Box School (8 Cams)" },
+              { code: "CBPS", label: "🎨 Crayon Box Pre School (6 Cams)" },
+              { code: "AS", label: "🌱 Avinya School (4 Cams)" },
+              { code: "AVM", label: "🎓 Avinya Vidya Mandir (4 Cams)" },
+            ].map((s) => {
+              const isCurrent = (selectedSchoolFilter || "ALL") === s.code;
+              return (
+                <button
+                  key={s.code}
+                  type="button"
+                  onClick={() => setSelectedSchoolFilter(s.code)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    isCurrent
+                      ? "bg-purple-600 text-white shadow-md font-black"
+                      : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Top Controls Bar */}
           <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -566,7 +594,7 @@ export default function AdminLiveStreamPage() {
 
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Direct RTSP DVR Ingestion Active ({data?.stats?.onlineCameras || 0} Feeds Live)</span>
+              <span>Direct RTSP Surveillance Engine Active ({data?.stats?.onlineCameras || 0} Feeds Live)</span>
             </div>
           </div>
 
@@ -626,18 +654,20 @@ export default function AdminLiveStreamPage() {
             gridColumns === 3 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" :
             "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
           }`}>
-            {(data?.cameras || []).map((cam: any) => (
-              <CctvStreamPlayer
-                key={cam.id}
-                streamUrl={cam.stream_url}
-                cameraName={cam.camera_name}
-                roomNumber={cam.room_number}
-                classroomName={cam.classroom_name}
-                isPaused={cam.kill_switch_active}
-                onTogglePause={() => handleToggleCameraKill(cam)}
-                onSpotlight={() => setSpotlightCamera(cam)}
-              />
-            ))}
+            {(data?.cameras || [])
+              .filter((cam: any) => selectedSchoolFilter === "ALL" || cam.institution_code === selectedSchoolFilter)
+              .map((cam: any) => (
+                <CctvStreamPlayer
+                  key={cam.id}
+                  streamUrl={cam.stream_url}
+                  cameraName={cam.camera_name}
+                  roomNumber={cam.room_number}
+                  classroomName={cam.classroom_name}
+                  isPaused={cam.kill_switch_active}
+                  onTogglePause={() => handleToggleCameraKill(cam)}
+                  onSpotlight={() => setSpotlightCamera(cam)}
+                />
+              ))}
           </div>
 
         </div>

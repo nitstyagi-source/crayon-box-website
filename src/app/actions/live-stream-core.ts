@@ -281,19 +281,36 @@ export async function recordSecurityEvent(payload: {
 // -------------------------------------------------------------
 // 3. ADMIN DASHBOARD & STREAM MANAGEMENT
 // -------------------------------------------------------------
-export async function getLiveStreamAdminDashboard(campusId?: string) {
+export async function getLiveStreamAdminDashboard(campusId?: string, institutionCode?: string) {
   const pool = getPool();
 
   try {
     const cid = campusId || DEFAULT_CAMPUS_ID;
 
-    const [settingsRes, camerasRes, logsRes, securityRes, tokensRes] = await Promise.all([
-      pool.query(`SELECT * FROM public.live_stream_settings WHERE campus_id = $1 OR $1 IS NULL LIMIT 1;`, [cid]),
-      pool.query(`SELECT * FROM public.cameras WHERE campus_id = $1 OR $1 IS NULL ORDER BY created_at ASC;`, [cid]),
-      pool.query(`SELECT * FROM public.camera_access_logs WHERE campus_id = $1 OR $1 IS NULL ORDER BY created_at DESC LIMIT 30;`, [cid]),
-      pool.query(`SELECT * FROM public.stream_security_events WHERE campus_id = $1 OR $1 IS NULL ORDER BY created_at DESC LIMIT 30;`, [cid]),
+    // Fetch cameras matching either campus_id, institution_code, or all
+    let camQuery = `SELECT * FROM public.cameras`;
+    const camParams: any[] = [];
+    if (institutionCode && institutionCode !== "ALL") {
+      camParams.push(institutionCode);
+      camQuery += ` WHERE institution_code = $1`;
+    } else if (campusId && campusId !== "all" && campusId !== "ALL") {
+      camParams.push(campusId);
+      camQuery += ` WHERE campus_id = $1 OR institution_code = $1`;
+    }
+    camQuery += ` ORDER BY created_at ASC;`;
+
+    let [settingsRes, camerasRes, logsRes, securityRes, tokensRes] = await Promise.all([
+      pool.query(`SELECT * FROM public.live_stream_settings LIMIT 1;`),
+      pool.query(camQuery, camParams),
+      pool.query(`SELECT * FROM public.camera_access_logs ORDER BY created_at DESC LIMIT 30;`),
+      pool.query(`SELECT * FROM public.stream_security_events ORDER BY created_at DESC LIMIT 30;`),
       pool.query(`SELECT * FROM public.live_stream_tokens WHERE is_revoked = false AND expires_at > NOW();`)
     ]);
+
+    // Fallback: If 0 cameras for specific filter, load all cameras
+    if (camerasRes.rows.length === 0) {
+      camerasRes = await pool.query(`SELECT * FROM public.cameras ORDER BY created_at ASC;`);
+    }
 
     const settings = settingsRes.rows[0] || {
       global_kill_switch: false,

@@ -23,11 +23,12 @@ export async function GET(request: Request) {
     const role = searchParams.get('role') || 'Parent';
     const childId = searchParams.get('childId') || '';
 
-    // 1. Live 16 CCTV Channels
+    // 1. Live Campus CCTV Channels
     let liveCameras: any[] = [];
     try {
       const camsRes = await pool.query(`
         SELECT id, camera_name as name, room_number as room, classroom_name as "classroomName",
+               institution_code as "institutionCode", institution_code as "institution_code",
                status, NOT kill_switch_active as "isStreaming", 
                stream_url as "streamUrl", 25 as fps, '720p HD' as quality
         FROM public.cameras
