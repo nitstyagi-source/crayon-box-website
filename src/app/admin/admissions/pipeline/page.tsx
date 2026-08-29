@@ -383,13 +383,13 @@ export default function AdmissionsPipeline() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-blue-50 text-blue-800 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 border border-blue-200">
-              <Layers className="w-3 h-3 text-blue-600" /> Admissions Candidate Pipeline
+              <Layers className="w-3 h-3 text-blue-600" /> Enquiries & Leads Pipeline
             </span>
             <span className="text-stone-300 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">{rawApplicants.length} Total Applicants</span>
+            <span className="text-stone-500 text-xs font-bold">{rawApplicants.length} Total Enquiries</span>
           </div>
           <h1 className="text-2xl font-black text-stone-900 tracking-tight">
-            Admissions Intake & Decision Pipeline
+            Enquiries & Leads Intake Pipeline
           </h1>
           <p className="text-xs text-stone-500 font-medium">
             Drag candidate cards across stages or click any card to inspect full parent, student, and document details.

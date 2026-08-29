@@ -312,10 +312,10 @@ export default function AdmissionsCrmPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Admissions Table (`admissions_applications`)
             </span>
             <span className="text-slate-300 text-xs">•</span>
-            <span className="text-slate-500 text-xs font-semibold">{applications.length} Live Candidates</span>
+            <span className="text-slate-500 text-xs font-semibold">{applications.length} Active Leads</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Admissions CRM & Candidate Directory
+            Enquiries &amp; Leads CRM Directory
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
             Full applicant profiles, parent coordinates, document verification, and assessment pipeline.

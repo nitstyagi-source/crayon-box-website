@@ -11,22 +11,22 @@ export default async function AdmissionsDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" /> Admissions Overview
+            <Users className="w-6 h-6 text-blue-600" /> Enquiries &amp; Leads Overview
           </h1>
-          <p className="text-sm text-slate-500">Review and manage incoming student applications.</p>
+          <p className="text-sm text-slate-500">Review and manage incoming admission enquiries and prospective leads.</p>
         </div>
         <div className="flex items-center gap-2.5">
           <a 
             href="/admin/admissions/pipeline" 
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-xs transition"
           >
-            Open Interactive Kanban Pipeline →
+            Open Enquiries Kanban Pipeline →
           </a>
           <a 
             href="/admin/admissions/crm" 
             className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition"
           >
-            CRM Candidate Directory
+            Leads Directory
           </a>
         </div>
       </div>

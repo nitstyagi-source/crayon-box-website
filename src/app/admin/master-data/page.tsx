@@ -482,10 +482,10 @@ export default function MasterDataArchitectureHub() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Admissions Pipeline */}
-            <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-              <strong className="text-stone-900 font-black text-sm block">1. Admissions Pipeline $\rightarrow$ Student Master</strong>
-              <div className="space-y-2">
+            {/* Enquiries & Leads */}
+            <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl">
+              <strong className="text-stone-900 font-black text-sm block">1. Enquiries &amp; Leads $\rightarrow$ Student Master</strong>
+              <div className="space-y-2 mt-3">
                 {[
                   "Enquiry / Lead Form (Parent Details, Grade Choice)",
                   "3-Step Digital Application (Birth Certificate, Address Proof)",
