@@ -3,39 +3,43 @@
 import React, { useState, useEffect } from 'react';
 import {
   KeyRound, ShieldCheck, Lock, UserCheck, Check,
-  X, RefreshCw, Save, ShieldAlert, Sparkles, Building2
+  X, RefreshCw, Save, ShieldAlert, Sparkles, Building2,
+  Search, Filter, CheckSquare, Square, Eye, PlusCircle,
+  Edit, Trash2, Download, ArrowRight, Layers
 } from 'lucide-react';
 import { getLiveRbacMatrix, updateLiveRolePermission } from '@/app/actions/rbac-actions';
+import { ERP_MODULES_REGISTRY, getAllCategories, ErpModuleDefinition } from '@/lib/core/security/erp-modules-registry';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 export default function IdentityAccessManagementPage() {
-  const [roles, setRoles] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([
+    { code: 'SUPER_ADMIN', name: 'Super Administrator' },
+    { code: 'PRINCIPAL', name: 'Principal / Head' },
+    { code: 'TEACHER', name: 'Classroom Teacher / Faculty' },
+    { code: 'ACCOUNTS', name: 'Accounts & Billing Officer' },
+    { code: 'PARENT', name: 'Parent / Guardian' },
+    { code: 'STAFF', name: 'General Administrative Staff' }
+  ]);
+  
   const [permissions, setPermissions] = useState<any[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('TEACHER');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const modules = [
-    { code: 'STUDENTS', name: 'Universal Students Master' },
-    { code: 'CLASSES', name: 'Classes, Sections & Rooms' },
-    { code: 'ADMISSIONS', name: 'Admissions CRM & Funnel' },
-    { code: 'FINANCE', name: 'Executive Finance & Ledgers' },
-    { code: 'HR_PAYROLL', name: 'HR & Statutory Payroll' },
-    { code: 'TIMETABLE', name: 'Master Timetable & Scheduling' },
-    { code: 'CURRICULUM', name: 'Curriculum & Syllabus Radar' },
-    { code: 'INCIDENTS_POCSO', name: 'Child Safeguarding & Safety Log' },
-    { code: 'HEALTH_CLINIC', name: 'Campus Health Infirmary' },
-    { code: 'BROADCASTS', name: 'Omnichannel Broadcasts' },
-  ];
+  const categories = ['ALL', ...getAllCategories()];
 
   const fetchMatrix = async () => {
     setIsLoading(true);
     const res = await getLiveRbacMatrix();
     if (res.success) {
-      setRoles(res.roles);
-      setPermissions(res.permissions);
+      if (res.roles && res.roles.length > 0) {
+        setRoles(res.roles);
+      }
+      setPermissions(res.permissions || []);
     }
     setIsLoading(false);
   };
@@ -66,10 +70,28 @@ export default function IdentityAccessManagementPage() {
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
-  const getPermValue = (moduleCode: string, field: string) => {
+  const getPermValue = (moduleCode: string, field: string, defaultRoles: string[]) => {
+    if (selectedRole === 'SUPER_ADMIN') return true; // Super admin has root access to everything
     const perm = permissions.find((p) => p.role_code === selectedRole && p.module_code === moduleCode);
-    return perm ? Boolean(perm[field]) : false;
+    if (perm && perm[field] !== undefined) {
+      return Boolean(perm[field]);
+    }
+    // Fallback to default canonical roles
+    if (field === 'can_view') {
+      return defaultRoles.includes(selectedRole as any);
+    }
+    return defaultRoles.includes(selectedRole as any) && field !== 'can_delete';
   };
+
+  // Filter modules by Category and Search
+  const filteredModules = ERP_MODULES_REGISTRY.filter((mod) => {
+    const matchesCat = selectedCategory === 'ALL' || mod.category === selectedCategory;
+    const matchesSearch = searchQuery === '' || 
+      mod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      mod.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      mod.code.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
@@ -77,25 +99,28 @@ export default function IdentityAccessManagementPage() {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live PostgreSQL RBAC Engine
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Dynamic RBAC Selector
             </span>
             <span className="text-slate-300 text-xs">•</span>
-            <span className="text-slate-500 text-xs font-semibold">4D Security Model: Role + Scope + Module + Action</span>
+            <span className="text-slate-500 text-xs font-semibold">
+              {ERP_MODULES_REGISTRY.length} Registered Enterprise Modules
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Identity & Access Management (IAM Matrix)
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <KeyRound className="w-7 h-7 text-indigo-600" />
+            Module Access &amp; Staff Permissions Selector
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Configure fine-grained module access and permissions across all user roles directly in the live database.
+            Super Administrator can configure which modules and operational actions each faculty role can access. Future modules auto-register here.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           {saveSuccess && (
             <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200 flex items-center gap-1.5 animate-in fade-in">
-              <Check className="w-4 h-4 text-emerald-600" /> Saved to PostgreSQL
+              <Check className="w-4 h-4 text-emerald-600" /> Saved to Database
             </span>
           )}
           <Button variant="outline" size="sm" onClick={fetchMatrix} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
@@ -105,99 +130,200 @@ export default function IdentityAccessManagementPage() {
       </div>
 
       {/* Role Selector Tabs */}
-      <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-        <span className="text-xs font-bold uppercase text-slate-400 px-3 tracking-wider">Select Role:</span>
-        {roles.map((r) => (
-          <button
-            key={r.code}
-            onClick={() => setSelectedRole(r.code)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              selectedRole === r.code
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            {r.name}
-          </button>
-        ))}
+      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">
+            Select Role to Configure:
+          </span>
+          <span className="text-xs font-bold text-indigo-600">
+            Active Persona: {roles.find(r => r.code === selectedRole)?.name || selectedRole}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {roles.map((r) => (
+            <button
+              key={r.code}
+              onClick={() => setSelectedRole(r.code)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                selectedRole === r.code
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>{r.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Live Permissions Matrix Table */}
-      <Card padding="none" className="overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      {/* Search & Category Filter Bar */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
+        {/* Search */}
+        <div className="relative w-full md:w-80">
+          <input
+            type="text"
+            placeholder="Search all modules by name, code or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-4 py-2 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 custom-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 🌟 ENTERPRISE MODULE PERMISSIONS TABLE */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Module Permissions for <span className="text-indigo-600 font-black">{roles.find(r => r.code === selectedRole)?.name || selectedRole}</span>
+            <h3 className="font-extrabold text-slate-900 text-sm">
+              Granular Operational Rights for: <span className="text-indigo-600">{roles.find(r => r.code === selectedRole)?.name}</span>
             </h3>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Click any toggle to immediately update access rules in PostgreSQL.
+            <p className="text-xs text-slate-400 mt-0.5">
+              Click any checkbox to grant or revoke specific privileges in real time.
             </p>
           </div>
-          <span className="text-xs font-bold text-slate-400 font-mono">
-            {roles.find(r => r.code === selectedRole)?.description}
+          <span className="text-xs font-bold text-slate-500">
+            Showing {filteredModules.length} of {ERP_MODULES_REGISTRY.length} Modules
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-              <tr>
-                <th className="py-3.5 px-6">ERP Functional Module</th>
-                <th className="py-3.5 px-4 text-center">View</th>
-                <th className="py-3.5 px-4 text-center">Create</th>
-                <th className="py-3.5 px-4 text-center">Edit</th>
-                <th className="py-3.5 px-4 text-center">Delete</th>
-                <th className="py-3.5 px-4 text-center">Approve</th>
-                <th className="py-3.5 px-4 text-center">Export</th>
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <th className="py-3.5 px-6">Module Name &amp; Description</th>
+                <th className="py-3.5 px-4">Functional Category</th>
+                <th className="py-3.5 px-4 text-center">👁️ View / Read</th>
+                <th className="py-3.5 px-4 text-center">➕ Create / Add</th>
+                <th className="py-3.5 px-4 text-center">✏️ Edit / Modify</th>
+                <th className="py-3.5 px-4 text-center">🗑️ Delete / Archive</th>
+                <th className="py-3.5 px-4 text-center">📊 Export Reports</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {modules.map((mod) => {
-                const canView = getPermValue(mod.code, 'can_view');
-                const canCreate = getPermValue(mod.code, 'can_create');
-                const canEdit = getPermValue(mod.code, 'can_edit');
-                const canDelete = getPermValue(mod.code, 'can_delete');
-                const canApprove = getPermValue(mod.code, 'can_approve');
-                const canExport = getPermValue(mod.code, 'can_export');
+            <tbody className="divide-y divide-slate-100">
+              {filteredModules.map((mod) => {
+                const canView = getPermValue(mod.code, 'can_view', mod.defaultRoles);
+                const canCreate = getPermValue(mod.code, 'can_create', mod.defaultRoles);
+                const canEdit = getPermValue(mod.code, 'can_edit', mod.defaultRoles);
+                const canDelete = getPermValue(mod.code, 'can_delete', mod.defaultRoles);
+                const canExport = getPermValue(mod.code, 'can_export', mod.defaultRoles);
+
+                const isSuperAdminRole = selectedRole === 'SUPER_ADMIN';
 
                 return (
-                  <tr key={mod.code} className="hover:bg-slate-50/60 transition">
-                    <td className="py-4 px-6 font-bold text-slate-900">
-                      <div>
-                        <span>{mod.name}</span>
-                        <span className="text-[10px] font-mono text-slate-400 block">{mod.code}</span>
+                  <tr key={mod.code} className="hover:bg-slate-50/80 transition">
+                    <td className="py-4 px-6 max-w-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 block text-xs">{mod.name}</span>
+                        <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                          {mod.code}
+                        </span>
                       </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{mod.description}</p>
                     </td>
 
-                    {/* Checkbox columns */}
-                    {[
-                      { field: 'can_view', val: canView },
-                      { field: 'can_create', val: canCreate },
-                      { field: 'can_edit', val: canEdit },
-                      { field: 'can_delete', val: canDelete },
-                      { field: 'can_approve', val: canApprove },
-                      { field: 'can_export', val: canExport },
-                    ].map((item) => (
-                      <td key={item.field} className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => handleToggle(mod.code, item.field, item.val)}
-                          className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition ${
-                            item.val
-                              ? 'bg-emerald-600 text-white shadow-2xs'
-                              : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
-                          }`}
-                        >
-                          {item.val ? <Check className="w-3.5 h-3.5" /> : <X className="w-3 h-3" />}
-                        </button>
-                      </td>
-                    ))}
+                    <td className="py-4 px-4">
+                      <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {mod.category}
+                      </span>
+                    </td>
+
+                    {/* Can View */}
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        type="button"
+                        disabled={isSuperAdminRole || !mod.supportsActions.includes('can_view')}
+                        onClick={() => handleToggle(mod.code, 'can_view', canView)}
+                        className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition cursor-pointer ${
+                          canView ? 'bg-emerald-500 text-white shadow-xs' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        {canView ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </td>
+
+                    {/* Can Create */}
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        type="button"
+                        disabled={isSuperAdminRole || !mod.supportsActions.includes('can_create')}
+                        onClick={() => handleToggle(mod.code, 'can_create', canCreate)}
+                        className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition cursor-pointer ${
+                          canCreate ? 'bg-indigo-500 text-white shadow-xs' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        {canCreate ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </td>
+
+                    {/* Can Edit */}
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        type="button"
+                        disabled={isSuperAdminRole || !mod.supportsActions.includes('can_edit')}
+                        onClick={() => handleToggle(mod.code, 'can_edit', canEdit)}
+                        className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition cursor-pointer ${
+                          canEdit ? 'bg-amber-500 text-white shadow-xs' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        {canEdit ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </td>
+
+                    {/* Can Delete */}
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        type="button"
+                        disabled={isSuperAdminRole || !mod.supportsActions.includes('can_delete')}
+                        onClick={() => handleToggle(mod.code, 'can_delete', canDelete)}
+                        className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition cursor-pointer ${
+                          canDelete ? 'bg-rose-500 text-white shadow-xs' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        {canDelete ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </td>
+
+                    {/* Can Export */}
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        type="button"
+                        disabled={isSuperAdminRole || !mod.supportsActions.includes('can_export')}
+                        onClick={() => handleToggle(mod.code, 'can_export', canExport)}
+                        className={`w-6 h-6 rounded-lg inline-flex items-center justify-center transition cursor-pointer ${
+                          canExport ? 'bg-blue-500 text-white shadow-xs' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >
+                        {canExport ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </td>
+
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
     </div>
   );
