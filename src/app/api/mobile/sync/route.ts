@@ -16,171 +16,122 @@ function getPool() {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'USR-2026-ADM01';
-  const role = searchParams.get('role') || 'Parent';
-  const childId = searchParams.get('childId') || '';
-
   const pool = getPool();
-
   try {
-    // 1. Live 16 CCTV Cameras
-    const camerasRes = await pool.query(`
-      SELECT id, camera_name as name, room_number as room, 
-             classroom_name, status, is_active, kill_switch_active, stream_url
-      FROM public.cameras
-      ORDER BY created_at ASC;
-    `);
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId') || 'anon';
+    const role = searchParams.get('role') || 'Parent';
+    const childId = searchParams.get('childId') || '';
 
-    const liveCameras = camerasRes.rows.map((cam: any) => ({
-      id: cam.id,
-      name: cam.name,
-      room: cam.room,
-      classroom: cam.classroom_name,
-      status: cam.kill_switch_active ? 'Paused' : cam.status,
-      isStreaming: cam.is_active && !cam.kill_switch_active,
-      streamUrl: cam.stream_url || `/api/cameras/${(cam.classroom_name || '').toLowerCase().replace(/\s+/g, '')}_cam/live`
-    }));
+    // 1. Live 16 CCTV Channels
+    let liveCameras: any[] = [];
+    try {
+      const camsRes = await pool.query(`
+        SELECT id, channel_number as "channelNumber", camera_name as name, 
+               room_name as room, status, is_streaming as "isStreaming", 
+               stream_url as "streamUrl", fps, resolution as quality
+        FROM public.classroom_cameras
+        ORDER BY channel_number ASC;
+      `);
+      liveCameras = camsRes.rows;
+    } catch {}
 
-    // 2. Live Bus Telematics
-    const busRes = await pool.query(`
-      SELECT b.id, b.bus_number, b.driver_name, b.driver_phone, b.route_name,
-             COALESCE(b.current_speed_kmh, 34) as "speedKmH",
-             COALESCE(b.status, 'In Transit') as status,
-             COALESCE(b.current_location_name, 'Sector 62 Crossing, Noida') as "currentLocation",
-             COALESCE(b.current_lat, 28.6295) as latitude,
-             COALESCE(b.current_lng, 77.3725) as longitude
-      FROM public.transport_buses b
-      ORDER BY b.updated_at DESC NULLS LAST
-      LIMIT 1;
-    `);
-
-    const busRow = busRes.rows[0] || {
-      bus_number: 'Bus 04 (Route 12 - Green Park)',
-      driver_name: 'Rajesh Kumar',
-      driver_phone: '+91 98110 44321',
-      speedKmH: 34,
-      status: 'In Transit',
-      currentLocation: 'Sector 62 Crossing, Noida',
+    // 2. Real Telematics Bus Data
+    let busTelemetry = {
+      busNumber: 'Bus 01 (Route 1)',
+      driverName: 'Assigned Driver',
+      driverPhone: '+91 98110 44321',
+      speedKmH: 0,
+      status: 'Parked',
+      currentLocation: 'School Campus',
+      nextStop: 'Campus Gate',
+      etaMinutes: 0,
       latitude: 28.6295,
-      longitude: 77.3725
+      longitude: 77.3725,
+      stops: []
     };
 
-    const stopsRes = await pool.query(`
-      SELECT stop_name as name, pickup_time as time, 
-             false as completed, sequence_number
-      FROM public.transport_stops
-      ORDER BY sequence_number ASC
-      LIMIT 5;
-    `);
-
-    const stops = stopsRes.rows.length > 0 ? stopsRes.rows : [
-      { name: 'School Campus Main Gate', time: '02:30 PM', completed: true },
-      { name: 'Sector 62 Metro Station', time: '02:45 PM', completed: true },
-      { name: 'Apex Tower Gate 2 (Your Stop)', time: '03:00 PM', completed: false, isChildStop: true },
-      { name: 'Green Park Market', time: '03:15 PM', completed: false },
-      { name: 'Indirapuram Hub', time: '03:30 PM', completed: false }
-    ];
-
-    const busTelemetry = {
-      busNumber: busRow.bus_number,
-      driverName: busRow.driver_name,
-      driverPhone: busRow.driver_phone,
-      speedKmH: busRow.speedKmH,
-      status: busRow.status,
-      currentLocation: busRow.currentLocation,
-      nextStop: stops.find((s: any) => !s.completed)?.name || 'Apex Tower Gate 2',
-      etaMinutes: 8,
-      latitude: Number(busRow.latitude),
-      longitude: Number(busRow.longitude),
-      stops
-    };
+    try {
+      const busRes = await pool.query(`
+        SELECT bus_number, driver_name, driver_phone, speed_kmh as "speedKmH",
+               status, current_location as "currentLocation", latitude, longitude
+        FROM public.transport_buses
+        ORDER BY created_at ASC
+        LIMIT 1;
+      `);
+      if (busRes.rows.length > 0) {
+        const busRow = busRes.rows[0];
+        busTelemetry = {
+          ...busTelemetry,
+          busNumber: busRow.bus_number || 'Bus 01',
+          driverName: busRow.driver_name || 'Driver',
+          driverPhone: busRow.driver_phone || '',
+          speedKmH: Number(busRow.speedKmH || 0),
+          status: busRow.status || 'Active',
+          currentLocation: busRow.currentLocation || 'Route Active',
+          latitude: Number(busRow.latitude || 28.6295),
+          longitude: Number(busRow.longitude || 77.3725),
+        };
+      }
+    } catch {}
 
     // 3. Real Student Fee Invoices
     let studentFees: any = {
-      studentId: childId || 'CBS-2026-0001',
-      studentName: 'Aarav Sharma',
+      studentId: childId || '',
+      studentName: '',
       totalDues: 0,
       currency: 'INR',
       invoices: []
     };
 
-    const invoicesRes = await pool.query(`
-      SELECT id, invoice_number as "invoiceNo", billing_period as term, total_amount as amount, 
-             amount_paid as "amountPaid", status, due_date as "dueDate", created_at as "paidOn"
-      FROM public.student_invoices
-      ORDER BY created_at DESC
-      LIMIT 5;
-    `);
+    try {
+      const invoicesRes = await pool.query(`
+        SELECT id, invoice_number as "invoiceNo", billing_period as term, total_amount as amount, 
+               amount_paid as "amountPaid", status, due_date as "dueDate", created_at as "paidOn"
+        FROM public.student_invoices
+        ORDER BY created_at DESC
+        LIMIT 10;
+      `);
 
-    if (invoicesRes.rows.length > 0) {
       studentFees.invoices = invoicesRes.rows;
       studentFees.totalDues = invoicesRes.rows
         .filter((inv: any) => inv.status !== 'PAID')
         .reduce((sum: number, inv: any) => sum + Number(inv.amount || 0) - Number(inv.amountPaid || 0), 0);
-    } else {
-      studentFees.invoices = [
-        { invoiceNo: 'INV-2026-Q1-094', term: 'Term 1 (Apr - Jul 2026)', amount: 45000, amountPaid: 45000, status: 'PAID', dueDate: '2026-04-10', paidOn: '2026-04-05' },
-        { invoiceNo: 'INV-2026-Q2-188', term: 'Term 2 (Aug - Nov 2026)', amount: 45000, amountPaid: 0, status: 'PENDING', dueDate: '2026-08-30', paidOn: null }
-      ];
-      studentFees.totalDues = 45000;
-    }
+    } catch {}
 
     // 4. Digital Diary & Homework
-    const diaryRes = await pool.query(`
-      SELECT id, subject_name as subject, homework_title as title, homework_due_date as "dueDate",
-             teacher_name as teacher, 'Active' as status, homework_description as description,
-             date as "assignedDate"
-      FROM public.digital_diary_entries
-      WHERE homework_title IS NOT NULL AND homework_title != ''
-      ORDER BY date DESC
-      LIMIT 10;
-    `);
-
-    const digitalDiary = diaryRes.rows.length > 0 ? diaryRes.rows : [
-      { id: 'hw-01', subject: 'Mathematics', title: 'Algebraic Expressions - Exercise 4.2', dueDate: '2026-08-26', teacher: 'Dr. Meenakshi Sundaram', status: 'Pending', description: 'Solve questions 1 through 15 on Chapter 4.' },
-      { id: 'hw-02', subject: 'Science', title: 'Plant Photosynthesis Lab Report', dueDate: '2026-08-25', teacher: 'Mr. Arvind Gupta', status: 'Submitted', description: 'Complete observations table from light exposure experiment.' },
-      { id: 'hw-03', subject: 'English', title: 'Character Analysis: Oliver Twist', dueDate: '2026-08-28', teacher: 'Ms. Sarah Jenkins', status: 'Pending', description: 'Write 300-word essay analyzing contrasting character traits.' }
-    ];
+    let digitalDiary: any[] = [];
+    try {
+      const diaryRes = await pool.query(`
+        SELECT id, subject_name as subject, homework_title as title, homework_due_date as "dueDate",
+               teacher_name as teacher, 'Active' as status, homework_description as description,
+               date as "assignedDate"
+        FROM public.digital_diary_entries
+        WHERE homework_title IS NOT NULL AND homework_title != ''
+        ORDER BY date DESC
+        LIMIT 10;
+      `);
+      digitalDiary = diaryRes.rows;
+    } catch {}
 
     // 5. Approvals & Leave Requests
-    const leaveRes = await pool.query(`
-      SELECT lr.id, lr.leave_type as type, 
-             CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) as requester,
-             lr.reason as details, lr.status, lr.created_at::text as date
-      FROM public.leave_requests lr
-      LEFT JOIN public.staff s ON s.id = lr.staff_id
-      ORDER BY lr.created_at DESC
-      LIMIT 10;
-    `);
-
-    const approvals = leaveRes.rows.length > 0 ? leaveRes.rows : [
-      { id: 'APP-01', type: 'Leave Application', requester: 'Pooja Verma (Grade 2 Faculty)', details: 'Medical leave for 2 days (24-25 Aug)', status: 'PENDING', date: '2026-08-22' },
-      { id: 'APP-02', type: 'Fee Concession', requester: 'Rohan Gupta (Parent of Vihaan Gupta)', details: 'Sibling 15% discount for AY 2026-27', status: 'PENDING', date: '2026-08-21' },
-      { id: 'APP-03', type: 'Robotics Lab Equipment', requester: 'Physics Dept (Mr. Arvind Gupta)', details: 'Arduino sensor kits purchase', status: 'PENDING', date: '2026-08-20' }
-    ];
+    let approvals: any[] = [];
+    try {
+      const leaveRes = await pool.query(`
+        SELECT lr.id, lr.leave_type as type, 
+               CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) as requester,
+               lr.reason as details, lr.status, lr.created_at::text as date
+        FROM public.leave_requests lr
+        LEFT JOIN public.staff s ON s.id = lr.staff_id
+        ORDER BY lr.created_at DESC
+        LIMIT 10;
+      `);
+      approvals = leaveRes.rows;
+    } catch {}
 
     // 6. Real Institutions and Trust Hierarchy
-    const [instsRes, trustRes] = await Promise.all([
-      pool.query(`
-        SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
-               academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
-               affiliation_number as "affiliationNumber", principal_name as "principalName",
-               principal_email as "principalEmail", brand_color as "brandColor", address, status
-        FROM public.institutions
-        ORDER BY created_at ASC;
-      `).catch(() => ({ rows: [] })),
-      pool.query(`SELECT * FROM public.trusts ORDER BY created_at ASC LIMIT 1;`).catch(() => ({ rows: [] }))
-    ]);
-
-    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
-      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
-      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
-      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
-      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
-    ];
-
-    const trustInfo = trustRes.rows[0] || {
+    let institutions: any[] = [];
+    let trustInfo = {
       name: 'Vani Educational Trust',
       registration_number: 'VET/REG/2012/DEL-8891',
       headquarters: 'Sector 62, Institutional Area, Noida, UP',
@@ -189,38 +140,61 @@ export async function GET(request: Request) {
       website: 'https://vanitrust.edu.in'
     };
 
-    // 7. Real-time Attendance & KPI Summary
-    const [attTotal, attPresent] = await Promise.all([
-      pool.query(`SELECT COUNT(*) FROM public.student_attendance_records WHERE date = CURRENT_DATE;`),
-      pool.query(`SELECT COUNT(*) FROM public.student_attendance_records WHERE date = CURRENT_DATE AND status = 'Present';`)
-    ]);
+    try {
+      const [instsRes, trustRes] = await Promise.all([
+        pool.query(`
+          SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
+                 academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
+                 affiliation_number as "affiliationNumber", principal_name as "principalName",
+                 principal_email as "principalEmail", brand_color as "brandColor", address, status
+          FROM public.institutions
+          ORDER BY created_at ASC;
+        `),
+        pool.query(`SELECT * FROM public.trusts ORDER BY created_at ASC LIMIT 1;`)
+      ]);
 
-    const totalRecords = Number(attTotal.rows[0]?.count) || 240;
-    const presentRecords = Number(attPresent.rows[0]?.count) || 231;
-    const attPct = totalRecords > 0 ? ((presentRecords / totalRecords) * 100).toFixed(1) : "96.4";
+      institutions = instsRes.rows;
+      if (trustRes.rows.length > 0) {
+        trustInfo = trustRes.rows[0];
+      }
+    } catch {}
+
+    // 7. Real-time Attendance & KPI Summary
+    let totalRecords = 0;
+    let presentRecords = 0;
+    try {
+      const [attTotal, attPresent] = await Promise.all([
+        pool.query(`SELECT COUNT(*) FROM public.attendance_logs WHERE log_date = CURRENT_DATE;`),
+        pool.query(`SELECT COUNT(*) FROM public.attendance_logs WHERE log_date = CURRENT_DATE AND status = 'PRESENT';`)
+      ]);
+      totalRecords = Number(attTotal.rows[0]?.count || 0);
+      presentRecords = Number(attPresent.rows[0]?.count || 0);
+    } catch {}
+
+    const attPct = totalRecords > 0 ? ((presentRecords / totalRecords) * 100).toFixed(1) : "0.0";
 
     const syncPayload = {
-      appName: "Vani",
-      appVersion: "2.1.0",
+      appName: "Crayon Box",
+      appVersion: "2.2.0",
       serverTimestamp: new Date().toISOString(),
       status: 'synchronized',
       userContext: {
         userId,
         role,
-        activeChildId: childId || studentFees.studentId
+        activeChildId: childId
       },
       institutions,
       trust: trustInfo,
       syncModules: {
         kpiOverview: {
-          totalRevenueCollected: '₹34,80,000',
-          feeCollectionRate: '92.4%',
+          totalRevenueCollected: '₹0',
+          feeCollectionRate: '0%',
           studentAttendanceToday: `${attPct}%`,
-          staffAttendanceToday: '98.5%',
-          activeBusesCount: 8,
+          staffAttendanceToday: '0%',
+          activeBusesCount: 0,
           activeCamerasCount: liveCameras.filter((c: any) => c.isStreaming).length,
           pendingApprovalsCount: approvals.filter((a: any) => a.status === 'PENDING').length,
-          admissionsPipelineCount: 42
+          admissionsPipelineCount: 0
         },
         liveCameras,
         busTelemetry,
@@ -228,11 +202,11 @@ export async function GET(request: Request) {
         digitalDiary,
         attendanceSummary: {
           percentage: Number(attPct),
-          totalDays: 84,
-          presentDays: 81,
-          absentDays: 2,
-          lateDays: 1,
-          streak: 14
+          totalDays: totalRecords,
+          presentDays: presentRecords,
+          absentDays: totalRecords - presentRecords,
+          lateDays: 0,
+          streak: 0
         },
         approvals
       }
