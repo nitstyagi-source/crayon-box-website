@@ -1,69 +1,88 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Building2, Users, GraduationCap, PhoneCall,
-  Link2, BookOpen, Clock, FileText, CreditCard, Package,
-  Bus, ShieldAlert, HeartPulse, ShieldCheck, Calendar,
-  LifeBuoy, QrCode, FileBarChart, Radio, KeyRound, CheckSquare, Sparkles,
-  UserCheck, ScanLine, Compass, Video, Library, AlertOctagon,
-  Shuffle, Award, Globe, Database, Receipt, Layers, DollarSign
+  LayoutDashboard,
+  Building2,
+  Users,
+  GraduationCap,
+  Shuffle,
+  BookOpen,
+  Clock,
+  FileText,
+  Calendar,
+  DollarSign,
+  Receipt,
+  Layers,
+  Package,
+  Bus,
+  ShieldAlert,
+  HeartPulse,
+  Library,
+  Video,
+  ShieldCheck,
+  AlertOctagon,
+  PhoneCall,
+  LifeBuoy,
+  QrCode,
+  Globe,
+  KeyRound,
+  Database,
+  BarChart3,
+  Award,
+  LogOut
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { clearServerAuthSession } from '@/app/actions/auth';
 
-export interface SidebarNavProps {
-  currentRole: string; // 'SUPER_ADMIN' | 'PRINCIPAL' | 'TEACHER' | 'ACCOUNTS' | 'PARENT'
+interface SidebarNavProps {
+  currentRole?: string;
 }
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  roles?: string[];
-}
-
-interface NavGroup {
-  group: string;
-  allowedRoles: string[];
-  items: NavItem[];
-}
-
-export function SidebarNav({ currentRole }: SidebarNavProps) {
+export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Comprehensive V1 + V2 Menu Structure
-  const allGroups: NavGroup[] = [
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      await clearServerAuthSession();
+    } catch (e) {
+      console.error('Logout error:', e);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
+
+  const allGroups = [
     {
-      group: 'Overview & Governance',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
+      group: 'Governance & Overview',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'TEACHER', 'PARENT'],
       items: [
-        { name: '🏛️ Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
-        { name: '⚖️ Executive Approvals', href: '/admin/approvals', icon: ShieldCheck },
-        { name: 'Institutional Analytics', href: '/admin/analytics', icon: FileBarChart },
-        { name: 'Master Data Quality (100%)', href: '/admin/data-quality', icon: Database },
+        { name: 'Unified Command Desk', href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Multi-Campus Matrix', href: '/admin/institutions', icon: Building2, roles: ['SUPER_ADMIN'] },
+        { name: 'Trust Master Governance', href: '/admin/trust', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Governance MIS Analytics', href: '/admin/reports/governance', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
       ],
     },
     {
-      group: 'Master Data & Identity',
+      group: 'Students & Admissions',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'],
       items: [
-        { name: 'Students Master Directory', href: '/admin/students', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'] },
-        { name: 'Faculty & Staff Master', href: '/admin/hr', icon: UserCheck, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Student Roster Directory', href: '/admin/students', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
+        { name: 'Admissions Pipeline (CRM)', href: '/admin/admissions', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
         { name: 'Family 360° Household Master', href: '/admin/families', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'] },
-        { name: '🪪 ID & Escort Card Hub', href: '/admin/id-cards', icon: CreditCard, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Classes & Sections', href: '/admin/classes', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Inter-School Transfers', href: '/admin/transfers', icon: Link2, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Alumni Engagement Network', href: '/admin/alumni', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
       ],
     },
     {
-      group: 'Admissions & Academics',
+      group: 'Academic Operations',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
       items: [
-        { name: 'Admissions CRM & Pipeline', href: '/admin/admissions/crm', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Teacher Geofence Attendance', href: '/admin/attendance/teachers', icon: Compass, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'QR Gate Attendance Scanner', href: '/admin/gate-scanner', icon: ScanLine, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Faculty Staff Directory', href: '/admin/faculty', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
         { name: 'Daily Student Attendance', href: '/admin/attendance', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Teacher Substitutions Engine', href: '/admin/faculty/substitutions', icon: Shuffle, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Curriculum & Syllabus', href: '/admin/curriculum', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
@@ -138,7 +157,7 @@ export function SidebarNav({ currentRole }: SidebarNavProps) {
   };
 
   return (
-    <aside className="w-64 w-64 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-xl rounded-r-3xl z-20">
+    <aside className="w-64 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-xl rounded-r-3xl z-20">
       
       {/* Top Sidebar Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
@@ -166,7 +185,7 @@ export function SidebarNav({ currentRole }: SidebarNavProps) {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                     isActive
-                      ? 'bg-white text-[#0A1A44] text-[#0A1A44] shadow-md'
+                      ? 'bg-white text-[#0A1A44] shadow-md'
                       : 'text-white/60 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -179,10 +198,10 @@ export function SidebarNav({ currentRole }: SidebarNavProps) {
         ))}
       </div>
 
-      {/* Bottom Role Persona Indicator */}
-      <div className="p-3 border-t border-white/10 bg-transparent">
-        <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-white/10 border border-white/10">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+      {/* Bottom User Area: Persona + Logout */}
+      <div className="p-3 border-t border-white/10 bg-transparent space-y-2">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white/10 border border-white/10">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <div className="overflow-hidden">
             <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">
               Active Persona
@@ -192,6 +211,16 @@ export function SidebarNav({ currentRole }: SidebarNavProps) {
             </span>
           </div>
         </div>
+
+        {/* Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-xs font-bold transition shadow-xs"
+        >
+          <LogOut className="w-4 h-4 text-rose-400" />
+          <span>{isLoggingOut ? 'Logging out...' : 'Sign Out / Logout'}</span>
+        </button>
       </div>
 
     </aside>
