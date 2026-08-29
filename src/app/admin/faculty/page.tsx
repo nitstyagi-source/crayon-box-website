@@ -71,7 +71,7 @@ export default function FacultyAdminDashboard() {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"basic" | "address" | "academic" | "qualifications" | "documents">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "contact" | "academic" | "employment" | "finance">("basic");
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -225,6 +225,69 @@ export default function FacultyAdminDashboard() {
     setModalOpen(true);
   }
 
+  function handleOpenEdit(member: any) {
+    setIsEditing(true);
+    setActiveTab("basic");
+    setFormData({
+      id: member.id || "",
+      employee_id: member.employee_id || "",
+      employee_code: member.employee_code || "",
+      first_name: member.first_name || "",
+      middle_name: member.middle_name || "",
+      last_name: member.last_name || "",
+      gender: member.gender || "Female",
+      dob: member.dob ? member.dob.split("T")[0] : "",
+      blood_group: member.blood_group || "O+",
+      nationality: member.nationality || "Indian",
+      marital_status: member.marital_status || "Married",
+      personal_mobile: member.personal_mobile || member.phone_number || "",
+      whatsapp_no: member.whatsapp_no || "",
+      personal_email: member.personal_email || "",
+      official_email: member.official_email || member.email || "",
+      email: member.email || member.official_email || "",
+      phone_number: member.phone_number || member.personal_mobile || "",
+      emergency_contact: member.emergency_contact || "",
+      photo_url: member.photo_url || "",
+      designation: member.designation || member.role || "Teacher",
+      role: member.role || member.designation || "Teacher",
+      employee_category: member.employee_category || "Teaching",
+      department: member.department || "Sciences & Robotics",
+      wing: member.wing || "Primary (1-5)",
+      qualification: member.qualification || "",
+      experience_years: member.experience_years || "",
+      total_experience: member.total_experience || "",
+      experience_in_school: member.experience_in_school || "",
+      previous_school: member.previous_school || "",
+      previous_designation: member.previous_designation || "",
+      joining_date: member.joining_date ? member.joining_date.split("T")[0] : "",
+      confirmation_date: member.confirmation_date ? member.confirmation_date.split("T")[0] : "",
+      probation_period: member.probation_period || "6 Months",
+      notice_period: member.notice_period || "30 Days",
+      employment_type: member.employment_type || "Permanent",
+      status: member.status || "Active",
+      subjects_taught: member.subjects_taught || "",
+      is_class_teacher: Boolean(member.is_class_teacher),
+      class_teacher_for: member.class_teacher_for || "",
+      bio: member.bio || "",
+      is_leadership: Boolean(member.is_leadership),
+      order_index: member.order_index || 1,
+      aadhaar_no: member.aadhaar_no || "",
+      pan_no: member.pan_no || "",
+      resume_url: member.resume_url || "",
+      police_verification_status: member.police_verification_status || "Verified",
+      basic_salary: member.basic_salary || 35000,
+      hra: member.hra || 14000,
+      conveyance: member.conveyance || 3000,
+      special_allowance: member.special_allowance || 8000,
+      gross_salary: member.gross_salary || 60000,
+      net_salary: member.net_salary || 56700,
+      bank_name: member.bank_name || "HDFC Bank",
+      bank_account_no: member.bank_account_no || "",
+      bank_ifsc: member.bank_ifsc || ""
+    });
+    setModalOpen(true);
+  }
+
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSaving(true);
@@ -239,6 +302,7 @@ export default function FacultyAdminDashboard() {
 
       if (res.success) {
         setModalOpen(false);
+        showToast(isEditing ? `Updated details for ${formData.first_name} ${formData.last_name} successfully!` : `Onboarded ${formData.first_name} ${formData.last_name} successfully!`);
         loadFacultyData();
       } else {
         alert("Failed to save faculty member: " + res.error);
@@ -664,7 +728,7 @@ export default function FacultyAdminDashboard() {
                 </div>
               </div>
 
-              {/* 360° Dossier Link Button & Archive / Restore Options */}
+              {/* 360° Dossier Link Button, Edit Button & Archive / Restore Options */}
               <div className="flex items-center justify-between gap-2 mt-5 pt-3 border-t border-stone-100">
                 <Link
                   href={`/admin/faculty/${member.id}`}
@@ -673,14 +737,24 @@ export default function FacultyAdminDashboard() {
                   Open 360° Master File <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
 
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(member)}
+                  title="Edit Staff Member Data"
+                  className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1 text-xs font-bold"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Edit</span>
+                </button>
+
                 {member.status === 'Active' || member.status === 'ACTIVE' ? (
                   <button
                     type="button"
                     onClick={() => handleOpenHandover(member)}
                     title="Archive Profile & Handover Responsibilities"
-                    className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1 text-xs font-bold"
+                    className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl border border-stone-200 transition-all flex items-center justify-center gap-1 text-xs font-bold"
                   >
-                    <UserMinus className="w-3.5 h-3.5 text-amber-700" />
+                    <UserMinus className="w-3.5 h-3.5 text-stone-600" />
                     <span>Archive</span>
                   </button>
                 ) : (
@@ -766,14 +840,22 @@ export default function FacultyAdminDashboard() {
                         >
                           View File <ChevronRight className="w-3.5 h-3.5" />
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(member)}
+                          title="Edit Staff Member Data"
+                          className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold text-xs"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-amber-700" /> Edit
+                        </button>
                         {member.status === 'Active' || member.status === 'ACTIVE' ? (
                           <button
                             type="button"
                             onClick={() => handleOpenHandover(member)}
                             title="Archive & Handover Responsibilities"
-                            className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1 text-xs font-bold px-2.5"
+                            className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl border border-stone-200 transition-all flex items-center justify-center gap-1 text-xs font-bold px-2.5"
                           >
-                            <UserMinus className="w-3.5 h-3.5 text-amber-700" />
+                            <UserMinus className="w-3.5 h-3.5 text-stone-600" />
                             <span>Archive</span>
                           </button>
                         ) : (
@@ -797,85 +879,418 @@ export default function FacultyAdminDashboard() {
         </div>
       )}
 
-      {/* 5-Step Enrollment Modal */}
+      {/* Comprehensive Multi-Tab Staff Editor / Onboarding Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-stone-100 my-8 space-y-6">
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-stone-200 my-8 space-y-5 max-h-[90vh] overflow-y-auto">
             
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-3">
               <div>
-                <h3 className="text-xl font-black text-stone-900">Onboard Faculty & Staff Member</h3>
-                <p className="text-xs text-stone-500">Enter master profile, credentials, and department allocations.</p>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900">
+                    {isEditing ? "Edit Master Record" : "New Employee Onboarding"}
+                  </span>
+                  {formData.employee_id && (
+                    <span className="font-mono text-xs font-bold text-stone-500">
+                      ID: {formData.employee_id}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-xl font-black text-stone-900 mt-1">
+                  {isEditing ? `Edit Staff Member: ${formData.first_name} ${formData.last_name}` : "Onboard Faculty & Staff Member"}
+                </h3>
+                <p className="text-xs text-stone-500">Update personal details, academic assignments, KYC verification, and salary details.</p>
               </div>
-              <button onClick={() => setModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700">
+              <button onClick={() => setModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="space-y-4">
-              <FileUpload 
-                label="Passport Photo"
-                value={formData.photo_url}
-                onChange={url => setFormData({...formData, photo_url: url})}
-                folder="faculty_photos"
-                mode="avatar"
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">First Name *</label>
-                  <input required type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold" />
-                </div>
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Middle Name</label>
-                  <input type="text" value={formData.middle_name} onChange={e => setFormData({...formData, middle_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs" />
-                </div>
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Last Name *</label>
-                  <input required type="text" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Employee Category</label>
-                  <select value={formData.employee_category} onChange={e => setFormData({...formData, employee_category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold">
-                    <option value="Teaching">Teaching Faculty</option>
-                    <option value="Non-Teaching">Non-Teaching Staff</option>
-                    <option value="Administration">Administrative Office</option>
-                    <option value="Support Staff">Support Staff</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Designation</label>
-                  <input type="text" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold" />
-                </div>
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Department</label>
-                  <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold">
-                    {DEPARTMENTS.filter(d => d !== "All").map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Official / Personal Email</label>
-                  <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs" />
-                </div>
-                <div>
-                  <label className="font-bold text-stone-500 block mb-1">Mobile Phone *</label>
-                  <input required type="text" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono" />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-stone-100">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 font-bold text-stone-500 text-xs">Cancel</button>
-                <button type="submit" disabled={isSaving} className="bg-stone-900 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md">
-                  {isSaving ? "Saving..." : "Enroll Employee"}
+            {/* Navigation Tabs */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-stone-100 no-scrollbar">
+              {[
+                { id: "basic", label: "👤 Basic Info" },
+                { id: "contact", label: "📞 Contact & KYC" },
+                { id: "academic", label: "🎓 Role & Teaching" },
+                { id: "employment", label: "📅 Service & Status" },
+                { id: "finance", label: "💳 Salary & Bank" },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    activeTab === tab.id
+                      ? "bg-stone-900 text-white shadow-xs"
+                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                  }`}
+                >
+                  {tab.label}
                 </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              
+              {/* TAB 1: BASIC INFO */}
+              {activeTab === "basic" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <FileUpload 
+                    label="Staff Photo"
+                    value={formData.photo_url}
+                    onChange={url => setFormData({...formData, photo_url: url})}
+                    folder="faculty_photos"
+                    mode="avatar"
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">First Name *</label>
+                      <input required type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Middle Name</label>
+                      <input type="text" value={formData.middle_name} onChange={e => setFormData({...formData, middle_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Last Name *</label>
+                      <input required type="text" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Gender</label>
+                      <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Date of Birth</label>
+                      <input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Blood Group</label>
+                      <select value={formData.blood_group} onChange={e => setFormData({...formData, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
+                          <option key={bg} value={bg}>{bg}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Marital Status</label>
+                      <select value={formData.marital_status} onChange={e => setFormData({...formData, marital_status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Married">Married</option>
+                        <option value="Single">Single</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: CONTACT & KYC */}
+              {activeTab === "contact" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Personal Mobile Phone *</label>
+                      <input required type="text" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value, personal_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono font-bold focus:border-stone-900 outline-none" placeholder="+91 98111 22334" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">WhatsApp Number</label>
+                      <input type="text" value={formData.whatsapp_no} onChange={e => setFormData({...formData, whatsapp_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="+91 98111 22334" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Official School Email</label>
+                      <input type="email" value={formData.official_email} onChange={e => setFormData({...formData, official_email: e.target.value, email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="faculty@crayonboxschool.com" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Personal Email</label>
+                      <input type="email" value={formData.personal_email} onChange={e => setFormData({...formData, personal_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="personal@gmail.com" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Emergency Contact Info</label>
+                      <input type="text" value={formData.emergency_contact} onChange={e => setFormData({...formData, emergency_contact: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="Spouse: +91 98110 00000" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Aadhaar Card No.</label>
+                      <input type="text" value={formData.aadhaar_no} onChange={e => setFormData({...formData, aadhaar_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="12-digit UID" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">PAN Card No.</label>
+                      <input type="text" value={formData.pan_no} onChange={e => setFormData({...formData, pan_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono uppercase focus:border-stone-900 outline-none" placeholder="ABCDE1234F" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ROLE & TEACHING */}
+              {activeTab === "academic" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employee Category</label>
+                      <select value={formData.employee_category} onChange={e => setFormData({...formData, employee_category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Teaching">Teaching Faculty</option>
+                        <option value="Non-Teaching">Non-Teaching Staff</option>
+                        <option value="Administration">Administrative Office</option>
+                        <option value="Support Staff">Support Staff</option>
+                        <option value="Leadership">Leadership Council</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Designation *</label>
+                      <input required type="text" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value, role: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none" placeholder="e.g. Senior PGT Mathematics" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Department</label>
+                      <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        {DEPARTMENTS.filter(d => d !== "All").map(dept => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Wing Allocation</label>
+                      <select value={formData.wing} onChange={e => setFormData({...formData, wing: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        {WINGS.filter(w => w !== "All Wings").map(wing => (
+                          <option key={wing} value={wing}>{wing}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Subjects Taught</label>
+                      <input type="text" value={formData.subjects_taught} onChange={e => setFormData({...formData, subjects_taught: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. Physics, Robotics Lab" />
+                    </div>
+                  </div>
+
+                  {/* Class In-Charge Section */}
+                  <div className="p-3.5 bg-purple-50 rounded-2xl border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="is_class_teacher_check" 
+                        checked={formData.is_class_teacher} 
+                        onChange={e => setFormData({...formData, is_class_teacher: e.target.checked})}
+                        className="w-4 h-4 text-purple-600 rounded" 
+                      />
+                      <label htmlFor="is_class_teacher_check" className="font-bold text-purple-900 cursor-pointer">
+                        Appoint as Class In-Charge / Homeroom Teacher
+                      </label>
+                    </div>
+
+                    {formData.is_class_teacher && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-purple-800 text-[11px]">Class:</span>
+                        <select 
+                          value={formData.class_teacher_for} 
+                          onChange={e => setFormData({...formData, class_teacher_for: e.target.value})}
+                          className="bg-white border border-purple-200 px-3 py-1.5 rounded-xl text-xs font-bold text-purple-900 focus:outline-none"
+                        >
+                          {classes.map(c => (
+                            <option key={c.id} value={`${c.grade}-${c.section}`}>{c.grade} - Sec {c.section}</option>
+                          ))}
+                          <option value="Nursery-A">Nursery-A</option>
+                          <option value="LKG-A">LKG-A</option>
+                          <option value="UKG-A">UKG-A</option>
+                          <option value="Grade 1-A">Grade 1-A</option>
+                          <option value="Grade 2-A">Grade 2-A</option>
+                          <option value="Grade 3-A">Grade 3-A</option>
+                          <option value="Grade 4-A">Grade 4-A</option>
+                          <option value="Grade 5-A">Grade 5-A</option>
+                          <option value="Grade 6-A">Grade 6-A</option>
+                          <option value="Grade 7-A">Grade 7-A</option>
+                          <option value="Grade 8-A">Grade 8-A</option>
+                          <option value="Grade 9-A">Grade 9-A</option>
+                          <option value="Grade 10-A">Grade 10-A</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Highest Qualification</label>
+                      <input type="text" value={formData.qualification} onChange={e => setFormData({...formData, qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. M.Sc (Physics), B.Ed" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Total Teaching Experience</label>
+                      <input type="text" value={formData.total_experience} onChange={e => setFormData({...formData, total_experience: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. 8 Years" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SERVICE & STATUS */}
+              {activeTab === "employment" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employee ID</label>
+                      <input type="text" value={formData.employee_id} onChange={e => setFormData({...formData, employee_id: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employee Code</label>
+                      <input type="text" value={formData.employee_code} onChange={e => setFormData({...formData, employee_code: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Current Status</label>
+                      <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Active">Active (Serving)</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Resigned">Former / Resigned</option>
+                        <option value="Suspended">Suspended</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employment Type</label>
+                      <select value={formData.employment_type} onChange={e => setFormData({...formData, employment_type: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Permanent">Permanent (Regular)</option>
+                        <option value="Probationary">Probationary</option>
+                        <option value="Contract">Fixed Term Contract</option>
+                        <option value="Visiting">Visiting / Part-time</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Joining Date</label>
+                      <input type="date" value={formData.joining_date} onChange={e => setFormData({...formData, joining_date: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Confirmation Date</label>
+                      <input type="date" value={formData.confirmation_date} onChange={e => setFormData({...formData, confirmation_date: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Probation Period</label>
+                      <input type="text" value={formData.probation_period} onChange={e => setFormData({...formData, probation_period: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. 6 Months" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Notice Period</label>
+                      <input type="text" value={formData.notice_period} onChange={e => setFormData({...formData, notice_period: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. 30 Days" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: SALARY & BANK */}
+              {activeTab === "finance" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Basic Salary (₹)</label>
+                      <input type="number" value={formData.basic_salary} onChange={e => setFormData({...formData, basic_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">HRA Allowance (₹)</label>
+                      <input type="number" value={formData.hra} onChange={e => setFormData({...formData, hra: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-mono focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Gross Salary (₹)</label>
+                      <input type="number" value={formData.gross_salary} onChange={e => setFormData({...formData, gross_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono text-emerald-700 focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Net In-Hand (₹)</label>
+                      <input type="number" value={formData.net_salary} onChange={e => setFormData({...formData, net_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono text-emerald-800 focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank Name</label>
+                      <input type="text" value={formData.bank_name} onChange={e => setFormData({...formData, bank_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" placeholder="e.g. HDFC Bank" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank Account No.</label>
+                      <input type="text" value={formData.bank_account_no} onChange={e => setFormData({...formData, bank_account_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="Account Number" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank IFSC Code</label>
+                      <input type="text" value={formData.bank_ifsc} onChange={e => setFormData({...formData, bank_ifsc: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono uppercase focus:border-stone-900 outline-none" placeholder="HDFC0001234" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-stone-600 block mb-1 text-xs">Police & Background Verification Status</label>
+                    <select value={formData.police_verification_status} onChange={e => setFormData({...formData, police_verification_status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold text-xs focus:border-stone-900 outline-none">
+                      <option value="Verified">Verified & Cleared (Safe)</option>
+                      <option value="In Progress">Verification In Progress</option>
+                      <option value="Pending Documents">Pending Documents</option>
+                      <option value="Exempted">Exempted</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                <div className="flex items-center gap-2">
+                  {activeTab !== "basic" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs = ["basic", "contact", "academic", "employment", "finance"];
+                        const currIdx = tabs.indexOf(activeTab);
+                        if (currIdx > 0) setActiveTab(tabs[currIdx - 1] as any);
+                      }}
+                      className="px-3 py-2 text-stone-600 hover:bg-stone-100 rounded-xl font-bold text-xs transition"
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {activeTab !== "finance" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs = ["basic", "contact", "academic", "employment", "finance"];
+                        const currIdx = tabs.indexOf(activeTab);
+                        if (currIdx < tabs.length - 1) setActiveTab(tabs[currIdx + 1] as any);
+                      }}
+                      className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-bold text-xs transition"
+                    >
+                      Next Step →
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 font-bold text-stone-500 hover:text-stone-800 text-xs">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isSaving} className="bg-stone-900 hover:bg-stone-800 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    {isSaving ? (
+                      <span>Saving Updates...</span>
+                    ) : isEditing ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span>Update Staff Member</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 text-amber-400" />
+                        <span>Enroll Employee</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

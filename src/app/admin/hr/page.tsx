@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Users, UserCheck, CreditCard, ShieldCheck, Download,
   Plus, Search, Filter, Calendar, Award, ArrowRight,
   RefreshCw, Trash2, Building2, ChevronRight, ArrowLeft,
-  CheckCircle2, Mail, Phone, MapPin, Briefcase, DollarSign
+  CheckCircle2, Mail, Phone, MapPin, Briefcase, DollarSign, Edit3
 } from 'lucide-react';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
@@ -237,14 +238,24 @@ export default function HumanResourcesPayrollPage() {
       header: 'Actions',
       align: 'right' as const,
       render: (row: any) => (
-        <button
-          onClick={() => handleDelete(row.id)}
-          disabled={deletingId === row.id}
-          title="Delete test record (Cleanup)"
-          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition disabled:opacity-50"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          <Link
+            href={`/admin/faculty/${row.id}`}
+            className="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1.5 rounded-xl font-bold text-xs transition"
+            title="Edit & View 360° Profile"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+            <span>Edit</span>
+          </Link>
+          <button
+            onClick={() => handleDelete(row.id)}
+            disabled={deletingId === row.id}
+            title="Delete test record (Cleanup)"
+            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       ),
     },
   ];

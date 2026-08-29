@@ -30,6 +30,7 @@ import {
 import { 
   getFacultyList,
   deleteFacultyMember,
+  updateFacultyMember,
   archiveFacultyWithHandoverAction,
   restoreFacultyMemberAction
 } from "@/app/actions/faculty";
@@ -133,9 +134,80 @@ export default function FacultyProfile360Page() {
   const [isSubmittingHandover, setIsSubmittingHandover] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
+  // Edit Profile Modal State
+  const [editForm, setEditForm] = useState<any>({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [editProfileTab, setEditProfileTab] = useState<"basic" | "contact" | "academic" | "employment" | "finance">("basic");
+
   const showToast = (msg: string) => {
     setFeedbackToast(msg);
     setTimeout(() => setFeedbackToast(null), 5000);
+  };
+
+  const handleOpenEditProfile = () => {
+    const staff = profile?.staff;
+    if (!staff) return;
+    setEditForm({
+      first_name: staff.first_name || '',
+      middle_name: staff.middle_name || '',
+      last_name: staff.last_name || '',
+      employee_id: staff.employee_id || '',
+      gender: staff.gender || 'Female',
+      dob: staff.dob ? staff.dob.split('T')[0] : '',
+      blood_group: staff.blood_group || 'O+',
+      marital_status: staff.marital_status || 'Married',
+      phone_number: staff.phone_number || '',
+      personal_mobile: staff.personal_mobile || staff.phone_number || '',
+      whatsapp_no: staff.whatsapp_no || '',
+      email: staff.email || '',
+      official_email: staff.official_email || staff.email || '',
+      personal_email: staff.personal_email || '',
+      emergency_contact: staff.emergency_contact || '',
+      designation: staff.designation || '',
+      department: staff.department || 'Sciences & Robotics',
+      wing: staff.wing || 'Primary (1-5)',
+      employee_category: staff.employee_category || 'Teaching',
+      qualification: staff.qualification || '',
+      total_experience: staff.total_experience || '',
+      subjects_taught: staff.subjects_taught || '',
+      is_class_teacher: Boolean(staff.is_class_teacher),
+      class_teacher_for: staff.class_teacher_for || '',
+      status: staff.status || 'Active',
+      employment_type: staff.employment_type || 'Permanent',
+      joining_date: staff.joining_date ? staff.joining_date.split('T')[0] : '',
+      photo_url: staff.photo_url || '',
+      aadhaar_no: staff.aadhaar_no || '',
+      pan_no: staff.pan_no || '',
+      basic_salary: staff.basic_salary || 0,
+      hra: staff.hra || 0,
+      gross_salary: staff.gross_salary || 0,
+      net_salary: staff.net_salary || 0,
+      bank_name: staff.bank_name || '',
+      bank_account_no: staff.bank_account_no || '',
+      bank_ifsc: staff.bank_ifsc || '',
+      police_verification_status: staff.police_verification_status || 'Verified',
+    });
+    setEditProfileTab("basic");
+    setEditProfileModal(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      const res = await updateFacultyMember(staffId, editForm);
+      if (res.success) {
+        setEditProfileModal(false);
+        showToast('Staff master profile updated successfully!');
+        loadDossier();
+      } else {
+        alert('Failed to update profile: ' + res.error);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   useEffect(() => {
@@ -437,6 +509,13 @@ export default function FacultyProfile360Page() {
           </div>
 
           <div className="flex flex-wrap md:flex-col items-end gap-2 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={handleOpenEditProfile}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <Edit3 className="w-4 h-4" /> Edit Master Profile
+            </button>
             {staff.email && (
               <a 
                 href={`mailto:${staff.email}`}
@@ -1628,6 +1707,370 @@ export default function FacultyProfile360Page() {
                 >
                   {isSubmittingHandover ? 'Archiving & Reassigning...' : 'Archive Profile & Execute Handover'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Master Profile Modal */}
+      {editProfileModal && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-stone-200 my-8 space-y-5 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-stone-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900">
+                    Edit Master Record
+                  </span>
+                  {staff.employee_id && (
+                    <span className="font-mono text-xs font-bold text-stone-500">
+                      ID: {staff.employee_id}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-xl font-black text-stone-900 mt-1">
+                  Edit Profile: {staff.first_name} {staff.last_name}
+                </h3>
+                <p className="text-xs text-stone-500">Update personal details, academic assignments, KYC verification, and salary details.</p>
+              </div>
+              <button onClick={() => setEditProfileModal(false)} className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-stone-100 no-scrollbar">
+              {[
+                { id: "basic", label: "👤 Basic Info" },
+                { id: "contact", label: "📞 Contact & KYC" },
+                { id: "academic", label: "🎓 Role & Teaching" },
+                { id: "employment", label: "📅 Service & Status" },
+                { id: "finance", label: "💳 Salary & Bank" },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setEditProfileTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    editProfileTab === tab.id
+                      ? "bg-stone-900 text-white shadow-xs"
+                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              
+              {/* TAB 1: BASIC INFO */}
+              {editProfileTab === "basic" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <FileUpload 
+                    label="Staff Photo"
+                    value={editForm.photo_url}
+                    onChange={url => setEditForm({...editForm, photo_url: url})}
+                    folder="faculty_photos"
+                    mode="avatar"
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">First Name *</label>
+                      <input required type="text" value={editForm.first_name} onChange={e => setEditForm({...editForm, first_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Middle Name</label>
+                      <input type="text" value={editForm.middle_name} onChange={e => setEditForm({...editForm, middle_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Last Name *</label>
+                      <input required type="text" value={editForm.last_name} onChange={e => setEditForm({...editForm, last_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Gender</label>
+                      <select value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Date of Birth</label>
+                      <input type="date" value={editForm.dob} onChange={e => setEditForm({...editForm, dob: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Blood Group</label>
+                      <select value={editForm.blood_group} onChange={e => setEditForm({...editForm, blood_group: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
+                          <option key={bg} value={bg}>{bg}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Marital Status</label>
+                      <select value={editForm.marital_status} onChange={e => setEditForm({...editForm, marital_status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Married">Married</option>
+                        <option value="Single">Single</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: CONTACT & KYC */}
+              {editProfileTab === "contact" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Personal Mobile Phone *</label>
+                      <input required type="text" value={editForm.phone_number} onChange={e => setEditForm({...editForm, phone_number: e.target.value, personal_mobile: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono font-bold focus:border-stone-900 outline-none" placeholder="+91 98111 22334" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">WhatsApp Number</label>
+                      <input type="text" value={editForm.whatsapp_no} onChange={e => setEditForm({...editForm, whatsapp_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="+91 98111 22334" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Official School Email</label>
+                      <input type="email" value={editForm.official_email} onChange={e => setEditForm({...editForm, official_email: e.target.value, email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="faculty@crayonboxschool.com" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Personal Email</label>
+                      <input type="email" value={editForm.personal_email} onChange={e => setEditForm({...editForm, personal_email: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="personal@gmail.com" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Emergency Contact Info</label>
+                      <input type="text" value={editForm.emergency_contact} onChange={e => setEditForm({...editForm, emergency_contact: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="Spouse: +91 98110 00000" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Aadhaar Card No.</label>
+                      <input type="text" value={editForm.aadhaar_no} onChange={e => setEditForm({...editForm, aadhaar_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="12-digit UID" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">PAN Card No.</label>
+                      <input type="text" value={editForm.pan_no} onChange={e => setEditForm({...editForm, pan_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono uppercase focus:border-stone-900 outline-none" placeholder="ABCDE1234F" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ROLE & TEACHING */}
+              {editProfileTab === "academic" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employee Category</label>
+                      <select value={editForm.employee_category} onChange={e => setEditForm({...editForm, employee_category: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Teaching">Teaching Faculty</option>
+                        <option value="Non-Teaching">Non-Teaching Staff</option>
+                        <option value="Administration">Administrative Office</option>
+                        <option value="Support Staff">Support Staff</option>
+                        <option value="Leadership">Leadership Council</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Designation *</label>
+                      <input required type="text" value={editForm.designation} onChange={e => setEditForm({...editForm, designation: e.target.value, role: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none" placeholder="e.g. Senior PGT Mathematics" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Department</label>
+                      <input type="text" value={editForm.department} onChange={e => setEditForm({...editForm, department: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Wing Allocation</label>
+                      <input type="text" value={editForm.wing} onChange={e => setEditForm({...editForm, wing: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Subjects Taught</label>
+                      <input type="text" value={editForm.subjects_taught} onChange={e => setEditForm({...editForm, subjects_taught: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. Physics, Robotics Lab" />
+                    </div>
+                  </div>
+
+                  {/* Class In-Charge Section */}
+                  <div className="p-3.5 bg-purple-50 rounded-2xl border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="is_class_teacher_check_dossier" 
+                        checked={editForm.is_class_teacher} 
+                        onChange={e => setEditForm({...editForm, is_class_teacher: e.target.checked})}
+                        className="w-4 h-4 text-purple-600 rounded" 
+                      />
+                      <label htmlFor="is_class_teacher_check_dossier" className="font-bold text-purple-900 cursor-pointer">
+                        Appoint as Class In-Charge / Homeroom Teacher
+                      </label>
+                    </div>
+
+                    {editForm.is_class_teacher && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-purple-800 text-[11px]">Class:</span>
+                        <input 
+                          type="text" 
+                          value={editForm.class_teacher_for} 
+                          onChange={e => setEditForm({...editForm, class_teacher_for: e.target.value})}
+                          placeholder="e.g. Grade 5-A"
+                          className="bg-white border border-purple-200 px-3 py-1.5 rounded-xl text-xs font-bold text-purple-900 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Highest Qualification</label>
+                      <input type="text" value={editForm.qualification} onChange={e => setEditForm({...editForm, qualification: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. M.Sc (Physics), B.Ed" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Total Teaching Experience</label>
+                      <input type="text" value={editForm.total_experience} onChange={e => setEditForm({...editForm, total_experience: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" placeholder="e.g. 8 Years" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SERVICE & STATUS */}
+              {editProfileTab === "employment" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employee ID</label>
+                      <input type="text" value={editForm.employee_id} onChange={e => setEditForm({...editForm, employee_id: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono font-bold focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Employment Type</label>
+                      <select value={editForm.employment_type} onChange={e => setEditForm({...editForm, employment_type: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Permanent">Permanent (Regular)</option>
+                        <option value="Probationary">Probationary</option>
+                        <option value="Contract">Fixed Term Contract</option>
+                        <option value="Visiting">Visiting / Part-time</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Current Status</label>
+                      <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
+                        <option value="Active">Active (Serving)</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Resigned">Former / Resigned</option>
+                        <option value="Suspended">Suspended</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Joining Date</label>
+                      <input type="date" value={editForm.joining_date} onChange={e => setEditForm({...editForm, joining_date: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Police / Verification Status</label>
+                      <select value={editForm.police_verification_status} onChange={e => setEditForm({...editForm, police_verification_status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold text-xs focus:border-stone-900 outline-none">
+                        <option value="Verified">Verified & Cleared (Safe)</option>
+                        <option value="In Progress">Verification In Progress</option>
+                        <option value="Pending Documents">Pending Documents</option>
+                        <option value="Exempted">Exempted</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: SALARY & BANK */}
+              {editProfileTab === "finance" && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Basic Salary (₹)</label>
+                      <input type="number" value={editForm.basic_salary} onChange={e => setEditForm({...editForm, basic_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">HRA Allowance (₹)</label>
+                      <input type="number" value={editForm.hra} onChange={e => setEditForm({...editForm, hra: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-mono focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Gross Salary (₹)</label>
+                      <input type="number" value={editForm.gross_salary} onChange={e => setEditForm({...editForm, gross_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono text-emerald-700 focus:border-stone-900 outline-none" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Net In-Hand (₹)</label>
+                      <input type="number" value={editForm.net_salary} onChange={e => setEditForm({...editForm, net_salary: Number(e.target.value)})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono text-emerald-800 focus:border-stone-900 outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank Name</label>
+                      <input type="text" value={editForm.bank_name} onChange={e => setEditForm({...editForm, bank_name: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-bold focus:border-stone-900 outline-none" placeholder="e.g. HDFC Bank" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank Account No.</label>
+                      <input type="text" value={editForm.bank_account_no} onChange={e => setEditForm({...editForm, bank_account_no: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" placeholder="Account Number" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-stone-600 block mb-1">Bank IFSC Code</label>
+                      <input type="text" value={editForm.bank_ifsc} onChange={e => setEditForm({...editForm, bank_ifsc: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono uppercase focus:border-stone-900 outline-none" placeholder="HDFC0001234" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                <div className="flex items-center gap-2">
+                  {editProfileTab !== "basic" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs = ["basic", "contact", "academic", "employment", "finance"];
+                        const currIdx = tabs.indexOf(editProfileTab);
+                        if (currIdx > 0) setEditProfileTab(tabs[currIdx - 1] as any);
+                      }}
+                      className="px-3 py-2 text-stone-600 hover:bg-stone-100 rounded-xl font-bold text-xs transition"
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {editProfileTab !== "finance" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tabs = ["basic", "contact", "academic", "employment", "finance"];
+                        const currIdx = tabs.indexOf(editProfileTab);
+                        if (currIdx < tabs.length - 1) setEditProfileTab(tabs[currIdx + 1] as any);
+                      }}
+                      className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-bold text-xs transition"
+                    >
+                      Next Step →
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setEditProfileModal(false)} className="px-4 py-2 font-bold text-stone-500 hover:text-stone-800 text-xs">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isSavingProfile} className="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-white" />
+                    <span>{isSavingProfile ? "Saving Profile..." : "Update Master Profile"}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
