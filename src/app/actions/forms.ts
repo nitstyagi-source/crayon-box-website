@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import pg from 'pg';
 
-// In-memory mock database for form submissions
 type Admission = { id: string; parentName: string; email: string; phone: string; childName: string; grade: string; date: string; status: string };
 type Payment = { id: string; studentId: string; parentName: string; amount: number; date: string; status: string };
 type Enquiry = { id: string; name: string; email: string; phone: string; department: string; nature: string; message: string; date: string; status: string };
@@ -12,23 +12,15 @@ const MOCK_FORM_DB: {
   payments: Payment[];
   enquiries: Enquiry[];
 } = {
-  admissions: [
-    { id: "APP-001", parentName: "John Doe", email: "john@example.com", phone: "123-456-7890", childName: "Jane Doe", grade: "Grade 1", date: new Date().toISOString(), status: "Pending" }
-  ],
-  payments: [
-    { id: "PAY-001", studentId: "STU-8821", parentName: "Mary Smith", amount: 1500, date: new Date().toISOString(), status: "Completed" }
-  ],
-  enquiries: [
-    { id: "ENQ-001", name: "Alice Johnson", email: "alice@example.com", phone: "987-654-3210", department: "Admissions Office", nature: "Admissions", message: "When do the 2026 applications open?", date: new Date().toISOString(), status: "Unread" }
-  ]
+  admissions: [],
+  payments: [],
+  enquiries: []
 };
-
-import pg from 'pg';
 
 const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 function getPool() {
-  return new pg.Pool({ connectionString });
+  return new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 }
 
 function safeRevalidate(path: string) {
@@ -112,7 +104,7 @@ export async function submitAdmission(formData: FormData) {
 }
 
 export async function submitFeePayment(formData: FormData) {
-  await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate latency
+  await new Promise(resolve => setTimeout(resolve, 800));
   
   const payment: Payment = {
     id: `PAY-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
@@ -129,7 +121,7 @@ export async function submitFeePayment(formData: FormData) {
 }
 
 export async function submitContactEnquiry(formData: FormData) {
-  await new Promise(resolve => setTimeout(resolve, 800)); // Simulate latency
+  await new Promise(resolve => setTimeout(resolve, 800));
   
   const enquiry: Enquiry = {
     id: `ENQ-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
@@ -189,13 +181,13 @@ export async function getAdmissions() {
   } catch (e: any) {
     console.error("Error in getAdmissions from DB:", e.message);
   }
-  return MOCK_FORM_DB.admissions;
+  return [];
 }
 
 export async function getFeePayments() {
-  return MOCK_FORM_DB.payments;
+  return [];
 }
 
 export async function getContactEnquiries() {
-  return MOCK_FORM_DB.enquiries;
+  return [];
 }
