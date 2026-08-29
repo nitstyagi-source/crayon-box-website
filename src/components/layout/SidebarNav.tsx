@@ -32,16 +32,19 @@ import {
   Database,
   BarChart3,
   Award,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { clearServerAuthSession } from '@/app/actions/auth';
 
 interface SidebarNavProps {
   currentRole?: string;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
+export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, onCloseMobile }: SidebarNavProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -139,7 +142,6 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
     },
   ];
 
-  // Filter groups and items by active role
   const filteredGroups = allGroups
     .filter((g) => g.allowedRoles.includes(currentRole))
     .map((g) => ({
@@ -156,24 +158,37 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
     PARENT: 'Parent / Guardian',
   };
 
-  return (
-    <aside className="w-64 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-xl rounded-r-3xl z-20">
+  const sidebarContent = (
+    <aside className="w-72 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-2xl rounded-r-3xl z-40">
       
       {/* Top Sidebar Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-white/60">
-          Navigation
-        </span>
-        <span className="px-2 py-0.5 rounded-md bg-white/10 text-white text-[10px] font-bold border border-transparent">
-          v2.0 Active
-        </span>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-white/10 p-1 flex items-center justify-center">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <span className="text-xs font-black tracking-tight text-white block">ERP CONSOLE</span>
+            <span className="text-[10px] text-white/50 block font-semibold">Crayon Box School</span>
+          </div>
+        </div>
+        
+        {/* Mobile Close Button */}
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav List */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 custom-scrollbar">
         {filteredGroups.map((group, idx) => (
           <div key={idx} className="space-y-1">
-            <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-white/60 mb-2">
+            <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-white/50 mb-2">
               {group.group}
             </h4>
             {group.items.map((item) => {
@@ -183,13 +198,14 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                  onClick={() => { if (onCloseMobile) onCloseMobile(); }}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
                     isActive
-                      ? 'bg-white text-[#0A1A44] shadow-md'
-                      : 'text-white/60 hover:text-white hover:bg-white/10'
+                      ? 'bg-white text-[#0A1A44] shadow-md font-bold'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#0A1A44]' : 'text-white/60 group-hover:text-white'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0A1A44]' : 'text-white/70 group-hover:text-white'}`} />
                   <span className="truncate">{item.name}</span>
                 </Link>
               );
@@ -203,7 +219,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
         <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white/10 border border-white/10">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <div className="overflow-hidden">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block">
               Active Persona
             </span>
             <span className="text-xs font-bold text-white truncate block">
@@ -216,13 +232,37 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN' }: SidebarNavProps) {
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-xs font-bold transition shadow-xs"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-xs font-bold transition shadow-xs cursor-pointer"
         >
           <LogOut className="w-4 h-4 text-rose-400" />
-          <span>{isLoggingOut ? 'Logging out...' : 'Sign Out / Logout'}</span>
+          <span>{isLoggingOut ? 'Signing out...' : 'Sign Out / Logout'}</span>
         </button>
       </div>
 
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop Static Sidebar */}
+      <div className="hidden lg:flex h-full">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Drawer Slide-over */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in transition-opacity"
+            onClick={onCloseMobile}
+          />
+          {/* Drawer content */}
+          <div className="relative z-50 animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
