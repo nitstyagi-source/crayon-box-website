@@ -109,3 +109,67 @@ export async function GET(request: NextRequest) {
     await pool.end();
   }
 }
+
+export async function POST(request: NextRequest) {
+  const pool = getPool();
+  try {
+    const body = await request.json();
+    const {
+      first_name,
+      last_name,
+      dob,
+      gender = 'Male',
+      blood_group = 'O+',
+      father_name,
+      mother_name,
+      transport_mode = 'Self Pickup',
+      status = 'ACTIVE'
+    } = body;
+
+    if (!first_name) {
+      return NextResponse.json({ success: false, error: "First name is required." }, { status: 400 });
+    }
+
+    const admission_no = `CBS-2026-${Date.now().toString().slice(-4)}`;
+    const universal_id = `STU-VET-${Date.now().toString().slice(-6)}`;
+
+    const insertRes = await pool.query(`
+      INSERT INTO public.students (
+        first_name,
+        last_name,
+        admission_no,
+        universal_id,
+        dob,
+        gender,
+        blood_group,
+        father_name,
+        mother_name,
+        transport_mode,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *;
+    `, [
+      first_name,
+      last_name || '',
+      admission_no,
+      universal_id,
+      dob || null,
+      gender,
+      blood_group,
+      father_name || '',
+      mother_name || '',
+      transport_mode,
+      status
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: insertRes.rows[0]
+    });
+  } catch (error: any) {
+    console.error("Error enrolling student:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } finally {
+    await pool.end();
+  }
+}
