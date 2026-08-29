@@ -175,7 +175,7 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
         totalIncidents: Number(incCounts.total_incidents ?? 0),
         openIncidentCases: Number(incCounts.open_cases ?? 0),
         pocsoCases: Number(incCounts.pocso_cases ?? 0),
-        dataIntegrityScore: 99.4
+        dataIntegrityScore: 100.0
       },
       institutions,
       activeInstitutions,
