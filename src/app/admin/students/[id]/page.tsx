@@ -39,6 +39,7 @@ import {
   readmitStudentAction,
   getStudentEnrollmentPeriodsAction
 } from '@/app/actions/universal-student-actions';
+import { standardizePhotoBackground } from '@/lib/utils/photo-standardizer';
 
 export default function UniversalStudent360DossierV2Page({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -268,7 +269,13 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
     if (file) {
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = reader.result as string;
+        let base64 = reader.result as string;
+        try {
+          base64 = await standardizePhotoBackground(base64, { backgroundType: 'studio-gradient-light' });
+        } catch (err) {
+          console.warn("Background standardization notice:", err);
+        }
+
         if (photoTarget === 'STUDENT' && student) {
           await uploadStudentPhotoAction(student.id, base64);
         } else if (photoTarget === 'GUARDIAN' && selectedPhotoGuardianId) {
@@ -283,10 +290,17 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
 
   const handleSavePhotoUrl = async () => {
     if (!tempPhotoUrl.trim()) return;
+    let finalUrl = tempPhotoUrl.trim();
+    try {
+      finalUrl = await standardizePhotoBackground(finalUrl, { backgroundType: 'studio-gradient-light' });
+    } catch (err) {
+      console.warn("Background standardization notice:", err);
+    }
+
     if (photoTarget === 'STUDENT' && student) {
-      await uploadStudentPhotoAction(student.id, tempPhotoUrl.trim());
+      await uploadStudentPhotoAction(student.id, finalUrl);
     } else if (photoTarget === 'GUARDIAN' && selectedPhotoGuardianId) {
-      await uploadGuardianPhotoAction(selectedPhotoGuardianId, tempPhotoUrl.trim());
+      await uploadGuardianPhotoAction(selectedPhotoGuardianId, finalUrl);
     }
     setIsPhotoModalOpen(false);
     fetchStudentDossier();

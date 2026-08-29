@@ -60,7 +60,7 @@ export function DualFileUpload({
       if (file.type.startsWith('image/') && standardizeBackground && !file.name.includes('logo')) {
         setIsProcessing(true);
         try {
-          const standardized = await standardizePhotoBackground(rawResult, { backgroundType: 'studio-gradient-dark' });
+          const standardized = await standardizePhotoBackground(rawResult, { backgroundType: 'studio-gradient-light' });
           onChange(standardized);
         } catch (err) {
           onChange(rawResult);
