@@ -66,10 +66,10 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
   },
   {
     code: 'ADMISSIONS',
-    name: 'Admissions Pipeline (CRM)',
+    name: 'Enquiries & Leads',
     category: 'Students & Admissions',
     href: '/admin/admissions',
-    description: 'Lead capture, Kanban enrollment pipeline, document verification, and seat allocation.',
+    description: 'Lead capture, Kanban enquiry pipeline, document verification, and seat allocation.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export']
   },
