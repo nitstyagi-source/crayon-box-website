@@ -149,7 +149,7 @@ export async function authenticateUserLogin(payload: {
     let defaultRedirect = "/admin/dashboard";
     const roleLower = (user.primary_role || '').toLowerCase();
     if (roleLower.includes('parent') || roleLower.includes('student')) {
-      defaultRedirect = "/parent/dashboard";
+      defaultRedirect = "/family/dashboard";
     } else if (roleLower.includes('faculty') || roleLower.includes('teacher')) {
       defaultRedirect = "/staff/dashboard";
     }
@@ -192,10 +192,10 @@ export async function demoQuickLoginAction(role: 'admin' | 'faculty' | 'parent' 
       defaultRedirect = '/staff/dashboard';
     } else if (role === 'parent') {
       queryRole = 'Parent';
-      defaultRedirect = '/parent/dashboard';
+      defaultRedirect = '/family/dashboard';
     } else if (role === 'student') {
       queryRole = 'Student';
-      defaultRedirect = '/parent/dashboard';
+      defaultRedirect = '/family/dashboard';
     }
 
     const res = await client.query(`

@@ -5,8 +5,7 @@ import { useMobileAuth } from "@/components/mobile/MobileAuthProvider";
 import AdminMobileDashboard from "@/components/mobile/dashboards/AdminMobileDashboard";
 import PrincipalMobileDashboard from "@/components/mobile/dashboards/PrincipalMobileDashboard";
 import FacultyMobileDashboard from "@/components/mobile/dashboards/FacultyMobileDashboard";
-import ParentMobileDashboard from "@/components/mobile/dashboards/ParentMobileDashboard";
-import StudentMobileDashboard from "@/components/mobile/dashboards/StudentMobileDashboard";
+import FamilyMobileDashboard from "@/components/mobile/dashboards/FamilyMobileDashboard";
 
 export default function MobileDashboardPage() {
   const { activeRole } = useMobileAuth();
@@ -31,10 +30,10 @@ export default function MobileDashboardPage() {
       return <FacultyMobileDashboard />;
 
     case "Parent":
-      return <ParentMobileDashboard />;
+      return <FamilyMobileDashboard />;
 
     case "Student":
-      return <StudentMobileDashboard />;
+      return <FamilyMobileDashboard />;
 
     default:
       return <FacultyMobileDashboard />;

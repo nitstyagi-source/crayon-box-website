@@ -7,12 +7,12 @@ import { SiblingProvider, useSiblingContext } from "@/components/providers/Sibli
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", href: "/parent/dashboard", icon: LayoutDashboard },
-  { name: "Live Classroom 🔴", href: "/parent/live-stream", icon: Radio },
-  { name: "Academics", href: "/parent/academics", icon: BookOpen },
-  { name: "Fees & Payments", href: "/parent/fees", icon: Wallet },
-  { name: "Communication", href: "/parent/communication", icon: MessageSquare },
-  { name: "App Hub", href: "/parent/hub", icon: Grid },
+  { name: "Dashboard", href: "/family/dashboard", icon: LayoutDashboard },
+  { name: "Live Classroom 🔴", href: "/family/live-stream", icon: Radio },
+  { name: "Academics", href: "/family/academics", icon: BookOpen },
+  { name: "Fees & Payments", href: "/family/fees", icon: Wallet },
+  { name: "Communication", href: "/family/communication", icon: MessageSquare },
+  { name: "App Hub", href: "/family/hub", icon: Grid },
 ];
 
 function PortalLayoutContent({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,7 @@ function PortalLayoutContent({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full shadow-sm">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-serif font-bold text-lg">C</div>
-          <span className="font-bold text-lg text-slate-800 tracking-tight">Parent Portal</span>
+          <span className="font-bold text-lg text-slate-800 tracking-tight">Family Portal</span>
         </div>
         
         <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">

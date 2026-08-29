@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
 
-export default function ParentMobileDashboard() {
+export default function FamilyMobileDashboard() {
   const { user, activeChild, setIsProfileModalOpen } = useMobileAuth();
 
   const childName = activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : "Your Child";

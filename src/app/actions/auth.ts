@@ -30,7 +30,7 @@ export async function verifyOtp(phone: string, otp: string, role: 'parent' | 'st
 
   // Determine redirection path based on role
   // Parents go to Parent Portal, Staff goes to Admin Dashboard
-  const redirectPath = role === 'parent' ? '/parent/dashboard' : '/admin/dashboard';
+  const redirectPath = role === 'parent' ? '/family/dashboard' : '/admin/dashboard';
 
   return { success: true, redirectPath };
 }
