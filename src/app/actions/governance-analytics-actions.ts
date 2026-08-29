@@ -124,16 +124,23 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
       liveStudentMap[r.institution_code] = Number(r.active_students);
     });
 
-    const staticFaculty: Record<string, number> = {
-      CBS: 42,
-      CBPS: 18,
-      AS: 26,
-      AVM: 24
-    };
+    // Live staff/faculty counts per institution
+    const staffCountByInstRes = await client.query(`
+      SELECT institution_code, count(*) as active_staff
+      FROM public.staff
+      WHERE status = 'ACTIVE'
+      GROUP BY institution_code;
+    `);
+    const liveStaffMap: Record<string, number> = {};
+    staffCountByInstRes.rows.forEach((r: any) => {
+      if (r.institution_code) {
+        liveStaffMap[r.institution_code] = Number(r.active_staff);
+      }
+    });
 
     const institutions = instDbRes.rows.map((inst: any) => {
       const studentCount = liveStudentMap[inst.code] !== undefined ? liveStudentMap[inst.code] : 0;
-      const facultyCount = staticFaculty[inst.code] || 15;
+      const facultyCount = liveStaffMap[inst.code] !== undefined ? liveStaffMap[inst.code] : 0;
       return {
         ...inst,
         affiliation: inst.affiliation_number ? `${inst.board_affiliation || 'CBSE'} (Affil #${inst.affiliation_number})` : (inst.board_affiliation || 'Montessori/State'),

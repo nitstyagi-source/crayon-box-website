@@ -152,8 +152,8 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     logoUrl: '/logo.png',
     brandColor: '#2563eb', // Blue
     address: 'Shastri Park Extn., Delhi NCR',
-    totalStudents: 1250,
-    totalStaff: 85,
+    totalStudents: 0,
+    totalStaff: 0,
     config: {
       billingIdentity: {
         receiptPrefix: 'CBS-REC-2026',
@@ -188,8 +188,8 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     logoUrl: '/logo.png',
     brandColor: '#ec4899', // Pink
     address: 'Shastri Park Extn., Delhi NCR',
-    totalStudents: 320,
-    totalStaff: 28,
+    totalStudents: 0,
+    totalStaff: 0,
     config: {
       billingIdentity: {
         receiptPrefix: 'CBPS-REC-2026',
@@ -225,7 +225,7 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     brandColor: '#7c3aed', // Purple
     address: 'Virender Nagar Burari, Delhi 110084',
     totalStudents: 0,
-    totalStaff: 1,
+    totalStaff: 0,
     config: {
       billingIdentity: {
         receiptPrefix: 'AS-REC-2026',
@@ -261,8 +261,8 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     logoUrl: '/logo.png',
     brandColor: '#ea580c', // Orange
     address: 'Virender Nagar Burari, Delhi 110084',
-    totalStudents: 500,
-    totalStaff: 42,
+    totalStudents: 0,
+    totalStaff: 0,
     config: {
       billingIdentity: {
         receiptPrefix: 'AVM-REC-2026',
