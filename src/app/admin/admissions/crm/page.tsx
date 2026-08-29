@@ -15,7 +15,8 @@ import {
   scheduleApplicantInterviewAction,
   updateApplicantDocumentVerificationAction,
   approveApplicationAndProvisionParent,
-  generateAdmissionFeeReceiptAction
+  generateAdmissionFeeReceiptAction,
+  createAdminEnquiryAction
 } from "@/app/actions/admissions";
 import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
@@ -33,6 +34,52 @@ export default function AdmissionsCrmPage() {
   const [interviewTime, setInterviewTime] = useState("10:00");
   const [interviewerName, setInterviewerName] = useState("Dr. Ananya Sharma (Principal)");
   const [interviewNotes, setInterviewNotes] = useState("");
+
+  // In-Console Direct Enquiry Modal State
+  const [isNewEnquiryOpen, setIsNewEnquiryOpen] = useState(false);
+  const [isSubmittingEnquiry, setIsSubmittingEnquiry] = useState(false);
+  const [newEnquiryForm, setNewEnquiryForm] = useState({
+    studentFirstName: '',
+    studentLastName: '',
+    gradeApplied: 'Class 1',
+    dateOfBirth: '2020-04-15',
+    parentName: '',
+    parentPhone: '',
+    parentEmail: '',
+    previousSchool: '',
+    transportRequired: false,
+    notes: ''
+  });
+
+  const handleCreateDirectEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEnquiryForm.studentFirstName || !newEnquiryForm.parentName || !newEnquiryForm.parentPhone) {
+      alert("Please fill in Student Name, Parent Name, and Contact Phone.");
+      return;
+    }
+    setIsSubmittingEnquiry(true);
+    const res = await createAdminEnquiryAction(newEnquiryForm);
+    setIsSubmittingEnquiry(false);
+    if (res.success) {
+      setFeedbackToast(res.message || "Enquiry created successfully!");
+      setIsNewEnquiryOpen(false);
+      setNewEnquiryForm({
+        studentFirstName: '',
+        studentLastName: '',
+        gradeApplied: 'Class 1',
+        dateOfBirth: '2020-04-15',
+        parentName: '',
+        parentPhone: '',
+        parentEmail: '',
+        previousSchool: '',
+        transportRequired: false,
+        notes: ''
+      });
+      fetchApplications();
+    } else {
+      alert("Failed to create enquiry: " + res.error);
+    }
+  };
 
   // Custom Fee Receipt Generator State
   const [customReceiptNo, setCustomReceiptNo] = useState("");
@@ -331,11 +378,14 @@ export default function AdmissionsCrmPage() {
           <Button variant="outline" size="sm" onClick={fetchApplications} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
             Refresh Live DB
           </Button>
-          <Link href="/admissions/apply" target="_blank">
-            <Button variant="secondary" size="md" leftIcon={<Plus className="w-4 h-4" />}>
-              Open Public Form
-            </Button>
-          </Link>
+          <Button 
+            variant="secondary" 
+            size="md" 
+            onClick={() => setIsNewEnquiryOpen(true)}
+            leftIcon={<Plus className="w-4 h-4" />}
+          >
+            + Record New Lead (In ERP)
+          </Button>
         </div>
       </div>
 
@@ -1014,11 +1064,169 @@ export default function AdmissionsCrmPage() {
                   disabled={isUpdatingStatus}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition"
                 >
-                  <UserCheck className="w-4 h-4" /> Approve & Issue Admission Offer
+                  <UserCheck className="w-4 h-4" /> Approve &amp; Issue Admission Offer
                 </button>
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 DIRECT IN-CONSOLE LEAD / ENQUIRY MODAL (NO EXTERNAL REDIRECT) */}
+      {isNewEnquiryOpen && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center pb-4 border-b border-stone-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-stone-900">Record Direct Enquiry / Lead</h3>
+                  <p className="text-xs text-stone-500">Add an applicant into the ERP without leaving the administrative console.</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsNewEnquiryOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateDirectEnquiry} className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Student First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Aarav"
+                    value={newEnquiryForm.studentFirstName}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, studentFirstName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Student Last Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sharma"
+                    value={newEnquiryForm.studentLastName}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, studentLastName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Grade / Class Applying *</label>
+                  <select
+                    value={newEnquiryForm.gradeApplied}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, gradeApplied: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden bg-white"
+                  >
+                    <option value="Nursery">Nursery</option>
+                    <option value="LKG">LKG</option>
+                    <option value="UKG">UKG</option>
+                    <option value="Class 1">Class 1</option>
+                    <option value="Class 2">Class 2</option>
+                    <option value="Class 3">Class 3</option>
+                    <option value="Class 4">Class 4</option>
+                    <option value="Class 5">Class 5</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={newEnquiryForm.dateOfBirth}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, dateOfBirth: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Parent / Guardian Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Mr. Rajesh Sharma"
+                    value={newEnquiryForm.parentName}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, parentName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Parent Mobile Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. +91 98110 55442"
+                    value={newEnquiryForm.parentPhone}
+                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, parentPhone: e.target.value })}
+                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Parent Email</label>
+                <input
+                  type="email"
+                  placeholder="e.g. parent@example.com"
+                  value={newEnquiryForm.parentEmail}
+                  onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, parentEmail: e.target.value })}
+                  className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="transportReq"
+                  checked={newEnquiryForm.transportRequired}
+                  onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, transportRequired: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded-sm border-stone-300"
+                />
+                <label htmlFor="transportReq" className="text-xs font-bold text-stone-700">
+                  Requires School Bus Transport Service
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Administrative Remarks / Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Walk-in lead notes, sibling details, or scholarship inquiry..."
+                  value={newEnquiryForm.notes}
+                  onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, notes: e.target.value })}
+                  className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setIsNewEnquiryOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEnquiry}
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs transition flex items-center gap-1.5"
+                >
+                  {isSubmittingEnquiry ? 'Saving to Database...' : '✓ Create & Save Lead in ERP'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

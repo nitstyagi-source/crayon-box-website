@@ -657,3 +657,74 @@ export async function updateApplicantDocumentVerificationAction(
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Record a new Enquiry / Lead directly from the Admin ERP Console without redirecting to the frontend.
+ */
+export async function createAdminEnquiryAction(payload: {
+  studentFirstName: string;
+  studentLastName?: string;
+  gradeApplied: string;
+  dateOfBirth?: string;
+  parentName: string;
+  parentPhone: string;
+  parentEmail?: string;
+  previousSchool?: string;
+  transportRequired?: boolean;
+  notes?: string;
+  status?: string;
+}) {
+  const pool = getPool();
+  try {
+    const client = await pool.connect();
+    const token = `ENQ-${Date.now().toString().slice(-6)}`;
+    const kits = {
+      parent_name: payload.parentName,
+      parent_phone: payload.parentPhone,
+      parent_email: payload.parentEmail || '',
+      admin_notes: payload.notes || '',
+      submission_channel: 'Admin ERP Console (Direct)',
+      created_by_role: 'ADMIN'
+    };
+
+    const res = await client.query(`
+      INSERT INTO public.admissions_applications (
+        tracking_token,
+        student_first_name,
+        student_last_name,
+        grade_applied,
+        date_of_birth,
+        previous_school,
+        transport_required,
+        co_curricular_kits,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, tracking_token;
+    `, [
+      token,
+      payload.studentFirstName,
+      payload.studentLastName || '',
+      payload.gradeApplied,
+      payload.dateOfBirth || '2020-05-15',
+      payload.previousSchool || '',
+      Boolean(payload.transportRequired),
+      JSON.stringify(kits),
+      payload.status || 'SUBMITTED'
+    ]);
+    client.release();
+
+    safeRevalidate('/admin/admissions');
+    safeRevalidate('/admin/admissions/pipeline');
+    safeRevalidate('/admin/admissions/crm');
+
+    return { 
+      success: true, 
+      message: `Enquiry ${token} created successfully for ${payload.studentFirstName}`,
+      data: res.rows[0]
+    };
+  } catch (error: any) {
+    console.error('Error in createAdminEnquiryAction:', error);
+    return { success: false, error: error.message };
+  }
+}
+
