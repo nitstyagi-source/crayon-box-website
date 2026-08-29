@@ -45,9 +45,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  const userRole = request.cookies.get('cb_user_role')?.value;
+
   if (url.pathname.startsWith('/admin')) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/login', request.url));
+    }
+    if (userRole === 'PARENT' || userRole === 'STUDENT' || userRole === 'PARENT_STUDENT') {
+      // Parents & Students are unified on Mobile App only - zero access to web admin console
+      return NextResponse.redirect(new URL('/login?error=mobile_only', request.url));
     }
   }
 

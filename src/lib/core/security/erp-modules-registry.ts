@@ -8,10 +8,10 @@
 export interface ErpModuleDefinition {
   code: string;
   name: string;
-  category: 'Governance & Overview' | 'Students & Admissions' | 'Academic Operations' | 'Finance & Procurement' | 'Campus Logistics & Safety' | 'Parent & Community Services' | 'System & Security' | 'Future & Emerging';
+  category: 'Governance & Overview' | 'Students & Admissions' | 'Academic Operations' | 'Finance & Procurement' | 'Campus Logistics & Safety' | 'Parent & Community Services' | 'System & Security';
   href: string;
   description: string;
-  defaultRoles: ('SUPER_ADMIN' | 'PRINCIPAL' | 'TEACHER' | 'ACCOUNTS' | 'PARENT' | 'STAFF')[];
+  defaultRoles: ('SUPER_ADMIN' | 'PRINCIPAL' | 'TEACHER' | 'ACCOUNTS' | 'STAFF')[];
   supportsActions: ('can_view' | 'can_create' | 'can_edit' | 'can_delete' | 'can_export')[];
 }
 
@@ -79,7 +79,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Students & Admissions',
     href: '/admin/families',
     description: 'Household linking, multi-child parent directories, sibling concession links.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
   },
 
@@ -285,7 +285,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Parent & Community Services',
     href: '/admin/campaigns',
     description: 'Omnichannel SMS, WhatsApp, and email circular dispatches to parent cohorts.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_export']
   },
   {
@@ -294,7 +294,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Parent & Community Services',
     href: '/admin/consent',
     description: 'Excursion permissions, medical consent, and e-signatures.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
     supportsActions: ['can_view', 'can_create', 'can_export']
   },
   {
@@ -303,7 +303,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Parent & Community Services',
     href: '/admin/ptm',
     description: 'Parent-Teacher meeting scheduling, slot selection, and feedback logs.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit']
   },
   {
@@ -312,7 +312,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Parent & Community Services',
     href: '/admin/grievances',
     description: 'Ticketing system for parent concerns, SLA tracking, and resolution history.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
     supportsActions: ['can_view', 'can_create', 'can_edit']
   },
   {
@@ -321,7 +321,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     category: 'Parent & Community Services',
     href: '/admin/early-departure',
     description: 'Gate security clearance QR codes for early student pickups.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'],
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
     supportsActions: ['can_view', 'can_create']
   },
   {
