@@ -1,44 +1,8 @@
-"use client";
+const fs = require('fs');
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import {
-  Building2, Calendar, Search, Bell, User,
-  ChevronDown, ShieldCheck, Check, Sparkles, Globe
-} from 'lucide-react';
-import { VANI_TRUST_INSTITUTIONS, VANI_TRUST_ORGANIZATION } from '@/lib/core/institution/trust-hierarchy';
-import { useInstitution } from '@/components/providers/InstitutionContext';
-import { NotificationCenter } from '@/components/layout/NotificationCenter';
+let code = fs.readFileSync('/Users/vaani/Desktop/crayon box/web/src/components/layout/HeaderShell.tsx', 'utf8');
 
-export interface HeaderShellProps {
-  onOpenSearch: () => void;
-}
-
-export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
-  const {
-    currentInstitution,
-    setInstitution,
-    selectedInstitutionObj,
-    currentSession,
-    setSession,
-    currentRole,
-    setRole,
-  } = useInstitution();
-
-  const [isInstOpen, setIsInstOpen] = useState(false);
-  const [isSessionOpen, setIsSessionOpen] = useState(false);
-  const [isRoleOpen, setIsRoleOpen] = useState(false);
-
-  const sessions = ['2026–2027 (Active)', '2025–2026 (Archived)'];
-  const roles = [
-    { label: 'Super Admin', value: 'SUPER_ADMIN' },
-    { label: 'Principal', value: 'PRINCIPAL' },
-    { label: 'Teacher', value: 'TEACHER' },
-    { label: 'Accounts Officer', value: 'ACCOUNTS' },
-    { label: 'Parent', value: 'PARENT' },
-  ];
-
-  return (
+const newReturn = `return (
     <div className="flex flex-col bg-slate-50 border-b border-slate-200/50 px-6 pt-5 pb-4 font-sans shrink-0 relative z-30">
       
       {/* Top Row: User Greeting & Profile */}
@@ -105,7 +69,7 @@ export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
             <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
               <button
                 onClick={() => { setInstitution('ALL'); setIsInstOpen(false); }}
-                className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                className={\`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between \${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}\`}
               >
                 <span>Trust HQ (All)</span>
                 {currentInstitution === 'ALL' && <Check className="w-4 h-4" />}
@@ -114,7 +78,7 @@ export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
                 <button
                   key={inst.code}
                   onClick={() => { setInstitution(inst.code); setIsInstOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                  className={\`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between \${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}\`}
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: inst.brandColor }} />
@@ -146,7 +110,7 @@ export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
                 <button
                   key={s}
                   onClick={() => { setSession(s); setIsSessionOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                  className={\`w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 flex items-center justify-between \${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}\`}
                 >
                   <span>{s.split(' ')[0]}</span>
                   {currentSession === s && <Check className="w-4 h-4" />}
@@ -158,4 +122,8 @@ export function HeaderShell({ onOpenSearch }: HeaderShellProps) {
       </div>
     </div>
   );
-}
+}`;
+
+code = code.replace(/return \([\s\S]*?\);\n\}/m, newReturn + '\n}');
+
+fs.writeFileSync('/Users/vaani/Desktop/crayon box/web/src/components/layout/HeaderShell.tsx', code);
