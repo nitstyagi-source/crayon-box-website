@@ -160,7 +160,36 @@ export async function GET(request: Request) {
       { id: 'APP-03', type: 'Robotics Lab Equipment', requester: 'Physics Dept (Mr. Arvind Gupta)', details: 'Arduino sensor kits purchase', status: 'PENDING', date: '2026-08-20' }
     ];
 
-    // 6. Real-time Attendance & KPI Summary
+    // 6. Real Institutions and Trust Hierarchy
+    const [instsRes, trustRes] = await Promise.all([
+      pool.query(`
+        SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
+               academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
+               affiliation_number as "affiliationNumber", principal_name as "principalName",
+               principal_email as "principalEmail", brand_color as "brandColor", address, status
+        FROM public.institutions
+        ORDER BY created_at ASC;
+      `).catch(() => ({ rows: [] })),
+      pool.query(`SELECT * FROM public.trusts ORDER BY created_at ASC LIMIT 1;`).catch(() => ({ rows: [] }))
+    ]);
+
+    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
+      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
+    ];
+
+    const trustInfo = trustRes.rows[0] || {
+      name: 'Vani Educational Trust',
+      registration_number: 'VET/REG/2012/DEL-8891',
+      headquarters: 'Sector 62, Institutional Area, Noida, UP',
+      contact_email: 'governance@vanitrust.edu.in',
+      contact_phone: '+91 120 4567890',
+      website: 'https://vanitrust.edu.in'
+    };
+
+    // 7. Real-time Attendance & KPI Summary
     const [attTotal, attPresent] = await Promise.all([
       pool.query(`SELECT COUNT(*) FROM public.student_attendance_records WHERE date = CURRENT_DATE;`),
       pool.query(`SELECT COUNT(*) FROM public.student_attendance_records WHERE date = CURRENT_DATE AND status = 'Present';`)
@@ -171,7 +200,7 @@ export async function GET(request: Request) {
     const attPct = totalRecords > 0 ? ((presentRecords / totalRecords) * 100).toFixed(1) : "96.4";
 
     const syncPayload = {
-      appName: "Vaani",
+      appName: "Vani",
       appVersion: "2.1.0",
       serverTimestamp: new Date().toISOString(),
       status: 'synchronized',
@@ -180,6 +209,8 @@ export async function GET(request: Request) {
         role,
         activeChildId: childId || studentFees.studentId
       },
+      institutions,
+      trust: trustInfo,
       syncModules: {
         kpiOverview: {
           totalRevenueCollected: '₹34,80,000',

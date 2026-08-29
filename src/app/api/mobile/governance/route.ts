@@ -69,11 +69,30 @@ export async function GET(request: NextRequest) {
       { id: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + CBSE Hybrid Academic Framework", quorum: "4/5 Present", status: "ENACTED" }
     ];
 
+    const [instsRes] = await Promise.all([
+      pool.query(`
+        SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
+               academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
+               affiliation_number as "affiliationNumber", principal_name as "principalName",
+               principal_email as "principalEmail", brand_color as "brandColor", address, status
+        FROM public.institutions
+        ORDER BY created_at ASC;
+      `).catch(() => ({ rows: [] }))
+    ]);
+
+    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
+      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
+    ];
+
     return NextResponse.json({
       success: true,
       data: {
         trust,
         overview,
+        institutions,
         complianceAudit,
         budgetAllocations,
         boardResolutions

@@ -16,31 +16,49 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Fetch Classes & Sections
     const classesRes = await pool.query(
-      "SELECT * FROM public.classes ORDER BY id ASC LIMIT 50;"
+      `SELECT id, grade, section, room_number as room_no, COALESCE(capacity, 35) as capacity 
+       FROM public.classes 
+       ORDER BY created_at ASC;`
     ).catch(() => ({ rows: [] }));
 
-    // 2. Fetch User Account Role Counts
+    // 2. Fetch Institutions
+    const instsRes = await pool.query(
+      `SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
+              academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
+              affiliation_number as "affiliationNumber", principal_name as "principalName",
+              principal_email as "principalEmail", brand_color as "brandColor", address, status
+       FROM public.institutions
+       ORDER BY created_at ASC;`
+    ).catch(() => ({ rows: [] }));
+
+    // 3. Fetch User Account Role Counts
     const usersCountRes = await pool.query(
       `SELECT role, count(*) as count 
        FROM public.user_accounts 
        GROUP BY role;`
     ).catch(() => ({ rows: [] }));
 
-    // 3. Fallback / Defaults
     const classes = classesRes.rows.length > 0 ? classesRes.rows : [
-      { id: 'cls-1', grade: 'Nursery', section: 'A', room_no: 'R-101', capacity: 25 },
-      { id: 'cls-2', grade: 'LKG', section: 'A', room_no: 'R-102', capacity: 30 },
-      { id: 'cls-3', grade: 'UKG', section: 'A', room_no: 'R-103', capacity: 30 },
-      { id: 'cls-4', grade: 'Grade 1', section: 'A', room_no: 'R-201', capacity: 35 },
-      { id: 'cls-5', grade: 'Grade 2', section: 'A', room_no: 'R-202', capacity: 35 },
-      { id: 'cls-6', grade: 'Grade 3', section: 'A', room_no: 'R-203', capacity: 35 },
-      { id: 'cls-7', grade: 'Grade 4', section: 'A', room_no: 'R-204', capacity: 35 },
-      { id: 'cls-8', grade: 'Grade 5', section: 'A', room_no: 'R-301', capacity: 35 },
-      { id: 'cls-9', grade: 'Grade 6', section: 'A', room_no: 'R-302', capacity: 35 },
-      { id: 'cls-10', grade: 'Grade 7', section: 'A', room_no: 'R-303', capacity: 35 },
-      { id: 'cls-11', grade: 'Grade 8', section: 'A', room_no: 'R-304', capacity: 35 },
-      { id: 'cls-12', grade: 'Grade 9', section: 'A', room_no: 'R-401', capacity: 40 },
-      { id: 'cls-13', grade: 'Grade 10', section: 'A', room_no: 'R-402', capacity: 40 }
+      { id: 'cls-1', grade: 'Pre-Nursery', section: 'A', room_no: 'Early Years Wing 101', capacity: 25 },
+      { id: 'cls-2', grade: 'Nursery', section: 'A', room_no: 'Early Years Wing 102', capacity: 25 },
+      { id: 'cls-3', grade: 'KG', section: 'A', room_no: 'Early Years Wing 103', capacity: 30 },
+      { id: 'cls-4', grade: 'Class 1', section: 'A', room_no: 'Junior Wing 201', capacity: 35 },
+      { id: 'cls-5', grade: 'Class 2', section: 'A', room_no: 'Junior Wing 202', capacity: 35 },
+      { id: 'cls-6', grade: 'Class 3', section: 'A', room_no: 'Junior Wing 203', capacity: 35 },
+      { id: 'cls-7', grade: 'Class 4', section: 'A', room_no: 'Middle Wing 301', capacity: 35 },
+      { id: 'cls-8', grade: 'Class 5', section: 'A', room_no: 'Middle Wing 302', capacity: 35 },
+      { id: 'cls-9', grade: 'Class 6', section: 'A', room_no: 'Middle Wing 303', capacity: 40 },
+      { id: 'cls-10', grade: 'Class 7', section: 'A', room_no: 'Senior Wing 401', capacity: 40 },
+      { id: 'cls-11', grade: 'Class 8', section: 'A', room_no: 'Senior Wing 402', capacity: 40 },
+      { id: 'cls-12', grade: 'Class 9', section: 'A', room_no: 'Senior Wing 403', capacity: 40 },
+      { id: 'cls-13', grade: 'Class 10', section: 'A', room_no: 'Senior Wing 404', capacity: 40 }
+    ];
+
+    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
+      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
     ];
 
     const departments = [
@@ -92,6 +110,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        institutions,
         classes,
         departments,
         academicSessions,
