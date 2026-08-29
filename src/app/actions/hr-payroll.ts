@@ -36,7 +36,7 @@ export async function getHrDashboardStats(campusId?: string) {
       .select("*")
       .eq("campus_id", resolvedCampusId);
 
-    const totalStaff = staffList?.length || 86;
+    const totalStaff = staffList?.length ?? 0;
 
     return {
       success: true,

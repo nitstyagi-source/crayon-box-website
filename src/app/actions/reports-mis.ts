@@ -51,7 +51,7 @@ export async function getExecutiveMisDashboard(campusId?: string) {
           totalStudents: 1248,
           studentsPresent: 1185,
           attendancePct: "95.0%",
-          feeCollection: todayTotal || 801950,
+          feeCollection: todayTotal ?? 0,
           expenses: 124500,
           openComplaints: 17,
           busesRunning: "24 / 25"

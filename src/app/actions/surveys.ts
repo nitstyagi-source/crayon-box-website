@@ -57,7 +57,7 @@ export async function getSurveyDashboardStats(campusId?: string) {
         draftForms: drafts || 2,
         scheduledForms: 1,
         closedForms: closed || 8,
-        totalResponses: allResp.length || 648,
+        totalResponses: allResp.length ?? 0,
         responseRate: "86.4%",
         pendingResponses: 102,
         averageRating: "4.7 / 5.0",

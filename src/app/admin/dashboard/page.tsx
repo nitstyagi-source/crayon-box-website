@@ -407,11 +407,11 @@ export default function AdminDashboard() {
               <Users className="w-4 h-4 text-indigo-600" />
             </div>
             <span className="text-3xl font-black text-slate-900 mt-2 block">
-              {metrics?.totalStudents || 220}
+              {metrics?.totalStudents ?? 0}
             </span>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Boys: <strong>{metrics?.maleCount || 115}</strong> • Girls: <strong>{metrics?.femaleCount || 105}</strong></span>
+            <span>Boys: <strong>{metrics?.maleCount ?? 0}</strong> • Girls: <strong>{metrics?.femaleCount ?? 0}</strong></span>
             <Link href="/admin/students" className="text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
               Roster <ArrowRight className="w-3 h-3" />
             </Link>
@@ -426,11 +426,11 @@ export default function AdminDashboard() {
               <UserCheck className="w-4 h-4 text-emerald-600" />
             </div>
             <span className="text-3xl font-black text-slate-900 mt-2 block">
-              {metrics?.totalStaff || 110}
+              {metrics?.totalStaff ?? 0}
             </span>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Teachers: <strong>{metrics?.teachingFaculty || 78}</strong> • Admin: <strong>{metrics?.adminStaff || 32}</strong></span>
+            <span>Teachers: <strong>{metrics?.teachingFaculty ?? 0}</strong> • Admin: <strong>{metrics?.adminStaff ?? 0}</strong></span>
             <Link href="/admin/faculty" className="text-emerald-600 font-bold hover:underline flex items-center gap-0.5">
               Staff <ArrowRight className="w-3 h-3" />
             </Link>
@@ -445,11 +445,11 @@ export default function AdminDashboard() {
               <IndianRupee className="w-4 h-4 text-amber-600" />
             </div>
             <span className="text-3xl font-black text-slate-900 mt-2 block">
-              ₹{(metrics?.totalInvoicedDemand || 4844500).toLocaleString('en-IN')}
+              ₹{(metrics?.totalInvoicedDemand ?? 0).toLocaleString('en-IN')}
             </span>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Sibling Grants: <strong>₹{(metrics?.totalSiblingConcessions || 104400).toLocaleString('en-IN')}</strong></span>
+            <span>Sibling Grants: <strong>₹{(metrics?.totalSiblingConcessions ?? 0).toLocaleString('en-IN')}</strong></span>
             <Link href="/admin/finance/structure" className="text-amber-600 font-bold hover:underline flex items-center gap-0.5">
               Finance <ArrowRight className="w-3 h-3" />
             </Link>
@@ -709,11 +709,11 @@ export default function AdminDashboard() {
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Scheduled Periods:</span>
-              <strong className="text-slate-900">{metrics?.timetableSlots || 836} Slots</strong>
+              <strong className="text-slate-900">{metrics?.timetableSlots ?? 0} Slots</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Active Proxy Coverage:</span>
-              <strong className="text-emerald-700 font-bold">{metrics?.activeSubstitutions || 2} Assigned</strong>
+              <strong className="text-emerald-700 font-bold">{metrics?.activeSubstitutions ?? 0} Assigned</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Conflict Collision Rate:</span>
@@ -734,18 +734,18 @@ export default function AdminDashboard() {
               <h3 className="font-extrabold text-slate-900 text-sm">Transport GPS Radar</h3>
             </div>
             <span className="text-[10px] font-black uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-200">
-              {metrics?.activeInTransit || 2} Active On Road
+              {metrics?.activeInTransit ?? 0} Active On Road
             </span>
           </div>
 
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">GPS Fleet Vehicles:</span>
-              <strong className="text-slate-900">{metrics?.totalFleet || 5} Buses</strong>
+              <strong className="text-slate-900">{metrics?.totalFleet ?? 0} Buses</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Daily Bus Commuters:</span>
-              <strong className="text-slate-900">{metrics?.busCommuters || 84} Students</strong>
+              <strong className="text-slate-900">{metrics?.busCommuters ?? 0} Students</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">QR Boarding Telematics:</span>
@@ -773,15 +773,15 @@ export default function AdminDashboard() {
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Total Logged Incidents:</span>
-              <strong className="text-slate-900">{metrics?.totalIncidents || 6} Cases</strong>
+              <strong className="text-slate-900">{metrics?.totalIncidents ?? 0} Cases</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Open Under Review:</span>
-              <strong className="text-amber-700 font-bold">{metrics?.openIncidentCases || 1} Case</strong>
+              <strong className="text-amber-700 font-bold">{metrics?.openIncidentCases ?? 0} Case</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Confidential Safeguarding Vault:</span>
-              <strong className="text-rose-700 font-bold">{metrics?.pocsoCases || 1} Restricted</strong>
+              <strong className="text-rose-700 font-bold">{metrics?.pocsoCases ?? 0} Restricted</strong>
             </div>
           </div>
 

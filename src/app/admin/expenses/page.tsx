@@ -254,28 +254,28 @@ export default function ExpensesManagerPage() {
         <div className="bg-white p-4 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <span className="text-[10px] text-stone-400 font-bold uppercase block">Today&apos;s Expense</span>
           <strong className="text-xl font-black text-stone-900 block">
-            ₹ {(dashboardStats?.todaysExpense || 35500).toLocaleString("en-IN")}
+            ₹ {(dashboardStats?.todaysExpense ?? 0).toLocaleString("en-IN")}
           </strong>
         </div>
 
         <div className="bg-purple-50/60 p-4 rounded-3xl border border-purple-200 shadow-xs space-y-1">
           <span className="text-[10px] text-purple-800 font-bold uppercase block">This Month&apos;s Total</span>
           <strong className="text-xl font-black text-purple-950 block">
-            ₹ {(dashboardStats?.thisMonthExpense || 845000).toLocaleString("en-IN")}
+            ₹ {(dashboardStats?.thisMonthExpense ?? 0).toLocaleString("en-IN")}
           </strong>
         </div>
 
         <div className="bg-amber-50/60 p-4 rounded-3xl border border-amber-200 shadow-xs space-y-1">
           <span className="text-[10px] text-amber-800 font-bold uppercase block">Pending Approval</span>
           <strong className="text-xl font-black text-amber-950 block">
-            ₹ {(dashboardStats?.pendingApproval || 125000).toLocaleString("en-IN")}
+            ₹ {(dashboardStats?.pendingApproval ?? 0).toLocaleString("en-IN")}
           </strong>
         </div>
 
         <div className="bg-blue-50/60 p-4 rounded-3xl border border-blue-200 shadow-xs space-y-1">
           <span className="text-[10px] text-blue-800 font-bold uppercase block">Pending Payment</span>
           <strong className="text-xl font-black text-blue-950 block">
-            ₹ {(dashboardStats?.pendingPayment || 65000).toLocaleString("en-IN")}
+            ₹ {(dashboardStats?.pendingPayment ?? 0).toLocaleString("en-IN")}
           </strong>
         </div>
       </div>

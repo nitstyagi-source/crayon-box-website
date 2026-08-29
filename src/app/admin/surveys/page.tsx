@@ -187,7 +187,7 @@ export default function SurveysManagementPage() {
 
         <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[10px] text-stone-400 font-bold uppercase block">Total Responses</span>
-          <strong className="text-xl font-black text-stone-900 mt-0.5 block">{dashboardStats?.totalResponses || 648}</strong>
+          <strong className="text-xl font-black text-stone-900 mt-0.5 block">{dashboardStats?.totalResponses ?? 0}</strong>
           <span className="text-[10px] text-emerald-700 font-bold">86.4% Response Rate</span>
         </div>
 

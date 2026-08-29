@@ -89,43 +89,43 @@ export default function MasterDataArchitectureHub() {
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 text-xs">
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Student Master</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalStudents || 1248}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalStudents ?? 0}</strong>
           <span className="text-[9px] text-purple-700 font-bold">Central SIS</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Parent Master</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalParents || 1085}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalParents ?? 0}</strong>
           <span className="text-[9px] text-emerald-700 font-bold">Multi-Child Switch</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Employee Master</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalStaff || 86}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalStaff ?? 0}</strong>
           <span className="text-[9px] text-indigo-700 font-bold">Faculty &amp; Staff</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Class &amp; Section</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalClasses || 28}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalClasses ?? 0}</strong>
           <span className="text-[9px] text-stone-600 font-medium">Session 2026-27</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Subject Master</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalSubjects || 34}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalSubjects ?? 0}</strong>
           <span className="text-[9px] text-stone-600 font-medium">Curriculum Codes</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Fleet &amp; Routes</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalBuses || 25}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalBuses ?? 0}</strong>
           <span className="text-[9px] text-amber-700 font-bold">GPS Linked</span>
         </div>
 
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-xs">
           <span className="text-[9px] text-stone-400 font-bold uppercase block">Library Master</span>
-          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalLibraryCopies || 3420}</strong>
+          <strong className="text-base font-black text-stone-900 mt-0.5 block">{archStats?.totalLibraryCopies ?? 0}</strong>
           <span className="text-[9px] text-stone-600 font-medium">Accession Copies</span>
         </div>
 

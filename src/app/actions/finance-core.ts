@@ -785,8 +785,8 @@ export async function getFinanceExecutiveMetrics(institutionCode: string) {
         totalConcessions,
         totalRefunds,
         totalReceiptsCount: activeReceipts.length,
-        totalStudents: studentCount || 303,
-        defaultersCount: Math.max(0, (studentCount || 303) - activeReceipts.length),
+        totalStudents: studentCount ?? 0,
+        defaultersCount: Math.max(0, (studentCount ?? 0) - activeReceipts.length),
         modesSplit: {
           cash: cashCollection,
           upi: upiCollection,

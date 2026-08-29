@@ -63,7 +63,7 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
     ]);
 
     const totalTitles = Number(booksRes.rows[0]?.total_titles || 5);
-    const totalVolumes = Number(booksRes.rows[0]?.total_volumes || 33);
+    const totalVolumes = Number(booksRes.rows[0]?.total_volumes ?? 0);
 
     const copiesMap: Record<string, number> = {};
     copiesRes.rows.forEach((r: any) => {
@@ -76,7 +76,7 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
     const overdue = Number(txMetrics.overdue_loans || copiesMap['Overdue'] || 2);
     const lostDamaged = Number((copiesMap['Damaged'] || 0) + (copiesMap['Lost'] || 0));
     const reserved = Number(resRes.rows[0]?.active_reservations || 1);
-    const pendingFines = Number(txMetrics.pending_fines || 240);
+    const pendingFines = Number(txMetrics.pending_fines ?? 0);
     const collectedFines = Number(txMetrics.collected_fines || 0);
 
     return {

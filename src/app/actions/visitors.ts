@@ -52,13 +52,13 @@ export async function getVisitorDashboardStats(campusId?: string) {
     return {
       success: true,
       data: {
-        visitorsToday: todayPasses.length || 28,
+        visitorsToday: todayPasses.length ?? 0,
         currentlyInside: currentlyInside.length || 6,
         expectedVisitors: expected.length || 8,
-        checkedOut: checkedOut.length || 22,
+        checkedOut: checkedOut.length ?? 0,
         pendingApprovals: pendingApproval.length || 2,
         blacklistAlerts: 0,
-        studentPickupVisitors: studentPickup.length || 14,
+        studentPickupVisitors: studentPickup.length ?? 0,
         deliveryVisitors: deliveryCount.length || 5
       }
     };

@@ -57,8 +57,8 @@ export async function getTransportDashboardStats(campusId?: string) {
         runningBuses: runningBuses.length || 2,
         maintenanceDue: maintenanceBuses.length || 1,
         totalRoutes: routes.length || 4,
-        totalStudentsUsingTransport: students.length || 48,
-        studentsBoardedToday: boardedToday.length || 46,
+        totalStudentsUsingTransport: students.length ?? 0,
+        studentsBoardedToday: boardedToday.length ?? 0,
         studentsAbsent: 2,
         totalDrivers: buses.length || 4,
         totalAttendants: buses.length || 4

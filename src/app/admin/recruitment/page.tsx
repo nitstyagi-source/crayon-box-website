@@ -369,7 +369,7 @@ export default function RecruitmentPortalPage() {
                         <span className="text-[10px] text-stone-400 font-mono">{v.jobCode} • {v.classes}</span>
                       </td>
                       <td className="p-3 text-stone-600 font-medium">{v.department}</td>
-                      <td className="p-3 text-center font-black text-blue-900">{v.totalApplications || 28}</td>
+                      <td className="p-3 text-center font-black text-blue-900">{v.totalApplications ?? 0}</td>
                       <td className="p-3 text-center font-bold text-purple-900">{v.shortlisted || 8}</td>
                       <td className="p-3 text-center font-bold text-emerald-800">{v.selected || 1}</td>
                       <td className="p-3 text-right">

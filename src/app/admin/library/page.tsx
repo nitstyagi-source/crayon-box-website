@@ -330,7 +330,7 @@ export default function LibraryManagementPage() {
         <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Volumes</span>
           <span className="text-2xl font-black text-slate-900 mt-1 block">
-            {dashboardStats?.totalCopies || accessions.length || 33}
+            {dashboardStats?.totalCopies ?? accessions.length ?? 0}
           </span>
           <span className="text-[11px] text-slate-500 font-semibold">Physical Copies</span>
         </div>
@@ -338,7 +338,7 @@ export default function LibraryManagementPage() {
         <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available</span>
           <span className="text-2xl font-black text-emerald-600 mt-1 block">
-            {dashboardStats?.available || 24}
+            {dashboardStats?.available ?? 0}
           </span>
           <span className="text-[11px] text-emerald-700 font-bold">Ready on Stacks</span>
         </div>
@@ -362,7 +362,7 @@ export default function LibraryManagementPage() {
         <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Fines</span>
           <span className="text-2xl font-black text-slate-900 mt-1 block font-mono">
-            ₹{dashboardStats?.pendingFines || 240}
+            ₹{dashboardStats?.pendingFines ?? 0}
           </span>
           <span className="text-[11px] text-slate-500 font-semibold">Late Recovery</span>
         </div>
@@ -689,7 +689,7 @@ export default function LibraryManagementPage() {
             <div className="text-right">
               <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Overdue Fines</span>
               <strong className="text-lg font-black text-rose-700 font-mono">
-                ₹{dashboardStats?.pendingFines || 240}
+                ₹{dashboardStats?.pendingFines ?? 0}
               </strong>
             </div>
           </div>

@@ -55,13 +55,13 @@ export async function getHelpdeskDashboardStats(campusId?: string) {
     return {
       success: true,
       data: {
-        newTickets: newCount || 12,
-        inProgress: inProgressCount || 18,
+        newTickets: newCount ?? 0,
+        inProgress: inProgressCount ?? 0,
         pending: pendingCount || 7,
-        resolved: resolvedCount || 25,
+        resolved: resolvedCount ?? 0,
         critical: criticalCount || 1,
         slaBreached: slaBreachedCount || 2,
-        totalTickets: all.length || 63,
+        totalTickets: all.length ?? 0,
         categoryBreakdown: categoryMap
       }
     };

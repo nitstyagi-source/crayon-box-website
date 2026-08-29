@@ -42,13 +42,13 @@ export async function getMasterArchitectureStats(campusId?: string) {
     return {
       success: true,
       data: {
-        totalStudents: studentsRes.count || 1248,
+        totalStudents: studentsRes.count ?? 0,
         totalParents: 1085,
-        totalStaff: staffRes.count || 86,
-        totalClasses: classesRes.count || 28,
+        totalStaff: staffRes.count ?? 0,
+        totalClasses: classesRes.count ?? 0,
         totalSubjects: 34,
-        totalBuses: busesRes.count || 25,
-        totalLibraryCopies: booksRes.count || 3420,
+        totalBuses: busesRes.count ?? 0,
+        totalLibraryCopies: booksRes.count ?? 0,
         activeFeeHeads: 8,
         syncHealth: "100% Synchronized (Zero Orphaned Records)",
         lastSyncTimestamp: new Date().toISOString()
