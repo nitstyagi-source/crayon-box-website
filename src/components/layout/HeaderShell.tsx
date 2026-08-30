@@ -108,26 +108,26 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
   return (
     <>
-      <div className="flex flex-col bg-white border-b border-slate-200/80 px-4 sm:px-6 pt-4 pb-3 sm:pt-5 sm:pb-4 font-sans shrink-0 relative z-30 shadow-xs">
+      <div className="flex flex-col bg-white border-b border-slate-200/80 px-3 sm:px-5 py-2 sm:py-2.5 font-sans shrink-0 relative z-30 shadow-xs">
         
         {/* Top Row: Mobile Menu Button + User Greeting & Active School Profile */}
-        <div className="flex items-center justify-between mb-3 sm:mb-4 w-full max-w-7xl mx-auto gap-3">
+        <div className="flex items-center justify-between mb-2 w-full max-w-7xl mx-auto gap-2.5">
           
           {/* Left: Mobile Menu Toggle + School Logo & Dynamic Identity */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             {/* Mobile Hamburger Button */}
             {onToggleMobileMenu && (
               <button
                 onClick={onToggleMobileMenu}
-                className="lg:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                className="lg:hidden p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
                 title="Open Navigation Menu"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4" />
               </button>
             )}
 
             {/* Active School Emblem */}
-            <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-white border-2 shadow-xs flex items-center justify-center overflow-hidden p-1 shrink-0"
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white border shadow-xs flex items-center justify-center overflow-hidden p-0.5 shrink-0"
                  style={{ borderColor: activeBrandColor }}>
                <img 
                  src={activeLogo} 
@@ -139,21 +139,21 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
             <div className="flex flex-col min-w-0">
                <div className="flex items-center gap-1.5 flex-wrap">
-                 <h1 className="text-[16px] sm:text-[19px] text-slate-900 font-black leading-tight truncate">
+                 <h1 className="text-xs sm:text-sm text-slate-900 font-extrabold leading-tight truncate">
                    {activeName}
                  </h1>
                  <span 
-                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase"
+                   className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase"
                    style={{ 
                      backgroundColor: `${activeBrandColor}15`, 
                      color: activeBrandColor 
                    }}
                  >
-                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: activeBrandColor }} />
+                   <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: activeBrandColor }} />
                    {isAllInstitutions ? 'TRUST HQ' : activeAffiliation}
                  </span>
                </div>
-               <p className="text-slate-500 text-[11px] sm:text-[12px] font-medium truncate mt-0.5">
+               <p className="text-slate-500 text-[10px] sm:text-[11px] font-medium truncate">
                  {isAllInstitutions 
                    ? 'Vani Educational Trust Central Governance • 4 Campuses' 
                    : `${selectedInstitutionObj?.address || 'Delhi NCR'} • Session 2026–2027`}
@@ -162,15 +162,15 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
           </div>
 
           {/* Right: Actions (Search, Notifications, Profile, Direct Logout) */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
              {/* Global Command Search */}
              {onOpenSearch && (
                <button 
                  onClick={onOpenSearch} 
-                 className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
+                 className="relative w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
                  title="Search (⌘K)"
                >
-                 <Search className="w-4 h-4" />
+                 <Search className="w-3.5 h-3.5" />
                </button>
              )}
 
@@ -178,9 +178,9 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
              <div className="relative">
                <button 
                  onClick={() => setIsProfileOpen(!isProfileOpen)}
-                 className="flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition cursor-pointer"
+                 className="flex items-center gap-1.5 p-1 sm:pr-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition cursor-pointer"
                >
-                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0A1A44] text-white flex items-center justify-center font-bold text-xs shadow-xs overflow-hidden">
+                 <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#0A1A44] text-white flex items-center justify-center font-bold text-[11px] shadow-xs overflow-hidden">
                    <img 
                      src="/nitin-tyagi.jpg" 
                      alt={userName} 
@@ -189,10 +189,10 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                    />
                  </div>
                  <div className="hidden md:flex flex-col text-left">
-                   <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">{userName}</span>
-                   <span className="text-[10px] font-medium text-slate-500">{currentRole.replace(/_/g, ' ')}</span>
+                   <span className="text-[11px] font-bold text-slate-800 leading-tight truncate max-w-[110px]">{userName}</span>
+                   <span className="text-[9px] font-medium text-slate-500 leading-tight">{currentRole.replace(/_/g, ' ')}</span>
                  </div>
-                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                 <ChevronDown className="w-3 h-3 text-slate-400" />
                </button>
 
                {isProfileOpen && (
@@ -242,41 +242,41 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
              <button
                onClick={handleLogout}
                disabled={isLoggingOut}
-               className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3.5 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-700 hover:bg-rose-100 text-xs font-bold transition shadow-2xs cursor-pointer"
+               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-700 hover:bg-rose-100 text-[11px] font-bold transition shadow-2xs cursor-pointer"
                title="Sign Out of ERP"
              >
-               <LogOut className="w-3.5 h-3.5 text-rose-600" />
-               <span className="hidden sm:inline">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+               <LogOut className="w-3 h-3 text-rose-600" />
+               <span className="hidden sm:inline">{isLoggingOut ? '...' : 'Logout'}</span>
              </button>
           </div>
         </div>
 
         {/* Bottom Row: Context Selectors (Switch Active Campus Instantly) */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-3 w-full max-w-7xl mx-auto">
           {/* School Dropdown */}
-          <div className="relative flex-1 sm:max-w-[320px]">
+          <div className="relative flex-1 sm:max-w-[280px]">
             <button
               onClick={() => setIsInstOpen(!isInstOpen)}
-              className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-800 shadow-2xs cursor-pointer"
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition text-[11px] font-bold text-slate-800 shadow-2xs cursor-pointer"
             >
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeBrandColor }} />
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: activeBrandColor }} />
                 <span className="truncate">{activeName}</span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
             </button>
             
             {isInstOpen && (
-              <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in">
+              <div className="absolute top-full left-0 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in">
                 <button
                   onClick={() => { setInstitution('ALL'); setIsInstOpen(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
+                  className={`w-full text-left px-3 py-2 text-[11px] font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === 'ALL' ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-indigo-600" />
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-600" />
                     <span>🏛️ Trust HQ (All Campuses)</span>
                   </div>
-                  {currentInstitution === 'ALL' && <Check className="w-4 h-4 text-indigo-600" />}
+                  {currentInstitution === 'ALL' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
                 </button>
 
                 <div className="my-1 border-t border-slate-100" />
@@ -285,9 +285,9 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                   <button
                     key={inst.code}
                     onClick={() => { setInstitution(inst.code); setIsInstOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
+                    className={`w-full text-left px-3 py-2 text-[11px] font-bold hover:bg-slate-50 flex items-center justify-between transition cursor-pointer ${currentInstitution === inst.code ? 'text-indigo-600 bg-indigo-50/60' : 'text-slate-700'}`}
                   >
-                    <div className="flex items-center gap-2.5 truncate">
+                    <div className="flex items-center gap-2 truncate">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: inst.brandColor || '#2563eb' }} />
                       <span className="truncate">{inst.name}</span>
                     </div>
@@ -299,28 +299,28 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
           </div>
 
           {/* Year Dropdown */}
-          <div className="relative sm:w-[160px]">
+          <div className="relative sm:w-[140px]">
             <button
               onClick={() => setIsSessionOpen(!isSessionOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition text-xs font-bold text-slate-700 shadow-2xs cursor-pointer"
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition text-[11px] font-bold text-slate-700 shadow-2xs cursor-pointer"
             >
-              <div className="flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                 <span>{currentSession.split(' ')[0]}</span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
             </button>
 
             {isSessionOpen && (
-              <div className="absolute top-full right-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+              <div className="absolute top-full right-0 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                 {sessions.map((s) => (
                   <button
                     key={s}
                     onClick={() => { setSession(s); setIsSessionOpen(false); }}
-                    className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between cursor-pointer ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-slate-50 flex items-center justify-between cursor-pointer ${currentSession === s ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
                   >
                     <span>{s.split(' ')[0]}</span>
-                    {currentSession === s && <Check className="w-4 h-4 text-indigo-600" />}
+                    {currentSession === s && <Check className="w-3.5 h-3.5 text-indigo-600" />}
                   </button>
                 ))}
               </div>
