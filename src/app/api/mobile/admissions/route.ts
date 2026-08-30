@@ -156,3 +156,60 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  const pool = getPool();
+  try {
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json({ success: false, error: "ID and status are required." }, { status: 400 });
+    }
+
+    const res = await pool.query(`
+      UPDATE public.admissions_applications
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `, [status, id]);
+
+    if (res.rows.length === 0) {
+      return NextResponse.json({ success: false, error: "Application not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: res.rows[0]
+    });
+  } catch (error: any) {
+    console.error("Error updating admission enquiry:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } finally {
+    await pool.end();
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const pool = getPool();
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "ID is required." }, { status: 400 });
+    }
+
+    await pool.query(`DELETE FROM public.admissions_applications WHERE id = $1;`, [id]);
+
+    return NextResponse.json({
+      success: true,
+      message: "Application deleted successfully."
+    });
+  } catch (error: any) {
+    console.error("Error deleting admission enquiry:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } finally {
+    await pool.end();
+  }
+}
+
