@@ -136,21 +136,35 @@ export async function getAdmissionsPerformanceAnalyticsAction(filters: Analytics
     }));
 
     // 7. Multi-Institution Benchmark from live data
-    const campusesRes = await client.query(`SELECT id, code, name FROM public.campuses;`);
-    const trustBenchmark = campusesRes.rows.map((c: any) => {
-      const cApps = liveApps.filter((a: any) => a.campus_id === c.id);
-      const cAdm = cApps.filter((a: any) => ['APPROVED', 'ENROLLED', 'ADMITTED'].includes((a.status || '').toUpperCase())).length;
-      return {
-        code: c.code || 'CAMPUS',
-        name: c.name || 'Campus',
-        enquiries: cApps.length,
-        applications: cApps.length,
-        admissions: cAdm,
-        conversion: cApps.length > 0 ? Number(((cAdm / cApps.length) * 100).toFixed(1)) : 0,
-        capacity: 100,
-        utilization: Number(((cAdm / 100) * 100).toFixed(1))
-      };
-    });
+    let trustBenchmark: any[] = [];
+    try {
+      const campusesRes = await client.query(`SELECT id, name FROM public.campuses;`);
+      trustBenchmark = campusesRes.rows.map((c: any) => {
+        const cApps = liveApps.filter((a: any) => a.campus_id === c.id);
+        const cAdm = cApps.filter((a: any) => ['APPROVED', 'ENROLLED', 'ADMITTED'].includes((a.status || '').toUpperCase())).length;
+        
+        let cCode = 'CAMPUS';
+        const n = (c.name || '').toLowerCase();
+        if (n.includes('pre school') || n.includes('cbps')) cCode = 'CBPS';
+        else if (n.includes('international') || n.includes('cbis')) cCode = 'CBIS';
+        else if (n.includes('crayon box')) cCode = 'CBS';
+        else if (n.includes('vidya mandir') || n.includes('avm')) cCode = 'AVM';
+        else if (n.includes('avinya')) cCode = 'AS';
+
+        return {
+          code: cCode,
+          name: c.name || 'Campus',
+          enquiries: cApps.length,
+          applications: cApps.length,
+          admissions: cAdm,
+          conversion: cApps.length > 0 ? Number(((cAdm / cApps.length) * 100).toFixed(1)) : 0,
+          capacity: 100,
+          utilization: Number(((cAdm / 100) * 100).toFixed(1))
+        };
+      });
+    } catch (e) {
+      console.error('Error fetching campuses benchmark:', e);
+    }
 
     // 8. Counsellor Scorecard (empty if no live assignments)
     const counsellorScorecard: any[] = [];

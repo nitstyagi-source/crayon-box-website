@@ -188,10 +188,10 @@ export default function AdmissionsAnalyticsCommandCenter() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.totalEnquiries}</span>
             <span className="text-[11px] font-black text-emerald-600 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.enquiries}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">vs 425 last session</span>
+          <span className="text-[10px] text-slate-400 block">Registered enquiries</span>
         </div>
 
         {/* Applications */}
@@ -200,10 +200,10 @@ export default function AdmissionsAnalyticsCommandCenter() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-blue-700 font-mono">{kpis.totalApplications}</span>
             <span className="text-[11px] font-black text-emerald-600 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.applications}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">vs 199 last session</span>
+          <span className="text-[10px] text-slate-400 block">{kpis.applicationRate}% app rate</span>
         </div>
 
         {/* Confirmed Admissions */}
@@ -212,10 +212,10 @@ export default function AdmissionsAnalyticsCommandCenter() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-emerald-950 font-mono">{kpis.totalAdmissions}</span>
             <span className="text-[11px] font-black text-emerald-700 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.admissions}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-emerald-700/80 font-bold block">vs 106 last session</span>
+          <span className="text-[10px] text-emerald-700/80 font-bold block">Confirmed enrolled</span>
         </div>
 
         {/* Conversion Rate */}
@@ -224,10 +224,10 @@ export default function AdmissionsAnalyticsCommandCenter() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.conversionRate}%</span>
             <span className="text-[11px] font-black text-emerald-600">
-              +{kpis.growth.conversionPp} pp
+              Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">Target benchmark: 25.0%</span>
+          <span className="text-[10px] text-slate-400 block">Enquiries to admissions</span>
         </div>
 
         {/* Application Rate */}
@@ -237,7 +237,7 @@ export default function AdmissionsAnalyticsCommandCenter() {
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.applicationRate}%</span>
             <span className="text-[10px] font-bold text-slate-400">Enq → App</span>
           </div>
-          <span className="text-[10px] text-slate-400 block">218 of 486 leads</span>
+          <span className="text-[10px] text-slate-400 block">{kpis.totalApplications} submitted</span>
         </div>
 
         {/* Lost Enquiries */}
@@ -245,11 +245,11 @@ export default function AdmissionsAnalyticsCommandCenter() {
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Lost Enquiries</span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-rose-700 font-mono">{kpis.lostEnquiries}</span>
-            <span className="text-[11px] font-black text-emerald-600">
-              {kpis.growth.lostDelta}% (Drop)
+            <span className="text-[11px] font-black text-slate-400">
+              Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">Reduced from 151</span>
+          <span className="text-[10px] text-slate-400 block">Inactive / Rejected</span>
         </div>
       </div>
 
