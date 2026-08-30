@@ -8,6 +8,14 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfa
 export const metadata: Metadata = {
   title: "Crayon Box School | Excellence in Education",
   description: "Nurturing curious minds and building future leaders through innovative education.",
+  icons: {
+    icon: [
+      { url: "/logo-transparent.png", type: "image/png" },
+      { url: "/favicon.ico" }
+    ],
+    shortcut: "/logo-transparent.png",
+    apple: "/logo-transparent.png",
+  },
 };
 
 export default function RootLayout({
