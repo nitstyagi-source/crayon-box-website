@@ -153,8 +153,14 @@ export default function AboutUs() {
                 <p>{cmsData.director?.p5 || "We consider it a profound privilege to partner with parents in this educational journey. Together, let us continue to shape resilient, compassionate minds and color the future with purpose and brilliance."}</p>
               </motion.div>
 
-              <motion.div variants={fadeUp}>
-                <Image src={cmsData.director?.signature_url || "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"} alt="Signature Placeholder" width={80} height={40} className="opacity-40 mb-2" />
+              <motion.div variants={fadeUp} className="pt-2">
+                {cmsData.director?.signature_url ? (
+                  <Image src={cmsData.director.signature_url} alt="Director Signature" width={120} height={48} className="opacity-80 mb-2" />
+                ) : (
+                  <div className="text-2xl font-serif italic text-primary/80 font-bold tracking-wider mb-2 select-none">
+                    Nitin Tyagi
+                  </div>
+                )}
                 <h4 className="font-bold text-xl text-stone-900 font-serif">{cmsData.director?.author_name || "Nitin Tyagi"}</h4>
                 <p className="text-secondary font-semibold text-sm tracking-widest uppercase">{cmsData.director?.author_role || "Director, Crayon Box School"}</p>
               </motion.div>
