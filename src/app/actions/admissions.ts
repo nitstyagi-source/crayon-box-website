@@ -609,11 +609,11 @@ export async function scheduleApplicantInterviewAction(
 }
 
 /**
- * Mark applicant document as verified or rejected.
+ * Mark applicant document as verified, rejected, or waived (proceed without documents).
  */
 export async function updateApplicantDocumentVerificationAction(
   applicationId: string, 
-  verificationStatus: 'VERIFIED' | 'PENDING' | 'REJECTED',
+  verificationStatus: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'WAIVED',
   remarks?: string
 ) {
   const pool = getPool();
@@ -625,7 +625,7 @@ export async function updateApplicantDocumentVerificationAction(
       UPDATE public.application_documents
       SET verification_status = $1
       WHERE application_id = $2;
-    `, [verificationStatus, applicationId]);
+    `, [verificationStatus === 'WAIVED' ? 'VERIFIED' : verificationStatus, applicationId]);
 
     // Also update co_curricular_kits JSON
     const cur = await client.query(`SELECT co_curricular_kits FROM public.admissions_applications WHERE id = $1;`, [applicationId]);
@@ -634,24 +634,29 @@ export async function updateApplicantDocumentVerificationAction(
       ...existingKits,
       document_verification: {
         status: verificationStatus,
-        remarks: remarks || '',
+        remarks: remarks || (verificationStatus === 'WAIVED' ? 'Proceeded without documents - physical verification scheduled later' : ''),
         verified_at: new Date().toISOString()
       }
     };
 
-    let nextStatus = verificationStatus === 'VERIFIED' ? 'VERIFICATION' : 'SUBMITTED';
+    let nextStatus = verificationStatus === 'VERIFIED' || verificationStatus === 'WAIVED' ? 'VERIFICATION' : 'SUBMITTED';
     await client.query(`
       UPDATE public.admissions_applications
-      SET co_curricular_kits = $1::jsonb, updated_at = NOW()
-      WHERE id = $2;
-    `, [JSON.stringify(updatedKits), applicationId]);
+      SET status = $1, co_curricular_kits = $2::jsonb, updated_at = NOW()
+      WHERE id = $3;
+    `, [nextStatus, JSON.stringify(updatedKits), applicationId]);
 
     client.release();
     safeRevalidate('/admin/admissions');
     safeRevalidate('/admin/admissions/pipeline');
     safeRevalidate('/admin/admissions/crm');
 
-    return { success: true, message: `Document marked as ${verificationStatus}` };
+    return { 
+      success: true, 
+      message: verificationStatus === 'WAIVED' 
+        ? 'Documents bypassed successfully. Candidate moved to Verification / Assessment.' 
+        : `Document marked as ${verificationStatus}` 
+    };
   } catch (error: any) {
     console.error('Error in updateApplicantDocumentVerificationAction:', error);
     return { success: false, error: error.message };

@@ -233,12 +233,16 @@ export default function AdmissionsCrmPage() {
     setIsUpdatingStatus(false);
   };
 
-  const handleDocumentVerify = async (status: 'VERIFIED' | 'PENDING' | 'REJECTED') => {
+  const handleDocumentVerify = async (status: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'WAIVED') => {
     if (!selectedApplicant) return;
     setIsUpdatingStatus(true);
     const res = await updateApplicantDocumentVerificationAction(selectedApplicant.id, status);
     if (res.success) {
-      showToast(`Document marked as ${status}`);
+      showToast(res.message || `Document marked as ${status}`);
+      setSelectedApplicant({
+        ...selectedApplicant,
+        status: status === 'VERIFIED' || status === 'WAIVED' ? 'VERIFICATION' : 'SUBMITTED'
+      });
       fetchApplications();
     }
     setIsUpdatingStatus(false);
@@ -555,11 +559,19 @@ export default function AdmissionsCrmPage() {
 
             {/* Document Vault Section */}
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3 text-xs">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <h4 className="font-black text-blue-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-blue-600" /> Uploaded Document Vault (Birth Certificate / Aadhaar)
                 </h4>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button 
+                    onClick={() => handleDocumentVerify('WAIVED')}
+                    disabled={isUpdatingStatus}
+                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
+                    title="Bypass document requirement and move directly to verification/assessment"
+                  >
+                    ⚡ Move Further Without Documents
+                  </button>
                   <button 
                     onClick={() => handleDocumentVerify('VERIFIED')}
                     disabled={isUpdatingStatus}
