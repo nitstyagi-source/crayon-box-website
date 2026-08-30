@@ -349,7 +349,7 @@ export async function getLiveStreamAdminDashboard(campusId?: string, institution
           totalCameras,
           onlineCameras,
           offlineCameras,
-          activeViewers: activeViewers > 0 ? activeViewers : 3,
+          activeViewers: activeViewers,
           captureAlertsCount,
           globalKillSwitchActive: settings?.global_kill_switch || false
         },
