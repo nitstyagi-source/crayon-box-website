@@ -180,8 +180,13 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                  onClick={() => setIsProfileOpen(!isProfileOpen)}
                  className="flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition cursor-pointer"
                >
-                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0A1A44] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                   {userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'SU'}
+                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0A1A44] text-white flex items-center justify-center font-bold text-xs shadow-xs overflow-hidden">
+                   <img 
+                     src="/nitin-tyagi.jpg" 
+                     alt={userName} 
+                     className="w-full h-full object-cover"
+                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                   />
                  </div>
                  <div className="hidden md:flex flex-col text-left">
                    <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">{userName}</span>

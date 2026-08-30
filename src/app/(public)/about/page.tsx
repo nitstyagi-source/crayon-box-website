@@ -129,9 +129,9 @@ export default function AboutUs() {
               viewport={{ once: true }}
               className="w-full lg:w-5/12"
             >
-              <div className="aspect-[3/4] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.15)]">
+              <div className="aspect-[3/4] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.15)] bg-slate-900">
                 <Image 
-                  src={cmsData.director?.image_url || "https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=1974&auto=format&fit=crop"} 
+                  src={cmsData.director?.image_url || "/nitin-tyagi.jpg"} 
                   alt="Nitin Tyagi, Director" 
                   fill sizes="(max-width: 768px) 100vw, 50vw" 
                   className="object-cover"
