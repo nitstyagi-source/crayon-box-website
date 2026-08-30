@@ -87,6 +87,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       items: [
         { name: 'Student Roster Directory', href: '/admin/students', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
         { name: 'Enquiries & Leads', href: '/admin/admissions', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Admissions Analytics', href: '/admin/admissions/analytics', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
         { name: 'Family 360° Household Master', href: '/admin/families', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'] },
       ],
     },
