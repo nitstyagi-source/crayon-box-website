@@ -168,95 +168,98 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
   };
 
   const sidebarContent = (
-    <aside className="w-60 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-xl rounded-r-2xl z-40">
+    <aside className="w-24 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-2xl rounded-r-2xl z-40 border-r border-white/10">
       
-      {/* Top Sidebar Header with Dynamic Active School Branding */}
-      <div className="px-3.5 py-2.5 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-white p-0.5 flex items-center justify-center shrink-0 shadow-xs">
-            <img 
-              src={activeLogo} 
-              alt="School Logo" 
-              className="w-full h-full object-contain" 
-              onError={(e) => { e.currentTarget.src = '/logo.png'; }}
-            />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] font-black tracking-tight text-white block truncate">
-              {activeSchoolName}
-            </span>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeBrandColor }} />
-              <span className="text-[9px] text-white/60 font-bold uppercase tracking-wider block truncate">
-                {isAllInstitutions ? 'TRUST HQ' : (selectedInstitutionObj?.code || 'CAMPUS')}
-              </span>
-            </div>
-          </div>
+      {/* Top Sidebar Header: Emblem on Top, Campus Badge Below */}
+      <div className="py-3 px-1.5 border-b border-white/10 flex flex-col items-center justify-center text-center">
+        <div className="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-md mb-1 border"
+             style={{ borderColor: activeBrandColor }}>
+          <img 
+            src={activeLogo} 
+            alt="School Logo" 
+            className="w-full h-full object-contain" 
+            onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+          />
         </div>
+        <span className="text-[9px] font-black text-white tracking-wider uppercase block truncate max-w-full px-1">
+          {isAllInstitutions ? 'TRUST HQ' : (selectedInstitutionObj?.code || 'CAMPUS')}
+        </span>
         
         {/* Mobile Close Button */}
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
+            className="lg:hidden mt-2 p-1 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {/* Nav List */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-4 custom-scrollbar">
+      {/* Nav List: Icon on Top, Name Below */}
+      <div className="flex-1 overflow-y-auto px-1.5 py-3 space-y-4 custom-scrollbar">
         {filteredGroups.map((group, idx) => (
-          <div key={idx} className="space-y-0.5">
-            <h4 className="px-2 text-[9px] font-extrabold uppercase tracking-wider text-white/40 mb-1">
-              {group.group}
-            </h4>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => { if (onCloseMobile) onCloseMobile(); }}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition ${
-                    isActive
-                      ? 'bg-white text-[#0A1A44] shadow-sm font-bold'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0A1A44]' : 'text-white/70 group-hover:text-white'}`} />
-                  <span className="truncate">{item.name}</span>
-                </Link>
-              );
-            })}
+          <div key={idx} className="space-y-1.5">
+            <div className="flex items-center justify-center px-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/40 text-center border-b border-white/10 pb-0.5 w-full">
+                {group.group.split(' ')[0]}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => { if (onCloseMobile) onCloseMobile(); }}
+                    title={item.name}
+                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition group ${
+                      isActive
+                        ? 'bg-white text-[#0A1A44] shadow-md'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 transition ${
+                      isActive 
+                        ? 'bg-[#0A1A44] text-white shadow-xs' 
+                        : 'bg-white/10 text-white group-hover:bg-white/20 group-hover:scale-105'
+                    }`}>
+                      <Icon className="w-4 h-4 shrink-0" />
+                    </div>
+                    <span className={`text-[9px] font-black leading-tight text-center px-0.5 ${isActive ? 'text-[#0A1A44]' : 'text-white/80 group-hover:text-white'}`}>
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Bottom User Area: Persona + Logout */}
-      <div className="p-2 border-t border-white/10 bg-transparent space-y-1.5">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/10 border border-white/10">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-          <div className="overflow-hidden">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-white/50 block leading-tight">
-              Active Persona
-            </span>
-            <span className="text-[11px] font-bold text-white truncate block leading-tight">
-              {roleLabelMap[currentRole] || currentRole}
-            </span>
-          </div>
+      {/* Bottom User Area: Icon on Top, Persona & Sign Out */}
+      <div className="p-1.5 border-t border-white/10 bg-transparent space-y-1.5 flex flex-col items-center">
+        <div className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-white/10 border border-white/10 text-center">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mb-0.5" />
+          <span className="text-[8px] font-extrabold uppercase tracking-wider text-white/50 block">
+            ROLE
+          </span>
+          <span className="text-[9px] font-black text-white truncate max-w-full block">
+            {currentRole.replace(/_/g, ' ')}
+          </span>
         </div>
 
         {/* Sidebar Logout Button */}
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-[11px] font-bold transition shadow-xs cursor-pointer"
+          title="Sign Out of ERP"
+          className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-[9px] font-black transition shadow-xs cursor-pointer"
         >
-          <LogOut className="w-3.5 h-3.5 text-rose-400" />
-          <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
+          <LogOut className="w-3.5 h-3.5 text-rose-400 mb-0.5" />
+          <span>{isLoggingOut ? '...' : 'Sign Out'}</span>
         </button>
       </div>
 
