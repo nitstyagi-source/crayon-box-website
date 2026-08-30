@@ -539,11 +539,11 @@ export default function AdminLiveStreamPage() {
           {/* School Differentiated Selector Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {[
-              { code: "ALL", label: "🏫 All Trust Schools (22 Cams)" },
-              { code: "CBS", label: "🎒 Crayon Box School (8 Cams)" },
-              { code: "CBPS", label: "🎨 Crayon Box Pre School (6 Cams)" },
-              { code: "AS", label: "🌱 Avinya School (4 Cams)" },
-              { code: "AVM", label: "🎓 Avinya Vidya Mandir (4 Cams)" },
+              { code: "ALL", label: "📺 All 16 DVR Channels (16 Cams)" },
+              { code: "CBS", label: "🎒 Crayon Box School (15 Cams)" },
+              { code: "CBPS", label: "🎨 Crayon Box Pre School (Camera #11)" },
+              { code: "AS", label: "🌱 Avinya School" },
+              { code: "AVM", label: "🎓 Avinya Vidya Mandir" },
             ].map((s) => {
               const isCurrent = (selectedSchoolFilter || "ALL") === s.code;
               return (
