@@ -19,13 +19,13 @@ export default async function AdmissionsExecutiveDashboard() {
   ]);
 
   const defaultKpis = {
-    totalEnquiries: 486,
-    totalApplications: 218,
-    totalAdmissions: 126,
-    conversionRate: 25.9,
-    applicationRate: 44.9,
-    lostEnquiries: 142,
-    growth: { enquiries: 14.3, applications: 9.5, admissions: 18.9, conversionPp: 1.0, lostDelta: -6.0 }
+    totalEnquiries: 0,
+    totalApplications: 0,
+    totalAdmissions: 0,
+    conversionRate: 0,
+    applicationRate: 0,
+    lostEnquiries: 0,
+    growth: { enquiries: 0, applications: 0, admissions: 0, conversionPp: 0, lostDelta: 0 }
   };
 
   const kpis = analytics && analytics.success && analytics.kpis ? analytics.kpis : defaultKpis;
@@ -83,10 +83,10 @@ export default async function AdmissionsExecutiveDashboard() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.totalEnquiries}</span>
             <span className="text-[11px] font-black text-emerald-600 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.enquiries}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">vs 425 in 2025-26</span>
+          <span className="text-[10px] text-slate-400 block">Registered inquiries</span>
         </div>
 
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
@@ -94,10 +94,10 @@ export default async function AdmissionsExecutiveDashboard() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-blue-700 font-mono">{kpis.totalApplications}</span>
             <span className="text-[11px] font-black text-emerald-600 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.applications}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">44.9% app rate</span>
+          <span className="text-[10px] text-slate-400 block">{kpis.applicationRate}% app rate</span>
         </div>
 
         <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-3xl border border-emerald-200 shadow-xs space-y-1.5">
@@ -105,10 +105,10 @@ export default async function AdmissionsExecutiveDashboard() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-emerald-950 font-mono">{kpis.totalAdmissions}</span>
             <span className="text-[11px] font-black text-emerald-700 flex items-center">
-              <TrendingUp className="w-3 h-3 mr-0.5" /> +{kpis.growth.admissions}%
+              <TrendingUp className="w-3 h-3 mr-0.5" /> Live
             </span>
           </div>
-          <span className="text-[10px] text-emerald-700/80 font-bold block">+18.9% YoY growth</span>
+          <span className="text-[10px] text-emerald-700/80 font-bold block">Confirmed enrolled</span>
         </div>
 
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
@@ -116,10 +116,10 @@ export default async function AdmissionsExecutiveDashboard() {
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.conversionRate}%</span>
             <span className="text-[11px] font-black text-emerald-600">
-              +{kpis.growth.conversionPp} pp
+              Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">Industry avg: 22.0%</span>
+          <span className="text-[10px] text-slate-400 block">Enquiries to admissions</span>
         </div>
 
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
@@ -128,18 +128,18 @@ export default async function AdmissionsExecutiveDashboard() {
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.applicationRate}%</span>
             <span className="text-[10px] font-bold text-slate-400">Enq → App</span>
           </div>
-          <span className="text-[10px] text-slate-400 block">218 submitted</span>
+          <span className="text-[10px] text-slate-400 block">{kpis.totalApplications} submitted</span>
         </div>
 
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Lost Enquiries</span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-black text-rose-700 font-mono">{kpis.lostEnquiries}</span>
-            <span className="text-[11px] font-black text-emerald-600">
-              {kpis.growth.lostDelta}%
+            <span className="text-[11px] font-black text-slate-400">
+              Live
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 block">Reduced friction</span>
+          <span className="text-[10px] text-slate-400 block">Inactive / Rejected</span>
         </div>
       </div>
 
