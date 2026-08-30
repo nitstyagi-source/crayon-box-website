@@ -160,26 +160,85 @@ export async function PATCH(request: NextRequest) {
   const pool = getPool();
   try {
     const body = await request.json();
-    const { id, status } = body;
+    const {
+      id,
+      status,
+      student_first_name,
+      student_last_name,
+      grade_applied,
+      parent_name,
+      parent_phone,
+      parent_email,
+      date_of_birth,
+      previous_school,
+      transport_required,
+    } = body;
 
-    if (!id || !status) {
-      return NextResponse.json({ success: false, error: "ID and status are required." }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Application ID is required." }, { status: 400 });
     }
 
-    const res = await pool.query(`
-      UPDATE public.admissions_applications
-      SET status = $1, updated_at = NOW()
-      WHERE id = $2
-      RETURNING *;
-    `, [status, id]);
-
-    if (res.rows.length === 0) {
+    // Get current record to merge kits
+    const cur = await pool.query(`SELECT * FROM public.admissions_applications WHERE id = $1;`, [id]);
+    if (cur.rows.length === 0) {
       return NextResponse.json({ success: false, error: "Application not found." }, { status: 404 });
     }
 
+    const currentApp = cur.rows[0];
+    const existingKits = typeof currentApp.co_curricular_kits === 'object' && currentApp.co_curricular_kits !== null ? currentApp.co_curricular_kits : {};
+
+    const updatedKits = {
+      ...existingKits,
+      parent_name: parent_name !== undefined ? parent_name : existingKits.parent_name,
+      parent_phone: parent_phone !== undefined ? parent_phone : existingKits.parent_phone,
+      parent_email: parent_email !== undefined ? parent_email : existingKits.parent_email,
+      last_edited_at: new Date().toISOString()
+    };
+
+    const newFirstName = student_first_name !== undefined ? student_first_name : currentApp.student_first_name;
+    const newLastName = student_last_name !== undefined ? student_last_name : currentApp.student_last_name;
+    const newGrade = grade_applied !== undefined ? grade_applied : currentApp.grade_applied;
+    const newDob = date_of_birth !== undefined ? date_of_birth : currentApp.date_of_birth;
+    const newPrevSchool = previous_school !== undefined ? previous_school : currentApp.previous_school;
+    const newTransport = transport_required !== undefined ? Boolean(transport_required) : currentApp.transport_required;
+    const newStatus = status !== undefined ? status : currentApp.status;
+
+    const res = await pool.query(`
+      UPDATE public.admissions_applications
+      SET 
+        student_first_name = $1,
+        student_last_name = $2,
+        grade_applied = $3,
+        date_of_birth = $4,
+        previous_school = $5,
+        transport_required = $6,
+        status = $7,
+        co_curricular_kits = $8::jsonb,
+        updated_at = NOW()
+      WHERE id = $9
+      RETURNING *;
+    `, [
+      newFirstName,
+      newLastName,
+      newGrade,
+      newDob,
+      newPrevSchool,
+      newTransport,
+      newStatus,
+      JSON.stringify(updatedKits),
+      id
+    ]);
+
+    const updatedRow = res.rows[0];
     return NextResponse.json({
       success: true,
-      data: res.rows[0]
+      data: {
+        ...updatedRow,
+        student_name: `${updatedRow.student_first_name} ${updatedRow.student_last_name || ''}`.trim(),
+        parent_name: updatedKits.parent_name,
+        parent_phone: updatedKits.parent_phone,
+        parent_email: updatedKits.parent_email,
+      }
     });
   } catch (error: any) {
     console.error("Error updating admission enquiry:", error);

@@ -44,7 +44,7 @@ export default function AdmissionsCrmPage() {
     gradeApplied: 'Class 1',
     dateOfBirth: '2020-04-15',
     parentName: '',
-    parentPhone: '',
+    parentPhone: '+91 ',
     parentEmail: '',
     previousSchool: '',
     transportRequired: false,
@@ -1163,15 +1163,20 @@ export default function AdmissionsCrmPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Parent Mobile Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g. +91 98110 55442"
-                    value={newEnquiryForm.parentPhone}
-                    onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, parentPhone: e.target.value })}
-                    className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                  />
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Parent Mobile Number (🇮🇳 Default) *</label>
+                  <div className="flex rounded-xl border border-stone-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                    <span className="bg-stone-100 text-stone-700 text-xs font-bold px-2.5 flex items-center border-r border-stone-200">
+                      🇮🇳
+                    </span>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98110 55442"
+                      value={newEnquiryForm.parentPhone}
+                      onChange={(e) => setNewEnquiryForm({ ...newEnquiryForm, parentPhone: e.target.value })}
+                      className="w-full text-xs px-3 py-2 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
               </div>
 
