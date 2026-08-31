@@ -1076,23 +1076,60 @@ export default function FacultyAdminDashboard() {
                     </div>
                   </div>
 
-                  {/* ERP Functional Role (IAM Permissions) */}
+                  {/* Multi-Select ERP Functional Roles (IAM Permissions) */}
                   <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-100 text-xs">
-                    <label className="font-bold text-blue-950 block mb-1 flex items-center justify-between">
-                      <span>ERP Role & Access Scope *</span>
-                      <span className="text-[10px] text-blue-600 font-medium">Governs permissions in ERP portal</span>
-                    </label>
-                    <select 
-                      value={formData.role} 
-                      onChange={e => setFormData({...formData, role: e.target.value})} 
-                      className="w-full border border-blue-200 bg-white p-2.5 rounded-xl font-bold text-blue-900 focus:border-blue-900 outline-none"
-                    >
-                      {ERP_ROLES_LIST.map((r) => (
-                        <option key={r.role} value={r.role}>
-                          {r.role} — {r.scope}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="font-bold text-blue-950 block">ERP Roles & Access Scopes (Select Multiple) *</span>
+                        <span className="text-[11px] text-blue-700">Check all roles that apply to grant combined ERP portal access permissions.</span>
+                      </div>
+                      <span className="bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        {((formData.role || "Teacher / Faculty").split(",").map((r: string) => r.trim()).filter(Boolean)).length} Selected
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-56 overflow-y-auto pr-1">
+                      {ERP_ROLES_LIST.map((r) => {
+                        const curRoles = (formData.role || "Teacher / Faculty").split(",").map((x: string) => x.trim()).filter(Boolean);
+                        const isChecked = curRoles.includes(r.role);
+                        return (
+                          <div
+                            key={r.role}
+                            onClick={() => {
+                              let updated = [...curRoles];
+                              if (updated.includes(r.role)) {
+                                if (updated.length > 1) {
+                                  updated = updated.filter((x: string) => x !== r.role);
+                                }
+                              } else {
+                                updated.push(r.role);
+                              }
+                              setFormData({ ...formData, role: updated.join(", ") });
+                            }}
+                            className={`flex items-start gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${
+                              isChecked
+                                ? "bg-white border-blue-500 shadow-sm ring-1 ring-blue-500/20"
+                                : "bg-white/60 border-stone-200/80 hover:bg-white hover:border-stone-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="mt-0.5 w-4 h-4 text-blue-600 rounded border-stone-300 focus:ring-blue-500 cursor-pointer pointer-events-none"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-bold text-xs ${isChecked ? "text-blue-950" : "text-stone-700"}`}>
+                                {r.role}
+                              </p>
+                              <p className="text-[10px] text-stone-500 line-clamp-1">
+                                {r.scope}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
