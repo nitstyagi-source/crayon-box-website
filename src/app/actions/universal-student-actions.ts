@@ -366,22 +366,22 @@ export async function getFilteredUniversalStudentsAction(filters: StudentFilterQ
     // Filter by Status
     if (filters.status === 'ACTIVE' || !filters.status) {
       // Strictly exclude transferred, archived, or inactive students from the active list
-      query += ` AND (s.status = 'ACTIVE' OR (s.status IS NULL AND (se.enrollment_status = 'ACTIVE' OR se.enrollment_status IS NULL)))
-                 AND (s.status NOT IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') OR s.status IS NULL)`;
+      query += ` AND (UPPER(TRIM(COALESCE(s.status, 'ACTIVE'))) = 'ACTIVE' OR (s.status IS NULL AND (UPPER(TRIM(COALESCE(se.enrollment_status, 'ACTIVE'))) = 'ACTIVE' OR se.enrollment_status IS NULL)))
+                 AND (UPPER(TRIM(COALESCE(s.status, 'ACTIVE'))) NOT IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') OR s.status IS NULL)`;
     } else if (filters.status === 'ARCHIVED_HUB') {
       // Unified head for all inactive / departed students
       query += ` AND (
-        s.status IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') 
-        OR (s.status != 'ACTIVE' AND (se.enrollment_status IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') OR tc.tc_number IS NOT NULL))
+        UPPER(TRIM(s.status)) IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') 
+        OR (UPPER(TRIM(s.status)) != 'ACTIVE' AND (UPPER(TRIM(se.enrollment_status)) IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN', 'INACTIVE') OR tc.tc_number IS NOT NULL))
       )`;
     } else if (filters.status === 'TRANSFERRED') {
-      query += ` AND (s.status = 'TRANSFERRED' OR (s.status != 'ACTIVE' AND (se.enrollment_status = 'TRANSFERRED' OR tc.tc_number IS NOT NULL)))`;
+      query += ` AND (UPPER(TRIM(s.status)) = 'TRANSFERRED' OR (UPPER(TRIM(s.status)) != 'ACTIVE' AND (UPPER(TRIM(se.enrollment_status)) = 'TRANSFERRED' OR tc.tc_number IS NOT NULL)))`;
     } else if (filters.status === 'ARCHIVED') {
-      query += ` AND (s.status = 'ARCHIVED' OR (s.status != 'ACTIVE' AND se.enrollment_status = 'ARCHIVED'))`;
+      query += ` AND (UPPER(TRIM(s.status)) = 'ARCHIVED' OR (UPPER(TRIM(s.status)) != 'ACTIVE' AND UPPER(TRIM(se.enrollment_status)) = 'ARCHIVED'))`;
     } else if (filters.status === 'WITHDRAWN') {
-      query += ` AND (s.status = 'WITHDRAWN' OR (s.status != 'ACTIVE' AND se.enrollment_status = 'WITHDRAWN'))`;
+      query += ` AND (UPPER(TRIM(s.status)) = 'WITHDRAWN' OR (UPPER(TRIM(s.status)) != 'ACTIVE' AND UPPER(TRIM(se.enrollment_status)) = 'WITHDRAWN'))`;
     } else if (filters.status !== 'ALL') {
-      query += ` AND (se.enrollment_status = $${paramIndex} OR s.status = $${paramIndex})`;
+      query += ` AND (UPPER(TRIM(se.enrollment_status)) = UPPER(TRIM($${paramIndex})) OR UPPER(TRIM(s.status)) = UPPER(TRIM($${paramIndex})))`;
       params.push(filters.status);
       paramIndex++;
     }
@@ -408,7 +408,7 @@ export async function getFilteredUniversalStudentsAction(filters: StudentFilterQ
       paramIndex++;
     }
 
-    query += ` ORDER BY s.first_name ASC, s.last_name ASC;`;
+    query += ` ORDER BY s.created_at DESC, s.first_name ASC;`;
 
     const res = await client.query(query, params);
 
@@ -416,11 +416,11 @@ export async function getFilteredUniversalStudentsAction(filters: StudentFilterQ
     const countsRes = await client.query(`
       SELECT 
         COUNT(*) as total_all,
-        COUNT(*) FILTER (WHERE (status = 'ACTIVE' OR status IS NULL) AND status NOT IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN')) as total_active,
-        COUNT(*) FILTER (WHERE status IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN') OR id IN (SELECT student_id FROM public.transfer_certificates)) as total_archived_hub,
-        COUNT(*) FILTER (WHERE status = 'TRANSFERRED' OR id IN (SELECT student_id FROM public.transfer_certificates)) as total_transferred,
-        COUNT(*) FILTER (WHERE status = 'WITHDRAWN') as total_withdrawn,
-        COUNT(*) FILTER (WHERE status = 'ARCHIVED') as total_archived
+        COUNT(*) FILTER (WHERE (UPPER(TRIM(COALESCE(status, 'ACTIVE'))) = 'ACTIVE' OR status IS NULL) AND UPPER(TRIM(COALESCE(status, 'ACTIVE'))) NOT IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN')) as total_active,
+        COUNT(*) FILTER (WHERE UPPER(TRIM(status)) IN ('TRANSFERRED', 'ARCHIVED', 'WITHDRAWN') OR id IN (SELECT student_id FROM public.transfer_certificates)) as total_archived_hub,
+        COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'TRANSFERRED' OR id IN (SELECT student_id FROM public.transfer_certificates)) as total_transferred,
+        COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'WITHDRAWN') as total_withdrawn,
+        COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'ARCHIVED') as total_archived
       FROM public.students;
     `);
 
