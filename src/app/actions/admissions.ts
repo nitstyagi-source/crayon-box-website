@@ -740,11 +740,45 @@ export async function createAdminEnquiryAction(payload: {
       JSON.stringify(kits),
       payload.status || 'SUBMITTED'
     ]);
+
+    // Dual-write into public.enquiries
+    try {
+      await client.query(`
+        INSERT INTO public.enquiries (
+          enquiry_no, first_name, last_name, child_name,
+          grade_interested, current_class, dob, father_name, father_mobile,
+          father_email, parent_name, parent_phone, parent_email,
+          status, priority, previous_school, transport_required, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4,
+          $5, $5, $6, $7, $8,
+          $9, $7, $8, $9,
+          'New', 'Hot', $10, $11, NOW(), NOW()
+        )
+        ON CONFLICT DO NOTHING;
+      `, [
+        token,
+        payload.studentFirstName,
+        payload.studentLastName || '',
+        `${payload.studentFirstName} ${payload.studentLastName || ''}`.trim(),
+        payload.gradeApplied,
+        payload.dateOfBirth || '2020-05-15',
+        payload.parentName || 'Guardian',
+        payload.parentPhone,
+        payload.parentEmail || '',
+        payload.previousSchool || '',
+        Boolean(payload.transportRequired)
+      ]);
+    } catch (e: any) {
+      console.warn("Enquiry sync warning:", e.message);
+    }
+
     client.release();
 
     safeRevalidate('/admin/admissions');
     safeRevalidate('/admin/admissions/pipeline');
     safeRevalidate('/admin/admissions/crm');
+    safeRevalidate('/admin/enquiries');
 
     return { 
       success: true, 

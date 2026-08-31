@@ -217,6 +217,32 @@ export async function createAdmissionEnquiry(data: any) {
 
     if (error) throw error;
 
+    // Dual-write to public.admissions_applications for pipeline synchronization
+    try {
+      const kitsPayload = {
+        parent_name: parentFullName,
+        parent_phone: contactPhone,
+        parent_email: data.father_email || data.mother_email || '',
+        submission_channel: data.source || 'Walk-in Enquiry CRM',
+        created_at: new Date().toISOString()
+      };
+
+      await supabase.from('admissions_applications').insert([{
+        campus_id: targetCampusId,
+        tracking_token: enquiryNo,
+        student_first_name: data.first_name || '',
+        student_last_name: data.last_name || '',
+        grade_applied: data.grade_interested || data.class_applying_for || 'Nursery',
+        date_of_birth: data.dob || '2021-01-01',
+        previous_school: data.previous_school || '',
+        transport_required: Boolean(data.transport_required),
+        co_curricular_kits: kitsPayload,
+        status: data.status === 'Converted' ? 'APPROVED' : 'SUBMITTED'
+      }]);
+    } catch (dualErr: any) {
+      console.warn("Dual write note to admissions_applications:", dualErr.message);
+    }
+
     // Write initial timeline logs
     await supabase.from('enquiry_timeline_logs').insert([
       {

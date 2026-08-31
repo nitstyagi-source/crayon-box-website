@@ -138,6 +138,44 @@ export async function POST(request: NextRequest) {
 
     const createdApp = insertRes.rows[0];
 
+    // Dual-write into public.enquiries for CRM synchronization
+    try {
+      await pool.query(`
+        INSERT INTO public.enquiries (
+          campus_id, enquiry_no, first_name, last_name, child_name,
+          grade_interested, current_class, dob, father_name, father_mobile,
+          father_email, parent_name, parent_phone, parent_email,
+          status, priority, previous_school, transport_required, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10,
+          $11, $12, $13, $14,
+          $15, 'Hot', $16, $17, NOW(), NOW()
+        )
+        ON CONFLICT DO NOTHING;
+      `, [
+        campusId,
+        tracking_token,
+        student_first_name,
+        student_last_name,
+        `${student_first_name} ${student_last_name}`.trim(),
+        grade_applied,
+        grade_applied,
+        date_of_birth,
+        parent_name || 'Guardian',
+        parent_phone,
+        parent_email,
+        parent_name || 'Guardian',
+        parent_phone,
+        parent_email,
+        status === 'ADMITTED' || status === 'APPROVED' ? 'Converted' : 'New',
+        previous_school,
+        Boolean(transport_required)
+      ]);
+    } catch (enqSyncErr: any) {
+      console.warn("Enquiries sync note:", enqSyncErr.message);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
