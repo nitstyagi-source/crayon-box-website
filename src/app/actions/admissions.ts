@@ -107,7 +107,7 @@ function safeRevalidate(path: string) {
   } catch {}
 }
 
-export async function approveApplicationAndProvisionParent(applicationId: string, parentEmail: string, parentFirstName: string, parentLastName: string) {
+export async function approveApplicationAndProvisionParent(applicationId: string, parentEmail?: string, parentFirstName?: string, parentLastName?: string) {
   const pool = getPool();
   try {
     const client = await pool.connect();
@@ -116,7 +116,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
     const curApp = await client.query(`
       SELECT 
         id, campus_id, academic_year_id, student_first_name, student_last_name,
-        date_of_birth, grade_applied, co_curricular_kits
+        date_of_birth, grade_applied, co_curricular_kits, tracking_token
       FROM public.admissions_applications 
       WHERE id = $1;
     `, [applicationId]);
@@ -129,35 +129,51 @@ export async function approveApplicationAndProvisionParent(applicationId: string
     const kits = typeof appRow.co_curricular_kits === 'object' && appRow.co_curricular_kits !== null ? appRow.co_curricular_kits : {};
     const rawPhone = kits.parent_phone || '+91 98765 43210';
     const cleanPhone = rawPhone.substring(0, 20);
-    const parentFullName = kits.parent_name || `${parentFirstName} ${parentLastName}`.trim() || 'Parent / Guardian';
+    const parentFullName = (kits.parent_name || `${parentFirstName || ''} ${parentLastName || ''}`).trim() || 'Parent / Guardian';
+    const finalParentEmail = (parentEmail || kits.parent_email || `parent_${appRow.tracking_token ? appRow.tracking_token.toLowerCase() : applicationId.slice(0, 8)}@example.com`).trim();
+    const [computedFirst = 'Parent', ...restLast] = parentFullName.split(' ');
+    const computedLast = restLast.join(' ') || 'Guardian';
+
+    // Fallback campus_id and academic_year_id if unset
+    let resolvedCampusId = appRow.campus_id;
+    if (!resolvedCampusId) {
+      const camp = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+      resolvedCampusId = camp.rows[0]?.id;
+    }
+
+    let resolvedYearId = appRow.academic_year_id;
+    if (!resolvedYearId) {
+      const yr = await client.query(`SELECT id FROM public.academic_years LIMIT 1;`);
+      resolvedYearId = yr.rows[0]?.id;
+    }
 
     // 1. Look for existing auth user or create parent account
     let parentId = null;
-    const existingAuth = await client.query(`SELECT id FROM auth.users WHERE email = $1 LIMIT 1;`, [parentEmail]);
+    const existingAuth = await client.query(`SELECT id FROM auth.users WHERE email = $1 LIMIT 1;`, [finalParentEmail]);
     if (existingAuth.rows.length > 0) {
       parentId = existingAuth.rows[0].id;
       await client.query(`
         INSERT INTO public.parents (id, first_name, last_name, phone_number, created_at)
         VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (id) DO UPDATE SET phone_number = $4;
-      `, [parentId, parentFirstName.substring(0, 100), parentLastName.substring(0, 100), cleanPhone]);
+      `, [parentId, computedFirst.substring(0, 100), computedLast.substring(0, 100), cleanPhone]);
     } else {
       const dummyId = (await client.query(`SELECT gen_random_uuid() AS id;`)).rows[0].id;
       try {
         await client.query(`
           INSERT INTO auth.users (id, email, raw_user_meta_data, created_at, updated_at, instance_id, aud, role)
           VALUES ($1, $2, $3::jsonb, NOW(), NOW(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated');
-        `, [dummyId, parentEmail, JSON.stringify({ first_name: parentFirstName, last_name: parentLastName })]);
+        `, [dummyId, finalParentEmail, JSON.stringify({ first_name: computedFirst, last_name: computedLast })]);
         parentId = dummyId;
 
         await client.query(`
           INSERT INTO public.parents (id, first_name, last_name, phone_number, created_at)
           VALUES ($1, $2, $3, $4, NOW())
           ON CONFLICT (id) DO NOTHING;
-        `, [parentId, parentFirstName.substring(0, 100), parentLastName.substring(0, 100), cleanPhone]);
+        `, [parentId, computedFirst.substring(0, 100), computedLast.substring(0, 100), cleanPhone]);
       } catch (authErr) {
         const pRow = await client.query(`SELECT id FROM public.parents LIMIT 1;`);
-        parentId = pRow.rows[0]?.id || null;
+        parentId = pRow.rows[0]?.id || dummyId;
       }
     }
 
@@ -165,7 +181,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const admissionNo = `ADM-2026-${randomSuffix}`;
 
-    // 3. Create Student Master Record in public.students
+    // 3. Create or Update Student Master Record in public.students
     const studentRes = await client.query(`
       INSERT INTO public.students (
         campus_id, academic_year_id, parent_id, admission_application_id,
@@ -175,10 +191,12 @@ export async function approveApplicationAndProvisionParent(applicationId: string
         $1, $2, $3, $4,
         $5, $5, $6, $7,
         $8, $8, 'Active', $9, NOW(), NOW()
-      ) RETURNING id;
+      )
+      ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
+      RETURNING id;
     `, [
-      appRow.campus_id,
-      appRow.academic_year_id,
+      resolvedCampusId,
+      resolvedYearId,
       parentId,
       applicationId,
       admissionNo,
@@ -201,7 +219,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
           $4, 'ACTIVE', NOW(), true, NOW()
         )
         ON CONFLICT DO NOTHING;
-      `, [newStudentId, appRow.campus_id, appRow.grade_applied || 'Grade 1', admissionNo]);
+      `, [newStudentId, resolvedCampusId, appRow.grade_applied || 'Grade 1', admissionNo]);
 
       // 5. Link Parent in public.student_parents
       await client.query(`
@@ -545,6 +563,11 @@ export async function getAdmissionsPipelineApplicationsAction() {
 export async function updateAdmissionsApplicationStatusAction(applicationId: string, newStatus: string) {
   const pool = getPool();
   try {
+    const isApproval = ['APPROVED', 'ADMITTED', 'ENROLLED'].includes(newStatus.toUpperCase());
+    if (isApproval) {
+      return await approveApplicationAndProvisionParent(applicationId);
+    }
+
     const client = await pool.connect();
     await client.query(`
       UPDATE public.admissions_applications
@@ -556,6 +579,7 @@ export async function updateAdmissionsApplicationStatusAction(applicationId: str
     safeRevalidate('/admin/admissions');
     safeRevalidate('/admin/admissions/pipeline');
     safeRevalidate('/admin/admissions/crm');
+    safeRevalidate('/admin/students');
 
     return { success: true, message: `Applicant moved to ${newStatus}` };
   } catch (error: any) {

@@ -230,6 +230,55 @@ export async function PATCH(request: NextRequest) {
     ]);
 
     const updatedRow = res.rows[0];
+
+    // If status is APPROVED, ADMITTED, or ENROLLED, auto-provision student record into public.students
+    if (['APPROVED', 'ADMITTED', 'ENROLLED'].includes((newStatus || '').toUpperCase())) {
+      try {
+        const campRes = await pool.query(`SELECT id FROM public.campuses LIMIT 1;`);
+        const campusId = updatedRow.campus_id || campRes.rows[0]?.id;
+        
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const admissionNo = `ADM-2026-${randomSuffix}`;
+        const parentFullName = updatedKits.parent_name || 'Parent / Guardian';
+
+        const studRes = await pool.query(`
+          INSERT INTO public.students (
+            campus_id, admission_application_id, admission_no, enrollment_number,
+            first_name, last_name, date_of_birth, dob, status, father_name, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $3,
+            $4, $5, $6, $6, 'Active', $7, NOW(), NOW()
+          )
+          ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
+          RETURNING id;
+        `, [
+          campusId,
+          id,
+          admissionNo,
+          updatedRow.student_first_name || 'Student',
+          updatedRow.student_last_name || '',
+          updatedRow.date_of_birth || '2020-01-01',
+          parentFullName
+        ]);
+
+        const newStudentId = studRes.rows[0]?.id;
+        if (newStudentId) {
+          await pool.query(`
+            INSERT INTO public.student_enrollments (
+              student_id, campus_id, institution_code, academic_session, class_name, section_name,
+              admission_number, enrollment_status, admission_date, is_current, created_at
+            ) VALUES (
+              $1, $2, 'CBS', '2026-2027', $3, 'A',
+              $4, 'ACTIVE', NOW(), true, NOW()
+            )
+            ON CONFLICT DO NOTHING;
+          `, [newStudentId, campusId, updatedRow.grade_applied || 'Grade 1', admissionNo]);
+        }
+      } catch (provErr: any) {
+        console.error("Student auto-provision note:", provErr.message);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
