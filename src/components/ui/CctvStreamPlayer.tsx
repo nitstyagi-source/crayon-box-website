@@ -77,12 +77,27 @@ export default function CctvStreamPlayer({
 
   // Compute camera path name from streamUrl or roomNumber
   const resolvedUrl = streamUrl ? streamUrl.trim() : "";
-  const matchCam = resolvedUrl.match(/[\/:]([a-zA-Z0-9_-]+)(?:\/index\.m3u8|\/whep)?$/);
+  const matchCam = resolvedUrl.match(/[\/:]([a-zA-Z0-9_-]+)(?:\/index\.m3u8|\/whep|\/)?$/);
   const camPath = matchCam ? matchCam[1] : (roomNumber ? roomNumber.toLowerCase().replace(/[^a-z0-9]/g, "_") : "nursery_cam");
   const channelCode = CAM_CHANNEL_MAP[camPath] || (roomNumber ? roomNumber.replace(/[^0-9]/g, "") || "102" : "102");
 
-  const whepUrl = `http://${gatewayHost}:8889/${camPath}/whep`;
-  const hlsUrl = `http://${gatewayHost}:8888/${camPath}/index.m3u8`;
+  // Determine base gateway endpoint
+  let baseGateway = gatewayHost.trim();
+  if (!baseGateway.startsWith("http://") && !baseGateway.startsWith("https://")) {
+    baseGateway = `http://${baseGateway}`;
+  }
+
+  // Construct URLs
+  const hlsUrl = resolvedUrl.startsWith("http") && resolvedUrl.includes(".m3u8")
+    ? resolvedUrl
+    : resolvedUrl.startsWith("http")
+    ? `${resolvedUrl.replace(/\/+$/, "")}/${camPath}/index.m3u8`
+    : `${baseGateway.replace(/:8889/, ":8888")}${baseGateway.includes(":") ? "" : ":8888"}/${camPath}/index.m3u8`;
+
+  const whepUrl = resolvedUrl.startsWith("http") && resolvedUrl.includes("/whep")
+    ? resolvedUrl
+    : `${baseGateway.replace(/:8888/, ":8889")}${baseGateway.includes(":") ? "" : ":8889"}/${camPath}/whep`;
+
   const proxyUrl = `/api/cctv/stream?channel=${channelCode}`;
 
   // Start Video Stream with auto-failover
@@ -95,26 +110,23 @@ export default function CctvStreamPlayer({
     let isCancelled = false;
     setIsLoading(true);
 
-    // Timeout: if current mode doesn't play within 3.5 seconds, auto-fallback
+    // Timeout: if current mode doesn't play within 3 seconds, auto-fallback
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       if (!isPlaying && !isCancelled) {
         if (streamMode === "WEBRTC") {
-          console.warn(`WebRTC timed out for ${camPath}, trying HLS...`);
           setStreamMode("HLS");
         } else if (streamMode === "HLS") {
-          console.warn(`HLS timed out for ${camPath}, falling back to Live Stream Proxy...`);
           setStreamMode("PROXY");
         }
       }
-    }, 3500);
+    }, 3000);
 
     async function initStream() {
       if (streamMode === "WEBRTC") {
         try {
           await startWebRTCStream();
         } catch (err: any) {
-          console.warn(`WebRTC connection failed for ${camPath}, switching to HLS...`, err.message);
           if (!isCancelled) setStreamMode("HLS");
         }
       } else if (streamMode === "HLS") {
@@ -122,7 +134,6 @@ export default function CctvStreamPlayer({
       } else if (streamMode === "PROXY") {
         cleanupStream();
         setIsLoading(false);
-        setIsPlaying(true);
       }
     }
 
@@ -133,7 +144,7 @@ export default function CctvStreamPlayer({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       cleanupStream();
     };
-  }, [streamMode, camPath, isPaused, gatewayHost]);
+  }, [streamMode, camPath, isPaused, gatewayHost, resolvedUrl]);
 
   const cleanupStream = () => {
     if (peerConnectionRef.current) {
@@ -378,16 +389,56 @@ export default function CctvStreamPlayer({
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
         ) : streamMode === "PROXY" ? (
-          /* Direct NVR Live Stream Proxy */
-          <img
-            src={proxyUrl}
-            alt={`${classroomName} Live Feed`}
-            className="w-full h-full object-cover select-none"
-            onLoad={() => {
-              setIsPlaying(true);
-              setIsLoading(false);
-            }}
-          />
+          /* Direct NVR Live Stream Proxy with Offline Fallback */
+          <div className="w-full h-full relative bg-stone-950 flex items-center justify-center">
+            <img
+              src={proxyUrl}
+              alt={`${classroomName} Live Feed`}
+              className="w-full h-full object-cover select-none"
+              onLoad={() => {
+                setIsPlaying(true);
+                setIsLoading(false);
+              }}
+              onError={() => {
+                setIsPlaying(false);
+                setIsLoading(false);
+              }}
+            />
+            {!isPlaying && !isLoading && (
+              <div className="absolute inset-0 bg-stone-950 flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    Local NVR Feed Offline / Gateway Unreachable
+                  </h4>
+                  <p className="text-[10px] text-stone-400 max-w-sm mt-1">
+                    To view 25 FPS live streams from the cloud, run <code className="text-purple-300 font-mono">start_both_windows.bat</code> on the school network PC or enter your Gateway / Tunnel URL in Settings.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfigOpen(true)}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[10px] font-bold transition flex items-center gap-1 shadow-xs"
+                  >
+                    <Settings className="w-3 h-3" /> Set Gateway URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLoading(true);
+                      setStreamMode("WEBRTC");
+                    }}
+                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-[10px] font-bold transition flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Retry Stream
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           /* Real-Time HTML5 Video Player (Hardware Accelerated WebRTC / HLS) */
           <div className="w-full h-full relative bg-stone-950 flex items-center justify-center overflow-hidden">
