@@ -7,7 +7,7 @@ import {
   Trash2, Eye, Lock, Clock, Settings, UserCheck, 
   Server, AlertCircle, Camera, CheckCircle2, XCircle,
   LayoutGrid, Maximize2, Search, Filter, Sparkles, UserX,
-  Layers, ChevronRight, UserMinus, Signal
+  Layers, ChevronRight, UserMinus, Signal, Zap
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import CctvStreamPlayer from "@/components/ui/CctvStreamPlayer";
@@ -83,6 +83,28 @@ export default function AdminLiveStreamPage() {
   useEffect(() => {
     loadParentAccessList();
   }, [selectedParentClass, selectedParentSection, selectedCategoryFilter, parentSearch]);
+
+  const [testState, setTestState] = useState<{ loading: boolean; result: any | null }>({ loading: false, result: null });
+
+  async function handleTestNvrConnection() {
+    setTestState({ loading: true, result: null });
+    try {
+      const res = await fetch("/api/cctv/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: settingsForm.dvr_ip,
+          port: settingsForm.dvr_port,
+          username: settingsForm.dvr_username,
+          password: settingsForm.dvr_password
+        })
+      });
+      const data = await res.json();
+      setTestState({ loading: false, result: data });
+    } catch (e: any) {
+      setTestState({ loading: false, result: { success: false, error: e.message } });
+    }
+  }
 
   async function loadDashboard() {
     setIsLoading(true);
@@ -1387,45 +1409,49 @@ export default function AdminLiveStreamPage() {
 
           <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
             
-            {/* Local DVR Hardware Configuration */}
-            <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
+            {/* Local DVR / Static IP / DDNS Hardware Configuration */}
+            <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-stone-200/80 pb-2">
                 <strong className="text-stone-900 font-bold text-xs flex items-center gap-2">
                   <Server className="w-4 h-4 text-purple-600" />
-                  Local School Hikvision DVR Hardware Settings
+                  NVR Static IP / DDNS & Port Forwarding Settings
                 </strong>
                 <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-900 px-2.5 py-0.5 rounded">
-                  Port 10554 (16 Channels)
+                  Hikvision 16-Channel
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">DVR Local IP</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-stone-700 block mb-1">
+                    Static Public IP / DDNS Host / Local IP
+                  </label>
                   <input
                     type="text"
                     value={settingsForm.dvr_ip}
                     onChange={(e) => setSettingsForm({ ...settingsForm, dvr_ip: e.target.value })}
-                    placeholder="192.168.1.90"
+                    placeholder="e.g. 122.161.54.20 or crayonbox.ddns.net or 192.168.1.90"
                     className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
                     required
                   />
+                  <span className="text-[10px] text-stone-400 mt-0.5 block">Enter your school broadband Static IP or DDNS domain.</span>
                 </div>
 
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">RTSP Port</label>
+                  <label className="font-bold text-stone-700 block mb-1">HTTP / ISAPI Port</label>
                   <input
                     type="text"
                     value={settingsForm.dvr_port}
                     onChange={(e) => setSettingsForm({ ...settingsForm, dvr_port: e.target.value })}
-                    placeholder="10554"
+                    placeholder="80 or 8000"
                     className="w-full bg-white border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
                     required
                   />
+                  <span className="text-[10px] text-stone-400 mt-0.5 block">Router port forwarded to NVR:80</span>
                 </div>
 
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">DVR Username</label>
+                  <label className="font-bold text-stone-700 block mb-1">NVR Username</label>
                   <input
                     type="text"
                     value={settingsForm.dvr_username}
@@ -1436,8 +1462,8 @@ export default function AdminLiveStreamPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="font-bold text-stone-700 block mb-1">DVR Password</label>
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-stone-700 block mb-1">NVR Password</label>
                   <input
                     type="password"
                     value={settingsForm.dvr_password}
@@ -1447,10 +1473,56 @@ export default function AdminLiveStreamPage() {
                     required
                   />
                 </div>
+
+                <div className="sm:col-span-2 flex items-end">
+                  <button
+                    type="button"
+                    disabled={testState.loading}
+                    onClick={handleTestNvrConnection}
+                    className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    {testState.loading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Testing NVR Port Forwarding...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 text-amber-300" />
+                        <span>⚡ Test Direct NVR Connection</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
+              {/* Connection Test Result Badge */}
+              {testState.result && (
+                <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                  testState.result.success
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-950"
+                    : "bg-red-50 border-red-300 text-red-950"
+                }`}>
+                  {testState.result.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <strong className="block font-bold">
+                      {testState.result.success ? "✅ NVR Connected Successfully!" : "❌ Connection Failed"}
+                    </strong>
+                    <span className="text-[11px] block mt-0.5">
+                      {testState.result.success
+                        ? `Model: ${testState.result.data?.model || "Hikvision NVR"} • SN: ${testState.result.data?.serialNumber || "Online"} (Direct Cloud-to-NVR Active)`
+                        : `Error: ${testState.result.error}. Ensure Router Port Forwarding forwards external port ${settingsForm.dvr_port} to NVR 192.168.1.90.`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] text-stone-500">
-                The Windows CCTV Gateway program connects to this DVR IP inside the school network to capture Channels 102 through 1602.
+                When using <strong>Option 4 (Static IP / DDNS + Port Forwarding)</strong>, the Cloud ERP connects directly to your school router's public IP / DDNS domain without needing any laptop or gateway PC.
               </p>
             </div>
 
