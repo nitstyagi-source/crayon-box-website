@@ -98,9 +98,24 @@ export default function CentralLoginPage() {
       const cleanMobile = mobile.trim();
       const phoneFormatted = cleanMobile.startsWith("+") ? cleanMobile : `+91${cleanMobile}`;
 
+      const enteredOtp = otp.trim();
+
+      // Master Test OTP Bypass
+      if (enteredOtp === "123456" || enteredOtp === "100800") {
+        await setServerAuthSession({
+          userId: `parent-${cleanMobile}`,
+          email: `${cleanMobile}@phone.crayonboxschool.com`,
+          role: "PARENT",
+          fullName: "Parent / Guardian",
+          accessToken: `master-otp-session-${cleanMobile}`,
+        });
+        window.location.href = "/admin/dashboard";
+        return;
+      }
+
       const { data, error: verifyErr } = await supabase.auth.verifyOtp({
         phone: phoneFormatted,
-        token: otp.trim(),
+        token: enteredOtp,
         type: "sms",
       });
 
