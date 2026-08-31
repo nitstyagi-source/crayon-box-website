@@ -22,6 +22,13 @@ import {
 import { getManagementExecutiveDashboard } from "@/app/actions/faculty-enterprise";
 import { getClasses } from "@/app/actions/classes";
 import FileUpload from "@/components/admin/FileUpload";
+import { 
+  DESIGNATION_GROUPS, 
+  DEPARTMENTS_LIST, 
+  ERP_ROLES_LIST, 
+  EMPLOYMENT_TYPES, 
+  EMPLOYMENT_STATUSES 
+} from "@/lib/constants/faculty-hierarchy";
 
 const CATEGORIES = [
   "All",
@@ -34,14 +41,7 @@ const CATEGORIES = [
 
 const DEPARTMENTS = [
   "All",
-  "Sciences & Robotics",
-  "Mathematics",
-  "Early Childhood Education",
-  "Languages",
-  "Arts & Humanities",
-  "Sports & Physical Education",
-  "Student Welfare",
-  "Administration"
+  ...DEPARTMENTS_LIST
 ];
 
 const WINGS = [
@@ -1050,17 +1050,49 @@ export default function FacultyAdminDashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="font-bold text-stone-600 block mb-1">Designation *</label>
-                      <input required type="text" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value, role: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none" placeholder="e.g. Senior PGT Mathematics" />
+                      <label className="font-bold text-stone-600 block mb-1">Official Designation *</label>
+                      <select 
+                        required 
+                        value={formData.designation} 
+                        onChange={e => setFormData({...formData, designation: e.target.value})} 
+                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none"
+                      >
+                        {DESIGNATION_GROUPS.map((grp) => (
+                          <optgroup key={grp.category} label={grp.category}>
+                            {grp.designations.map((desig) => (
+                              <option key={desig} value={desig}>{desig}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="font-bold text-stone-600 block mb-1">Department</label>
+                      <label className="font-bold text-stone-600 block mb-1">Department *</label>
                       <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
-                        {DEPARTMENTS.filter(d => d !== "All").map(dept => (
+                        {DEPARTMENTS_LIST.map(dept => (
                           <option key={dept} value={dept}>{dept}</option>
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {/* ERP Functional Role (IAM Permissions) */}
+                  <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-100 text-xs">
+                    <label className="font-bold text-blue-950 block mb-1 flex items-center justify-between">
+                      <span>ERP Role & Access Scope *</span>
+                      <span className="text-[10px] text-blue-600 font-medium">Governs permissions in ERP portal</span>
+                    </label>
+                    <select 
+                      value={formData.role} 
+                      onChange={e => setFormData({...formData, role: e.target.value})} 
+                      className="w-full border border-blue-200 bg-white p-2.5 rounded-xl font-bold text-blue-900 focus:border-blue-900 outline-none"
+                    >
+                      {ERP_ROLES_LIST.map((r) => (
+                        <option key={r.role} value={r.role}>
+                          {r.role} — {r.scope}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -1098,25 +1130,15 @@ export default function FacultyAdminDashboard() {
                         <span className="font-bold text-purple-800 text-[11px]">Class:</span>
                         <select 
                           value={formData.class_teacher_for} 
-                          onChange={e => setFormData({...formData, class_teacher_for: e.target.value})}
-                          className="bg-white border border-purple-200 px-3 py-1.5 rounded-xl text-xs font-bold text-purple-900 focus:outline-none"
+                          onChange={e => setFormData({...formData, class_teacher_for: e.target.value})} 
+                          className="border border-purple-200 bg-white p-1.5 rounded-lg font-bold text-purple-900 outline-none"
                         >
-                          {classes.map(c => (
-                            <option key={c.id} value={`${c.grade}-${c.section}`}>{c.grade} - Sec {c.section}</option>
+                          <option value="">Select Class...</option>
+                          {classes.map((cls: any) => (
+                            <option key={cls.id} value={`${cls.grade || cls.name} - ${cls.section || 'A'}`}>
+                              {cls.grade || cls.name} - {cls.section || 'A'}
+                            </option>
                           ))}
-                          <option value="Nursery-A">Nursery-A</option>
-                          <option value="LKG-A">LKG-A</option>
-                          <option value="UKG-A">UKG-A</option>
-                          <option value="Grade 1-A">Grade 1-A</option>
-                          <option value="Grade 2-A">Grade 2-A</option>
-                          <option value="Grade 3-A">Grade 3-A</option>
-                          <option value="Grade 4-A">Grade 4-A</option>
-                          <option value="Grade 5-A">Grade 5-A</option>
-                          <option value="Grade 6-A">Grade 6-A</option>
-                          <option value="Grade 7-A">Grade 7-A</option>
-                          <option value="Grade 8-A">Grade 8-A</option>
-                          <option value="Grade 9-A">Grade 9-A</option>
-                          <option value="Grade 10-A">Grade 10-A</option>
                         </select>
                       </div>
                     )}
@@ -1148,12 +1170,11 @@ export default function FacultyAdminDashboard() {
                       <input type="text" value={formData.employee_code} onChange={e => setFormData({...formData, employee_code: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs font-mono focus:border-stone-900 outline-none" />
                     </div>
                     <div>
-                      <label className="font-bold text-stone-600 block mb-1">Current Status</label>
+                      <label className="font-bold text-stone-600 block mb-1">Employment Status</label>
                       <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
-                        <option value="Active">Active (Serving)</option>
-                        <option value="On Leave">On Leave</option>
-                        <option value="Resigned">Former / Resigned</option>
-                        <option value="Suspended">Suspended</option>
+                        {EMPLOYMENT_STATUSES.map(st => (
+                          <option key={st} value={st}>{st}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1162,10 +1183,9 @@ export default function FacultyAdminDashboard() {
                     <div>
                       <label className="font-bold text-stone-600 block mb-1">Employment Type</label>
                       <select value={formData.employment_type} onChange={e => setFormData({...formData, employment_type: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl font-bold focus:border-stone-900 outline-none">
-                        <option value="Permanent">Permanent (Regular)</option>
-                        <option value="Probationary">Probationary</option>
-                        <option value="Contract">Fixed Term Contract</option>
-                        <option value="Visiting">Visiting / Part-time</option>
+                        {EMPLOYMENT_TYPES.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1176,7 +1196,7 @@ export default function FacultyAdminDashboard() {
                       <label className="font-bold text-stone-600 block mb-1">Confirmation Date</label>
                       <input type="date" value={formData.confirmation_date} onChange={e => setFormData({...formData, confirmation_date: e.target.value})} className="w-full border border-stone-200 p-2.5 rounded-xl text-xs focus:border-stone-900 outline-none" />
                     </div>
-                  </div>
+                  </div>                
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
