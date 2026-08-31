@@ -269,37 +269,61 @@ export async function PATCH(request: NextRequest) {
 
     const updatedRow = res.rows[0];
 
-    // If status is APPROVED, ADMITTED, or ENROLLED, auto-provision student record into public.students
+    // If status is APPROVED, ADMITTED, or ENROLLED, auto-provision student record into public.students (with duplicate check)
     if (['APPROVED', 'ADMITTED', 'ENROLLED'].includes((newStatus || '').toUpperCase())) {
       try {
         const campRes = await pool.query(`SELECT id FROM public.campuses LIMIT 1;`);
         const campusId = updatedRow.campus_id || campRes.rows[0]?.id;
-        
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const admissionNo = `ADM-2026-${randomSuffix}`;
         const parentFullName = updatedKits.parent_name || 'Parent / Guardian';
 
-        const studRes = await pool.query(`
-          INSERT INTO public.students (
-            campus_id, admission_application_id, admission_no, enrollment_number,
-            first_name, last_name, date_of_birth, dob, status, father_name, created_at, updated_at
-          ) VALUES (
-            $1, $2, $3, $3,
-            $4, $5, $6, $6, 'Active', $7, NOW(), NOW()
-          )
-          ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
-          RETURNING id;
+        // Check if student record already exists
+        const existingStuRes = await pool.query(`
+          SELECT id, admission_no FROM public.students
+          WHERE admission_application_id = $1
+             OR (LOWER(TRIM(first_name)) = LOWER(TRIM($2)) AND LOWER(TRIM(last_name)) = LOWER(TRIM($3)) AND dob = $4)
+          LIMIT 1;
         `, [
-          campusId,
           id,
-          admissionNo,
           updatedRow.student_first_name || 'Student',
           updatedRow.student_last_name || '',
-          updatedRow.date_of_birth || '2020-01-01',
-          parentFullName
+          updatedRow.date_of_birth || '2020-01-01'
         ]);
 
-        const newStudentId = studRes.rows[0]?.id;
+        let newStudentId = existingStuRes.rows[0]?.id;
+        let admissionNo = existingStuRes.rows[0]?.admission_no;
+
+        if (!newStudentId) {
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+          admissionNo = `ADM-2026-${randomSuffix}`;
+
+          const studRes = await pool.query(`
+            INSERT INTO public.students (
+              campus_id, admission_application_id, admission_no, enrollment_number,
+              first_name, last_name, date_of_birth, dob, status, father_name, created_at, updated_at
+            ) VALUES (
+              $1, $2, $3, $3,
+              $4, $5, $6, $6, 'Active', $7, NOW(), NOW()
+            )
+            ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
+            RETURNING id;
+          `, [
+            campusId,
+            id,
+            admissionNo,
+            updatedRow.student_first_name || 'Student',
+            updatedRow.student_last_name || '',
+            updatedRow.date_of_birth || '2020-01-01',
+            parentFullName
+          ]);
+          newStudentId = studRes.rows[0]?.id;
+        } else {
+          await pool.query(`
+            UPDATE public.students
+            SET status = 'Active', admission_application_id = $1, updated_at = NOW()
+            WHERE id = $2;
+          `, [id, newStudentId]);
+        }
+
         if (newStudentId) {
           await pool.query(`
             INSERT INTO public.student_enrollments (

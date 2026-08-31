@@ -177,36 +177,62 @@ export async function approveApplicationAndProvisionParent(applicationId: string
       }
     }
 
-    // 2. Generate Official Admission Number
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const admissionNo = `ADM-2026-${randomSuffix}`;
-
-    // 3. Create or Update Student Master Record in public.students
-    const studentRes = await client.query(`
-      INSERT INTO public.students (
-        campus_id, academic_year_id, parent_id, admission_application_id,
-        admission_no, enrollment_number, first_name, last_name,
-        date_of_birth, dob, status, father_name, created_at, updated_at
-      ) VALUES (
-        $1, $2, $3, $4,
-        $5, $5, $6, $7,
-        $8, $8, 'Active', $9, NOW(), NOW()
-      )
-      ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
-      RETURNING id;
+    // 2. Check if a student record already exists for this application or candidate to prevent duplicate entries
+    const existingStuRes = await client.query(`
+      SELECT id, admission_no FROM public.students
+      WHERE admission_application_id = $1
+         OR (LOWER(TRIM(first_name)) = LOWER(TRIM($2)) AND LOWER(TRIM(last_name)) = LOWER(TRIM($3)) AND (dob = $4 OR father_name ILIKE $5))
+      LIMIT 1;
     `, [
-      resolvedCampusId,
-      resolvedYearId,
-      parentId,
       applicationId,
-      admissionNo,
       appRow.student_first_name || 'Student',
       appRow.student_last_name || '',
       appRow.date_of_birth || '2020-01-01',
       parentFullName
     ]);
 
-    const newStudentId = studentRes.rows[0]?.id;
+    let newStudentId = existingStuRes.rows[0]?.id;
+    let admissionNo = existingStuRes.rows[0]?.admission_no;
+
+    if (!newStudentId) {
+      // Generate Official Admission Number
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      admissionNo = `ADM-2026-${randomSuffix}`;
+
+      // Create Student Master Record in public.students
+      const studentRes = await client.query(`
+        INSERT INTO public.students (
+          campus_id, academic_year_id, parent_id, admission_application_id,
+          admission_no, enrollment_number, first_name, last_name,
+          date_of_birth, dob, status, father_name, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4,
+          $5, $5, $6, $7,
+          $8, $8, 'Active', $9, NOW(), NOW()
+        )
+        ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
+        RETURNING id;
+      `, [
+        resolvedCampusId,
+        resolvedYearId,
+        parentId,
+        applicationId,
+        admissionNo,
+        appRow.student_first_name || 'Student',
+        appRow.student_last_name || '',
+        appRow.date_of_birth || '2020-01-01',
+        parentFullName
+      ]);
+
+      newStudentId = studentRes.rows[0]?.id;
+    } else {
+      // Re-activate and ensure linked
+      await client.query(`
+        UPDATE public.students
+        SET status = 'Active', admission_application_id = $1, parent_id = COALESCE(parent_id, $2), updated_at = NOW()
+        WHERE id = $3;
+      `, [applicationId, parentId, newStudentId]);
+    }
 
     // 4. Create Active Student Enrollment Record
     if (newStudentId) {
@@ -249,7 +275,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
       }
 
       // 7. Activate Fee Invoicing & Ledger Entry for Instant Receipt Generation
-      const invoiceNo = `INV-2026-${randomSuffix}`;
+      const invoiceNo = `INV-2026-${(admissionNo || '').replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
       const admissionFeeAmount = 25000;
 
       await client.query(`

@@ -365,36 +365,55 @@ export async function convertEnquiryToStudent(enquiryId: string, customOptions?:
     const className = customOptions?.class_name || enq.grade_interested || "Grade 1";
     const sectionName = customOptions?.section_name || "A";
 
-    // 1. Create Student Master Entry
-    const stuRes = await createStudent({
-      campus_id: enq.campus_id,
-      admission_no: admNo,
-      first_name: firstName,
-      middle_name: enq.middle_name || null,
-      last_name: lastName,
-      dob: enq.dob || "2020-01-01",
-      gender: enq.gender || "Male",
-      nationality: enq.nationality || "Indian",
-      category: "General",
-      blood_group: "O+",
-      class_name: className,
-      section_name: sectionName,
-      father_name: enq.father_name || enq.parent_name || "Father",
-      father_mobile: enq.father_mobile || enq.parent_phone || "",
-      father_email: enq.father_email || "",
-      father_occupation: enq.father_occupation || "",
-      mother_name: enq.mother_name || "",
-      mother_mobile: enq.mother_mobile || "",
-      primary_contact: enq.primary_contact || "Father",
-      address_line1: enq.address || enq.locality || "Delhi",
-      city: enq.city || "Delhi",
-      pin_code: enq.pin_code || "110084",
-      transport_route: enq.preferred_transport_route || (enq.transport_required ? "Route #04" : "")
-    });
+    // Check if student already exists or already converted to prevent duplicate entries
+    let newStudentId = enq.converted_student_id;
+    let finalAdmNo = customOptions?.admission_no || enq.enquiry_no || `CBS-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    if (!stuRes.success) throw new Error(stuRes.error);
+    if (!newStudentId) {
+      const { data: existingStudents } = await supabase
+        .from('students')
+        .select('id, admission_no')
+        .ilike('first_name', firstName.trim())
+        .ilike('last_name', lastName.trim())
+        .limit(1);
 
-    const newStudentId = stuRes.data.id;
+      if (existingStudents && existingStudents.length > 0) {
+        newStudentId = existingStudents[0].id;
+        finalAdmNo = existingStudents[0].admission_no || finalAdmNo;
+      }
+    }
+
+    if (!newStudentId) {
+      // 1. Create Student Master Entry
+      const stuRes = await createStudent({
+        campus_id: enq.campus_id,
+        admission_no: finalAdmNo,
+        first_name: firstName,
+        middle_name: enq.middle_name || null,
+        last_name: lastName,
+        dob: enq.dob || "2020-01-01",
+        gender: enq.gender || "Male",
+        nationality: enq.nationality || "Indian",
+        category: "General",
+        blood_group: "O+",
+        class_name: className,
+        section_name: sectionName,
+        father_name: enq.father_name || enq.parent_name || "Father",
+        father_mobile: enq.father_mobile || enq.parent_phone || "",
+        father_email: enq.father_email || "",
+        father_occupation: enq.father_occupation || "",
+        mother_name: enq.mother_name || "",
+        mother_mobile: enq.mother_mobile || "",
+        primary_contact: enq.primary_contact || "Father",
+        address_line1: enq.address || enq.locality || "Delhi",
+        city: enq.city || "Delhi",
+        pin_code: enq.pin_code || "110084",
+        transport_route: enq.preferred_transport_route || (enq.transport_required ? "Route #04" : "")
+      });
+
+      if (!stuRes.success) throw new Error(stuRes.error);
+      newStudentId = stuRes.data.id;
+    }
 
     // 2. Mark Enquiry as Admitted with converted student reference
     await supabase.from('enquiries').update({
@@ -407,7 +426,7 @@ export async function convertEnquiryToStudent(enquiryId: string, customOptions?:
     await supabase.from('enquiry_timeline_logs').insert([{
       enquiry_id: enquiryId,
       stage: 'Admission Confirmed',
-      title: `Converted to Enrolled Student (Adm: ${admNo})`,
+      title: `Converted to Enrolled Student (Adm: ${finalAdmNo})`,
       description: `Student Master profile created automatically. Enrolled in ${className}-${sectionName}.`,
       performed_by: 'Admissions Desk'
     }]);
@@ -416,9 +435,9 @@ export async function convertEnquiryToStudent(enquiryId: string, customOptions?:
     revalidatePath('/admin/students');
     return {
       success: true,
-      message: `Enquiry converted successfully! Student Admission No: ${admNo}`,
+      message: `Enquiry converted successfully! Student Admission No: ${finalAdmNo}`,
       studentId: newStudentId,
-      admissionNo: admNo
+      admissionNo: finalAdmNo
     };
   } catch (error: any) {
     console.error("Error converting enquiry to student:", error);
