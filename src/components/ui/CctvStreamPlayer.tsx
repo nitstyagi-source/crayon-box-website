@@ -6,7 +6,7 @@ import {
   Radio, Video, ShieldAlert, RefreshCw, Power, 
   Maximize2, Eye, Signal, AlertTriangle, Play, Sparkles,
   Wifi, CheckCircle2, Lock, Activity, Users, BookOpen, Camera,
-  Volume2, VolumeX, Zap
+  Volume2, VolumeX, Zap, Settings
 } from "lucide-react";
 
 interface CctvStreamPlayerProps {
@@ -19,6 +19,25 @@ interface CctvStreamPlayerProps {
   onSpotlight?: () => void;
   isSpotlight?: boolean;
 }
+
+const CAM_CHANNEL_MAP: Record<string, string> = {
+  nursery_cam: "102",
+  lkg_cam: "202",
+  ukg_cam: "302",
+  grade1_cam: "402",
+  grade2_cam: "502",
+  grade3_cam: "602",
+  grade4_cam: "702",
+  grade5_cam: "802",
+  grade6_cam: "902",
+  grade7_cam: "1002",
+  grade8_cam: "1102",
+  grade9_cam: "1202",
+  grade10_cam: "1302",
+  science_lab: "1402",
+  computer_lab: "1502",
+  activity_hall: "1602",
+};
 
 export default function CctvStreamPlayer({
   streamUrl,
@@ -33,17 +52,22 @@ export default function CctvStreamPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [liveTimestamp, setLiveTimestamp] = useState("");
-  const [streamMode, setStreamMode] = useState<"WEBRTC" | "HLS">("WEBRTC");
+  const [streamMode, setStreamMode] = useState<"WEBRTC" | "HLS" | "PROXY">("WEBRTC");
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [fps, setFps] = useState(25);
+  const [gatewayHost, setGatewayHost] = useState("192.168.1.50");
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
-  // Live timestamp timer
+  // Live timestamp timer & load gateway host
   useEffect(() => {
+    const saved = localStorage.getItem("cctv_gateway_host");
+    if (saved) setGatewayHost(saved);
+
     const timer = setInterval(() => {
       const d = new Date();
       setLiveTimestamp(d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
@@ -55,23 +79,13 @@ export default function CctvStreamPlayer({
   const resolvedUrl = streamUrl ? streamUrl.trim() : "";
   const matchCam = resolvedUrl.match(/[\/:]([a-zA-Z0-9_-]+)(?:\/index\.m3u8|\/whep)?$/);
   const camPath = matchCam ? matchCam[1] : (roomNumber ? roomNumber.toLowerCase().replace(/[^a-z0-9]/g, "_") : "nursery_cam");
+  const channelCode = CAM_CHANNEL_MAP[camPath] || (roomNumber ? roomNumber.replace(/[^0-9]/g, "") || "102" : "102");
 
-  // Extract host from streamUrl or default to localhost / current hostname
-  let host = "localhost";
-  if (typeof window !== "undefined") {
-    host = window.location.hostname || "localhost";
-  }
-  if (resolvedUrl.startsWith("http://") || resolvedUrl.startsWith("https://")) {
-    try {
-      const u = new URL(resolvedUrl);
-      host = u.hostname;
-    } catch {}
-  }
+  const whepUrl = `http://${gatewayHost}:8889/${camPath}/whep`;
+  const hlsUrl = `http://${gatewayHost}:8888/${camPath}/index.m3u8`;
+  const proxyUrl = `/api/cctv/stream?channel=${channelCode}`;
 
-  const whepUrl = `http://${host}:8889/${camPath}/whep`;
-  const hlsUrl = `http://${host}:8888/${camPath}/index.m3u8`;
-
-  // Start Video Stream
+  // Start Video Stream with auto-failover
   useEffect(() => {
     if (isPaused) {
       cleanupStream();
@@ -79,22 +93,36 @@ export default function CctvStreamPlayer({
     }
 
     let isCancelled = false;
+    setIsLoading(true);
+
+    // Timeout: if current mode doesn't play within 3.5 seconds, auto-fallback
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (!isPlaying && !isCancelled) {
+        if (streamMode === "WEBRTC") {
+          console.warn(`WebRTC timed out for ${camPath}, trying HLS...`);
+          setStreamMode("HLS");
+        } else if (streamMode === "HLS") {
+          console.warn(`HLS timed out for ${camPath}, falling back to Live Stream Proxy...`);
+          setStreamMode("PROXY");
+        }
+      }
+    }, 3500);
 
     async function initStream() {
-      setIsLoading(true);
-      setErrorMsg(null);
-
       if (streamMode === "WEBRTC") {
         try {
           await startWebRTCStream();
         } catch (err: any) {
           console.warn(`WebRTC connection failed for ${camPath}, switching to HLS...`, err.message);
-          if (!isCancelled) {
-            setStreamMode("HLS");
-          }
+          if (!isCancelled) setStreamMode("HLS");
         }
       } else if (streamMode === "HLS") {
         startHlsStream();
+      } else if (streamMode === "PROXY") {
+        cleanupStream();
+        setIsLoading(false);
+        setIsPlaying(true);
       }
     }
 
@@ -102,9 +130,10 @@ export default function CctvStreamPlayer({
 
     return () => {
       isCancelled = true;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       cleanupStream();
     };
-  }, [streamMode, camPath, isPaused, host]);
+  }, [streamMode, camPath, isPaused, gatewayHost]);
 
   const cleanupStream = () => {
     if (peerConnectionRef.current) {
@@ -134,7 +163,6 @@ export default function CctvStreamPlayer({
     });
     peerConnectionRef.current = pc;
 
-    // Direct incoming media track to <video>
     pc.ontrack = (event) => {
       if (videoRef.current && event.streams[0]) {
         videoRef.current.srcObject = event.streams[0];
@@ -150,25 +178,18 @@ export default function CctvStreamPlayer({
       }
     };
 
-    // Add receive-only transceiver for Video
     pc.addTransceiver("video", { direction: "recvonly" });
 
-    // Create SDP Offer
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // Send SDP Offer to MediaMTX WHEP Endpoint
     const res = await fetch(whepUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/sdp"
-      },
+      headers: { "Content-Type": "application/sdp" },
       body: offer.sdp
     });
 
-    if (!res.ok) {
-      throw new Error(`WHEP endpoint returned status ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`WHEP returned ${res.status}`);
 
     const answerSdp = await res.text();
     await pc.setRemoteDescription(new RTCSessionDescription({
@@ -180,7 +201,6 @@ export default function CctvStreamPlayer({
   // 2. HLS.js Low-Latency Stream Initiator
   const startHlsStream = () => {
     cleanupStream();
-
     if (!videoRef.current) return;
 
     if (Hls.isSupported()) {
@@ -204,17 +224,10 @@ export default function CctvStreamPlayer({
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          } else {
-            setErrorMsg("Stream buffering / connecting...");
-          }
+          setStreamMode("PROXY");
         }
       });
     } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native Safari HLS
       videoRef.current.src = hlsUrl;
       videoRef.current.addEventListener("loadedmetadata", () => {
         videoRef.current?.play().catch(() => {});
@@ -222,7 +235,7 @@ export default function CctvStreamPlayer({
         setIsLoading(false);
       });
     } else {
-      setErrorMsg("HLS video playback is not supported in this browser.");
+      setStreamMode("PROXY");
     }
   };
 
@@ -248,9 +261,11 @@ export default function CctvStreamPlayer({
               <span className={`text-[9px] font-black px-1.5 py-0.2 rounded uppercase ${
                 streamMode === "WEBRTC" 
                   ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40" 
-                  : "bg-blue-950 text-blue-300 border border-blue-500/40"
+                  : streamMode === "HLS"
+                  ? "bg-blue-950 text-blue-300 border border-blue-500/40"
+                  : "bg-amber-950 text-amber-300 border border-amber-500/40"
               }`}>
-                {streamMode === "WEBRTC" ? "⚡ WebRTC <0.5s" : "📡 HLS 25FPS"}
+                {streamMode === "WEBRTC" ? "⚡ WebRTC <0.5s" : streamMode === "HLS" ? "📡 HLS 25FPS" : "🎥 Direct NVR Stream"}
               </span>
             </div>
             <strong className="block text-xs font-bold text-stone-200 mt-0.5 truncate max-w-[170px]">
@@ -263,12 +278,25 @@ export default function CctvStreamPlayer({
           {/* Stream Mode Switcher */}
           <button
             type="button"
-            onClick={() => setStreamMode(streamMode === "WEBRTC" ? "HLS" : "WEBRTC")}
+            onClick={() => {
+              const nextMode = streamMode === "WEBRTC" ? "HLS" : streamMode === "HLS" ? "PROXY" : "WEBRTC";
+              setStreamMode(nextMode);
+            }}
             className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[10px] font-bold transition flex items-center gap-1"
-            title="Toggle WebRTC / HLS Stream Engine"
+            title="Switch Stream Engine"
           >
             <Zap className="w-3 h-3 text-amber-400" />
-            {streamMode === "WEBRTC" ? "HLS Mode" : "WebRTC"}
+            {streamMode === "WEBRTC" ? "WebRTC" : streamMode === "HLS" ? "HLS" : "Proxy"}
+          </button>
+
+          {/* Gateway Config Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsConfigOpen(!isConfigOpen)}
+            className="p-1.5 bg-stone-800 hover:bg-stone-700 rounded-lg text-stone-300 transition"
+            title="Gateway Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </button>
 
           {/* Mute Toggle */}
@@ -312,8 +340,31 @@ export default function CctvStreamPlayer({
         </div>
       </div>
 
+      {/* Gateway Settings Inline Drawer */}
+      {isConfigOpen && (
+        <div className="p-3 bg-stone-900 border-b border-stone-800 flex items-center gap-2">
+          <span className="text-[10px] text-stone-400 font-bold whitespace-nowrap">Gateway IP:</span>
+          <input
+            type="text"
+            value={gatewayHost}
+            onChange={(e) => {
+              setGatewayHost(e.target.value);
+              localStorage.setItem("cctv_gateway_host", e.target.value);
+            }}
+            placeholder="192.168.1.50 or streaming.domain.com"
+            className="bg-stone-950 border border-stone-700 text-white text-xs px-2 py-1 rounded flex-1 font-mono"
+          />
+          <button
+            onClick={() => setIsConfigOpen(false)}
+            className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-[10px] font-bold"
+          >
+            Apply
+          </button>
+        </div>
+      )}
+
       {/* Main Video Stage */}
-      <div className={`relative bg-black overflow-hidden flex items-center justify-center select-none aspect-video`}>
+      <div className="relative bg-black overflow-hidden flex items-center justify-center select-none aspect-video">
         
         {isPaused ? (
           /* Stream Paused Screen */
@@ -326,8 +377,19 @@ export default function CctvStreamPlayer({
             </span>
             <p className="text-[10px] text-stone-400">Feed is offline for student privacy / examination hours.</p>
           </div>
+        ) : streamMode === "PROXY" ? (
+          /* Direct NVR Live Stream Proxy */
+          <img
+            src={proxyUrl}
+            alt={`${classroomName} Live Feed`}
+            className="w-full h-full object-cover select-none"
+            onLoad={() => {
+              setIsPlaying(true);
+              setIsLoading(false);
+            }}
+          />
         ) : (
-          /* Real-Time HTML5 Video Player (Hardware Accelerated) */
+          /* Real-Time HTML5 Video Player (Hardware Accelerated WebRTC / HLS) */
           <div className="w-full h-full relative bg-stone-950 flex items-center justify-center overflow-hidden">
             <video
               ref={videoRef}
@@ -350,7 +412,7 @@ export default function CctvStreamPlayer({
                   Connecting {streamMode} Stream...
                 </span>
                 <span className="text-[9px] font-mono text-stone-400 mt-0.5">
-                  Hikvision NVR → MediaMTX Gateway
+                  Hikvision NVR → MediaMTX Gateway ({gatewayHost})
                 </span>
               </div>
             )}
@@ -389,7 +451,7 @@ export default function CctvStreamPlayer({
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-emerald-400 font-bold">
             <Signal className="w-3 h-3" />
-            {streamMode === "WEBRTC" ? "WebRTC Low-Latency" : "HLS Live Stream"}
+            {streamMode === "WEBRTC" ? "WebRTC Low-Latency" : streamMode === "HLS" ? "HLS Live Stream" : "Live Proxy Stream"}
           </span>
           <span className="text-stone-600">•</span>
           <span className="font-mono text-[9px] text-stone-400">{roomNumber}</span>
@@ -399,11 +461,11 @@ export default function CctvStreamPlayer({
           type="button"
           onClick={() => {
             cleanupStream();
-            setStreamMode(streamMode);
+            setStreamMode("PROXY");
           }}
           className="text-stone-400 hover:text-white flex items-center gap-1 text-[9px] font-mono transition"
         >
-          <RefreshCw className="w-2.5 h-2.5" /> Reconnect
+          <RefreshCw className="w-2.5 h-2.5" /> Direct Proxy
         </button>
       </div>
 
