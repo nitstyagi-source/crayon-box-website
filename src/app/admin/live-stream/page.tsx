@@ -51,7 +51,7 @@ export default function AdminLiveStreamPage() {
       setSettingsForm((prev) => ({
         ...prev,
         dvr_ip: "110.225.249.200",
-        dvr_port: "10554",
+        dvr_port: "8080",
         gateway_url: "http://110.225.249.200:10554"
       }));
       localStorage.setItem("cctv_gateway_host", "110.225.249.200");
