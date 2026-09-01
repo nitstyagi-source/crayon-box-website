@@ -32,6 +32,7 @@ import {
   Database,
   BarChart3,
   Award,
+  MessageSquare,
   LogOut,
   X
 } from 'lucide-react';
@@ -103,6 +104,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
         { name: 'Teacher Lesson Diary', href: '/admin/lesson-diary', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Master Timetable', href: '/admin/timetable', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Exams & Moderation', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'CBSE Report Cards (HPC)', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Academic Calendar & Events', href: '/admin/calendar', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
       ],
     },
@@ -135,6 +137,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       group: 'Parent & Community Services',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
       items: [
+        { name: 'WhatsApp Bot & Alerts', href: '/admin/communications/whatsapp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Broadcasts & Circulars', href: '/admin/campaigns', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
         { name: 'Digital Parent Consent', href: '/admin/consent', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
         { name: 'PTM Slot Booking', href: '/admin/ptm', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
