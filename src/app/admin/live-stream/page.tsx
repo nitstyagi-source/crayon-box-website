@@ -1440,35 +1440,100 @@ export default function AdminLiveStreamPage() {
 
           </div>
 
-          {/* Detailed Step-by-Step Guide */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-6">
-            <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-purple-600" />
-              Step-by-Step Instructions to Activate 24/7 Cloud Streaming
-            </h3>
-
-            <div className="space-y-4 text-xs">
-              <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
-                <h4 className="font-black text-purple-950 text-sm">
-                  Option A: Quick Cloud VPS Relay (Recommended for 100% Autonomous Uptime)
-                </h4>
-                <p className="text-purple-900/90 leading-relaxed">
-                  Deploy MediaMTX on a lightweight cloud server (e.g. AWS EC2, DigitalOcean $4/mo droplet, or Cloudflare Stream). The cloud server will continuously fetch the DVR RTSP feeds or receive the RTMP push from the DVR and serve HLS streams to <code className="bg-purple-200/60 px-1 py-0.5 rounded font-mono">crayonboxschool.com</code> with SSL encryption.
+          {/* NVR Router Configuration Panel for Method 1 */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div>
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                  <Server className="w-5 h-5 text-emerald-600" />
+                  Router Port Forwarding Live Linkage (Method 1 Active)
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Your router's public static IP and forwarded ports for direct 24/7 streaming without PCs.
                 </p>
-                <div className="bg-stone-950 text-emerald-400 p-3 rounded-xl font-mono text-[11px] overflow-x-auto">
-                  # 1-Line Cloud Server Setup Command:<br />
-                  docker run -d --name mediamtx -p 8554:8554 -p 8888:8888 bluenviron/mediamtx
+              </div>
+              <span className="text-xs font-black bg-emerald-100 text-emerald-900 px-3 py-1 rounded-xl">
+                Port 10554 Verified
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              <div className="sm:col-span-2">
+                <label className="font-bold text-stone-700 block mb-1">
+                  Public Static IP / DDNS Host
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.dvr_ip}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, dvr_ip: e.target.value })}
+                  placeholder="e.g. 110.225.249.200"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:bg-white focus:outline-none"
+                />
+                <span className="text-[10px] text-stone-400 mt-0.5 block">Your school's verified public broadband IP</span>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">HTTP / ISAPI Port</label>
+                <input
+                  type="text"
+                  value={settingsForm.dvr_port}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, dvr_port: e.target.value })}
+                  placeholder="8080 or 80"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:bg-white focus:outline-none"
+                />
+                <span className="text-[10px] text-stone-400 mt-0.5 block">Router port for Web / ISAPI</span>
+              </div>
+
+              <div>
+                <label className="font-bold text-stone-700 block mb-1">NVR RTSP Port</label>
+                <input
+                  type="text"
+                  value="10554"
+                  readOnly
+                  className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 font-mono font-bold text-emerald-900"
+                />
+                <span className="text-[10px] text-emerald-600 mt-0.5 block">RTSP Live Video Port</span>
+              </div>
+            </div>
+
+            {/* Test Connection Result Box */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleTestNvrConnection}
+                disabled={testState.loading}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-50"
+              >
+                {testState.loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Testing Port Connectivity...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    ⚡ Test Direct NVR Connection
+                  </>
+                )}
+              </button>
+
+              {testState.result && (
+                <div className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  testState.result.success ? "bg-emerald-100 text-emerald-900 border border-emerald-300" : "bg-red-100 text-red-900 border border-red-300"
+                }`}>
+                  {testState.result.success ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>{testState.result.data?.status || "✓ NVR Stream Port Online & Active"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-red-600" />
+                      <span>{testState.result.error || "Connection Failed"}</span>
+                    </>
+                  )}
                 </div>
-              </div>
-
-              <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
-                <h4 className="font-black text-stone-900 text-sm">
-                  Option B: Local Testing on This Mac (Active Right Now)
-                </h4>
-                <p className="text-stone-600 leading-relaxed">
-                  While paired on the school Wi-Fi, the system automatically uses the native endpoint <code className="bg-stone-200 px-1 py-0.5 rounded font-mono">/api/cameras/[channel]/live</code> to convert the DVR RTSP stream into high-speed MJPEG video directly in your browser.
-                </p>
-              </div>
+              )}
             </div>
           </div>
 
