@@ -45,24 +45,54 @@ async function getNvrConfig() {
   }
 }
 
+const keepAliveAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 25,
+  maxFreeSockets: 10,
+  timeout: 5000,
+});
+
+let cachedAuth: { realm: string; nonce: string; timestamp: number } | null = null;
+
 function md5(str: string) {
   return crypto.createHash('md5').update(str).digest('hex');
 }
 
 async function fetchSingleFrame(channel: string): Promise<Buffer> {
   const config = await getNvrConfig();
+  const nvrHost = config.host;
+  const nvrPort = config.port;
+  const nvrUser = config.user;
+  const nvrPass = config.pass;
+  const path = `/ISAPI/Streaming/channels/${channel}/picture`;
+
+  const buildDigestHeader = (realm: string, nonce: string) => {
+    const ha1 = md5(`${nvrUser}:${realm}:${nvrPass}`);
+    const ha2 = md5(`GET:${path}`);
+    const response = md5(`${ha1}:${nonce}:${ha2}`);
+    return `Digest username="${nvrUser}", realm="${realm}", nonce="${nonce}", uri="${path}", response="${response}"`;
+  };
+
   return new Promise((resolve, reject) => {
-    const nvrHost = config.host;
-    const nvrPort = config.port;
-    const nvrUser = config.user;
-    const nvrPass = config.pass;
+    const headers: Record<string, string> = {
+      "User-Agent": "CrayonBox-Live-Stream/2.0",
+      "Connection": "keep-alive"
+    };
+
+    // If we already have a cached nonce from previous request, send Digest Auth immediately
+    if (cachedAuth && (Date.now() - cachedAuth.timestamp < 300000)) {
+      headers["Authorization"] = buildDigestHeader(cachedAuth.realm, cachedAuth.nonce);
+    }
 
     const options = {
       hostname: nvrHost,
       port: nvrPort,
-      path: `/ISAPI/Streaming/channels/${channel}/picture`,
+      path: path,
       method: 'GET',
-      timeout: 3000,
+      timeout: 4000,
+      agent: keepAliveAgent,
+      headers
     };
 
     const req = http.request(options, (res) => {
@@ -75,17 +105,18 @@ async function fetchSingleFrame(channel: string): Promise<Buffer> {
 
         const realm = realmMatch[1];
         const nonce = nonceMatch[1];
-
-        const ha1 = md5(`${nvrUser}:${realm}:${nvrPass}`);
-        const ha2 = md5(`GET:${options.path}`);
-        const response = md5(`${ha1}:${nonce}:${ha2}`);
-
-        const authStr = `Digest username="${nvrUser}", realm="${realm}", nonce="${nonce}", uri="${options.path}", response="${response}"`;
+        cachedAuth = { realm, nonce, timestamp: Date.now() };
 
         const authReq = http.request({
           ...options,
-          headers: { Authorization: authStr }
+          headers: {
+            ...headers,
+            Authorization: buildDigestHeader(realm, nonce)
+          }
         }, (authRes) => {
+          if (authRes.statusCode !== 200) {
+            return reject(new Error(`NVR returned ${authRes.statusCode}`));
+          }
           const chunks: Buffer[] = [];
           authRes.on('data', chunk => chunks.push(chunk));
           authRes.on('end', () => resolve(Buffer.concat(chunks)));
@@ -122,9 +153,9 @@ export async function GET(request: Request) {
           const frame = await fetchSingleFrame(channel);
           const header = `\r\n${boundary}\r\nContent-Type: image/jpeg\r\nContent-Length: ${frame.length}\r\n\r\n`;
           controller.enqueue(Buffer.concat([Buffer.from(header), frame]));
-          setTimeout(pushFrame, 120); // ~8-10 FPS smooth live stream
+          setTimeout(pushFrame, 150); // Steady ~6-8 FPS live stream with low NVR socket overhead
         } catch (e) {
-          setTimeout(pushFrame, 500);
+          setTimeout(pushFrame, 800);
         }
       };
 
@@ -137,8 +168,9 @@ export async function GET(request: Request) {
     headers: {
       'Content-Type': `multipart/x-mixed-replace; boundary=${boundary.slice(2)}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Connection': 'close',
+      'Connection': 'keep-alive',
+      'X-Content-Type-Options': 'nosniff',
       'Pragma': 'no-cache',
-    }
+    },
   });
 }

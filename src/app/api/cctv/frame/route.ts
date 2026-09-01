@@ -41,24 +41,54 @@ async function getNvrConfig() {
   }
 }
 
+const keepAliveAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 25,
+  maxFreeSockets: 10,
+  timeout: 5000,
+});
+
+let cachedAuth: { realm: string; nonce: string; timestamp: number } | null = null;
+
 function md5(str: string) {
   return crypto.createHash('md5').update(str).digest('hex');
 }
 
 async function fetchHikvisionFrame(channel: string = '102'): Promise<Buffer> {
   const config = await getNvrConfig();
+  const nvrHost = config.host;
+  let nvrPort = config.port;
+  if (nvrPort === 10554 || nvrPort === 554) nvrPort = 8080;
+  const nvrUser = config.user;
+  const nvrPass = config.pass;
+  const path = `/ISAPI/Streaming/channels/${channel}/picture`;
+
+  const buildDigestHeader = (realm: string, nonce: string) => {
+    const ha1 = md5(`${nvrUser}:${realm}:${nvrPass}`);
+    const ha2 = md5(`GET:${path}`);
+    const response = md5(`${ha1}:${nonce}:${ha2}`);
+    return `Digest username="${nvrUser}", realm="${realm}", nonce="${nonce}", uri="${path}", response="${response}"`;
+  };
+
   return new Promise((resolve, reject) => {
-    const nvrHost = config.host;
-    const nvrPort = config.port;
-    const nvrUser = config.user;
-    const nvrPass = config.pass;
+    const headers: Record<string, string> = {
+      "User-Agent": "CrayonBox-Frame-Fetcher/2.0",
+      "Connection": "keep-alive"
+    };
+
+    if (cachedAuth && (Date.now() - cachedAuth.timestamp < 300000)) {
+      headers["Authorization"] = buildDigestHeader(cachedAuth.realm, cachedAuth.nonce);
+    }
 
     const options = {
       hostname: nvrHost,
       port: nvrPort,
-      path: `/ISAPI/Streaming/channels/${channel}/picture`,
+      path: path,
       method: 'GET',
       timeout: 4000,
+      agent: keepAliveAgent,
+      headers
     };
 
     const req = http.request(options, (res) => {
@@ -73,22 +103,21 @@ async function fetchHikvisionFrame(channel: string = '102'): Promise<Buffer> {
 
         const realm = realmMatch[1];
         const nonce = nonceMatch[1];
-
-        const ha1 = md5(`${nvrUser}:${realm}:${nvrPass}`);
-        const ha2 = md5(`GET:${options.path}`);
-        const response = md5(`${ha1}:${nonce}:${ha2}`);
-
-        const authStr = `Digest username="${nvrUser}", realm="${realm}", nonce="${nonce}", uri="${options.path}", response="${response}"`;
+        cachedAuth = { realm, nonce, timestamp: Date.now() };
 
         const authReq = http.request({
           ...options,
-          headers: { Authorization: authStr }
+          headers: {
+            ...headers,
+            Authorization: buildDigestHeader(realm, nonce)
+          }
         }, (authRes) => {
+          if (authRes.statusCode !== 200) {
+            return reject(new Error(`NVR returned ${authRes.statusCode}`));
+          }
           const chunks: Buffer[] = [];
           authRes.on('data', chunk => chunks.push(chunk));
-          authRes.on('end', () => {
-            resolve(Buffer.concat(chunks));
-          });
+          authRes.on('end', () => resolve(Buffer.concat(chunks)));
         });
         authReq.on('error', reject);
         authReq.end();
