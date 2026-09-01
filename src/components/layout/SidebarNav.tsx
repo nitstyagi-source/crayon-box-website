@@ -144,6 +144,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       group: 'Parent & Community Services',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
       items: [
+        { name: 'AI Communications Studio', href: '/admin/communications/ai-writer', icon: Sparkles, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'WhatsApp Bot & Alerts', href: '/admin/communications/whatsapp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Broadcasts & Circulars', href: '/admin/campaigns', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
         { name: 'Digital Parent Consent', href: '/admin/consent', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
