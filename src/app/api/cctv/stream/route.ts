@@ -24,16 +24,20 @@ async function getNvrConfig() {
     const p = getPool();
     const res = await p.query("SELECT dvr_ip, dvr_port, dvr_username, dvr_password FROM public.live_stream_settings LIMIT 1;");
     const row = res.rows[0];
-    const host = (row?.dvr_ip || process.env.HIKVISION_NVR_HOST || '192.168.1.90').replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-    const port = parseInt(row?.dvr_port || process.env.HIKVISION_NVR_PORT || '80', 10);
+    const host = (row?.dvr_ip || process.env.HIKVISION_NVR_HOST || '110.225.249.200').replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+    let port = parseInt(row?.dvr_port || process.env.HIKVISION_NVR_PORT || '80', 10);
+    // If port was set to RTSP (10554), fallback to HTTP ISAPI port (8080 or 80)
+    if (port === 10554 || port === 554) {
+      port = 8080;
+    }
     const user = row?.dvr_username || process.env.HIKVISION_NVR_USER || 'admin';
     const pass = row?.dvr_password || process.env.HIKVISION_NVR_PASS || 'master123';
     cachedSettings = { host, port, user, pass, expires: Date.now() + 30000 };
     return cachedSettings;
   } catch {
     return {
-      host: (process.env.HIKVISION_NVR_HOST || '192.168.1.90').replace(/^https?:\/\//, '').trim(),
-      port: parseInt(process.env.HIKVISION_NVR_PORT || '80', 10),
+      host: (process.env.HIKVISION_NVR_HOST || '110.225.249.200').replace(/^https?:\/\//, '').trim(),
+      port: 8080,
       user: process.env.HIKVISION_NVR_USER || 'admin',
       pass: process.env.HIKVISION_NVR_PASS || 'master123',
       expires: Date.now() + 10000

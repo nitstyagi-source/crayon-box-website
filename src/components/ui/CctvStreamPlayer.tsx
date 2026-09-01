@@ -558,7 +558,7 @@ export default function CctvStreamPlayer({
         {!isPaused && (
           <div className="absolute bottom-2.5 left-2.5 z-20 pointer-events-none bg-black/75 backdrop-blur-xs px-2 py-1 rounded-md text-[9px] font-mono text-stone-300 border border-stone-700/50 flex items-center gap-1.5">
             <Activity className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-            <span>NVR 192.168.1.90 • {camPath}</span>
+            <span>NVR {gatewayHost || "110.225.249.200"} • {camPath}</span>
           </div>
         )}
 
