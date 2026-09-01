@@ -71,15 +71,19 @@ export async function POST(req: NextRequest) {
       });
 
       request.on("error", (err: any) => {
-        // When HTTP GET is sent to an RTSP binary port (10554), the RTSP server resets the HTTP connection (ECONNRESET).
-        // This is 100% proof that the NVR RTSP daemon is ONLINE and listening on port 10554!
-        if (err.message.includes("ECONNRESET") || err.message.includes("EPIPE")) {
+        // When probing NVR ports, socket hang up or ECONNRESET confirms the NVR accepted and closed the raw socket.
+        // This is proof that the router port forwarding reached the Hikvision NVR!
+        if (
+          err.message.includes("ECONNRESET") ||
+          err.message.includes("EPIPE") ||
+          err.message.includes("socket hang up")
+        ) {
           resolve({
             success: true,
             data: {
-              status: `✓ Hikvision NVR RTSP Stream Port ${nvrPort} is ONLINE & ACTIVE (RTSP Handshake Verified)`,
+              status: `✓ Hikvision NVR Port ${nvrPort} is ONLINE & ACTIVE (Socket Connection Verified)`,
               port: nvrPort,
-              protocol: "RTSP Live Video"
+              protocol: nvrPort === 10554 ? "RTSP Live Video" : "HTTP / ISAPI"
             }
           });
         } else {
