@@ -79,13 +79,18 @@ export default function CctvStreamPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [fps, setFps] = useState(25);
-  const [gatewayHost, setGatewayHost] = useState("192.168.1.50");
+  const [gatewayHost, setGatewayHost] = useState("110.225.249.200");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   // Live timestamp timer & load gateway host
   useEffect(() => {
     const saved = localStorage.getItem("cctv_gateway_host");
-    if (saved) setGatewayHost(saved);
+    if (saved && saved !== "192.168.1.50") {
+      setGatewayHost(saved);
+    } else {
+      setGatewayHost("110.225.249.200");
+      localStorage.setItem("cctv_gateway_host", "110.225.249.200");
+    }
 
     const timer = setInterval(() => {
       const d = new Date();
