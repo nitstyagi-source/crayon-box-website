@@ -36,6 +36,43 @@ export default function AdminLiveStreamPage() {
   const [selectedSchoolFilter, setSelectedSchoolFilter] = useState("ALL");
   const [spotlightCamera, setSpotlightCamera] = useState<any>(null);
   const [gridColumns, setGridColumns] = useState<2 | 3 | 4>(3);
+  // Active Streaming Method State (Router Port Forwarding vs Cloud VPS vs Local)
+  const [activeStreamingMethod, setActiveStreamingMethod] = useState<"ROUTER" | "VPS" | "LOCAL">("ROUTER");
+
+  useEffect(() => {
+    const savedMethod = localStorage.getItem("cctv_streaming_method") as "ROUTER" | "VPS" | "LOCAL";
+    if (savedMethod) setActiveStreamingMethod(savedMethod);
+  }, []);
+
+  const handleSelectStreamingMethod = (method: "ROUTER" | "VPS" | "LOCAL") => {
+    setActiveStreamingMethod(method);
+    localStorage.setItem("cctv_streaming_method", method);
+    if (method === "ROUTER") {
+      setSettingsForm((prev) => ({
+        ...prev,
+        dvr_ip: "110.225.249.200",
+        dvr_port: "10554",
+        gateway_url: "http://110.225.249.200:10554"
+      }));
+      localStorage.setItem("cctv_gateway_host", "110.225.249.200");
+    } else if (method === "VPS") {
+      setSettingsForm((prev) => ({
+        ...prev,
+        dvr_ip: "110.225.249.200",
+        dvr_port: "8888",
+        gateway_url: "http://110.225.249.200:8888"
+      }));
+      localStorage.setItem("cctv_gateway_host", "110.225.249.200:1984");
+    } else {
+      setSettingsForm((prev) => ({
+        ...prev,
+        dvr_ip: "192.168.1.90",
+        dvr_port: "80",
+        gateway_url: "http://192.168.1.50:1984"
+      }));
+      localStorage.setItem("cctv_gateway_host", "192.168.1.50");
+    }
+  };
 
   // Parent Access Control State
   const [parentList, setParentList] = useState<any[]>([]);
@@ -1269,89 +1306,135 @@ export default function AdminLiveStreamPage() {
             </p>
           </div>
 
-          {/* Architecture Comparison Cards */}
+          {/* Architecture Selector Cards (Click to Select & Activate) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             
-            {/* Option 1: Direct DVR Cloud RTMP Push */}
-            <div className="bg-white p-6 rounded-3xl border-2 border-purple-500/80 shadow-md flex flex-col justify-between space-y-4">
+            {/* Method 1: Router Port Forwarding / Static IP (Verified & Active) */}
+            <div
+              onClick={() => handleSelectStreamingMethod("ROUTER")}
+              className={`p-6 rounded-3xl border-2 transition cursor-pointer flex flex-col justify-between space-y-4 ${
+                activeStreamingMethod === "ROUTER"
+                  ? "bg-emerald-50/50 border-emerald-500 shadow-lg ring-4 ring-emerald-500/20"
+                  : "bg-white border-stone-200 hover:border-emerald-300 shadow-xs"
+              }`}
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="bg-purple-100 text-purple-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
-                    Method 1 • Zero Extra Hardware
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md ${
+                    activeStreamingMethod === "ROUTER" ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-900"
+                  }`}>
+                    Method 1 • Router Port Forwarding
                   </span>
-                  <span className="text-emerald-600 text-xs font-black">★ Recommended</span>
+                  {activeStreamingMethod === "ROUTER" ? (
+                    <span className="text-emerald-600 text-xs font-black flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                    </span>
+                  ) : (
+                    <span className="text-stone-400 text-xs font-bold hover:text-emerald-600">Click to Select</span>
+                  )}
                 </div>
                 <h3 className="text-base font-black text-stone-900">
-                  Direct DVR $\rightarrow$ Cloud RTMP Push
+                  Router Port Forwarding (110.225.249.200)
                 </h3>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  Your Hikvision DVR has built-in <strong>RTMP Push</strong>. It sends the camera feeds directly to a cloud streaming server over the internet.
+                  Streams directly from your school router at <code className="bg-stone-100 px-1 py-0.5 rounded font-mono font-bold text-emerald-800">110.225.249.200:10554</code>. Zero extra PCs or cloud servers required.
                 </p>
                 <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
-                  <div className="font-bold text-purple-950 font-sans text-xs">Setup in DVR Menu:</div>
-                  <div>1. Open DVR Web GUI</div>
-                  <div>2. Config $\rightarrow$ Network $\rightarrow$ RTMP</div>
-                  <div>3. Enable RTMP &amp; Paste Cloud URL</div>
-                  <div>4. Click Save</div>
+                  <div className="font-bold text-emerald-950 font-sans text-xs">Live Router Configuration:</div>
+                  <div>• Public IP: 110.225.249.200</div>
+                  <div>• RTSP Port: 10554 (Open &amp; Verified)</div>
+                  <div>• NVR Target: 192.168.1.90</div>
                 </div>
               </div>
-              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-purple-700">
-                ✅ Requires: Zero laptops or PCs. DVR handles everything directly.
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-emerald-700 flex items-center justify-between">
+                <span>✅ Zero Hardware Needed</span>
+                <span className="text-xs underline">Selected Engine</span>
               </div>
             </div>
 
-            {/* Option 2: Tiny $35 Raspberry Pi in Server Room */}
-            <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-4">
+            {/* Method 2: Cloud VPS Relay (AWS / DigitalOcean / go2rtc) */}
+            <div
+              onClick={() => handleSelectStreamingMethod("VPS")}
+              className={`p-6 rounded-3xl border-2 transition cursor-pointer flex flex-col justify-between space-y-4 ${
+                activeStreamingMethod === "VPS"
+                  ? "bg-purple-50/50 border-purple-500 shadow-lg ring-4 ring-purple-500/20"
+                  : "bg-white border-stone-200 hover:border-purple-300 shadow-xs"
+              }`}
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="bg-indigo-100 text-indigo-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
-                    Method 2 • Hardware Gateway
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md ${
+                    activeStreamingMethod === "VPS" ? "bg-purple-600 text-white" : "bg-purple-100 text-purple-900"
+                  }`}>
+                    Method 2 • Cloud VPS Relay
                   </span>
-                  <span className="text-indigo-600 text-xs font-bold">Plug &amp; Play</span>
+                  {activeStreamingMethod === "VPS" ? (
+                    <span className="text-purple-600 text-xs font-black flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                    </span>
+                  ) : (
+                    <span className="text-stone-400 text-xs font-bold hover:text-purple-600">Click to Select</span>
+                  )}
                 </div>
                 <h3 className="text-base font-black text-stone-900">
-                  $35 Raspberry Pi / Mini Box on Router
+                  go2rtc / MediaMTX Cloud VPS Relay
                 </h3>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  Place a dedicated $35 Raspberry Pi (or low-cost mini PC) in the school server room plugged into the router via Ethernet.
+                  A $4/mo cloud server (AWS, DigitalOcean, or GCP) fetches the NVR RTSP stream and broadcasts WebRTC &amp; HLS to 500+ parents simultaneously.
                 </p>
                 <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
-                  <div className="font-bold text-indigo-950 font-sans text-xs">How it Works:</div>
-                  <div>• Runs 24/7 on school UPS</div>
-                  <div>• Auto-starts on power restore</div>
-                  <div>• Streams all 16 DVR channels</div>
-                  <div>• Your laptop is 100% free</div>
+                  <div className="font-bold text-purple-950 font-sans text-xs">Cloud Server Configuration:</div>
+                  <div>• WebRTC WHEP: Port 8889 / 1984</div>
+                  <div>• HLS Streaming: Port 8888</div>
+                  <div>• Automatic parent fanout</div>
                 </div>
               </div>
-              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-indigo-700">
-                ✅ Requires: One-time ~$35 mini box in school server rack.
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-purple-700 flex items-center justify-between">
+                <span>☁️ Multi-Parent High Concurrency</span>
+                <span className="text-xs underline">Switch Engine</span>
               </div>
             </div>
 
-            {/* Option 3: Router DDNS & Port Forwarding */}
-            <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-4">
+            {/* Method 3: Local Network / Hardware Gateway (192.168.1.50) */}
+            <div
+              onClick={() => handleSelectStreamingMethod("LOCAL")}
+              className={`p-6 rounded-3xl border-2 transition cursor-pointer flex flex-col justify-between space-y-4 ${
+                activeStreamingMethod === "LOCAL"
+                  ? "bg-indigo-50/50 border-indigo-500 shadow-lg ring-4 ring-indigo-500/20"
+                  : "bg-white border-stone-200 hover:border-indigo-300 shadow-xs"
+              }`}
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
-                    Method 3 • Router DDNS
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md ${
+                    activeStreamingMethod === "LOCAL" ? "bg-indigo-600 text-white" : "bg-indigo-100 text-indigo-900"
+                  }`}>
+                    Method 3 • Local Hardware Gateway
                   </span>
-                  <span className="text-stone-500 text-xs font-bold">Direct IP</span>
+                  {activeStreamingMethod === "LOCAL" ? (
+                    <span className="text-indigo-600 text-xs font-black flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                    </span>
+                  ) : (
+                    <span className="text-stone-400 text-xs font-bold hover:text-indigo-600">Click to Select</span>
+                  )}
                 </div>
                 <h3 className="text-base font-black text-stone-900">
-                  School Router Port Forwarding
+                  Local Mini PC / School Gateway (192.168.1.x)
                 </h3>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  Forward port <code className="bg-stone-100 px-1 py-0.5 rounded font-mono">10554</code> in your school's Airtel/Jio Fiber router and create a free DDNS hostname.
+                  A small PC or Raspberry Pi running in the school reception on local IP <code className="bg-stone-100 px-1 py-0.5 rounded font-mono">192.168.1.50</code>.
                 </p>
                 <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] space-y-1.5 font-mono text-stone-700">
-                  <div className="font-bold text-emerald-950 font-sans text-xs">Router Configuration:</div>
-                  <div>• Forward WAN 10554 $\rightarrow$ 192.168.1.90</div>
-                  <div>• Set DDNS: crayonschool.ddns.net</div>
-                  <div>• Cloud ERP fetches RTSP directly</div>
+                  <div className="font-bold text-indigo-950 font-sans text-xs">Local Configuration:</div>
+                  <div>• Host: 192.168.1.50 / localhost</div>
+                  <div>• Runs go2rtc or start_both_windows.bat</div>
+                  <div>• Zero cloud hosting cost</div>
                 </div>
               </div>
-              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-emerald-700">
-                ✅ Requires: School broadband router login credentials.
+              <div className="pt-2 border-t border-stone-100 text-[11px] font-bold text-indigo-700 flex items-center justify-between">
+                <span>💻 School PC Gateway</span>
+                <span className="text-xs underline">Switch Engine</span>
               </div>
             </div>
 
