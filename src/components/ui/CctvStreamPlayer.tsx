@@ -39,6 +39,25 @@ const CAM_CHANNEL_MAP: Record<string, string> = {
   activity_hall: "1602",
 };
 
+const CHANNEL_TO_CAM_KEY: Record<string, string> = {
+  "102": "nursery_cam",
+  "202": "lkg_cam",
+  "302": "ukg_cam",
+  "402": "grade1_cam",
+  "502": "grade2_cam",
+  "602": "grade3_cam",
+  "702": "grade4_cam",
+  "802": "grade5_cam",
+  "902": "grade6_cam",
+  "1002": "grade7_cam",
+  "1102": "grade8_cam",
+  "1202": "grade9_cam",
+  "1302": "grade10_cam",
+  "1402": "science_lab",
+  "1502": "computer_lab",
+  "1602": "activity_hall",
+};
+
 export default function CctvStreamPlayer({
   streamUrl,
   cameraName,
@@ -75,11 +94,52 @@ export default function CctvStreamPlayer({
     return () => clearInterval(timer);
   }, []);
 
-  // Compute camera path name from streamUrl or roomNumber
+  // Compute camera path name and channel code
   const resolvedUrl = streamUrl ? streamUrl.trim() : "";
-  const matchCam = resolvedUrl.match(/[\/:]([a-zA-Z0-9_-]+)(?:\/index\.m3u8|\/whep|\/)?$/);
-  const camPath = matchCam ? matchCam[1] : (roomNumber ? roomNumber.toLowerCase().replace(/[^a-z0-9]/g, "_") : "nursery_cam");
-  const channelCode = CAM_CHANNEL_MAP[camPath] || (roomNumber ? roomNumber.replace(/[^0-9]/g, "") || "102" : "102");
+  const channelParamMatch = resolvedUrl.match(/channel=(\d+)/);
+  const chFromParam = channelParamMatch ? channelParamMatch[1] : null;
+
+  let camPath = "nursery_cam";
+  let channelCode = "102";
+
+  if (chFromParam && CHANNEL_TO_CAM_KEY[chFromParam]) {
+    channelCode = chFromParam;
+    camPath = CHANNEL_TO_CAM_KEY[chFromParam];
+  } else if (resolvedUrl && CAM_CHANNEL_MAP[resolvedUrl]) {
+    camPath = resolvedUrl;
+    channelCode = CAM_CHANNEL_MAP[resolvedUrl];
+  } else {
+    const matchCam = resolvedUrl.match(/[\/:]([a-zA-Z0-9_-]+)(?:\/index\.m3u8|\/whep|\/)?$/);
+    if (matchCam && CAM_CHANNEL_MAP[matchCam[1]]) {
+      camPath = matchCam[1];
+      channelCode = CAM_CHANNEL_MAP[matchCam[1]];
+    } else {
+      const cleanRoom = (roomNumber || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const roomNum = (roomNumber || "").replace(/[^0-9]/g, "");
+      if (roomNum && CHANNEL_TO_CAM_KEY[roomNum + "02"]) {
+        channelCode = roomNum + "02";
+        camPath = CHANNEL_TO_CAM_KEY[channelCode];
+      } else if (cleanRoom.includes("nursery")) {
+        camPath = "nursery_cam";
+        channelCode = "102";
+      } else if (cleanRoom.includes("lkg")) {
+        camPath = "lkg_cam";
+        channelCode = "202";
+      } else if (cleanRoom.includes("ukg")) {
+        camPath = "ukg_cam";
+        channelCode = "302";
+      } else if (cleanRoom.includes("science")) {
+        camPath = "science_lab";
+        channelCode = "1402";
+      } else if (cleanRoom.includes("computer")) {
+        camPath = "computer_lab";
+        channelCode = "1502";
+      } else if (cleanRoom.includes("activity") || cleanRoom.includes("hall")) {
+        camPath = "activity_hall";
+        channelCode = "1602";
+      }
+    }
+  }
 
   // Determine base gateway endpoint
   let baseGateway = gatewayHost.trim();
