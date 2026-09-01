@@ -33,6 +33,8 @@ import {
   BarChart3,
   Award,
   MessageSquare,
+  Sparkles,
+  CreditCard,
   LogOut,
   X
 } from 'lucide-react';
@@ -105,15 +107,17 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
         { name: 'Smart Timetable Solver', href: '/admin/timetable/smart-builder', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Master Timetable', href: '/admin/timetable', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Exams & Moderation', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'AI Question Paper Studio', href: '/admin/exams/question-paper-generator', icon: Sparkles, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'CBSE Report Cards (HPC)', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Academic Calendar & Events', href: '/admin/calendar', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
       ],
     },
     {
       group: 'Finance & Procurement',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'],
       items: [
         { name: 'Executive Finance & GL', href: '/admin/finance', icon: DollarSign, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
+        { name: 'Sibling Fee Cart (UPI)', href: '/fees/pay', icon: CreditCard, roles: ['SUPER_ADMIN', 'ACCOUNTS', 'PARENT'] },
         { name: 'Fee Collections & Invoices', href: '/admin/finance/collections', icon: Receipt, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
         { name: 'Fee Structure & Concessions', href: '/admin/finance/structure', icon: Layers, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
         { name: 'HR & Statutory Payroll', href: '/admin/hr/payroll', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
