@@ -35,6 +35,7 @@ import {
   MessageSquare,
   Sparkles,
   CreditCard,
+  Gamepad2,
   LogOut,
   X
 } from 'lucide-react';
@@ -103,6 +104,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
         { name: 'Faculty Staff Directory', href: '/admin/faculty', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
         { name: 'Daily Student Attendance', href: '/admin/attendance', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Interactive Homework LMS', href: '/admin/academic/homework', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Quiz & Olympiad Arena', href: '/admin/academic/quiz-arena', icon: Gamepad2, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Teacher Substitutions Engine', href: '/admin/faculty/substitutions', icon: Shuffle, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Curriculum & Syllabus', href: '/admin/curriculum', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'Teacher Lesson Diary', href: '/admin/lesson-diary', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
@@ -119,6 +121,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'],
       items: [
         { name: 'Executive Finance & GL', href: '/admin/finance', icon: DollarSign, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
+        { name: 'Staff Payroll & Slips', href: '/admin/hr/salary-slips', icon: DollarSign, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
         { name: 'Sibling Fee Cart (UPI)', href: '/fees/pay', icon: CreditCard, roles: ['SUPER_ADMIN', 'ACCOUNTS', 'PARENT'] },
         { name: 'Fee Collections & Invoices', href: '/admin/finance/collections', icon: Receipt, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
         { name: 'Fee Structure & Concessions', href: '/admin/finance/structure', icon: Layers, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
