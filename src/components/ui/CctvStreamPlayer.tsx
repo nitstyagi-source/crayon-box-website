@@ -87,16 +87,17 @@ export default function CctvStreamPlayer({
     baseGateway = `http://${baseGateway}`;
   }
 
-  // Construct URLs
+  // Construct go2rtc & MediaMTX endpoints
+  const isGo2RtcPort = baseGateway.includes(":1984");
+  const go2rtcHost = isGo2RtcPort ? baseGateway : baseGateway.replace(/:\d+$/, "") + ":1984";
+
+  const webrtcUrl = resolvedUrl.startsWith("http") && resolvedUrl.includes("/webrtc")
+    ? resolvedUrl
+    : `${go2rtcHost}/api/webrtc?src=${camPath}`;
+
   const hlsUrl = resolvedUrl.startsWith("http") && resolvedUrl.includes(".m3u8")
     ? resolvedUrl
-    : resolvedUrl.startsWith("http")
-    ? `${resolvedUrl.replace(/\/+$/, "")}/${camPath}/index.m3u8`
-    : `${baseGateway.replace(/:8889/, ":8888")}${baseGateway.includes(":") ? "" : ":8888"}/${camPath}/index.m3u8`;
-
-  const whepUrl = resolvedUrl.startsWith("http") && resolvedUrl.includes("/whep")
-    ? resolvedUrl
-    : `${baseGateway.replace(/:8888/, ":8889")}${baseGateway.includes(":") ? "" : ":8889"}/${camPath}/whep`;
+    : `${go2rtcHost}/api/stream.m3u8?src=${camPath}`;
 
   const proxyUrl = `/api/cctv/stream?channel=${channelCode}`;
 
@@ -162,7 +163,7 @@ export default function CctvStreamPlayer({
     setIsPlaying(false);
   };
 
-  // 1. WebRTC (WHEP) Ultra-Low-Latency Stream Initiator
+  // 1. go2rtc WebRTC Ultra-Low-Latency Stream Initiator (<200ms)
   const startWebRTCStream = async () => {
     cleanupStream();
 
@@ -194,13 +195,14 @@ export default function CctvStreamPlayer({
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    const res = await fetch(whepUrl, {
+    // Send SDP Offer to go2rtc WebRTC endpoint
+    const res = await fetch(webrtcUrl, {
       method: "POST",
       headers: { "Content-Type": "application/sdp" },
       body: offer.sdp
     });
 
-    if (!res.ok) throw new Error(`WHEP returned ${res.status}`);
+    if (!res.ok) throw new Error(`go2rtc WebRTC returned ${res.status}`);
 
     const answerSdp = await res.text();
     await pc.setRemoteDescription(new RTCSessionDescription({

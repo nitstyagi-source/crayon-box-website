@@ -116,6 +116,37 @@ export async function getLiveStreamAuthorization(payload: {
       };
     }
 
+    // Check 3C: Daily Attendance Gating (Child Must Be Present Today)
+    const requirePresent = settings?.require_student_present ?? true;
+    if (requirePresent && student?.id) {
+      const attRes = await client.query(`
+        SELECT UPPER(TRIM(status)) as status
+        FROM public.attendance
+        WHERE (student_id = $1 OR student_id::text = $2)
+          AND (date = CURRENT_DATE OR date = CURRENT_DATE - INTERVAL '1 day')
+        ORDER BY date DESC
+        LIMIT 1;
+      `, [student.id, payload.studentId]);
+
+      const attStatus = attRes.rows[0]?.status;
+      const isPresent = attStatus === "PRESENT" || attStatus === "P" || attStatus === "LATE";
+
+      if (!isPresent) {
+        await logAccessAttempt(
+          client,
+          campusId,
+          payload,
+          "Denied",
+          `${payload.studentName} is not marked Present today (Status: ${attStatus || "Not Marked / Absent"}).`
+        );
+        return {
+          authorized: false,
+          reason: `🟡 Classroom Live View Locked: ${payload.studentName} is marked ${attStatus || "Absent"} today. Live camera feeds are restricted to parents whose children are present in school today.`,
+          status: "StudentAbsentToday"
+        };
+      }
+    }
+
     // 4. Find Camera for Student's Classroom
     const targetClass = payload.className || "Grade 5";
     const cameraRes = await client.query(`
