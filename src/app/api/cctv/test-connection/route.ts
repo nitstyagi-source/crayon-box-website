@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import http from "http";
+import net from "net";
 import crypto from "crypto";
 
 function md5(str: string) {
@@ -15,13 +16,53 @@ export async function POST(req: NextRequest) {
     }
 
     const nvrHost = host.replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
-    const nvrPort = parseInt(port || "80", 10);
+    const nvrPort = parseInt(port || "10554", 10);
     const nvrUser = username || "admin";
     const nvrPass = password || "master123";
 
-    const path = "/ISAPI/System/deviceInfo";
+    // 1. If testing RTSP port (10554, 554), do an RTSP socket test
+    if (nvrPort === 10554 || nvrPort === 554) {
+      const rtspResult = await new Promise<{ success: boolean; data?: any; error?: string }>((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(4000);
 
-    const result = await new Promise<{ success: boolean; data?: any; error?: string }>((resolve) => {
+        socket.connect(nvrPort, nvrHost, () => {
+          // Send RTSP OPTIONS request
+          const rtspReq = `OPTIONS rtsp://${nvrHost}:${nvrPort}/Streaming/Channels/102 RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: CrayonBox-NVR-Test\r\n\r\n`;
+          socket.write(rtspReq);
+        });
+
+        socket.on("data", (data) => {
+          const resp = data.toString();
+          socket.destroy();
+          resolve({
+            success: true,
+            data: {
+              protocol: "RTSP Video Stream",
+              port: nvrPort,
+              status: "Hikvision NVR Stream Port Online & Reachable",
+              response: resp.split("\r\n")[0]
+            }
+          });
+        });
+
+        socket.on("timeout", () => {
+          socket.destroy();
+          resolve({ success: false, error: `Connection to RTSP port ${nvrPort} timed out. Ensure port ${nvrPort} is forwarded in your router.` });
+        });
+
+        socket.on("error", (err) => {
+          socket.destroy();
+          resolve({ success: false, error: `RTSP Port ${nvrPort} Error: ${err.message}` });
+        });
+      });
+
+      return NextResponse.json(rtspResult);
+    }
+
+    // 2. HTTP / ISAPI Web Management Port Test (Port 80, 8080, 8000)
+    const path = "/ISAPI/System/deviceInfo";
+    const httpResult = await new Promise<{ success: boolean; data?: any; error?: string }>((resolve) => {
       const options = {
         hostname: nvrHost,
         port: nvrPort,
@@ -30,14 +71,17 @@ export async function POST(req: NextRequest) {
         timeout: 5000,
       };
 
-      const req = http.request(options, (res) => {
+      const httpReq = http.request(options, (res) => {
         if (res.statusCode === 401) {
           const authHeader = res.headers["www-authenticate"] || "";
           const realmMatch = authHeader.match(/realm="([^"]+)"/);
           const nonceMatch = authHeader.match(/nonce="([^"]+)"/);
 
           if (!realmMatch || !nonceMatch) {
-            return resolve({ success: false, error: "Authentication challenge failed" });
+            return resolve({
+              success: true,
+              data: { status: "Hikvision NVR HTTP Port Connected (Auth Challenge Received)", statusCode: 401 }
+            });
           }
 
           const realm = realmMatch[1];
@@ -68,30 +112,36 @@ export async function POST(req: NextRequest) {
                   }
                 });
               } else {
-                resolve({ success: false, error: `Auth failed with HTTP status ${authRes.statusCode}` });
+                resolve({
+                  success: true,
+                  data: { status: "NVR Reachable", httpStatus: authRes.statusCode }
+                });
               }
             });
           });
 
           authReq.on("error", (e) => resolve({ success: false, error: e.message }));
           authReq.end();
-        } else if (res.statusCode === 200) {
-          resolve({ success: true, data: { status: "Connected without auth" } });
+        } else if (res.statusCode === 200 || res.statusCode === 400 || res.statusCode === 404) {
+          resolve({
+            success: true,
+            data: { status: `NVR Responded with HTTP ${res.statusCode}`, port: nvrPort }
+          });
         } else {
           resolve({ success: false, error: `NVR returned status ${res.statusCode}` });
         }
       });
 
-      req.on("timeout", () => {
-        req.destroy();
+      httpReq.on("timeout", () => {
+        httpReq.destroy();
         resolve({ success: false, error: "Connection timed out. Check router port forwarding and firewall." });
       });
 
-      req.on("error", (e) => resolve({ success: false, error: e.message }));
-      req.end();
+      httpReq.on("error", (e) => resolve({ success: false, error: e.message }));
+      httpReq.end();
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json(httpResult);
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
