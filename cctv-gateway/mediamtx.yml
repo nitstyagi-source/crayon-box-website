@@ -1,85 +1,119 @@
-# MediaMTX Configuration for Crayon Box School Live Streaming Gateway
+# MediaMTX Configuration for Crayon Box School Live Video Gateway
 # Hikvision DVR: 192.168.1.90 | Port: 10554 | User: admin
 
 logLevel: info
 logDestinations: [stdout]
 
-# Disable RTSP, RTMP, WebRTC server listeners to eliminate port conflicts
-rtsp: no
-rtmp: no
-webrtc: no
-srt: no
+# High Performance Real-Time Streaming Server (WebRTC WHEP & Low-Latency HLS)
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*']
+webrtcHandshakeTimeout: 10s
 
-# HLS Server (For Web Browsers & Parent Portal)
+# High Performance Low-Latency HLS Server
 hls: yes
 hlsAddress: :8888
-hlsVariant: mpegts
-hlsSegmentCount: 5
+hlsVariant: lowLatency
+hlsSegmentCount: 3
 hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
 hlsAlwaysRemux: yes
+hlsAllowOrigins: ['*']
 
-# 16-Channel Classroom Mapping (Port 10554)
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass: ""
+    permissions:
+      - action: publish
+        path: ""
+      - action: read
+        path: ""
+      - action: playback
+        path: ""
+      - action: api
+        path: ""
+
 paths:
+  all:
+    sourceOnDemand: no
+
   nursery_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/102
     rtspTransport: tcp
+    sourceOnDemand: no
 
   lkg_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/202
     rtspTransport: tcp
+    sourceOnDemand: no
 
   ukg_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/302
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade1_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/402
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade2_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/502
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade3_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/602
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade4_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/702
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade5_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/802
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade6_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/902
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade7_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1002
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade8_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1102
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade9_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1202
     rtspTransport: tcp
+    sourceOnDemand: no
 
   grade10_cam:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1302
     rtspTransport: tcp
+    sourceOnDemand: no
 
   science_lab:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1402
     rtspTransport: tcp
+    sourceOnDemand: no
 
   computer_lab:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1502
     rtspTransport: tcp
+    sourceOnDemand: no
 
   activity_hall:
     source: rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1602
     rtspTransport: tcp
+    sourceOnDemand: no

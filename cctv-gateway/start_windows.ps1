@@ -160,7 +160,51 @@ if ($gatewayUrl) {
     Write-Host "❌ Error: Could not obtain tunnel URL. Check internet connection and tunnel.log" -ForegroundColor Red
 }
 
-# Keep script running in monitoring loop
+# 8. Continuous Self-Healing Watchdog & Live Heartbeat Supervisor Loop
+Write-Host "🛡️ Watchdog Supervisor Active: Monitoring MediaMTX and Cloudflare Tunnel 24/7..." -ForegroundColor Cyan
+
+$iteration = 0
 while ($true) {
     Start-Sleep -Seconds 30
+    $iteration++
+
+    # A. Check MediaMTX Process Health
+    $mtxProc = Get-Process -Name "mediamtx" -ErrorAction SilentlyContinue
+    if (-not $mtxProc) {
+        Write-Host "⚠️ [Watchdog] MediaMTX process terminated unexpectedly! Relaunching..." -ForegroundColor Red
+        Start-Process -FilePath "$ScriptDir\mediamtx.exe" -ArgumentList "$ScriptDir\mediamtx.yml" -WindowStyle Hidden
+    }
+
+    # B. Check Cloudflare Tunnel Process Health
+    $cfProc = Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue
+    if (-not $cfProc) {
+        Write-Host "⚠️ [Watchdog] Cloudflare Tunnel terminated unexpectedly! Relaunching..." -ForegroundColor Red
+        $logFile = "$ScriptDir\tunnel.log"
+        if (Test-Path $logFile) { Remove-Item $logFile }
+        Start-Process -FilePath "$ScriptDir\cloudflared.exe" -ArgumentList "tunnel --protocol http2 --url http://localhost:8888" -RedirectStandardError $logFile -WindowStyle Hidden
+        
+        Start-Sleep -Seconds 5
+        if (Test-Path $logFile) {
+            $content = Get-Content $logFile -Raw
+            if ($content -match "https://[a-zA-Z0-9-]+\.trycloudflare\.com") {
+                $gatewayUrl = $matches[0]
+            }
+        }
+    }
+
+    # C. Send Periodic Heartbeat to Cloud ERP (every 60 seconds)
+    if ($iteration % 2 -eq 0 -and $gatewayUrl) {
+        foreach ($ep in $erpEndpoints) {
+            try {
+                $body = @{ 
+                    gatewayUrl = $gatewayUrl
+                    dvrIp = $dvrIp
+                    dvrPort = $dvrPort
+                    status = "ONLINE"
+                    uptimeSeconds = $iteration * 30
+                } | ConvertTo-Json
+                Invoke-RestMethod -Uri $ep -Method Post -Body $body -ContentType "application/json" -TimeoutSec 5 | Out-Null
+            } catch {}
+        }
+    }
 }

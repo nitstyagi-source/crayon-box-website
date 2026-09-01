@@ -47,8 +47,8 @@ if [ ! -z "$GATEWAY_URL" ]; then
     echo ""
 
     # Send heartbeat
-    curl -s -X POST -H "Content-Type: application/json" -d "{\"gatewayUrl\":\"$GATEWAY_URL\"}" https://temporary-brisk-delta-q03ua1n.vercel.app/api/gateway/heartbeat > /dev/null 2>&1
-    curl -s -X POST -H "Content-Type: application/json" -d "{\"gatewayUrl\":\"$GATEWAY_URL\"}" https://crayonboxschool.com/api/gateway/heartbeat > /dev/null 2>&1
+    curl -s -X POST -H "Content-Type: application/json" -d "{\"gatewayUrl\":\"$GATEWAY_URL\",\"dvrIp\":\"192.168.1.90\",\"dvrPort\":\"10554\"}" https://crayonboxschool.com/api/gateway/heartbeat > /dev/null 2>&1
+    curl -s -X POST -H "Content-Type: application/json" -d "{\"gatewayUrl\":\"$GATEWAY_URL\",\"dvrIp\":\"192.168.1.90\",\"dvrPort\":\"10554\"}" http://localhost:3000/api/gateway/heartbeat > /dev/null 2>&1
 
     echo "✅ Automatically linked with Crayon Box School ERP Database!"
     echo "💡 You can minimize this window. Cameras are streaming 24/7."

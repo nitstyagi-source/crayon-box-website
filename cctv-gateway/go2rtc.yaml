@@ -1,0 +1,79 @@
+# go2rtc Configuration for Crayon Box School 16-Channel CCTV System
+# Public IP: 110.225.249.200 | Local IP: 192.168.1.90 | Port: 10554 | User: admin
+
+api:
+  listen: ":1984"
+  origin: "*"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    - stun:8555
+
+streams:
+  nursery_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/102#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/102#backchannel=0
+
+  lkg_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/202#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/202#backchannel=0
+
+  ukg_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/302#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/302#backchannel=0
+
+  grade1_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/402#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/402#backchannel=0
+
+  grade2_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/502#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/502#backchannel=0
+
+  grade3_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/602#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/602#backchannel=0
+
+  grade4_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/702#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/702#backchannel=0
+
+  grade5_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/802#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/802#backchannel=0
+
+  grade6_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/902#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/902#backchannel=0
+
+  grade7_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1002#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1002#backchannel=0
+
+  grade8_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1102#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1102#backchannel=0
+
+  grade9_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1202#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1202#backchannel=0
+
+  grade10_cam:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1302#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1302#backchannel=0
+
+  science_lab:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1402#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1402#backchannel=0
+
+  computer_lab:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1502#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1502#backchannel=0
+
+  activity_hall:
+    - rtsp://admin:master123@110.225.249.200:10554/Streaming/Channels/1602#backchannel=0
+    - rtsp://admin:master123@192.168.1.90:10554/Streaming/Channels/1602#backchannel=0

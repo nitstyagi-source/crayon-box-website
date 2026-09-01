@@ -26,5 +26,6 @@
   "erp_heartbeat_urls": [
     "http://localhost:3000/api/gateway/heartbeat",
     "https://crayonboxschool.com/api/gateway/heartbeat"
-  ]
+  ],
+  "public_gateway_url": "https://expires-affordable-land-myspace.trycloudflare.com"
 }
