@@ -199,27 +199,86 @@ export async function requestUniversalOtpAction(params: {
               const resendRes = await resend.emails.send({
                 from: fromSender,
                 to: emailAddr,
-                subject: `Crayon Box School Login OTP: ${otpCode}`,
+                subject: `${otpCode} is your Crayon Box Verification Code`,
                 html: `
-                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background: #111827; border-radius: 20px; padding: 32px; color: #ffffff; border: 1px solid #1f2937;">
-                    <div style="text-align: center; margin-bottom: 24px;">
-                      <h2 style="margin: 0; color: #f59e0b; font-size: 20px; font-weight: 800; text-transform: uppercase;">VAANI EDUCATIONAL TRUST</h2>
-                      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12px; font-weight: 600;">Crayon Box School • Universal Login</p>
-                    </div>
-                    
-                    <div style="background: #090d16; border: 1px solid #374151; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                      <p style="margin: 0 0 8px 0; color: #cbd5e1; font-size: 13px; font-weight: 600;">Your Verification Code is:</p>
-                      <div style="font-size: 38px; font-weight: 900; font-family: monospace; color: #fbbf24; letter-spacing: 8px; margin: 14px 0;">
-                        ${otpCode}
-                      </div>
-                      <p style="margin: 8px 0 0 0; color: #64748b; font-size: 11px;">Valid for 5 minutes. Do not share this code with anyone.</p>
-                    </div>
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Crayon Box Verification Code</title>
+                  </head>
+                  <body style="margin: 0; padding: 0; background-color: #FBF9F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FBF9F5; padding: 40px 16px;">
+                      <tr>
+                        <td align="center">
+                          <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #FFFFFF; border: 1px solid #EFE8DC; border-radius: 24px; overflow: hidden; box-shadow: 0 12px 36px rgba(11, 27, 48, 0.08);">
+                            
+                            <!-- Deep Navy Header -->
+                            <tr>
+                              <td style="background-color: #0B1B30; padding: 28px 24px; text-align: center;">
+                                <div style="display: inline-block; padding: 4px 12px; background-color: #183454; border: 1px solid #2A4D75; border-radius: 12px; margin-bottom: 10px;">
+                                  <span style="font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #D4AF37; text-transform: uppercase;">
+                                    VAANI EDUCATIONAL TRUST
+                                  </span>
+                                </div>
+                                <h1 style="margin: 0; font-size: 20px; color: #F8FAFC; font-weight: 800; letter-spacing: 0.3px;">
+                                  Crayon Box School
+                                </h1>
+                                <p style="margin: 4px 0 0 0; font-size: 11px; color: #94A3B8; font-weight: 500;">
+                                  Apex Multi-Campus Portal • CBS • CBPS • AS • AVM
+                                </p>
+                              </td>
+                            </tr>
 
-                    <p style="margin: 0; color: #64748b; font-size: 11px; text-align: center; line-height: 1.5;">
-                      If you did not request this login, please ignore this email.<br>
-                      © 2026 Vaani Educational Trust. All rights reserved.
-                    </p>
-                  </div>
+                            <!-- Main Body -->
+                            <tr>
+                              <td style="padding: 32px 28px; text-align: center;">
+                                <h2 style="margin: 0 0 8px 0; font-size: 18px; color: #0B1B30; font-weight: 800;">
+                                  Sign In Verification Code
+                                </h2>
+                                <p style="margin: 0 0 24px 0; font-size: 13px; color: #64748B; line-height: 1.5;">
+                                  Please use the verification code below to securely sign in to your institutional workspace.
+                                </p>
+
+                                <!-- Code Highlight Box -->
+                                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FAF7F2; border: 1.5px solid #E8DFD3; border-radius: 18px; margin-bottom: 24px;">
+                                  <tr>
+                                    <td style="padding: 22px 16px; text-align: center;">
+                                      <div style="font-size: 40px; font-weight: 900; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; color: #0B1B30; letter-spacing: 10px;">
+                                        ${otpCode}
+                                      </div>
+                                      <p style="margin: 8px 0 0 0; font-size: 11px; color: #C85A32; font-weight: 700;">
+                                        ⏱️ Single-use code • Valid for 5 minutes
+                                      </p>
+                                    </td>
+                                  </tr>
+                                </table>
+
+                                <p style="margin: 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
+                                  For security reasons, never forward or share this code. If you did not make this request, you can safely ignore this email.
+                                </p>
+                              </td>
+                            </tr>
+
+                            <!-- Institutional Footer -->
+                            <tr>
+                              <td style="background-color: #FAF7F2; border-top: 1px solid #EFE8DC; padding: 20px 24px; text-align: center;">
+                                <p style="margin: 0 0 4px 0; font-size: 12px; color: #64748B;">
+                                  Front Desk Assistance: <strong style="color: #0B1B30;">+91 98111 02008</strong>
+                                </p>
+                                <p style="margin: 0; font-size: 10px; color: #94A3B8;">
+                                  © 2026 Vaani Educational Trust • 256-Bit Encrypted Multi-Channel Authentication
+                                </p>
+                              </td>
+                            </tr>
+
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </body>
+                  </html>
                 `
               });
               console.log(`✉️ Dispatched Resend Email OTP (${otpCode}) to ${emailAddr}:`, resendRes);
