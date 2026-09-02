@@ -170,7 +170,7 @@ export function Enquiry360DossierModal({
                 </span>
                 <span className="text-xs text-slate-400">•</span>
                 <span className="text-xs font-bold text-slate-300">
-                  Target: {enquiry.target_class || enquiry.admission_class} ({enquiry.institution_code || "CBS"})
+                  Target: {enquiry.target_class || enquiry.admission_class}
                 </span>
               </div>
               <h2 className="text-xl font-black text-white tracking-tight">
@@ -266,23 +266,19 @@ export function Enquiry360DossierModal({
                   </div>
                 </div>
 
-                {/* Target Admission & Campus */}
+                {/* Target Admission */}
                 <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-slate-400">
                     Target Enrollment
                   </h4>
-                  <div className="grid grid-cols-2 gap-2.5 text-xs">
+                  <div className="grid grid-cols-3 gap-2.5 text-xs">
+                    <div>
+                      <span className="text-slate-400 font-bold block">Applying Class</span>
+                      <strong className="text-indigo-700 font-black text-sm">{enquiry.target_class || enquiry.admission_class}</strong>
+                    </div>
                     <div>
                       <span className="text-slate-400 font-bold block">Academic Session</span>
-                      <strong className="text-slate-800">{enquiry.academic_session || "2026-2027"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 font-bold block">Target Campus</span>
-                      <strong className="text-indigo-700 font-bold">{enquiry.institution_code || "CBS"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 font-bold block">Applying For Class</span>
-                      <strong className="text-slate-900 font-bold">{enquiry.target_class || enquiry.admission_class}</strong>
+                      <strong className="text-slate-800 font-bold">{enquiry.academic_session || "2026-2027"}</strong>
                     </div>
                     <div>
                       <span className="text-slate-400 font-bold block">Admission Type</span>

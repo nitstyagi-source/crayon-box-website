@@ -186,7 +186,7 @@ export function PublicEnquiryForm({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500 font-bold">Class Applied:</span>
-            <strong className="text-slate-900">{formData.admissionClass} ({formData.institutionCode})</strong>
+            <strong className="text-slate-900">{formData.admissionClass}</strong>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500 font-bold">Session:</span>
@@ -245,7 +245,7 @@ export function PublicEnquiryForm({
           Target School &amp; Grade
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Academic Session *</label>
             <select
@@ -259,25 +259,11 @@ export function PublicEnquiryForm({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">School Campus *</label>
-            <select
-              value={formData.institutionCode}
-              onChange={e => setFormData({ ...formData, institutionCode: e.target.value })}
-              className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
-            >
-              <option value="CBS">CBS - Senior K-12 Campus (Burari)</option>
-              <option value="AVM">AVM - Senior K-12 Campus</option>
-              <option value="AS">AS - Kindergarten Montessori</option>
-              <option value="CBPS">CBPS - Pre-School Foundation Wing</option>
-            </select>
-          </div>
-
-          <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Admission Grade / Class *</label>
             <select
               value={formData.admissionClass}
               onChange={e => setFormData({ ...formData, admissionClass: e.target.value })}
-              className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
+              className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-indigo-900"
             >
               <option value="Pre-Nursery">Pre-Nursery (Age 2.5+)</option>
               <option value="Nursery">Nursery (Age 3+)</option>

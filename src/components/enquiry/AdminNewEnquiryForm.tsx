@@ -336,7 +336,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
           <User className="w-4 h-4 text-blue-600" /> A &amp; B. Child Bio &amp; Target Admission
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Applying For Class *</label>
             <select
@@ -359,18 +359,6 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
               <option value="Grade 10">Grade 10</option>
               <option value="Grade 11">Grade 11</option>
               <option value="Grade 12">Grade 12</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">Campus / Branch *</label>
-            <select
-              value={formData.institutionCode}
-              onChange={e => setFormData({ ...formData, institutionCode: e.target.value })}
-              className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800"
-            >
-              <option value="CBS">Crayon Box School (Main Campus)</option>
-              <option value="CBS-EAST">Crayon Box Early Years (East Campus)</option>
             </select>
           </div>
 
