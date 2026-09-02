@@ -208,7 +208,7 @@ export async function requestUniversalOtpAction(params: {
                     </div>
                     
                     <div style="background: #090d16; border: 1px solid #374151; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                      <p style="margin: 0 0 8px 0; color: #cbd5e1; font-size: 13px; font-weight: 600;">Your 6-Digit Verification Code is:</p>
+                      <p style="margin: 0 0 8px 0; color: #cbd5e1; font-size: 13px; font-weight: 600;">Your Verification Code is:</p>
                       <div style="font-size: 38px; font-weight: 900; font-family: monospace; color: #fbbf24; letter-spacing: 8px; margin: 14px 0;">
                         ${otpCode}
                       </div>
@@ -328,7 +328,7 @@ export async function requestUniversalOtpAction(params: {
       targetEmail,
       expiryMinutes: 5,
       isDualRoleCandidate,
-      message: `✓ 6-Digit OTP dispatched via ${channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} to ${maskedDestination}`
+      message: `✓ Verification code dispatched via ${channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} to ${maskedDestination}`
     };
   } catch (error: any) {
     console.error("requestUniversalOtpAction error:", error);
@@ -388,7 +388,7 @@ export async function verifyUniversalOtpAction(params: {
     if (!isOtpValid) {
       return {
         success: false,
-        error: "Invalid or expired OTP code. Please enter the latest 6-digit code or request a new one."
+        error: "Invalid or expired verification code. Please enter the latest code or request a new one."
       };
     }
 

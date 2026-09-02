@@ -121,9 +121,9 @@ export default function UniversalLoginPage() {
       if (res.channel) setActiveChannel(res.channel);
       setMaskedDestination(res.maskedDestination || "");
       setResendTimer(30);
-      setSuccessMsg(res.message || `✓ 6-Digit OTP sent to ${res.maskedDestination || "destination"}`);
+      setSuccessMsg(res.message || `✓ Verification code sent to ${res.maskedDestination || "destination"}`);
     } catch (err: any) {
-      setError(err.message || "Unable to dispatch verification OTP.");
+      setError(err.message || "Unable to dispatch verification code.");
     } finally {
       setIsLoading(false);
     }
@@ -338,8 +338,8 @@ export default function UniversalLoginPage() {
                     </div>
                     <p className="text-[11px] text-stone-500">
                       {identifier.includes("@")
-                        ? "✉️ Verification link and OTP code will be sent to your registered email inbox."
-                        : "💬 Instant 6-digit verification code will be sent to your WhatsApp."}
+                        ? "✉️ Verification code will be sent to your registered email inbox."
+                        : "💬 Instant verification code will be sent to your WhatsApp."}
                     </p>
                   </div>
 
