@@ -55,47 +55,86 @@ export async function requestUniversalOtpAction(params: {
     // Lookup 1: Check Staff / Faculty
     if (isEmail) {
       const staffRes = await client.query(
-        "SELECT * FROM public.staff WHERE (email ILIKE $1 OR official_email ILIKE $1 OR personal_email ILIKE $1) AND is_active = true LIMIT 1;",
+        `SELECT * FROM public.staff 
+         WHERE (email ILIKE $1 OR official_email ILIKE $1 OR personal_email ILIKE $1) 
+           AND is_active = true 
+         LIMIT 1;`,
         [rawId]
       );
       staffRecord = staffRes.rows[0];
-      if (staffRecord && !targetPhone) targetPhone = staffRecord.phone_number || staffRecord.whatsapp_no;
+      if (staffRecord && !targetPhone) targetPhone = normalizePhone(staffRecord.phone_number || staffRecord.whatsapp_no || '');
     } else {
       const staffRes = await client.query(
-        "SELECT * FROM public.staff WHERE (phone_number LIKE $1 OR whatsapp_no LIKE $1 OR personal_mobile LIKE $1) AND is_active = true LIMIT 1;",
+        `SELECT * FROM public.staff 
+         WHERE (
+           REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(whatsapp_no, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(personal_mobile, ''), '[^0-9]', '', 'g') LIKE $1
+         ) 
+         AND is_active = true 
+         LIMIT 1;`,
         [`%${phone}%`]
       );
       staffRecord = staffRes.rows[0];
       if (staffRecord && !targetEmail) targetEmail = staffRecord.email || staffRecord.official_email;
     }
 
-    // Lookup 2: Check Students & Parents
+    // Lookup 2: Check Students & Parents (Deep Joined Query)
     if (isEmail) {
       const stuRes = await client.query(
-        "SELECT s.*, c.grade, c.section FROM public.students s LEFT JOIN public.classes c ON c.id = s.class_id WHERE (s.parent_email ILIKE $1) AND s.status = 'ACTIVE';",
+        `SELECT s.*, c.grade, c.section, p.email as parent_table_email, p.phone_number as parent_table_phone
+         FROM public.students s 
+         LEFT JOIN public.classes c ON c.id = s.class_id 
+         LEFT JOIN public.parents p ON p.id = s.parent_id
+         WHERE (s.parent_email ILIKE $1 OR p.email ILIKE $1) 
+           AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL);`,
         [rawId]
       );
       studentRecords = stuRes.rows;
-      if (studentRecords.length > 0 && !targetPhone) targetPhone = studentRecords[0].parent_phone;
+      if (studentRecords.length > 0 && !targetPhone) {
+        targetPhone = normalizePhone(studentRecords[0].parent_phone || studentRecords[0].parent_table_phone || '');
+      }
     } else {
       const stuRes = await client.query(
-        `SELECT s.*, c.grade, c.section 
+        `SELECT s.*, c.grade, c.section, p.phone_number as parent_table_phone, p.email as parent_table_email
          FROM public.students s 
          LEFT JOIN public.classes c ON c.id = s.class_id 
-         WHERE (s.parent_phone LIKE $1 OR s.admission_no ILIKE $2 OR s.universal_id ILIKE $2) 
-           AND s.status = 'ACTIVE';`,
+         LEFT JOIN public.parents p ON p.id = s.parent_id
+         WHERE (
+           REGEXP_REPLACE(COALESCE(s.parent_phone, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR s.admission_no ILIKE $2 
+           OR s.universal_id ILIKE $2
+         ) 
+         AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL);`,
         [`%${phone}%`, rawId]
       );
       studentRecords = stuRes.rows;
-      if (studentRecords.length > 0 && !targetEmail) targetEmail = studentRecords[0].parent_email;
+      if (studentRecords.length > 0 && !targetEmail) {
+        targetEmail = studentRecords[0].parent_email || studentRecords[0].parent_table_email;
+      }
+    }
 
-      // Also check parents table
-      const parentRes = await client.query(
-        "SELECT * FROM public.parents WHERE phone_number LIKE $1 LIMIT 1;",
+    // Lookup 3: Check Enquiries (for newly registered or walk-in parents)
+    if (!staffRecord && studentRecords.length === 0) {
+      const enqRes = await client.query(
+        `SELECT * FROM public.enquiries 
+         WHERE (
+           REGEXP_REPLACE(COALESCE(father_mobile, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(mother_mobile, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(parent_phone, ''), '[^0-9]', '', 'g') LIKE $1
+         ) 
+         LIMIT 1;`,
         [`%${phone}%`]
       );
-      parentRecord = parentRes.rows[0];
-      if (parentRecord && !targetEmail) targetEmail = parentRecord.email;
+      if (enqRes.rows.length > 0) {
+        const enq = enqRes.rows[0];
+        parentRecord = {
+          name: enq.parent_name || enq.father_name || 'Parent',
+          phone: normalizePhone(enq.father_mobile || enq.parent_phone || phone),
+          childName: enq.child_name || enq.first_name || 'Enrolled Student'
+        };
+      }
     }
 
     // If no record found at all
@@ -115,7 +154,7 @@ export async function requestUniversalOtpAction(params: {
       `INSERT INTO public.auth_otp_logs (
         phone_number, email_address, otp_code, channel, expires_at, attempts, is_verified, created_at
       ) VALUES ($1, $2, $3, $4, $5, 0, false, NOW());`,
-      [targetPhone || 'EMAIL-LOGIN', targetEmail, otpCode, channel, expiresAt.toISOString()]
+      [targetPhone || phone || 'EMAIL-LOGIN', targetEmail, otpCode, channel, expiresAt.toISOString()]
     );
 
     // Delivery destination masking
@@ -134,7 +173,7 @@ export async function requestUniversalOtpAction(params: {
       success: true,
       channel,
       maskedDestination,
-      targetPhone,
+      targetPhone: targetPhone || phone,
       targetEmail,
       expiryMinutes: 5,
       isDualRoleCandidate,
@@ -166,10 +205,14 @@ export async function verifyUniversalOtpAction(params: {
     // 1. Verify OTP in auth_otp_logs
     const otpRes = await client.query(
       `SELECT * FROM public.auth_otp_logs 
-       WHERE (phone_number LIKE $1 OR email_address ILIKE $2 OR phone_number = 'EMAIL-LOGIN')
-         AND otp_code = $3 
-         AND is_verified = false 
-         AND expires_at > NOW() 
+       WHERE (
+         REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR email_address ILIKE $2 
+         OR phone_number = 'EMAIL-LOGIN'
+       )
+       AND otp_code = $3 
+       AND is_verified = false 
+       AND expires_at > NOW() 
        ORDER BY created_at DESC 
        LIMIT 1;`,
       [`%${phone}%`, rawId, code]
@@ -200,8 +243,13 @@ export async function verifyUniversalOtpAction(params: {
       `SELECT id, first_name, last_name, role, designation, department, wing,
               is_class_teacher, class_teacher_for, photo_url, phone_number, email
        FROM public.staff 
-       WHERE (phone_number LIKE $1 OR whatsapp_no LIKE $1 OR email ILIKE $2 OR official_email ILIKE $2) 
-         AND is_active = true 
+       WHERE (
+         REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR REGEXP_REPLACE(COALESCE(whatsapp_no, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR email ILIKE $2 
+         OR official_email ILIKE $2
+       ) 
+       AND is_active = true 
        LIMIT 1;`,
       [`%${phone}%`, rawId]
     );
@@ -225,11 +273,17 @@ export async function verifyUniversalOtpAction(params: {
     const stuRes = await client.query(
       `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.roll_no, s.photo_url,
               s.parent_phone, s.parent_email, s.father_name, s.mother_name,
-              c.grade, c.section, c.room_number
+              c.grade, c.section, c.room_number, p.phone_number as parent_table_phone
        FROM public.students s
        LEFT JOIN public.classes c ON c.id = s.class_id
-       WHERE (s.parent_phone LIKE $1 OR s.parent_email ILIKE $2 OR s.admission_no ILIKE $3)
-         AND s.status = 'ACTIVE'
+       LEFT JOIN public.parents p ON p.id = s.parent_id
+       WHERE (
+         REGEXP_REPLACE(COALESCE(s.parent_phone, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR s.parent_email ILIKE $2 
+         OR s.admission_no ILIKE $3
+       )
+       AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL)
        ORDER BY s.first_name ASC;`,
       [`%${phone}%`, rawId, rawId]
     );
@@ -248,7 +302,7 @@ export async function verifyUniversalOtpAction(params: {
       const firstStu = stuRes.rows[0];
       parentProfile = {
         name: firstStu.father_name || firstStu.mother_name || 'Parent',
-        phone: firstStu.parent_phone || phone,
+        phone: firstStu.parent_phone || firstStu.parent_table_phone || phone,
         email: firstStu.parent_email
       };
     }
@@ -303,10 +357,15 @@ export async function verifyEmergencyPinAction(params: {
       `SELECT s.*, c.grade, c.section 
        FROM public.students s
        LEFT JOIN public.classes c ON c.id = s.class_id
-       WHERE (s.parent_phone LIKE $1 OR s.admission_no ILIKE $2)
-         AND s.emergency_login_pin = $3
-         AND (s.emergency_pin_expires_at IS NULL OR s.emergency_pin_expires_at > NOW())
-         AND s.status = 'ACTIVE';`,
+       LEFT JOIN public.parents p ON p.id = s.parent_id
+       WHERE (
+         REGEXP_REPLACE(COALESCE(s.parent_phone, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR s.admission_no ILIKE $2
+       )
+       AND (s.emergency_login_pin = $3 OR p.emergency_login_pin = $3)
+       AND (s.emergency_pin_expires_at IS NULL OR s.emergency_pin_expires_at > NOW())
+       AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL);`,
       [`%${phone}%`, rawId, pin]
     );
 
@@ -336,10 +395,13 @@ export async function verifyEmergencyPinAction(params: {
     // 2. Check Staff emergency PIN
     const staffRes = await client.query(
       `SELECT * FROM public.staff 
-       WHERE (phone_number LIKE $1 OR email ILIKE $2)
-         AND emergency_login_pin = $3
-         AND (emergency_pin_expires_at IS NULL OR emergency_pin_expires_at > NOW())
-         AND is_active = true;`,
+       WHERE (
+         REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+         OR email ILIKE $2
+       )
+       AND emergency_login_pin = $3
+       AND (emergency_pin_expires_at IS NULL OR emergency_pin_expires_at > NOW())
+       AND is_active = true;`,
       [`%${phone}%`, rawId, pin]
     );
 

@@ -204,13 +204,17 @@ export async function approveApplicationAndProvisionParent(applicationId: string
         INSERT INTO public.students (
           campus_id, academic_year_id, parent_id, admission_application_id,
           admission_no, enrollment_number, first_name, last_name,
-          date_of_birth, dob, status, father_name, created_at, updated_at
+          date_of_birth, dob, status, father_name, parent_phone, parent_email, created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4,
           $5, $5, $6, $7,
-          $8, $8, 'Active', $9, NOW(), NOW()
+          $8, $8, 'Active', $9, $10, $11, NOW(), NOW()
         )
-        ON CONFLICT (admission_no) DO UPDATE SET status = 'Active', updated_at = NOW()
+        ON CONFLICT (admission_no) DO UPDATE SET 
+          status = 'Active', 
+          parent_phone = EXCLUDED.parent_phone,
+          parent_email = EXCLUDED.parent_email,
+          updated_at = NOW()
         RETURNING id;
       `, [
         resolvedCampusId,
@@ -221,7 +225,9 @@ export async function approveApplicationAndProvisionParent(applicationId: string
         appRow.student_first_name || 'Student',
         appRow.student_last_name || '',
         appRow.date_of_birth || '2020-01-01',
-        parentFullName
+        parentFullName,
+        cleanPhone,
+        parentEmail
       ]);
 
       newStudentId = studentRes.rows[0]?.id;
@@ -229,9 +235,14 @@ export async function approveApplicationAndProvisionParent(applicationId: string
       // Re-activate and ensure linked
       await client.query(`
         UPDATE public.students
-        SET status = 'Active', admission_application_id = $1, parent_id = COALESCE(parent_id, $2), updated_at = NOW()
-        WHERE id = $3;
-      `, [applicationId, parentId, newStudentId]);
+        SET status = 'Active', 
+            admission_application_id = $1, 
+            parent_id = COALESCE(parent_id, $2), 
+            parent_phone = $3,
+            parent_email = $4,
+            updated_at = NOW()
+        WHERE id = $5;
+      `, [applicationId, parentId, cleanPhone, parentEmail, newStudentId]);
     }
 
     // 4. Create Active Student Enrollment Record
