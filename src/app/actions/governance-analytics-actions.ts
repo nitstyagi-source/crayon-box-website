@@ -926,4 +926,127 @@ export async function updateTrustDetailsAction(payload: {
   }
 }
 
+// -------------------------------------------------------------
+// 12. COMPLIANCE & STATUTORY CERTIFICATES (CAMPUS-WISE)
+// -------------------------------------------------------------
+export async function getComplianceCertificatesAction(params?: { institutionCode?: string }) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const instCode = params?.institutionCode || 'ALL';
+    let query = `
+      SELECT id, institution_code, certificate_type, title, certificate_number,
+             issuing_authority, valid_till, status, document_url, audit_score, notes, created_at, updated_at
+      FROM public.institution_compliance_certificates
+    `;
+    let args: any[] = [];
+
+    if (instCode !== 'ALL') {
+      query += ` WHERE institution_code = $1 `;
+      args.push(instCode);
+    }
+    query += ` ORDER BY institution_code ASC, created_at ASC `;
+
+    const res = await client.query(query, args);
+    return { success: true, certificates: res.rows };
+  } catch (error: any) {
+    console.error('Error in getComplianceCertificatesAction:', error);
+    return { success: false, error: error.message, certificates: [] };
+  } finally {
+    client.release();
+  }
+}
+
+export async function upsertComplianceCertificateAction(payload: {
+  id?: string;
+  institutionCode: string;
+  certificateType: string;
+  title: string;
+  certificateNumber?: string;
+  issuingAuthority: string;
+  validTill: string;
+  status: string;
+  documentUrl?: string;
+  auditScore?: string;
+  notes?: string;
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    if (payload.id) {
+      await client.query(`
+        UPDATE public.institution_compliance_certificates
+        SET institution_code = $1,
+            certificate_type = $2,
+            title = $3,
+            certificate_number = $4,
+            issuing_authority = $5,
+            valid_till = $6,
+            status = $7,
+            document_url = $8,
+            audit_score = $9,
+            notes = $10,
+            updated_at = NOW()
+        WHERE id = $11;
+      `, [
+        payload.institutionCode,
+        payload.certificateType,
+        payload.title,
+        payload.certificateNumber || '',
+        payload.issuingAuthority,
+        payload.validTill,
+        payload.status || 'VALID',
+        payload.documentUrl || '',
+        payload.auditScore || '100%',
+        payload.notes || '',
+        payload.id
+      ]);
+    } else {
+      await client.query(`
+        INSERT INTO public.institution_compliance_certificates
+          (institution_code, certificate_type, title, certificate_number, issuing_authority, valid_till, status, document_url, audit_score, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+      `, [
+        payload.institutionCode,
+        payload.certificateType,
+        payload.title,
+        payload.certificateNumber || '',
+        payload.issuingAuthority,
+        payload.validTill,
+        payload.status || 'VALID',
+        payload.documentUrl || '',
+        payload.auditScore || '100%',
+        payload.notes || ''
+      ]);
+    }
+
+    safeRevalidate('/admin/trust');
+    safeRevalidate('/admin/dashboard');
+    return { success: true, message: 'Certificate details and validity saved successfully.' };
+  } catch (error: any) {
+    console.error('Error in upsertComplianceCertificateAction:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteComplianceCertificateAction(id: string) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query(`DELETE FROM public.institution_compliance_certificates WHERE id = $1`, [id]);
+    safeRevalidate('/admin/trust');
+    return { success: true, message: 'Certificate removed successfully.' };
+  } catch (error: any) {
+    console.error('Error in deleteComplianceCertificateAction:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
 

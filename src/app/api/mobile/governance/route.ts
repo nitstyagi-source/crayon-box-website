@@ -57,12 +57,38 @@ export async function GET(request: NextRequest) {
       complianceScorePercent: 100,
     };
 
-    const complianceAudit = [
-      { id: "comp-1", title: "CBSE Affiliation Standard", status: "VALID", validTill: "31-Mar-2029", authority: "CBSE New Delhi", score: "100%" },
-      { id: "comp-2", title: "Fire & Disaster Safety NOC", status: "VALID", validTill: "15-Nov-2027", authority: "State Fire Services", score: "100%" },
-      { id: "comp-3", title: "Building Structural Safety", status: "VALID", validTill: "30-Jun-2028", authority: "Municipal Town Planning", score: "98%" },
-      { id: "comp-4", title: "POCSO & Child Safeguarding", status: "AUDITED", validTill: "Annual 2026-27", authority: "Trust Ethics Committee", score: "100%" },
-      { id: "comp-5", title: "Clean Water & Sanitation", status: "CERTIFIED", validTill: "31-Dec-2026", authority: "Public Health Laboratory", score: "100%" }
+    const [instsRes, certsRes] = await Promise.all([
+      pool.query(`
+        SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
+               academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
+               affiliation_number as "affiliationNumber", principal_name as "principalName",
+               principal_email as "principalEmail", brand_color as "brandColor", address, status
+        FROM public.institutions
+        ORDER BY created_at ASC;
+      `).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT id, institution_code as "institutionCode", certificate_type as "certificateType",
+               title, certificate_number as "certificateNumber", issuing_authority as "authority",
+               valid_till as "validTill", status, document_url as "documentUrl",
+               audit_score as "score", notes
+        FROM public.institution_compliance_certificates
+        ORDER BY institution_code ASC, created_at ASC;
+      `).catch(() => ({ rows: [] }))
+    ]);
+
+    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
+      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
+    ];
+
+    const complianceAudit = certsRes.rows.length > 0 ? certsRes.rows : [
+      { id: "comp-1", institutionCode: "CBS", title: "CBSE Composite Provisional Affiliation", status: "VALID", validTill: "31-Mar-2029", authority: "CBSE New Delhi", score: "100%" },
+      { id: "comp-2", institutionCode: "CBS", title: "Fire & Disaster Safety NOC", status: "VALID", validTill: "15-Nov-2027", authority: "State Fire Services", score: "100%" },
+      { id: "comp-3", institutionCode: "CBS", title: "Building Structural Safety Certificate", status: "VALID", validTill: "30-Jun-2028", authority: "Municipal Town Planning", score: "98%" },
+      { id: "comp-4", institutionCode: "CBS", title: "POCSO & Child Safeguarding Compliance Audit", status: "AUDITED", validTill: "Annual 2026-27", authority: "Trust Ethics Committee", score: "100%" },
+      { id: "comp-5", institutionCode: "CBS", title: "Clean Water & Hygiene Sanitation Certificate", status: "VALID", validTill: "31-Dec-2026", authority: "Public Health Laboratory", score: "100%" }
     ];
 
     const budgetAllocations = [
@@ -77,24 +103,6 @@ export async function GET(request: NextRequest) {
       { id: "RES-2026-04", date: "15 Aug 2026", title: "Approval of 16-Channel CCTV Low-Latency AI Streaming", quorum: "5/5 Present", status: "ENACTED" },
       { id: "RES-2026-03", date: "01 Jul 2026", title: "Electric Bus Fleet Expansion with GPS Telematics", quorum: "5/5 Present", status: "ENACTED" },
       { id: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + CBSE Hybrid Academic Framework", quorum: "4/5 Present", status: "ENACTED" }
-    ];
-
-    const [instsRes] = await Promise.all([
-      pool.query(`
-        SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
-               academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
-               affiliation_number as "affiliationNumber", principal_name as "principalName",
-               principal_email as "principalEmail", brand_color as "brandColor", address, status
-        FROM public.institutions
-        ORDER BY created_at ASC;
-      `).catch(() => ({ rows: [] }))
-    ]);
-
-    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
-      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
-      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
-      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
-      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
     ];
 
     return NextResponse.json({
@@ -119,6 +127,35 @@ export async function POST(request: NextRequest) {
   const pool = getPool();
   try {
     const body = await request.json();
+
+    // Support Certificate CRUD
+    if (body.action === 'UPSERT_CERTIFICATE') {
+      const { id, institutionCode, certificateType, title, certificateNumber, issuingAuthority, validTill, status, documentUrl, auditScore, notes } = body;
+      if (id) {
+        await pool.query(`
+          UPDATE public.institution_compliance_certificates
+          SET institution_code = $1, certificate_type = $2, title = $3,
+              certificate_number = $4, issuing_authority = $5, valid_till = $6,
+              status = $7, document_url = $8, audit_score = $9, notes = $10,
+              updated_at = NOW()
+          WHERE id = $11;
+        `, [institutionCode || 'CBS', certificateType || 'OTHER', title, certificateNumber || '', issuingAuthority || '', validTill || 'Valid', status || 'VALID', documentUrl || '', auditScore || '100%', notes || '', id]);
+      } else {
+        await pool.query(`
+          INSERT INTO public.institution_compliance_certificates
+            (institution_code, certificate_type, title, certificate_number, issuing_authority, valid_till, status, document_url, audit_score, notes)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+        `, [institutionCode || 'CBS', certificateType || 'OTHER', title, certificateNumber || '', issuingAuthority || '', validTill || 'Valid', status || 'VALID', documentUrl || '', auditScore || '100%', notes || '']);
+      }
+      return NextResponse.json({ success: true, message: 'Certificate saved successfully.' });
+    }
+
+    if (body.action === 'DELETE_CERTIFICATE') {
+      await pool.query(`DELETE FROM public.institution_compliance_certificates WHERE id = $1`, [body.id]);
+      return NextResponse.json({ success: true, message: 'Certificate deleted successfully.' });
+    }
+
+    // Default Trust details update
     const {
       name,
       registration_number,
@@ -126,6 +163,7 @@ export async function POST(request: NextRequest) {
       contact_email,
       contact_phone,
       logo_url,
+      website,
       pan_number,
       tax_exemption_80g,
       chairman_name,
@@ -140,10 +178,11 @@ export async function POST(request: NextRequest) {
            contact_email = COALESCE($4, contact_email),
            contact_phone = COALESCE($5, contact_phone),
            logo_url = COALESCE($6, logo_url),
-           pan_number = COALESCE($7, pan_number),
-           tax_exemption_80g = COALESCE($8, tax_exemption_80g),
-           chairman_name = COALESCE($9, chairman_name),
-           trustee_names = COALESCE($10, trustee_names)
+           website = COALESCE($7, website),
+           pan_number = COALESCE($8, pan_number),
+           tax_exemption_80g = COALESCE($9, tax_exemption_80g),
+           chairman_name = COALESCE($10, chairman_name),
+           trustee_names = COALESCE($11, trustee_names)
        WHERE 1=1
        RETURNING *;`,
       [
@@ -153,6 +192,7 @@ export async function POST(request: NextRequest) {
         contact_email,
         contact_phone,
         logo_url,
+        website,
         pan_number,
         tax_exemption_80g,
         chairman_name,
