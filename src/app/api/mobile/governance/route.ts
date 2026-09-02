@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
     };
 
     const [studentsCountRes, teachersCountRes, camerasCountRes] = await Promise.all([
-      pool.query("SELECT COUNT(*) as count FROM public.students;").catch(() => ({ rows: [{ count: '0' }] })),
-      pool.query("SELECT COUNT(*) as count FROM public.teachers;").catch(() => ({ rows: [{ count: '0' }] })),
+      pool.query("SELECT COUNT(*) as count FROM public.students WHERE (status ILIKE 'active' OR status IS NULL);").catch(() => ({ rows: [{ count: '0' }] })),
+      pool.query("SELECT COUNT(*) as count FROM public.staff WHERE (status ILIKE 'active' OR status IS NULL OR is_active = true);").catch(() => ({ rows: [{ count: '0' }] })),
       pool.query("SELECT COUNT(*) as count FROM public.cameras;").catch(() => ({ rows: [{ count: '16' }] })),
     ]);
 
