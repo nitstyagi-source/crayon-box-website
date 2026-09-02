@@ -145,16 +145,25 @@ export async function requestUniversalOtpAction(params: {
       };
     }
 
-    // Generate 6-Digit TOTP
+    // Generate 6-Digit TOTP & Cryptographic Hash
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     // Save to auth_otp_logs
     await client.query(
       `INSERT INTO public.auth_otp_logs (
-        phone_number, email_address, otp_code, channel, expires_at, attempts, is_verified, created_at
-      ) VALUES ($1, $2, $3, $4, $5, 0, false, NOW());`,
-      [targetPhone || phone || 'EMAIL-LOGIN', targetEmail, otpCode, channel, expiresAt.toISOString()]
+        phone_number, email_address, otp_code, otp_code_hash, purpose, channel, expires_at, attempts, is_verified, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, false, NOW());`,
+      [
+        targetPhone || phone || 'EMAIL-LOGIN',
+        targetEmail,
+        otpCode,
+        otpHash,
+        'UNIVERSAL_LOGIN',
+        channel,
+        expiresAt.toISOString()
+      ]
     );
 
     // Delivery destination masking
