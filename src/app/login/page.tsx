@@ -190,17 +190,22 @@ export default function UniversalLoginPage() {
 
       <div className="relative w-full max-w-md space-y-6">
         
-        {/* Top Institutional Branding */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 text-stone-950 font-black text-2xl shadow-xl shadow-amber-500/20">
-            CB
+        {/* Top Trust Branding */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-stone-900 border border-stone-800 shadow-xl shadow-amber-500/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/trust-logo.png"
+              alt="Vaani Educational Trust"
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              CRAYON BOX SCHOOL
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
+              Vaani Educational Trust
             </h1>
-            <p className="text-xs text-stone-400 font-medium tracking-wide">
-              CBSE Affiliation #2730588 • Universal Portal
+            <p className="text-xs text-amber-400 font-semibold tracking-wide">
+              Apex Multi-Campus ERP • CBS • CBPS • AS • AVM
             </p>
           </div>
         </div>
