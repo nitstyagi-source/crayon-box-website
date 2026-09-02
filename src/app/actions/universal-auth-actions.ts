@@ -166,24 +166,73 @@ export async function requestUniversalOtpAction(params: {
       ]
     );
 
-    // 🚀 DISPATCH LIVE REAL OTP TO PHONE NETWORK VIA MSG91 GATEWAY
+    // 🚀 DISPATCH LIVE REAL OTP TO PHONE NETWORK VIA MSG91 WHATSAPP / TELECOM GATEWAY
     const destinationPhone = targetPhone || phone;
     if (destinationPhone && destinationPhone.length >= 10) {
       try {
-        const authKey = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '319435TL9QVRfp6n6a89bdeaP1';
+        const authKey = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '319435Asat7zCpoh5e4f778fP1';
         const cleanPhone = destinationPhone.replace(/\D/g, '');
         const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-        const url = `https://control.msg91.com/api/v5/otp?template_id=&mobile=${formattedPhone}&authkey=${authKey}&otp=${otpCode}&otp_expiry=5`;
-        
-        const gatewayRes = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'authkey': authKey,
-            'Content-Type': 'application/json'
-          }
-        });
-        const gatewayData = await gatewayRes.json().catch(() => ({}));
-        console.log(`📡 Dispatched Live OTP to ${formattedPhone}:`, gatewayData);
+        const integratedNumber = process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER || '15554018700';
+        const templateName = process.env.MSG91_WHATSAPP_TEMPLATE_NAME || 'crayonbox_login_otp';
+
+        if (channel === 'WHATSAPP') {
+          const waPayload = {
+            integrated_number: integratedNumber,
+            content_type: 'template',
+            payload: {
+              messaging_product: 'whatsapp',
+              type: 'template',
+              template: {
+                name: templateName,
+                language: {
+                  code: 'en',
+                  policy: 'deterministic'
+                },
+                namespace: null,
+                to_and_components: [
+                  {
+                    to: [formattedPhone],
+                    components: {
+                      body_1: {
+                        type: 'text',
+                        value: otpCode
+                      },
+                      button_1: {
+                        subtype: 'url',
+                        type: 'text',
+                        value: otpCode
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          };
+
+          const waRes = await fetch('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/', {
+            method: 'POST',
+            headers: {
+              'authkey': authKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(waPayload)
+          });
+          const waData = await waRes.json().catch(() => ({}));
+          console.log(`📱 Dispatched Live WhatsApp OTP to ${formattedPhone}:`, waData);
+        } else {
+          // Standard SMS route fallback
+          const smsUrl = `https://control.msg91.com/api/v5/otp?template_id=&mobile=${formattedPhone}&authkey=${authKey}&otp=${otpCode}&otp_expiry=5`;
+          const smsRes = await fetch(smsUrl, {
+            method: 'POST',
+            headers: {
+              'authkey': authKey,
+              'Content-Type': 'application/json'
+            }
+          });
+          const smsData = await smsRes.json().catch(() => ({}));
+          console.log(`📡 Dispatched Live SMS OTP to ${formattedPhone}:`, smsData);
+        }
       } catch (gwErr) {
         console.error('Failed to reach telecom gateway:', gwErr);
       }
