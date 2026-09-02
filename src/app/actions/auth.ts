@@ -14,23 +14,24 @@ export async function setServerAuthSession(payload: {
 }) {
   try {
     const cookieStore = await cookies();
+    const thirtyDays = 60 * 60 * 24 * 30;
     cookieStore.set("cb_auth_token", payload.accessToken, {
       path: "/",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: thirtyDays,
     });
     cookieStore.set("cb_user_role", payload.role, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: thirtyDays,
     });
     cookieStore.set("cb_user_email", payload.email, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: thirtyDays,
     });
     cookieStore.set("cb_user_name", payload.fullName, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: thirtyDays,
     });
     return { success: true };
   } catch (err: any) {

@@ -141,7 +141,16 @@ export async function requestUniversalOtpAction(params: {
     if (!staffRecord && studentRecords.length === 0 && !parentRecord) {
       return {
         success: false,
-        error: `No active student, parent, or faculty account found for "${rawId}". Please contact School Front Desk.`
+        error: `No active account found for "${rawId}". Please contact School Front Desk.`
+      };
+    }
+
+    // 🛑 WEB ERP RESTRICTION: Web ERP is strictly reserved for Super Admins, Principals, and Staff.
+    // Pure parents must use the official Crayon Box School Mobile App.
+    if (!staffRecord && (studentRecords.length > 0 || parentRecord)) {
+      return {
+        success: false,
+        error: `Parent & Student accounts access Crayon Box School exclusively via the official Mobile App. Please download and open the Crayon Box School App on your Android or iOS phone.`
       };
     }
 
