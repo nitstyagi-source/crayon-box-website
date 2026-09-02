@@ -185,7 +185,16 @@ export async function requestUniversalOtpAction(params: {
         const integratedNumber = process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER || '15554018700';
         const templateName = process.env.MSG91_WHATSAPP_TEMPLATE_NAME || 'crayonbox_login_otp';
 
-        if (channel === 'WHATSAPP') {
+        if (channel === 'EMAIL' && (targetEmail || rawId.includes('@'))) {
+          const emailAddr = targetEmail || rawId;
+          const { createClient } = require('@supabase/supabase-js');
+          const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          );
+          await supabaseAdmin.auth.signInWithOtp({ email: emailAddr });
+          console.log(`✉️ Dispatched Live Email OTP to ${emailAddr}`);
+        } else if (channel === 'WHATSAPP') {
           const waPayload = {
             integrated_number: integratedNumber,
             content_type: 'template',
