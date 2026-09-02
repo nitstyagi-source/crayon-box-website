@@ -405,21 +405,34 @@ export async function verifyUniversalOtpAction(params: {
     let children: any[] = [];
     let parentProfile: any = null;
 
-    // Faculty Lookup
-    const staffRes = await client.query(
-      `SELECT id, first_name, last_name, role, designation, department, wing,
-              is_class_teacher, class_teacher_for, photo_url, phone_number, email
-       FROM public.staff 
-       WHERE (
-         REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
-         OR REGEXP_REPLACE(COALESCE(whatsapp_no, ''), '[^0-9]', '', 'g') LIKE $1 
-         OR email ILIKE $2 
-         OR official_email ILIKE $2
-       ) 
-       AND is_active = true 
-       LIMIT 1;`,
-      [`%${phone}%`, rawId]
-    );
+    // Faculty Lookup (Isolated by Email vs Phone)
+    let staffRes: any;
+    if (isEmail) {
+      staffRes = await client.query(
+        `SELECT id, first_name, last_name, role, designation, department, wing,
+                is_class_teacher, class_teacher_for, photo_url, phone_number, email
+         FROM public.staff 
+         WHERE (email ILIKE $1 OR official_email ILIKE $1 OR personal_email ILIKE $1) 
+           AND is_active = true 
+         LIMIT 1;`,
+        [rawId]
+      );
+    } else {
+      staffRes = await client.query(
+        `SELECT id, first_name, last_name, role, designation, department, wing,
+                is_class_teacher, class_teacher_for, photo_url, phone_number, email
+         FROM public.staff 
+         WHERE (
+           REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(whatsapp_no, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(personal_mobile, ''), '[^0-9]', '', 'g') LIKE $1
+         ) 
+         AND is_active = true 
+         LIMIT 1;`,
+        [`%${phone}%`]
+      );
+    }
+
     if (staffRes.rows.length > 0) {
       const s = staffRes.rows[0];
       staffProfile = {
@@ -436,24 +449,39 @@ export async function verifyUniversalOtpAction(params: {
       };
     }
 
-    // Children & Parent Lookup
-    const stuRes = await client.query(
-      `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.roll_no, s.photo_url,
-              s.parent_phone, s.parent_email, s.father_name, s.mother_name,
-              c.grade, c.section, c.room_number, p.phone_number as parent_table_phone
-       FROM public.students s
-       LEFT JOIN public.classes c ON c.id = s.class_id
-       LEFT JOIN public.parents p ON p.id = s.parent_id
-       WHERE (
-         REGEXP_REPLACE(COALESCE(s.parent_phone, ''), '[^0-9]', '', 'g') LIKE $1 
-         OR REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
-         OR s.parent_email ILIKE $2 
-         OR s.admission_no ILIKE $3
-       )
-       AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL)
-       ORDER BY s.first_name ASC;`,
-      [`%${phone}%`, rawId, rawId]
-    );
+    // Children & Parent Lookup (Isolated by Email vs Phone)
+    let stuRes: any;
+    if (isEmail) {
+      stuRes = await client.query(
+        `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.roll_no, s.photo_url,
+                s.parent_phone, s.parent_email, s.father_name, s.mother_name,
+                c.grade, c.section, c.room_number, p.phone_number as parent_table_phone
+         FROM public.students s
+         LEFT JOIN public.classes c ON c.id = s.class_id
+         LEFT JOIN public.parents p ON p.id = s.parent_id
+         WHERE (s.parent_email ILIKE $1 OR p.email ILIKE $1)
+           AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL)
+         ORDER BY s.first_name ASC;`,
+        [rawId]
+      );
+    } else {
+      stuRes = await client.query(
+        `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.roll_no, s.photo_url,
+                s.parent_phone, s.parent_email, s.father_name, s.mother_name,
+                c.grade, c.section, c.room_number, p.phone_number as parent_table_phone
+         FROM public.students s
+         LEFT JOIN public.classes c ON c.id = s.class_id
+         LEFT JOIN public.parents p ON p.id = s.parent_id
+         WHERE (
+           REGEXP_REPLACE(COALESCE(s.parent_phone, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR REGEXP_REPLACE(COALESCE(p.phone_number, ''), '[^0-9]', '', 'g') LIKE $1 
+           OR s.admission_no ILIKE $2
+         )
+         AND (s.status ILIKE 'active' OR s.status ILIKE 'enrolled' OR s.status IS NULL)
+         ORDER BY s.first_name ASC;`,
+        [`%${phone}%`, rawId]
+      );
+    }
 
     if (stuRes.rows.length > 0) {
       children = stuRes.rows.map((st: any) => ({
