@@ -139,24 +139,32 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
             <div className="flex flex-col min-w-0">
                <div className="flex items-center gap-1.5 flex-wrap">
-                 <h1 className="text-xs sm:text-sm text-slate-900 font-extrabold leading-tight truncate">
+                 <h1 className="text-xs sm:text-sm text-[#0B1B30] font-extrabold leading-tight truncate">
                    {activeName}
                  </h1>
                  <span 
-                   className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase"
-                   style={{ 
-                     backgroundColor: `${activeBrandColor}15`, 
-                     color: activeBrandColor 
-                   }}
+                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#0B1B30]/5 text-[#0B1B30] border border-[#0B1B30]/10"
                  >
-                   <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: activeBrandColor }} />
+                   <span className="w-1.5 h-1.5 rounded-full bg-[#C85A32] animate-pulse" />
                    {isAllInstitutions ? 'TRUST HQ' : activeAffiliation}
                  </span>
                </div>
-               <p className="text-slate-500 text-[10px] sm:text-[11px] font-medium truncate">
-                 {isAllInstitutions 
-                   ? 'Vani Educational Trust Central Governance • 4 Campuses' 
-                   : `${selectedInstitutionObj?.address || 'Delhi NCR'} • Session 2026–2027`}
+               
+               {/* Role-Tailored Dynamic Greeting */}
+               <p className="text-stone-500 text-[11px] font-medium truncate flex items-center gap-1.5 mt-0.5">
+                 <span className="font-bold text-[#0B1B30]">
+                   {currentRole === 'SUPER_ADMIN' && `Good morning, ${userName}.`}
+                   {currentRole === 'PRINCIPAL' && `See. Understand. Act.`}
+                   {currentRole === 'TEACHER' && `Welcome, ${userName}.`}
+                   {currentRole === 'PARENT' && `Everything about your child's school, in one place.`}
+                   {currentRole === 'ACCOUNTS' && `Precision & Reconciliation.`}
+                 </span>
+                 <span className="text-stone-400 hidden md:inline">
+                   {currentRole === 'SUPER_ADMIN' && `• Cross-campus overview.`}
+                   {currentRole === 'PRINCIPAL' && `• Campus vitals & actions.`}
+                   {currentRole === 'TEACHER' && `• Classroom diary & attendance.`}
+                   {currentRole === 'ACCOUNTS' && `• Daily counter collection.`}
+                 </span>
                </p>
             </div>
           </div>

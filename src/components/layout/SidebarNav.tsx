@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -49,10 +49,175 @@ interface SidebarNavProps {
   onCloseMobile?: () => void;
 }
 
+interface NavSubItem {
+  name: string;
+  href: string;
+  icon: any;
+  badge?: string;
+  roles?: string[];
+}
+
+interface ExecutiveHub {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: any;
+  accentColor: string;
+  allowedRoles: string[];
+  items: NavSubItem[];
+}
+
 export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, onCloseMobile }: SidebarNavProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
+
+  // The 7 Reconfigured Executive Hubs (Consolidating all 41+ modules)
+  const EXECUTIVE_HUBS: ExecutiveHub[] = [
+    {
+      id: 'governance',
+      title: 'Governance',
+      subtitle: 'Board & Trust HQ',
+      icon: Building2,
+      accentColor: '#D4AF37',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
+      items: [
+        { name: 'Command Overview', href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Multi-Campus Matrix', href: '/admin/institutions', icon: Building2, roles: ['SUPER_ADMIN'] },
+        { name: 'Trust Master Governance', href: '/admin/trust', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Board MIS Analytics', href: '/admin/reports/governance', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Identity & Access (IAM)', href: '/admin/iam', icon: KeyRound, roles: ['SUPER_ADMIN'] },
+        { name: 'Data Quality Audit', href: '/admin/data-quality', icon: Database, roles: ['SUPER_ADMIN'] },
+      ],
+    },
+    {
+      id: 'admissions',
+      title: 'Admissions & Roster',
+      subtitle: 'Student 360° & Leads',
+      icon: GraduationCap,
+      accentColor: '#38BDF8',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'],
+      items: [
+        { name: 'Student Roster (360°)', href: '/admin/students', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
+        { name: 'Family 360° Directory', href: '/admin/families', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'] },
+        { name: 'Admissions Pipeline', href: '/admin/admissions', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'AI WhatsApp CRM Bot', href: '/admin/admissions/ai-bot', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Enquiries & Walk-ins', href: '/admin/enquiries', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Admissions Analytics', href: '/admin/admissions/analytics', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Batch PVC ID Studio', href: '/admin/id-cards/studio', icon: CreditCard, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'CBSE Transfer Cert (TC)', href: '/admin/students/tc', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+      ],
+    },
+    {
+      id: 'academics',
+      title: 'Academic LMS',
+      subtitle: 'Classes & Learning',
+      icon: BookOpen,
+      accentColor: '#10B981',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+      items: [
+        { name: 'Daily Attendance', href: '/admin/attendance', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Teacher Lesson Diary', href: '/admin/lesson-diary', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Homework LMS', href: '/admin/academic/homework', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Quiz & Olympiad Arena', href: '/admin/academic/quiz-arena', icon: Gamepad2, badge: 'Interactive', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Smart Timetable Solver', href: '/admin/timetable/smart-builder', icon: Clock, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Master Timetable', href: '/admin/timetable', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Curriculum & Syllabus', href: '/admin/curriculum', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Faculty Staff Directory', href: '/admin/faculty', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Teacher Substitutions', href: '/admin/faculty/substitutions', icon: Shuffle, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Academic Calendar', href: '/admin/calendar', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+      ],
+    },
+    {
+      id: 'exams',
+      title: 'Exams & Evaluation',
+      subtitle: 'Assessments & HPC',
+      icon: Award,
+      accentColor: '#EAB308',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+      items: [
+        { name: 'Exams & Gradebook', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'AI Question Paper Studio', href: '/admin/exams/question-paper-generator', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'CBSE Report Cards (HPC)', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+      ],
+    },
+    {
+      id: 'finance',
+      title: 'Finance & Treasury',
+      subtitle: 'Fees, Payroll & POs',
+      icon: DollarSign,
+      accentColor: '#C85A32',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'],
+      items: [
+        { name: 'Executive Finance & GL', href: '/admin/finance', icon: DollarSign, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
+        { name: 'Fee Collections & POS', href: '/admin/finance/collections', icon: Receipt, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
+        { name: 'Fee Slabs & Concessions', href: '/admin/finance/structure', icon: Layers, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
+        { name: 'Sibling Online UPI Cart', href: '/fees/pay', icon: CreditCard, roles: ['SUPER_ADMIN', 'ACCOUNTS', 'PARENT'] },
+        { name: 'Staff Salary Slips', href: '/admin/hr/salary-slips', icon: DollarSign, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'HR & Statutory Payroll', href: '/admin/hr/payroll', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Spend & Procurement', href: '/admin/procurement', icon: Package, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Fixed Asset Inventory', href: '/admin/inventory', icon: Package, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+      ],
+    },
+    {
+      id: 'logistics',
+      title: 'Logistics & Safety',
+      subtitle: 'Fleet, Gate & Health',
+      icon: Bus,
+      accentColor: '#F59E0B',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+      items: [
+        { name: 'Live GPS Fleet Radar', href: '/admin/transport/radar', icon: Bus, badge: 'Live', roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Transport Fleet Roster', href: '/admin/transport', icon: Bus, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Digital Gate Pass (OTP)', href: '/admin/visitors/gate-pass', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Health Clinic Infirmary', href: '/admin/health/clinic', icon: HeartPulse, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Child Safeguarding (POCSO)', href: '/admin/incidents', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Library Barcode Circulation', href: '/admin/library/circulation', icon: Library, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Digital Library Master', href: '/admin/library', icon: Library, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: '16-Camera CCTV Stream', href: '/admin/live-stream', icon: Video, badge: 'HD', roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Emergency Red Broadcast', href: '/admin/emergency', icon: AlertOctagon, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+      ],
+    },
+    {
+      id: 'community',
+      title: 'Parent Community',
+      subtitle: 'Comms, PTM & Care',
+      icon: MessageSquare,
+      accentColor: '#8B5CF6',
+      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
+      items: [
+        { name: 'AI Comms Studio', href: '/admin/communications/ai-writer', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'WhatsApp Bot & Alerts', href: '/admin/communications/whatsapp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Broadcasts & Circulars', href: '/admin/campaigns', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
+        { name: 'Digital Parent Consent', href: '/admin/consent', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
+        { name: 'PTM Slot Booking', href: '/admin/ptm', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
+        { name: 'Parent Grievance Desk', href: '/admin/grievances', icon: LifeBuoy, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
+        { name: 'Early Departure QR Passes', href: '/admin/early-departure', icon: QrCode, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
+        { name: 'Website CMS & News', href: '/admin/cms', icon: Globe, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+      ],
+    },
+  ];
+
+  // Filter Hubs by active role
+  const accessibleHubs = EXECUTIVE_HUBS.filter(hub => hub.allowedRoles.includes(currentRole));
+
+  // Determine active Hub from current pathname
+  const findActiveHubId = () => {
+    for (const hub of accessibleHubs) {
+      if (hub.items.some(item => pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href)))) {
+        return hub.id;
+      }
+    }
+    return accessibleHubs[0]?.id || 'governance';
+  };
+
+  const [activeHubId, setActiveHubId] = useState<string>(findActiveHubId());
+
+  useEffect(() => {
+    setActiveHubId(findActiveHubId());
+  }, [pathname]);
+
+  const activeHub = accessibleHubs.find(h => h.id === activeHubId) || accessibleHubs[0];
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -67,243 +232,173 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     }
   };
 
-  const activeSchoolName = isAllInstitutions 
-    ? 'Trust HQ (All Campuses)' 
-    : (selectedInstitutionObj?.name || 'Crayon Box School');
-    
-  const activeLogo = selectedInstitutionObj?.logoUrl || '/logo.png';
-  const activeBrandColor = selectedInstitutionObj?.brandColor || '#2563eb';
-
-  const allGroups = [
-    {
-      group: 'Governance & Overview',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'TEACHER', 'PARENT'],
-      items: [
-        { name: 'Unified Command Desk', href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Multi-Campus Matrix', href: '/admin/institutions', icon: Building2, roles: ['SUPER_ADMIN'] },
-        { name: 'Trust Master Governance', href: '/admin/trust', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Governance MIS Analytics', href: '/admin/reports/governance', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-      ],
-    },
-    {
-      group: 'Students & Admissions',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'],
-      items: [
-        { name: 'Student Roster Directory', href: '/admin/students', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
-        { name: 'AI Admissions Receptionist', href: '/admin/admissions/ai-bot', icon: Sparkles, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Batch PVC ID Card Studio', href: '/admin/id-cards/studio', icon: CreditCard, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'CBSE Transfer Certificate (TC)', href: '/admin/students/tc', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Enquiries & CRM', href: '/admin/enquiries', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Admissions Analytics', href: '/admin/admissions/analytics', icon: BarChart3, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Admissions Desk', href: '/admin/admissions', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Family 360° Household Master', href: '/admin/families', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'] },
-      ],
-    },
-    {
-      group: 'Academic Operations',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
-      items: [
-        { name: 'Faculty Staff Directory', href: '/admin/faculty', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Daily Student Attendance', href: '/admin/attendance', icon: GraduationCap, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Interactive Homework LMS', href: '/admin/academic/homework', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Quiz & Olympiad Arena', href: '/admin/academic/quiz-arena', icon: Gamepad2, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Teacher Substitutions Engine', href: '/admin/faculty/substitutions', icon: Shuffle, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Curriculum & Syllabus', href: '/admin/curriculum', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Teacher Lesson Diary', href: '/admin/lesson-diary', icon: BookOpen, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Smart Timetable Solver', href: '/admin/timetable/smart-builder', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Master Timetable', href: '/admin/timetable', icon: Clock, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Exams & Moderation', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'AI Question Paper Studio', href: '/admin/exams/question-paper-generator', icon: Sparkles, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'CBSE Report Cards (HPC)', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Academic Calendar & Events', href: '/admin/calendar', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-      ],
-    },
-    {
-      group: 'Finance & Procurement',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS', 'PARENT'],
-      items: [
-        { name: 'Executive Finance & GL', href: '/admin/finance', icon: DollarSign, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
-        { name: 'Staff Payroll & Slips', href: '/admin/hr/salary-slips', icon: DollarSign, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Sibling Fee Cart (UPI)', href: '/fees/pay', icon: CreditCard, roles: ['SUPER_ADMIN', 'ACCOUNTS', 'PARENT'] },
-        { name: 'Fee Collections & Invoices', href: '/admin/finance/collections', icon: Receipt, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
-        { name: 'Fee Structure & Concessions', href: '/admin/finance/structure', icon: Layers, roles: ['SUPER_ADMIN', 'ACCOUNTS'] },
-        { name: 'HR & Statutory Payroll', href: '/admin/hr/payroll', icon: Users, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Spend & Procurement', href: '/admin/procurement', icon: Package, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Fixed Asset Inventory', href: '/admin/inventory', icon: Package, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-      ],
-    },
-    {
-      group: 'Campus Logistics & Safety',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
-      items: [
-        { name: 'Live GPS Fleet Radar', href: '/admin/transport/radar', icon: Bus, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Transport Fleet Roster', href: '/admin/transport', icon: Bus, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Digital Gate Pass (OTP)', href: '/admin/visitors/gate-pass', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Library Barcode POS', href: '/admin/library/circulation', icon: Library, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Child Safeguarding', href: '/admin/incidents', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Health Clinic Infirmary', href: '/admin/health/clinic', icon: HeartPulse, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Digital Library Master', href: '/admin/library', icon: Library, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Live CCTV Security Stream', href: '/admin/live-stream', icon: Video, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-        { name: 'Emergency Red Broadcast', href: '/admin/emergency', icon: AlertOctagon, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-      ],
-    },
-    {
-      group: 'Parent & Community Services',
-      allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
-      items: [
-        { name: 'AI Communications Studio', href: '/admin/communications/ai-writer', icon: Sparkles, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'WhatsApp Bot & Alerts', href: '/admin/communications/whatsapp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Broadcasts & Circulars', href: '/admin/campaigns', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
-        { name: 'Digital Parent Consent', href: '/admin/consent', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'PTM Slot Booking', href: '/admin/ptm', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
-        { name: 'Parent Grievance Desk', href: '/admin/grievances', icon: LifeBuoy, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'Early Departure Passes', href: '/admin/early-departure', icon: QrCode, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'Website CMS & News', href: '/admin/cms', icon: Globe, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
-      ],
-    },
-    {
-      group: 'System & Security',
-      allowedRoles: ['SUPER_ADMIN'],
-      items: [
-        { name: 'Identity & Access (IAM)', href: '/admin/iam', icon: KeyRound, roles: ['SUPER_ADMIN'] },
-        { name: 'Data Quality & Integrity', href: '/admin/data-quality', icon: Database, roles: ['SUPER_ADMIN'] },
-      ],
-    },
-  ];
-
-  const filteredGroups = allGroups
-    .filter((g) => g.allowedRoles.includes(currentRole))
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((i) => !i.roles || i.roles.includes(currentRole)),
-    }))
-    .filter((g) => g.items.length > 0);
-
-  const roleLabelMap: Record<string, string> = {
-    SUPER_ADMIN: 'Super Administrator',
-    PRINCIPAL: 'Principal / Head',
-    TEACHER: 'Classroom Teacher',
-    ACCOUNTS: 'Accounts Officer',
-    PARENT: 'Parent / Guardian',
-  };
+  const activeCampusCode = isAllInstitutions ? 'TRUST HQ' : (selectedInstitutionObj?.code || 'CAMPUS');
 
   const sidebarContent = (
-    <aside className="w-24 bg-[#0A1A44] text-white flex flex-col h-full shrink-0 font-sans shadow-2xl rounded-r-2xl z-40 border-r border-white/10">
+    <div className="flex h-full font-sans antialiased shadow-2xl rounded-r-3xl overflow-hidden border-r border-[#EFE8DC]">
       
-      {/* Top Sidebar Header: Emblem on Top, Campus Badge Below */}
-      <div className="py-3 px-1.5 border-b border-white/10 flex flex-col items-center justify-center text-center">
-        <div className="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-md mb-1 border"
-             style={{ borderColor: activeBrandColor }}>
-          <img 
-            src={activeLogo} 
-            alt="School Logo" 
-            className="w-full h-full object-contain" 
-            onError={(e) => { e.currentTarget.src = '/logo.png'; }}
-          />
-        </div>
-        <span className="text-[9px] font-black text-white tracking-wider uppercase block truncate max-w-full px-1">
-          {isAllInstitutions ? 'TRUST HQ' : (selectedInstitutionObj?.code || 'CAMPUS')}
-        </span>
+      {/* ========================================================================= */}
+      {/* TIER 1: ICON RAIL (DEEP NAVY #0B1B30) */}
+      {/* ========================================================================= */}
+      <aside className="w-[72px] bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 shrink-0 z-20 border-r border-[#1E3A5F]">
         
-        {/* Mobile Close Button */}
-        {onCloseMobile && (
+        {/* Top Trust Emblem */}
+        <div className="flex flex-col items-center gap-1">
+          <Link href="/admin/dashboard" className="group">
+            <div className="w-10 h-10 rounded-2xl bg-white/10 p-1.5 border border-[#D4AF37]/30 flex items-center justify-center shadow-md group-hover:scale-105 transition">
+              <img 
+                src="/trust-logo.png" 
+                alt="Vaani Educational Trust" 
+                className="w-full h-full object-contain" 
+                onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+              />
+            </div>
+          </Link>
+          <span className="text-[8px] font-black text-[#D4AF37] tracking-wider uppercase">
+            {activeCampusCode}
+          </span>
+        </div>
+
+        {/* The 7 Hub Icons */}
+        <div className="flex-1 flex flex-col justify-center gap-2 py-4">
+          {accessibleHubs.map((hub) => {
+            const Icon = hub.icon;
+            const isSelected = activeHubId === hub.id;
+            return (
+              <button
+                key={hub.id}
+                onClick={() => setActiveHubId(hub.id)}
+                title={`${hub.title} — ${hub.subtitle}`}
+                className={`relative w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#C85A32] text-white shadow-lg shadow-[#C85A32]/30 scale-105'
+                    : 'text-stone-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {isSelected && (
+                  <span className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-4 rounded-l-full bg-white" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Bottom Dual-Role Toggle & Sign Out */}
+        <div className="flex flex-col items-center gap-2">
+          {/* Dual-Role Switcher */}
           <button
-            onClick={onCloseMobile}
-            className="lg:hidden mt-2 p-1 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition cursor-pointer"
+            onClick={() => {
+              const nextRole = currentRole === 'TEACHER' || currentRole === 'SUPER_ADMIN' ? 'PARENT' : 'TEACHER';
+              localStorage.setItem('cbs_active_role', nextRole);
+              window.location.href = nextRole === 'PARENT' ? '/parent/live-stream' : '/admin/dashboard';
+            }}
+            title={`Switch to ${currentRole === 'PARENT' ? 'Faculty Mode' : 'Parent Mode'}`}
+            className="w-9 h-9 rounded-xl bg-[#183454] hover:bg-[#21436C] border border-[#2A4D75] text-[#D4AF37] flex items-center justify-center transition cursor-pointer"
           >
-            <X className="w-3.5 h-3.5" />
+            <Sparkles className="w-4 h-4" />
           </button>
-        )}
-      </div>
 
-      {/* Nav List: Icon on Top, Name Below */}
-      <div className="flex-1 overflow-y-auto px-1.5 py-3 space-y-4 custom-scrollbar">
-        {filteredGroups.map((group, idx) => (
-          <div key={idx} className="space-y-1.5">
-            <div className="flex items-center justify-center px-1">
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/40 text-center border-b border-white/10 pb-0.5 w-full">
-                {group.group.split(' ')[0]}
-              </span>
-            </div>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => { if (onCloseMobile) onCloseMobile(); }}
-                    title={item.name}
-                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition group ${
-                      isActive
-                        ? 'bg-white text-[#0A1A44] shadow-md'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 transition ${
-                      isActive 
-                        ? 'bg-[#0A1A44] text-white shadow-xs' 
-                        : 'bg-white/10 text-white group-hover:bg-white/20 group-hover:scale-105'
-                    }`}>
-                      <Icon className="w-4 h-4 shrink-0" />
-                    </div>
-                    <span className={`text-[9px] font-black leading-tight text-center px-0.5 ${isActive ? 'text-[#0A1A44]' : 'text-white/80 group-hover:text-white'}`}>
-                      {item.name}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom User Area: Icon on Top, Persona & Sign Out */}
-      <div className="p-1.5 border-t border-white/10 bg-transparent space-y-1.5 flex flex-col items-center">
-        
-        {/* Dual-Role Live Switcher (Teacher ⇄ Parent) */}
-        <button
-          onClick={() => {
-            const nextRole = currentRole === 'TEACHER' || currentRole === 'SUPER_ADMIN' ? 'PARENT' : 'TEACHER';
-            localStorage.setItem('cbs_active_role', nextRole);
-            window.location.href = nextRole === 'PARENT' ? '/parent/live-stream' : '/admin/dashboard';
-          }}
-          title="Toggle between Faculty & Parent Mode"
-          className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/30 text-[8px] font-black transition cursor-pointer"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
-          <span>{currentRole === 'PARENT' ? '⇄ Faculty Mode' : '⇄ Parent Mode'}</span>
-        </button>
-
-        <div className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-white/10 border border-white/10 text-center">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mb-0.5" />
-          <span className="text-[8px] font-extrabold uppercase tracking-wider text-white/50 block">
-            ACTIVE ROLE
-          </span>
-          <span className="text-[9px] font-black text-white truncate max-w-full block">
-            {currentRole.replace(/_/g, ' ')}
-          </span>
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title="Sign Out"
+            className="w-9 h-9 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 flex items-center justify-center transition cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Sidebar Logout Button */}
-        <button
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          title="Sign Out of ERP"
-          className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-100 border border-rose-500/30 text-[9px] font-black transition shadow-xs cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5 text-rose-400 mb-0.5" />
-          <span>{isLoggingOut ? '...' : 'Sign Out'}</span>
-        </button>
-      </div>
+      </aside>
 
-    </aside>
+      {/* ========================================================================= */}
+      {/* TIER 2: CONTEXTUAL SUB-DRAWER (WARM IVORY & CRISP NOTION/LINEAR STYLING) */}
+      {/* ========================================================================= */}
+      {activeHub && (
+        <div className="w-60 bg-[#FAF7F2] flex flex-col justify-between border-r border-[#EFE8DC] py-4 px-3 shrink-0">
+          
+          <div className="space-y-3">
+            
+            {/* Hub Header */}
+            <div className="px-2 pb-2 border-b border-[#E8DFD3]">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold tracking-widest text-[#C85A32] uppercase">
+                  Executive Hub
+                </span>
+                {onCloseMobile && (
+                  <button
+                    onClick={onCloseMobile}
+                    className="lg:hidden p-1 rounded-md hover:bg-stone-200 text-stone-500 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <h2 className="text-sm font-bold text-[#0B1B30] truncate">
+                {activeHub.title}
+              </h2>
+              <p className="text-[11px] text-stone-500 truncate">
+                {activeHub.subtitle}
+              </p>
+            </div>
+
+            {/* Sub-Items List */}
+            <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-180px)] custom-scrollbar pr-1">
+              {activeHub.items
+                .filter(item => !item.roles || item.roles.includes(currentRole))
+                .map((item) => {
+                  const ItemIcon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => { if (onCloseMobile) onCloseMobile(); }}
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition group ${
+                        isActive
+                          ? 'bg-white text-[#0B1B30] font-bold shadow-xs border border-[#E8DFD3]'
+                          : 'text-stone-600 hover:text-[#0B1B30] hover:bg-[#F2ECE1]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition ${
+                          isActive
+                            ? 'bg-[#0B1B30] text-white'
+                            : 'bg-stone-200/60 text-stone-600 group-hover:bg-[#0B1B30] group-hover:text-white'
+                        }`}>
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="truncate">{item.name}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C85A32]/10 text-[#C85A32] border border-[#C85A32]/20">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+            </div>
+
+          </div>
+
+          {/* Quick Help & Hotline */}
+          <div className="p-2.5 rounded-xl bg-white border border-[#EFE8DC] text-[11px] text-stone-500 space-y-0.5">
+            <p className="font-bold text-[#0B1B30]">Front Desk Support</p>
+            <p className="font-semibold text-[#C85A32]">+91 98111 02008</p>
+          </div>
+
+        </div>
+      )}
+
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Static Sidebar */}
+      {/* Desktop 2-Tier Sidebar */}
       <div className="hidden lg:flex h-full">
         {sidebarContent}
       </div>
@@ -311,12 +406,10 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       {/* Mobile Drawer Slide-over */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in transition-opacity"
+            className="fixed inset-0 bg-[#0B1B30]/60 backdrop-blur-xs animate-in fade-in"
             onClick={onCloseMobile}
           />
-          {/* Drawer content */}
           <div className="relative z-50 animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
@@ -325,3 +418,4 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     </>
   );
 }
+
