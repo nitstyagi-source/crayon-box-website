@@ -60,6 +60,7 @@ interface NavSubItem {
 interface ExecutiveHub {
   id: string;
   title: string;
+  shortName: string;
   subtitle: string;
   icon: any;
   accentColor: string;
@@ -77,6 +78,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'governance',
       title: 'Governance',
+      shortName: 'Governance',
       subtitle: 'Board & Trust HQ',
       icon: Building2,
       accentColor: '#D4AF37',
@@ -93,6 +95,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'admissions',
       title: 'Admissions & Roster',
+      shortName: 'Admissions',
       subtitle: 'Student 360° & Leads',
       icon: GraduationCap,
       accentColor: '#38BDF8',
@@ -111,6 +114,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'academics',
       title: 'Academic LMS',
+      shortName: 'Academics',
       subtitle: 'Classes & Learning',
       icon: BookOpen,
       accentColor: '#10B981',
@@ -131,6 +135,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'exams',
       title: 'Exams & Evaluation',
+      shortName: 'Exams',
       subtitle: 'Assessments & HPC',
       icon: Award,
       accentColor: '#EAB308',
@@ -144,6 +149,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'finance',
       title: 'Finance & Treasury',
+      shortName: 'Finance',
       subtitle: 'Fees, Payroll & POs',
       icon: DollarSign,
       accentColor: '#C85A32',
@@ -162,6 +168,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'logistics',
       title: 'Logistics & Safety',
+      shortName: 'Logistics',
       subtitle: 'Fleet, Gate & Health',
       icon: Bus,
       accentColor: '#F59E0B',
@@ -181,6 +188,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     {
       id: 'community',
       title: 'Parent Community',
+      shortName: 'Community',
       subtitle: 'Comms, PTM & Care',
       icon: MessageSquare,
       accentColor: '#8B5CF6',
@@ -256,9 +264,9 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     >
       
       {/* ========================================================================= */}
-      {/* TIER 1: PRIMARY ICON RAIL (ALWAYS VISIBLE, SLEEK 72px) */}
+      {/* TIER 1: PRIMARY ICON RAIL WITH CLASSIFICATION NAMES (ALWAYS VISIBLE, 80px) */}
       {/* ========================================================================= */}
-      <aside className="w-[72px] bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 shrink-0 z-50 shadow-2xl border-r border-[#1E3A5F]">
+      <aside className="w-20 bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 px-1 shrink-0 z-50 shadow-2xl border-r border-[#1E3A5F]">
         
         {/* Top Trust Emblem */}
         <div className="flex flex-col items-center gap-1">
@@ -277,8 +285,8 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
           </span>
         </div>
 
-        {/* The 7 Hub Icons: Hover / Click triggers dynamic Tier 2 drawer */}
-        <div className="flex-1 flex flex-col justify-center gap-2 py-4">
+        {/* The 7 Hub Icons with Names Below */}
+        <div className="flex-1 flex flex-col justify-center gap-1.5 py-3">
           {accessibleHubs.map((hub) => {
             const Icon = hub.icon;
             const isSelected = activeHubId === hub.id;
@@ -294,7 +302,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
                   setIsTier2Open(prev => (activeHubId === hub.id ? !prev : true));
                 }}
                 title={`${hub.title} — ${hub.subtitle}`}
-                className={`relative w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer ${
+                className={`relative w-[72px] py-1.5 px-1 rounded-xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer ${
                   isSelected && isTier2Open
                     ? 'bg-[#C85A32] text-white shadow-lg shadow-[#C85A32]/30 scale-105'
                     : isSelected
@@ -302,9 +310,12 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
                     : 'text-stone-300 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4 mb-1 shrink-0" />
+                <span className="text-[8px] font-black uppercase tracking-tight text-center leading-tight truncate max-w-full px-0.5">
+                  {hub.shortName}
+                </span>
                 {isSelected && (
-                  <span className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-4 rounded-l-full bg-[#C85A32]" />
+                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-3.5 rounded-l-full bg-[#C85A32]" />
                 )}
               </button>
             );
@@ -351,7 +362,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       {/* TIER 2: DYNAMIC CONTEXTUAL SUB-DRAWER (APPEARS ON REACH, COLLAPSES ON SELECTION) */}
       {/* ========================================================================= */}
       <div 
-        className={`absolute left-[72px] top-0 bottom-0 w-64 bg-[#FAF7F2] border-r border-[#EFE8DC] shadow-2xl z-40 flex flex-col justify-between py-4 px-3.5 transition-all duration-200 ease-out origin-left ${
+        className={`absolute left-20 top-0 bottom-0 w-64 bg-[#FAF7F2] border-r border-[#EFE8DC] shadow-2xl z-40 flex flex-col justify-between py-4 px-3.5 transition-all duration-200 ease-out origin-left ${
           isTier2Open 
             ? 'translate-x-0 opacity-100 pointer-events-auto' 
             : '-translate-x-4 opacity-0 pointer-events-none'
