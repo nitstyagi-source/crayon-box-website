@@ -486,7 +486,7 @@ export default function UniversalLoginPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* DUAL-ROLE RESOLVER MODAL (TEACHER + PARENT) */}
+      {/* DUAL-ROLE RESOLVER MODAL (SUPER ADMIN / TEACHER + PARENT) */}
       {/* ========================================================================= */}
       {dualRoleUser && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -495,22 +495,22 @@ export default function UniversalLoginPage() {
             <div className="text-center space-y-1.5">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[11px] font-bold border border-purple-500/30">
                 <Sparkles className="w-3.5 h-3.5" />
-                Dual-Role Profile Detected
+                {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'Super Admin & Parent Profile' : 'Dual-Role Profile Detected'}
               </span>
               <h3 className="text-lg font-black text-white">
-                Welcome, {dualRoleUser.faculty?.name || "Educator"}!
+                Welcome, {dualRoleUser.faculty?.name || "User"}!
               </h3>
               <p className="text-xs text-stone-400">
-                You are registered as both a <strong>Faculty Member</strong> and a <strong>Parent</strong> of enrolled students. How would you like to continue?
+                You are registered as {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? <strong>Super Admin / Trustee</strong> : <strong>Faculty Member</strong>} and also a <strong>Parent</strong> of enrolled students. How would you like to continue?
               </p>
             </div>
 
             <div className="space-y-3 pt-2">
               
-              {/* Option 1: Faculty Mode */}
+              {/* Option 1: Super Admin / Faculty Mode */}
               <button
                 type="button"
-                onClick={() => completeLoginSession(dualRoleUser, "FACULTY")}
+                onClick={() => completeLoginSession(dualRoleUser, dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'FACULTY')}
                 className="w-full p-4 rounded-2xl bg-stone-950 hover:bg-stone-800 border-2 border-purple-500/40 hover:border-purple-500 transition flex items-center justify-between text-left group"
               >
                 <div className="flex items-center gap-3">
@@ -519,10 +519,10 @@ export default function UniversalLoginPage() {
                   </div>
                   <div>
                     <strong className="block text-sm font-bold text-white group-hover:text-purple-300">
-                      Continue as Faculty / Teacher
+                      {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? '👑 Continue as Super Admin (Trust HQ)' : '👩‍🏫 Continue as Faculty / Teacher'}
                     </strong>
                     <span className="text-xs text-stone-400">
-                      {dualRoleUser.faculty?.designation || "Class Teacher"} • Attendance, Homework &amp; Grading
+                      {dualRoleUser.faculty?.designation || (dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'Managing Trustee' : 'Class Teacher')} • {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'All 4 Campuses, CCTV & Matrix' : 'Attendance & Lesson Diary'}
                     </span>
                   </div>
                 </div>
@@ -541,10 +541,10 @@ export default function UniversalLoginPage() {
                   </div>
                   <div>
                     <strong className="block text-sm font-bold text-white group-hover:text-amber-300">
-                      Continue as Parent
+                      👨‍👩‍👧 Continue as Parent
                     </strong>
                     <span className="text-xs text-stone-400">
-                      Parent of {dualRoleUser.children?.map((c: any) => c.name).join(", ") || "Enrolled Child"} • Fees, Bus GPS &amp; Report Card
+                      Parent of {dualRoleUser.children?.map((c: any) => `${c.name} (${c.grade || 'Class 5'})`).join(", ") || "Viraj Tyagi"} • Fees, Bus GPS &amp; Report Card
                     </span>
                   </div>
                 </div>
@@ -554,7 +554,7 @@ export default function UniversalLoginPage() {
             </div>
 
             <p className="text-[11px] text-center text-stone-500">
-              💡 You can also switch between Faculty and Parent modes anytime from the top header switcher!
+              💡 You can also switch between Super Admin and Parent modes anytime from the top header switcher!
             </p>
 
           </div>
