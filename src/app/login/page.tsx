@@ -330,7 +330,7 @@ export default function UniversalLoginPage() {
                         type="text"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder="9911102027 or user@crayonboxschool.com"
+                        placeholder="Enter Mobile Number or Email Address"
                         className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 transition"
                         required
                         autoFocus
