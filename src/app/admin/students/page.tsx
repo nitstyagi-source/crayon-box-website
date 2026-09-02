@@ -515,21 +515,21 @@ export default function UniversalStudentsDirectoryPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Header Banner */}
+      {/* Executive Command Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Universal Student Master V1 (ACID Transactional)
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Student &amp; Family 360 Lifecycle Master
             </span>
             <span className="text-slate-300 text-xs">•</span>
             <span className="text-slate-500 text-xs font-semibold">{students.length} Enrolled in Scope</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Universal Student Master Directory
+            Universal Student &amp; Family Directory
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Permanent universal student identities with decoupled institutional enrollments.
+            Permanent universal student identities, household relations, ID smart-badges, and CBSE transfer certificates.
           </p>
         </div>
 
@@ -541,6 +541,44 @@ export default function UniversalStudentsDirectoryPage() {
             Enroll New Student
           </Button>
         </div>
+      </div>
+
+      {/* Lifecycle Master Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-none">
+        <Link
+          href="/admin/students"
+          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-[#0B1B30] text-white shadow-xs whitespace-nowrap"
+        >
+          <Users className="w-4 h-4 text-emerald-400" />
+          <span>1. Student Roster (360°)</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-emerald-700 text-emerald-100">
+            {counts.totalActive}
+          </span>
+        </Link>
+
+        <Link
+          href="/admin/families"
+          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap"
+        >
+          <Building2 className="w-4 h-4 text-blue-500" />
+          <span>2. Family 360° &amp; Siblings Master</span>
+        </Link>
+
+        <Link
+          href="/admin/id-cards/studio"
+          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap"
+        >
+          <CreditCard className="w-4 h-4 text-purple-500" />
+          <span>3. ID Card &amp; Escort Pass Studio</span>
+        </Link>
+
+        <Link
+          href="/admin/students/tc"
+          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 whitespace-nowrap"
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-500" />
+          <span>4. Transfer Certificate (TC)</span>
+        </Link>
       </div>
 
       {/* Top Segmented Status Category Switcher */}
