@@ -247,7 +247,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
 
   const sidebarContent = (
     <div 
-      className="relative flex h-full font-sans antialiased z-30"
+      className="relative flex h-full font-sans antialiased z-40"
       onMouseLeave={() => {
         if (!isPinned) {
           setIsTier2Open(false);
@@ -258,7 +258,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       {/* ========================================================================= */}
       {/* TIER 1: PRIMARY ICON RAIL (ALWAYS VISIBLE, SLEEK 72px) */}
       {/* ========================================================================= */}
-      <aside className="w-[72px] bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 shrink-0 z-30 shadow-2xl border-r border-[#1E3A5F]">
+      <aside className="w-[72px] bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 shrink-0 z-50 shadow-2xl border-r border-[#1E3A5F]">
         
         {/* Top Trust Emblem */}
         <div className="flex flex-col items-center gap-1">
@@ -339,11 +339,19 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
 
       </aside>
 
+      {/* Backdrop for click-away when Tier 2 is open (and not pinned) */}
+      {isTier2Open && !isPinned && (
+        <div 
+          className="fixed inset-0 z-30 bg-black/10 backdrop-blur-[1px] transition-opacity"
+          onClick={() => setIsTier2Open(false)}
+        />
+      )}
+
       {/* ========================================================================= */}
       {/* TIER 2: DYNAMIC CONTEXTUAL SUB-DRAWER (APPEARS ON REACH, COLLAPSES ON SELECTION) */}
       {/* ========================================================================= */}
       <div 
-        className={`absolute left-[72px] top-0 bottom-0 w-64 bg-[#FAF7F2] border-r border-stone-200/90 shadow-2xl z-20 flex flex-col justify-between py-4 px-3.5 transition-all duration-200 ease-out origin-left ${
+        className={`absolute left-[72px] top-0 bottom-0 w-64 bg-[#FAF7F2] border-r border-[#EFE8DC] shadow-2xl z-40 flex flex-col justify-between py-4 px-3.5 transition-all duration-200 ease-out origin-left ${
           isTier2Open 
             ? 'translate-x-0 opacity-100 pointer-events-auto' 
             : '-translate-x-4 opacity-0 pointer-events-none'
@@ -446,7 +454,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
   return (
     <>
       {/* Desktop Dynamic 2-Tier Sidebar */}
-      <div className="hidden lg:flex h-full">
+      <div className="hidden lg:flex h-full relative z-40">
         {sidebarContent}
       </div>
 
