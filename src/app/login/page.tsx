@@ -60,6 +60,42 @@ export default function UniversalLoginPage() {
     return () => clearInterval(interval);
   }, [otpDispatched, resendTimer]);
 
+  useEffect(() => {
+    // Capture Email Magic Link sign-ins
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      if (session?.user?.email) {
+        const userEmail = session.user.email;
+        const userName = userEmail.includes('tyagi') ? 'Nitin Tyagi (Chairman)' : userEmail.split('@')[0];
+        const userRole = userEmail.includes('tyagi') ? 'SUPER_ADMIN' : 'STAFF';
+
+        await setServerAuthSession({
+          userId: session.user.id || 'supa_user',
+          accessToken: session.access_token || `supa_${Date.now()}`,
+          role: userRole,
+          fullName: userName,
+          email: userEmail
+        });
+
+        localStorage.setItem('cb_auth_token', session.access_token || 'true');
+        localStorage.setItem('cb_user_role', userRole);
+        localStorage.setItem('cb_user_name', userName);
+        localStorage.setItem('cb_user_email', userEmail);
+
+        router.replace('/admin');
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [router]);
+
   // 1. Send OTP (WhatsApp or Email)
   async function handleSendOtp(channelToUse: "WHATSAPP" | "EMAIL") {
     setIsLoading(true);
