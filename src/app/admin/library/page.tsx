@@ -6,7 +6,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, ArrowRight, 
   RotateCcw, ShieldCheck, Tag, Layers, Bookmark, 
   Users, BookMarked, Printer, RefreshCw, X, ChevronRight,
-  ScanLine, Phone, DollarSign, Library, Sparkles, Check
+  ScanLine, Phone, IndianRupee, Library, Sparkles, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useInstitution } from "@/components/providers/InstitutionContext";

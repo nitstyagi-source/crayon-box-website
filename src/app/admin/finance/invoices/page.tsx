@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { 
   Receipt, Search, Filter, Edit3, Printer, CheckCircle2, 
-  AlertTriangle, Clock, RefreshCw, X, Eye, ShieldCheck, DollarSign,
+  AlertTriangle, Clock, RefreshCw, X, Eye, ShieldCheck, IndianRupee,
   Calendar, FileText, ArrowRight, Save, Plus, Trash2, Layers
 } from "lucide-react";
 import Link from "next/link";
@@ -281,7 +281,7 @@ export default function InvoicesModule() {
             onClick={() => setHeadsModalOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold rounded-xl transition border border-purple-200 shadow-xs"
           >
-            <DollarSign className="w-3.5 h-3.5" /> Manage Invoice Heads
+            <IndianRupee className="w-3.5 h-3.5" /> Manage Invoice Heads
           </button>
           <Link
             href="/admin/finance/generate"
@@ -647,7 +647,7 @@ export default function InvoicesModule() {
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
                 <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-purple-600" />
+                  <IndianRupee className="w-5 h-5 text-purple-600" />
                   Invoice Fee Heads Master
                 </h3>
                 <p className="text-xs text-stone-400">Add, edit, or categorize recurring and one-time billing heads.</p>

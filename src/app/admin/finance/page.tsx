@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  CreditCard, DollarSign, ArrowUpRight, TrendingUp,
+  CreditCard, IndianRupee, ArrowUpRight, TrendingUp,
   Receipt, Download, ShieldCheck, CheckCircle2, AlertCircle,
   Building2, Layers, RefreshCw, BarChart3, Plus
 } from 'lucide-react';
@@ -147,7 +147,7 @@ export default function ExecutiveFinancePage() {
           label="Total Collected"
           value={isLoading ? '...' : formatCurrency(totalCollected)}
           subtext={totalBilled > 0 ? `${Math.round((totalCollected / totalBilled) * 100)}% Collection Yield` : '0% Collection Yield'}
-          icon={<DollarSign className="w-4 h-4" />}
+          icon={<IndianRupee className="w-4 h-4" />}
           iconBgColor="bg-emerald-50 text-emerald-600"
         />
         <StatCard

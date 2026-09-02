@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   RotateCcw, CheckCircle2, Plus, Search, Filter, RefreshCw, 
-  DollarSign, ArrowRight, ShieldCheck, AlertCircle, Clock, FileText 
+  IndianRupee, ArrowRight, ShieldCheck, AlertCircle, Clock, FileText 
 } from "lucide-react";
 import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFeeRefunds, processFeeRefund, searchStudentsForFeeCollection } from "@/app/actions/finance-core";

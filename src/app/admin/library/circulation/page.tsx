@@ -11,7 +11,7 @@ import {
   Search,
   Send,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Users,
   Clock,
   RotateCcw,
@@ -172,7 +172,7 @@ export default function DigitalLibraryCirculationPage() {
 
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <div className="text-xs text-stone-500 font-bold flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-purple-600" />
+            <IndianRupee className="w-4 h-4 text-purple-600" />
             Pending Fines
           </div>
           <div className="text-2xl sm:text-3xl font-black text-purple-600">

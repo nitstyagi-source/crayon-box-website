@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { 
   FilePlus, Users, User, Search, Plus, Trash2, CheckCircle2, 
-  AlertCircle, ShieldCheck, DollarSign, Calendar, Clock, ArrowRight,
+  AlertCircle, ShieldCheck, IndianRupee, Calendar, Clock, ArrowRight,
   Sparkles, RefreshCw, Layers, ShieldAlert, CheckSquare, Square,
   Filter, UserCheck, UserX, Info, Eye, Printer, Edit3, Save
 } from "lucide-react";
@@ -616,7 +616,7 @@ export default function GenerateInvoicesPage() {
             onClick={() => setHeadsModalOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold rounded-xl transition border border-purple-200 shadow-xs"
           >
-            <DollarSign className="w-3.5 h-3.5" /> Manage Fee Heads
+            <IndianRupee className="w-3.5 h-3.5" /> Manage Fee Heads
           </button>
           <Link
             href="/admin/finance/invoices"
@@ -904,7 +904,7 @@ export default function GenerateInvoicesPage() {
               <div className="flex justify-between items-center border-b border-stone-100 pb-4">
                 <div>
                   <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-blue-600" />
+                    <IndianRupee className="w-5 h-5 text-blue-600" />
                     3. Itemized Fee Heads & Individual Head Discounts
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
@@ -1576,7 +1576,7 @@ export default function GenerateInvoicesPage() {
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div>
                 <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-purple-600" />
+                  <IndianRupee className="w-5 h-5 text-purple-600" />
                   Invoice Fee Heads Master
                 </h3>
                 <p className="text-xs text-stone-400">Add, edit, or configure recurring and one-time billing fee heads.</p>

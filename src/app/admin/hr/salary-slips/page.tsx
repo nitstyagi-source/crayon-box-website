@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  DollarSign,
+  IndianRupee,
   Send,
   Printer,
   CheckCircle2,
@@ -75,7 +75,7 @@ export default function AutomatedPayrollPage() {
             Statutory Payroll Engine &amp; Automated WhatsApp Dispatch
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-emerald-400" />
+            <IndianRupee className="w-8 h-8 text-emerald-400" />
             Staff Payroll &amp; Digital Salary Slips
           </h1>
           <p className="text-xs sm:text-sm text-indigo-200/80 max-w-2xl">
@@ -134,7 +134,7 @@ export default function AutomatedPayrollPage() {
 
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <div className="text-xs text-stone-500 font-bold flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-blue-600" />
+            <IndianRupee className="w-4 h-4 text-blue-600" />
             Net Disbursed
           </div>
           <div className="text-2xl sm:text-3xl font-black text-blue-950">

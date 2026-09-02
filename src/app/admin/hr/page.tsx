@@ -6,7 +6,7 @@ import {
   Users, UserCheck, CreditCard, ShieldCheck, Download,
   Plus, Search, Filter, Calendar, Award, ArrowRight,
   RefreshCw, Trash2, Building2, ChevronRight, ArrowLeft,
-  CheckCircle2, Mail, Phone, MapPin, Briefcase, DollarSign, Edit3
+  CheckCircle2, Mail, Phone, MapPin, Briefcase, IndianRupee, Edit3
 } from 'lucide-react';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';

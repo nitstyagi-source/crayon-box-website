@@ -8,7 +8,7 @@ import {
   GraduationCap, Award, ShieldCheck, Briefcase, FileText, 
   Clock, Heart, BookOpen, Star, AlertCircle, Plus, Trash2, 
   Edit3, CheckCircle2, XCircle, Printer, Download, Eye, 
-  Laptop, ChevronRight, DollarSign, Sparkles, Building2, 
+  Laptop, ChevronRight, IndianRupee, Sparkles, Building2, 
   CheckSquare, Activity, UserCheck, ShieldAlert,
   RotateCcw, UserMinus, ArrowRightLeft, CheckCheck, Check, Archive, X
 } from "lucide-react";
@@ -556,7 +556,7 @@ export default function FacultyProfile360Page() {
             { id: "my_students", label: "My Students & Marks", icon: Users },
             { id: "attendance", label: "Biometric Attendance", icon: CheckCircle2 },
             { id: "leaves", label: `Leaves (${leaves.length})`, icon: Calendar },
-            { id: "payroll", label: "Salary & Payroll", icon: DollarSign },
+            { id: "payroll", label: "Salary & Payroll", icon: IndianRupee },
             { id: "appraisal", label: `Appraisals (${appraisals.length})`, icon: Star },
             { id: "training", label: `Trainings (${trainings.length})`, icon: Sparkles },
             { id: "assets", label: `Assets (${assets.length})`, icon: Laptop },

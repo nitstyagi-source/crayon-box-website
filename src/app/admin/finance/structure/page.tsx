@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   Layers, Plus, Edit3, Trash2, CheckCircle2, 
-  HelpCircle, ShieldCheck, Tag, DollarSign, Calendar, Clock, RefreshCw,
+  HelpCircle, ShieldCheck, Tag, IndianRupee, Calendar, Clock, RefreshCw,
   Users, Sparkles, FileText, Send, ArrowRight, Zap, Check
 } from "lucide-react";
 import { useInstitution } from "@/components/providers/InstitutionContext";

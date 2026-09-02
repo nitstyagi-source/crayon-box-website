@@ -6,7 +6,7 @@ import {
   QrCode,
   CheckCircle2,
   Users,
-  DollarSign,
+  IndianRupee,
   Percent,
   Receipt,
   Sparkles,

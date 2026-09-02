@@ -6,7 +6,7 @@ import {
   PhoneCall, Plus, Search, Filter, Calendar, Clock, MessageSquare, 
   ArrowRight, X, Phone, User, CheckCircle2, AlertCircle, Sparkles, 
   GraduationCap, Printer, Shield, ChevronRight, Check, Eye, Trash2, 
-  Heart, Bus, Award, Building, Share2, Layers, DollarSign, RefreshCw
+  Heart, Bus, Award, Building, Share2, Layers, IndianRupee, RefreshCw
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Wallet, Calculator, FileText, Download, CheckCircle2, AlertTriangle,
   ArrowRight, ShieldCheck, RefreshCw, Printer, X, Building2,
-  Users, DollarSign, CreditCard, ChevronRight, Sparkles, Check, Send
+  Users, IndianRupee, CreditCard, ChevronRight, Sparkles, Check, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';

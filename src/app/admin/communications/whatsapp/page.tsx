@@ -6,7 +6,7 @@ import {
   Send,
   Bell,
   Clock,
-  DollarSign,
+  IndianRupee,
   Users,
   CheckCircle2,
   AlertTriangle,
@@ -215,7 +215,7 @@ export default function WhatsAppCommandCenterPage() {
 
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-1">
           <div className="text-xs text-stone-500 font-bold flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-purple-600" />
+            <IndianRupee className="w-4 h-4 text-purple-600" />
             1-Click UPI Dues
           </div>
           <div className="text-2xl sm:text-3xl font-black text-stone-900">
@@ -344,7 +344,7 @@ export default function WhatsAppCommandCenterPage() {
                   Fee Collection Funnel
                 </span>
                 <span className="text-xs font-bold text-purple-700 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-purple-600" /> UPI Deep-Link Active
+                  <IndianRupee className="w-3.5 h-3.5 text-purple-600" /> UPI Deep-Link Active
                 </span>
               </div>
 
@@ -378,7 +378,7 @@ export default function WhatsAppCommandCenterPage() {
               disabled={isProcessing}
               className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-sm transition active:scale-98 flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
             >
-              {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+              {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <IndianRupee className="w-4 h-4" />}
               💳 Dispatch 1-Click Fee Reminders
             </button>
           </div>

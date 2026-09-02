@@ -5,7 +5,7 @@ import {
   Briefcase, Users, UserPlus, CheckCircle2, Clock, 
   Sparkles, Award, FileText, Send, Plus, Search, 
   Filter, Eye, Check, X, ArrowRight, Download, 
-  Trash2, Building2, Phone, Mail, Calendar, DollarSign, 
+  Trash2, Building2, Phone, Mail, Calendar, IndianRupee, 
   Star, ThumbsUp, AlertCircle, RefreshCw, BookOpen
 } from "lucide-react";
 import Link from "next/link";

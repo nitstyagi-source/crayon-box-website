@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { 
-  Receipt, DollarSign, Plus, Search, Filter, 
+  Receipt, IndianRupee, Plus, Search, Filter, 
   Printer, CheckCircle2, Clock, AlertCircle, 
   Building2, ArrowRight, Download, Check, X, 
   FileText, Calendar, Wallet, Layers, TrendingUp
