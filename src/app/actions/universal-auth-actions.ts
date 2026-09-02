@@ -192,8 +192,14 @@ export async function requestUniversalOtpAction(params: {
             process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
             process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
           );
-          await supabaseAdmin.auth.signInWithOtp({ email: emailAddr });
-          console.log(`✉️ Dispatched Live Email OTP to ${emailAddr}`);
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.crayonboxschool.com';
+          await supabaseAdmin.auth.signInWithOtp({
+            email: emailAddr,
+            options: {
+              emailRedirectTo: `${siteUrl}/login`
+            }
+          });
+          console.log(`✉️ Dispatched Live Email OTP to ${emailAddr} with redirect ${siteUrl}/login`);
         } else if (channel === 'WHATSAPP') {
           const waPayload = {
             integrated_number: integratedNumber,

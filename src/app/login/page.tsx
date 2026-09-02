@@ -249,7 +249,7 @@ export default function UniversalLoginPage() {
         {/* Main Card */}
         <div className="bg-stone-900/90 border border-stone-800 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           
-          {/* 3-Tier Channel Switcher Tabs */}
+          {/* 2-Tier Mode Switcher Tabs */}
           <div className="flex bg-stone-950 p-1 rounded-2xl border border-stone-800 text-xs font-bold">
             <button
               type="button"
@@ -258,31 +258,14 @@ export default function UniversalLoginPage() {
                 setOtpDispatched(false);
                 setError(null);
               }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition ${
-                authTab === "WHATSAPP"
-                  ? "bg-emerald-600 text-white shadow-md"
+              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition ${
+                authTab !== "PIN"
+                  ? "bg-amber-600 text-white shadow-md"
                   : "text-stone-400 hover:text-white"
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab("EMAIL");
-                setOtpDispatched(false);
-                setError(null);
-              }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition ${
-                authTab === "EMAIL"
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "text-stone-400 hover:text-white"
-              }`}
-            >
-              <Mail className="w-3.5 h-3.5" />
-              <span>Email</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Instant Verification OTP</span>
             </button>
 
             <button
@@ -318,55 +301,52 @@ export default function UniversalLoginPage() {
             </div>
           )}
 
-          {/* TAB 1 & 2: OTP LOGIN (WHATSAPP / EMAIL) */}
+          {/* TAB 1: UNIFIED DYNAMIC OTP LOGIN (MOBILE / EMAIL AUTO-DETECT) */}
           {authTab !== "PIN" && (
             <div className="space-y-4">
               
               {!otpDispatched ? (
-                /* Step 1: Enter Identifier */
+                /* Step 1: Enter Phone or Email */
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    handleSendOtp(authTab);
+                    const clean = identifier.trim();
+                    const channel = clean.includes("@") ? "EMAIL" : "WHATSAPP";
+                    handleSendOtp(channel);
                   }}
                   className="space-y-4"
                 >
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-stone-300 block">
-                      {authTab === "WHATSAPP"
-                        ? "Registered Mobile Number (Parent / Teacher)"
-                        : "Registered Email Address"}
+                      Registered Mobile Number or Email Address
                     </label>
                     <div className="relative">
-                      {authTab === "WHATSAPP" ? (
-                        <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+                      {identifier.includes("@") ? (
+                        <Mail className="w-4 h-4 text-amber-400 absolute left-3.5 top-3.5" />
                       ) : (
-                        <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+                        <Phone className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3.5" />
                       )}
                       <input
-                        type={authTab === "WHATSAPP" ? "tel" : "email"}
+                        type="text"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder={authTab === "WHATSAPP" ? "9810081008 or Admission No" : "rajesh.sharma@gmail.com"}
+                        placeholder="9911102027 or user@crayonboxschool.com"
                         className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 transition"
                         required
+                        autoFocus
                       />
                     </div>
                     <p className="text-[11px] text-stone-500">
-                      {authTab === "WHATSAPP"
-                        ? "Instant 6-digit code delivered directly to your WhatsApp."
-                        : "Verification link and OTP will be sent to your registered inbox."}
+                      {identifier.includes("@")
+                        ? "✉️ Verification link and OTP code will be sent to your registered email inbox."
+                        : "💬 Instant 6-digit verification code will be sent to your WhatsApp."}
                     </p>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className={`w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98 ${
-                      authTab === "WHATSAPP"
-                        ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30"
-                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/30"
-                    }`}
+                    disabled={isLoading || !identifier.trim()}
+                    className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 shadow-lg shadow-amber-500/20 transition active:scale-98 disabled:opacity-50"
                   >
                     {isLoading ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
@@ -386,10 +366,13 @@ export default function UniversalLoginPage() {
                       <span className="font-bold text-stone-300">Enter 6-Digit Code</span>
                       <button
                         type="button"
-                        onClick={() => setOtpDispatched(false)}
+                        onClick={() => {
+                          setOtpDispatched(false);
+                          setError(null);
+                        }}
                         className="text-amber-400 hover:underline font-semibold text-[11px]"
                       >
-                        Change Number
+                        {identifier.includes("@") ? "Change Email" : "Change Number"}
                       </button>
                     </div>
 
@@ -411,7 +394,10 @@ export default function UniversalLoginPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleSendOtp(activeChannel)}
+                          onClick={() => {
+                            const channel = identifier.includes("@") ? "EMAIL" : "WHATSAPP";
+                            handleSendOtp(channel);
+                          }}
                           className="text-amber-400 font-bold hover:underline"
                         >
                           Resend Code
@@ -428,7 +414,7 @@ export default function UniversalLoginPage() {
                     {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify & Access Dashboard"}
                   </button>
 
-                  {/* Smart Fallback Trigger */}
+                  {/* Smart Alternate Channel Fallback */}
                   <div className="pt-2 border-t border-stone-800 text-center">
                     {activeChannel === "WHATSAPP" ? (
                       <button
