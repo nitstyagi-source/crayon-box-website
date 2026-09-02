@@ -16,14 +16,15 @@ export async function getLiveDashboardMetrics(institutionCode?: string) {
     if (isAll) {
       const { count } = await supabase
         .from('students')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .or('status.ilike.active,status.is.null');
       studentCount = count || 0;
     } else {
       const { count } = await supabase
         .from('student_enrollments')
         .select('*', { count: 'exact', head: true })
         .eq('institution_code', institutionCode)
-        .eq('enrollment_status', 'ACTIVE');
+        .or('enrollment_status.ilike.active,enrollment_status.is.null');
       studentCount = count || 0;
     }
 
@@ -32,14 +33,15 @@ export async function getLiveDashboardMetrics(institutionCode?: string) {
     if (isAll) {
       const { count } = await supabase
         .from('staff')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .or('status.ilike.active,status.is.null,is_active.eq.true');
       staffCount = count || 0;
     } else {
       const { count } = await supabase
         .from('employee_assignments')
         .select('*', { count: 'exact', head: true })
         .eq('institution_code', institutionCode)
-        .eq('status', 'ACTIVE');
+        .or('status.ilike.active,status.is.null');
       staffCount = count || 0;
     }
 

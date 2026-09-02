@@ -35,24 +35,24 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
   try {
     const inst = params?.institutionCode || 'ALL';
 
-    // 1. Students Count & Cohorts
+    // 1. Students Count & Cohorts (Case-insensitive status and robust gender parsing)
     const stuRes = await client.query(`
       SELECT count(*) as total_students,
-             count(CASE WHEN s.gender = 'MALE' THEN 1 END) as male_count,
-             count(CASE WHEN s.gender = 'FEMALE' THEN 1 END) as female_count,
-             count(CASE WHEN s.transport_mode = 'SCHOOL_BUS' THEN 1 END) as bus_commuters
+             count(CASE WHEN (s.gender ILIKE 'MALE' OR s.gender = 'M' OR s.gender ILIKE 'boy%') THEN 1 END) as male_count,
+             count(CASE WHEN (s.gender ILIKE 'FEMALE' OR s.gender = 'F' OR s.gender ILIKE 'girl%') THEN 1 END) as female_count,
+             count(CASE WHEN s.transport_mode ILIKE '%BUS%' THEN 1 END) as bus_commuters
       FROM public.students s
-      WHERE s.status = 'ACTIVE'
+      WHERE (s.status ILIKE 'active' OR s.status IS NULL)
     `);
     const stuCounts = stuRes.rows[0];
 
-    // 2. Staff & Faculty Counts
+    // 2. Staff & Faculty Counts (Case-insensitive status)
     const staffRes = await client.query(`
       SELECT count(*) as total_staff,
              count(CASE WHEN s.department ILIKE '%Academic%' OR s.designation ILIKE '%Teacher%' OR s.designation ILIKE '%Faculty%' THEN 1 END) as teaching_faculty,
              count(CASE WHEN s.department NOT ILIKE '%Academic%' AND s.designation NOT ILIKE '%Teacher%' AND s.designation NOT ILIKE '%Faculty%' THEN 1 END) as admin_ops_staff
       FROM public.staff s
-      WHERE s.status = 'ACTIVE'
+      WHERE (s.status ILIKE 'active' OR s.status IS NULL OR s.is_active = true)
     `);
     const staffCounts = staffRes.rows[0];
 
@@ -111,13 +111,14 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
       ORDER BY code ASC
     `);
 
-    // Live student counts per institution
+    // Live student counts per institution (combining student_enrollments with direct students campus_id)
     const stuCountByInstRes = await client.query(`
-      SELECT se.institution_code, count(DISTINCT s.id) as active_students
-      FROM public.student_enrollments se
-      JOIN public.students s ON se.student_id = s.id AND s.status = 'ACTIVE'
-      WHERE se.is_current = true
-      GROUP BY se.institution_code;
+      SELECT COALESCE(se.institution_code, i.code, 'CBS') as institution_code, count(DISTINCT s.id) as active_students
+      FROM public.students s
+      LEFT JOIN public.student_enrollments se ON se.student_id = s.id AND se.is_current = true
+      LEFT JOIN public.institutions i ON s.campus_id = i.id
+      WHERE (s.status ILIKE 'active' OR s.status IS NULL)
+      GROUP BY COALESCE(se.institution_code, i.code, 'CBS');
     `);
     const liveStudentMap: Record<string, number> = {};
     stuCountByInstRes.rows.forEach((r: any) => {
