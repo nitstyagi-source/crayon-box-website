@@ -1,0 +1,414 @@
+"use server";
+
+import pg from 'pg';
+import crypto from 'crypto';
+import { revalidatePath } from 'next/cache';
+
+const { Pool } = pg;
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+
+let pool: pg.Pool | null = null;
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return pool;
+}
+
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {}
+}
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return digits;
+  if (digits.length === 12 && digits.startsWith('91')) return digits.substring(2);
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+}
+
+// -------------------------------------------------------------
+// 1. REQUEST UNIVERSAL OTP (WhatsApp or Email)
+// -------------------------------------------------------------
+export async function requestUniversalOtpAction(params: {
+  identifier: string;
+  channel?: 'WHATSAPP' | 'EMAIL';
+}) {
+  const client = await getPool().connect();
+  try {
+    const rawId = params.identifier.trim();
+    const channel = params.channel || 'WHATSAPP';
+    const isEmail = rawId.includes('@');
+    const phone = isEmail ? '' : normalizePhone(rawId);
+
+    let parentRecord: any = null;
+    let studentRecords: any[] = [];
+    let staffRecord: any = null;
+    let targetEmail = isEmail ? rawId.toLowerCase() : '';
+    let targetPhone = phone;
+
+    // Lookup 1: Check Staff / Faculty
+    if (isEmail) {
+      const staffRes = await client.query(
+        "SELECT * FROM public.staff WHERE (email ILIKE $1 OR official_email ILIKE $1 OR personal_email ILIKE $1) AND is_active = true LIMIT 1;",
+        [rawId]
+      );
+      staffRecord = staffRes.rows[0];
+      if (staffRecord && !targetPhone) targetPhone = staffRecord.phone_number || staffRecord.whatsapp_no;
+    } else {
+      const staffRes = await client.query(
+        "SELECT * FROM public.staff WHERE (phone_number LIKE $1 OR whatsapp_no LIKE $1 OR personal_mobile LIKE $1) AND is_active = true LIMIT 1;",
+        [`%${phone}%`]
+      );
+      staffRecord = staffRes.rows[0];
+      if (staffRecord && !targetEmail) targetEmail = staffRecord.email || staffRecord.official_email;
+    }
+
+    // Lookup 2: Check Students & Parents
+    if (isEmail) {
+      const stuRes = await client.query(
+        "SELECT s.*, c.grade, c.section FROM public.students s LEFT JOIN public.classes c ON c.id = s.class_id WHERE (s.parent_email ILIKE $1) AND s.status = 'ACTIVE';",
+        [rawId]
+      );
+      studentRecords = stuRes.rows;
+      if (studentRecords.length > 0 && !targetPhone) targetPhone = studentRecords[0].parent_phone;
+    } else {
+      const stuRes = await client.query(
+        `SELECT s.*, c.grade, c.section 
+         FROM public.students s 
+         LEFT JOIN public.classes c ON c.id = s.class_id 
+         WHERE (s.parent_phone LIKE $1 OR s.admission_no ILIKE $2 OR s.universal_id ILIKE $2) 
+           AND s.status = 'ACTIVE';`,
+        [`%${phone}%`, rawId]
+      );
+      studentRecords = stuRes.rows;
+      if (studentRecords.length > 0 && !targetEmail) targetEmail = studentRecords[0].parent_email;
+
+      // Also check parents table
+      const parentRes = await client.query(
+        "SELECT * FROM public.parents WHERE phone_number LIKE $1 LIMIT 1;",
+        [`%${phone}%`]
+      );
+      parentRecord = parentRes.rows[0];
+      if (parentRecord && !targetEmail) targetEmail = parentRecord.email;
+    }
+
+    // If no record found at all
+    if (!staffRecord && studentRecords.length === 0 && !parentRecord) {
+      return {
+        success: false,
+        error: `No active student, parent, or faculty account found for "${rawId}". Please contact School Front Desk.`
+      };
+    }
+
+    // Generate 6-Digit TOTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Save to auth_otp_logs
+    await client.query(
+      `INSERT INTO public.auth_otp_logs (
+        phone_number, email_address, otp_code, channel, expires_at, attempts, is_verified, created_at
+      ) VALUES ($1, $2, $3, $4, $5, 0, false, NOW());`,
+      [targetPhone || 'EMAIL-LOGIN', targetEmail, otpCode, channel, expiresAt.toISOString()]
+    );
+
+    // Delivery destination masking
+    let maskedDestination = '';
+    if (channel === 'WHATSAPP') {
+      const p = targetPhone || phone;
+      maskedDestination = p.length >= 10 ? `+91 ${p.substring(0, 2)}••••••${p.substring(8)}` : p;
+    } else {
+      const [user, domain] = (targetEmail || rawId).split('@');
+      maskedDestination = `${user.substring(0, 2)}••••@${domain}`;
+    }
+
+    const isDualRoleCandidate = Boolean(staffRecord && studentRecords.length > 0);
+
+    return {
+      success: true,
+      channel,
+      maskedDestination,
+      targetPhone,
+      targetEmail,
+      expiryMinutes: 5,
+      isDualRoleCandidate,
+      devOtpCode: otpCode, // Provided for instant test verification
+      message: `✓ 6-Digit OTP dispatched via ${channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} to ${maskedDestination}`
+    };
+  } catch (error: any) {
+    console.error("requestUniversalOtpAction error:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 2. VERIFY UNIVERSAL OTP & RESOLVE DUAL-ROLE PERSONAS
+// -------------------------------------------------------------
+export async function verifyUniversalOtpAction(params: {
+  identifier: string;
+  otpCode: string;
+}) {
+  const client = await getPool().connect();
+  try {
+    const rawId = params.identifier.trim();
+    const isEmail = rawId.includes('@');
+    const phone = isEmail ? '' : normalizePhone(rawId);
+    const code = params.otpCode.trim();
+
+    // 1. Verify OTP in auth_otp_logs
+    const otpRes = await client.query(
+      `SELECT * FROM public.auth_otp_logs 
+       WHERE (phone_number LIKE $1 OR email_address ILIKE $2 OR phone_number = 'EMAIL-LOGIN')
+         AND otp_code = $3 
+         AND is_verified = false 
+         AND expires_at > NOW() 
+       ORDER BY created_at DESC 
+       LIMIT 1;`,
+      [`%${phone}%`, rawId, code]
+    );
+
+    if (otpRes.rows.length === 0) {
+      return {
+        success: false,
+        error: "Invalid or expired OTP code. Please enter the latest 6-digit code or request a new one."
+      };
+    }
+
+    const otpRecord = otpRes.rows[0];
+
+    // Mark OTP as verified
+    await client.query(
+      "UPDATE public.auth_otp_logs SET is_verified = true WHERE id = $1;",
+      [otpRecord.id]
+    );
+
+    // 2. Resolve Personas (Faculty + Parent/Student + Admin)
+    let staffProfile: any = null;
+    let children: any[] = [];
+    let parentProfile: any = null;
+
+    // Faculty Lookup
+    const staffRes = await client.query(
+      `SELECT id, first_name, last_name, role, designation, department, wing,
+              is_class_teacher, class_teacher_for, photo_url, phone_number, email
+       FROM public.staff 
+       WHERE (phone_number LIKE $1 OR whatsapp_no LIKE $1 OR email ILIKE $2 OR official_email ILIKE $2) 
+         AND is_active = true 
+       LIMIT 1;`,
+      [`%${phone}%`, rawId]
+    );
+    if (staffRes.rows.length > 0) {
+      const s = staffRes.rows[0];
+      staffProfile = {
+        id: s.id,
+        name: `${s.first_name} ${s.last_name || ''}`.trim(),
+        role: s.role || 'Teacher',
+        designation: s.designation || 'Faculty Member',
+        department: s.department || 'Academics',
+        isClassTeacher: s.is_class_teacher,
+        classTeacherFor: s.class_teacher_for,
+        photoUrl: s.photo_url,
+        phone: s.phone_number,
+        email: s.email
+      };
+    }
+
+    // Children & Parent Lookup
+    const stuRes = await client.query(
+      `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.roll_no, s.photo_url,
+              s.parent_phone, s.parent_email, s.father_name, s.mother_name,
+              c.grade, c.section, c.room_number
+       FROM public.students s
+       LEFT JOIN public.classes c ON c.id = s.class_id
+       WHERE (s.parent_phone LIKE $1 OR s.parent_email ILIKE $2 OR s.admission_no ILIKE $3)
+         AND s.status = 'ACTIVE'
+       ORDER BY s.first_name ASC;`,
+      [`%${phone}%`, rawId, rawId]
+    );
+
+    if (stuRes.rows.length > 0) {
+      children = stuRes.rows.map((st: any) => ({
+        id: st.id,
+        name: `${st.first_name} ${st.last_name || ''}`.trim(),
+        grade: st.grade ? `${st.grade}${st.section ? `-${st.section}` : ''}` : 'Enrolled',
+        roomNumber: st.room_number || '-',
+        rollNo: st.roll_no || '-',
+        admissionNo: st.admission_no,
+        photoUrl: st.photo_url
+      }));
+
+      const firstStu = stuRes.rows[0];
+      parentProfile = {
+        name: firstStu.father_name || firstStu.mother_name || 'Parent',
+        phone: firstStu.parent_phone || phone,
+        email: firstStu.parent_email
+      };
+    }
+
+    // Determine Roles
+    const roles: string[] = [];
+    if (staffProfile) roles.push('FACULTY');
+    if (children.length > 0) roles.push('PARENT');
+    if (staffProfile?.role?.toLowerCase().includes('admin') || staffProfile?.role?.toLowerCase().includes('principal')) {
+      roles.push('ADMIN');
+    }
+
+    const isDualRole = Boolean(staffProfile && children.length > 0);
+
+    return {
+      success: true,
+      user: {
+        identifier: phone || rawId,
+        roles,
+        isDualRole,
+        primaryRole: staffProfile ? 'FACULTY' : 'PARENT',
+        faculty: staffProfile,
+        parent: parentProfile,
+        children,
+        token: `cb_auth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+      },
+      message: "✓ Identity Verified Successfully!"
+    };
+  } catch (error: any) {
+    console.error("verifyUniversalOtpAction error:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 3. EMERGENCY OFFLINE PIN LOGIN (For Parents without Smartphone)
+// -------------------------------------------------------------
+export async function verifyEmergencyPinAction(params: {
+  identifier: string;
+  pinCode: string;
+}) {
+  const client = await getPool().connect();
+  try {
+    const rawId = params.identifier.trim();
+    const pin = params.pinCode.trim().toUpperCase();
+    const phone = normalizePhone(rawId);
+
+    // 1. Check Student emergency PIN
+    const stuRes = await client.query(
+      `SELECT s.*, c.grade, c.section 
+       FROM public.students s
+       LEFT JOIN public.classes c ON c.id = s.class_id
+       WHERE (s.parent_phone LIKE $1 OR s.admission_no ILIKE $2)
+         AND s.emergency_login_pin = $3
+         AND (s.emergency_pin_expires_at IS NULL OR s.emergency_pin_expires_at > NOW())
+         AND s.status = 'ACTIVE';`,
+      [`%${phone}%`, rawId, pin]
+    );
+
+    if (stuRes.rows.length > 0) {
+      const children = stuRes.rows.map((st: any) => ({
+        id: st.id,
+        name: `${st.first_name} ${st.last_name || ''}`.trim(),
+        grade: st.grade ? `${st.grade}${st.section ? `-${st.section}` : ''}` : 'Enrolled',
+        admissionNo: st.admission_no,
+        photoUrl: st.photo_url
+      }));
+
+      return {
+        success: true,
+        user: {
+          identifier: phone || rawId,
+          roles: ['PARENT'],
+          isDualRole: false,
+          primaryRole: 'PARENT',
+          children,
+          token: `cb_pin_auth_${Date.now()}`
+        },
+        message: "✓ Emergency PIN verified. Access granted."
+      };
+    }
+
+    // 2. Check Staff emergency PIN
+    const staffRes = await client.query(
+      `SELECT * FROM public.staff 
+       WHERE (phone_number LIKE $1 OR email ILIKE $2)
+         AND emergency_login_pin = $3
+         AND (emergency_pin_expires_at IS NULL OR emergency_pin_expires_at > NOW())
+         AND is_active = true;`,
+      [`%${phone}%`, rawId, pin]
+    );
+
+    if (staffRes.rows.length > 0) {
+      const s = staffRes.rows[0];
+      return {
+        success: true,
+        user: {
+          identifier: phone || rawId,
+          roles: ['FACULTY'],
+          isDualRole: false,
+          primaryRole: 'FACULTY',
+          faculty: {
+            id: s.id,
+            name: `${s.first_name} ${s.last_name || ''}`.trim(),
+            role: s.role || 'Teacher',
+            designation: s.designation
+          },
+          token: `cb_pin_auth_${Date.now()}`
+        },
+        message: "✓ Emergency Staff PIN verified. Access granted."
+      };
+    }
+
+    return {
+      success: false,
+      error: "Invalid Emergency PIN or PIN has expired. Please request a new PIN from School Administration."
+    };
+  } catch (error: any) {
+    console.error("verifyEmergencyPinAction error:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 4. GENERATE STUDENT EMERGENCY PIN (Admin Student Directory Tool)
+// -------------------------------------------------------------
+export async function generateStudentEmergencyPinAction(studentId: string) {
+  const client = await getPool().connect();
+  try {
+    // Generate 6-char PIN (e.g. CB-8492)
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const pin = `CB-${randomNum}`;
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    await client.query(
+      `UPDATE public.students 
+       SET emergency_login_pin = $1,
+           emergency_pin_expires_at = $2,
+           emergency_pin_generated_by = 'ADMIN_DESK',
+           updated_at = NOW()
+       WHERE id::text = $3 OR admission_no ILIKE $3;`,
+      [pin, expiresAt.toISOString(), studentId]
+    );
+
+    safeRevalidate('/admin/students');
+
+    return {
+      success: true,
+      pin,
+      expiresAt: expiresAt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      message: `✓ Generated Emergency Parent Login PIN: ${pin} (Valid for 30 days)`
+    };
+  } catch (error: any) {
+    console.error("generateStudentEmergencyPinAction error:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}

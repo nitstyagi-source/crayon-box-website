@@ -261,10 +261,25 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
 
       {/* Bottom User Area: Icon on Top, Persona & Sign Out */}
       <div className="p-1.5 border-t border-white/10 bg-transparent space-y-1.5 flex flex-col items-center">
+        
+        {/* Dual-Role Live Switcher (Teacher ⇄ Parent) */}
+        <button
+          onClick={() => {
+            const nextRole = currentRole === 'TEACHER' || currentRole === 'SUPER_ADMIN' ? 'PARENT' : 'TEACHER';
+            localStorage.setItem('cbs_active_role', nextRole);
+            window.location.href = nextRole === 'PARENT' ? '/parent/live-stream' : '/admin/dashboard';
+          }}
+          title="Toggle between Faculty & Parent Mode"
+          className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/30 text-[8px] font-black transition cursor-pointer"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
+          <span>{currentRole === 'PARENT' ? '⇄ Faculty Mode' : '⇄ Parent Mode'}</span>
+        </button>
+
         <div className="w-full flex flex-col items-center justify-center py-1.5 px-1 rounded-xl bg-white/10 border border-white/10 text-center">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mb-0.5" />
           <span className="text-[8px] font-extrabold uppercase tracking-wider text-white/50 block">
-            ROLE
+            ACTIVE ROLE
           </span>
           <span className="text-[9px] font-black text-white truncate max-w-full block">
             {currentRole.replace(/_/g, ' ')}
