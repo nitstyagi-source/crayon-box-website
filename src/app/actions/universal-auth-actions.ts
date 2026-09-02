@@ -166,6 +166,29 @@ export async function requestUniversalOtpAction(params: {
       ]
     );
 
+    // 🚀 DISPATCH LIVE REAL OTP TO PHONE NETWORK VIA MSG91 GATEWAY
+    const destinationPhone = targetPhone || phone;
+    if (destinationPhone && destinationPhone.length >= 10) {
+      try {
+        const authKey = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || '319435TL9QVRfp6n6a89bdeaP1';
+        const cleanPhone = destinationPhone.replace(/\D/g, '');
+        const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+        const url = `https://control.msg91.com/api/v5/otp?template_id=&mobile=${formattedPhone}&authkey=${authKey}&otp=${otpCode}&otp_expiry=5`;
+        
+        const gatewayRes = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'authkey': authKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        const gatewayData = await gatewayRes.json().catch(() => ({}));
+        console.log(`📡 Dispatched Live OTP to ${formattedPhone}:`, gatewayData);
+      } catch (gwErr) {
+        console.error('Failed to reach telecom gateway:', gwErr);
+      }
+    }
+
     // Delivery destination masking
     let maskedDestination = '';
     if (channel === 'WHATSAPP') {
