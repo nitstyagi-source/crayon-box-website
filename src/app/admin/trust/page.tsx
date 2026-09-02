@@ -19,6 +19,7 @@ import { getTrustDetailsAction, updateTrustDetailsAction } from '@/app/actions/g
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { DualFileUpload } from '@/components/ui/DualFileUpload';
 
 export default function TrustCommandCenterPage() {
   const [metrics, setMetrics] = useState({
@@ -416,34 +417,16 @@ export default function TrustCommandCenterPage() {
 
             <form onSubmit={handleSaveTrust} className="space-y-4 mt-6">
               
-              {/* Trust Logo Preview & URL */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
-                  {editForm.logoUrl ? (
-                    <img
-                      src={editForm.logoUrl}
-                      alt="Logo preview"
-                      className="w-full h-full object-contain p-1"
-                      onError={(e: any) => {
-                        e.target.src = '/logo.png';
-                      }}
-                    />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-slate-400" />
-                  )}
-                </div>
-                <div className="flex-1 w-full">
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Trust Logo URL / Path</label>
-                  <input
-                    type="text"
-                    value={editForm.logoUrl}
-                    onChange={(e) => setEditForm({ ...editForm, logoUrl: e.target.value })}
-                    placeholder="e.g. /logo.png or https://example.com/logo.png"
-                    className="w-full text-xs px-3 py-2 rounded-lg bg-white border border-slate-200 focus:outline-indigo-600 font-mono text-slate-800"
-                  />
-                  <span className="text-[10px] text-slate-400 block mt-1">Recommended: Square PNG or SVG with transparent background</span>
-                </div>
-              </div>
+              {/* Trust Logo Upload (File & Link) */}
+              <DualFileUpload
+                label="Trust Crest / Official Logo (Upload File or Link)"
+                helperText="Upload a PNG, SVG, or JPEG image directly from your device, or switch tabs to paste a web URL."
+                value={editForm.logoUrl}
+                onChange={(val) => setEditForm({ ...editForm, logoUrl: val })}
+                accept="image/*"
+                placeholder="https://example.com/logo.png or /logo.png"
+                standardizeBackground={false}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
