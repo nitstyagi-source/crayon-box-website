@@ -43,7 +43,7 @@ export interface TcRecord {
 }
 
 // -------------------------------------------------------------
-// 1. GENERATE OFFICIAL CBSE TRANSFER CERTIFICATE
+// 1. GENERATE OFFICIAL TRANSFER CERTIFICATE
 // -------------------------------------------------------------
 export async function generateTransferCertificateAction(params: {
   studentName: string;
@@ -63,7 +63,7 @@ export async function generateTransferCertificateAction(params: {
   try {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const tcNumber = `TC/CBS/2026/${randomSuffix}`;
-    const refNumber = `REF/CBSE/DEL/${randomSuffix}`;
+    const refNumber = `REF/DEL/${randomSuffix}`;
     const result = params.annualResult || "Promoted to Higher Class (Passed)";
     const pen = params.penNo || `PEN-2026-${randomSuffix}`;
 
@@ -92,7 +92,7 @@ export async function generateTransferCertificateAction(params: {
     return {
       success: true,
       tc,
-      message: `✓ Official CBSE Transfer Certificate (${tcNumber}) generated and registered!`
+      message: `✓ Official Transfer Certificate (${tcNumber}) generated and registered!`
     };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -138,7 +138,7 @@ export async function verifyTransferCertificateTokenAction(tcNumberOrToken: stri
     `, [tcNumberOrToken]);
 
     if (res.rows.length === 0) {
-      return { success: false, error: "Transfer Certificate record not found on official CBSE registry." };
+      return { success: false, error: "Transfer Certificate record not found on official registry." };
     }
 
     return { success: true, certificate: res.rows[0] as TcRecord };

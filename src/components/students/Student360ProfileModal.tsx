@@ -462,7 +462,7 @@ export function Student360ProfileModal({
 
               {activeTab === 'academics' && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
-                  <h3 className="font-black text-slate-900 uppercase tracking-wider">CBSE NEP 360° Academic Evaluation</h3>
+                  <h3 className="font-black text-slate-900 uppercase tracking-wider">Holistic &amp; NEP 360° Academic Evaluation</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
                       <div className="text-slate-500 font-bold">Mathematics</div>
@@ -540,7 +540,7 @@ export function Student360ProfileModal({
                     >
                       <div>
                         <div className="font-bold text-amber-900">School Leaving Certificate (SLC / TC)</div>
-                        <div className="text-[11px] text-amber-600 mt-0.5">Formal CBSE Board Format</div>
+                        <div className="text-[11px] text-amber-600 mt-0.5">Official Standardized Format</div>
                       </div>
                       <FileText className="w-4 h-4 text-amber-600" />
                     </button>

@@ -366,7 +366,7 @@ export default function CurriculumRadarPage() {
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-purple-500/30 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              CBSE & NEP 2020 Competency Radar
+              Holistic &amp; NEP 2020 Competency Radar
             </span>
             <span className="text-slate-600 text-xs">•</span>
             <span className="text-emerald-300 text-xs font-semibold">

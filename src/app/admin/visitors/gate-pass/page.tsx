@@ -52,7 +52,7 @@ export default function DigitalGatePassPage() {
   const [visitorName, setVisitorName] = useState("");
   const [visitorPhone, setVisitorPhone] = useState("");
   const [hostStaff, setHostStaff] = useState("Principal Office");
-  const [visitReason, setVisitReason] = useState("CBSE Documentation & Verification");
+  const [visitReason, setVisitReason] = useState("Academic Documentation & Verification");
 
   useEffect(() => {
     loadPasses();

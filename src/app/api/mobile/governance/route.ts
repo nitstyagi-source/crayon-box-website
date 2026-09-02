@@ -83,14 +83,14 @@ export async function GET(request: NextRequest) {
     ]);
 
     const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
-      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
       { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
       { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
-      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: 'REG/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
     ];
 
     const complianceAudit = certsRes.rows.length > 0 ? certsRes.rows : [
-      { id: "comp-1", institutionCode: "CBS", title: "CBSE Composite Provisional Affiliation", status: "VALID", validTill: "31-Mar-2029", authority: "CBSE New Delhi", score: "100%" },
+      { id: "comp-1", institutionCode: "CBS", title: "Composite Provisional Affiliation & Recognition", status: "VALID", validTill: "31-Mar-2029", authority: "Directorate of Education, Delhi", score: "100%" },
       { id: "comp-2", institutionCode: "CBS", title: "Fire & Disaster Safety NOC", status: "VALID", validTill: "15-Nov-2027", authority: "State Fire Services", score: "100%" },
       { id: "comp-3", institutionCode: "CBS", title: "Building Structural Safety Certificate", status: "VALID", validTill: "30-Jun-2028", authority: "Municipal Town Planning", score: "98%" },
       { id: "comp-4", institutionCode: "CBS", title: "POCSO & Child Safeguarding Compliance Audit", status: "AUDITED", validTill: "Annual 2026-27", authority: "Trust Ethics Committee", score: "100%" },
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     const boardResolutions = resRes.rows.length > 0 ? resRes.rows : [
       { id: "RES-2026-04", resolutionNumber: "RES-2026-04", date: "15 Aug 2026", title: "Approval of 16-Channel CCTV Low-Latency AI Streaming", quorum: "5/5 Present", status: "ENACTED" },
       { id: "RES-2026-03", resolutionNumber: "RES-2026-03", date: "01 Jul 2026", title: "Electric Bus Fleet Expansion with GPS Telematics", quorum: "5/5 Present", status: "ENACTED" },
-      { id: "RES-2026-02", resolutionNumber: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + CBSE Hybrid Academic Framework", quorum: "4/5 Present", status: "ENACTED" }
+      { id: "RES-2026-02", resolutionNumber: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + Experiential Scholastic Framework", quorum: "4/5 Present", status: "ENACTED" }
     ];
 
     return NextResponse.json({

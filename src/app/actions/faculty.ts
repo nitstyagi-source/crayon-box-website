@@ -485,7 +485,7 @@ export async function archiveFacultyWithHandoverAction(input: FacultyHandoverInp
       success: true,
       message: `Staff member ${departingName} has been archived. ${
         replacementName ? `All selected teaching duties & timetable slots were safely handed over to ${replacementName}.` : ''
-      } Student records & historical logs remain intact for CBSE compliance.`,
+      } Student records & historical logs remain intact for statutory audit compliance.`,
       departingName,
       replacementName
     };

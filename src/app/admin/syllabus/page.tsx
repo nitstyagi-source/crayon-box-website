@@ -188,7 +188,7 @@ export default function SyllabusDashboardPage() {
               Academic Operations Command
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">CBSE / NEP 2020 Integrated</span>
+            <span className="text-stone-500 text-xs font-bold">Holistic / NEP 2020 Integrated</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-blue-600" />

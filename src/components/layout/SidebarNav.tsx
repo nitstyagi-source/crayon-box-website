@@ -99,6 +99,8 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'],
       items: [
         { name: 'Admissions Command Suite', href: '/admin/admissions', icon: GraduationCap, badge: 'Unified', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Admission Enquiries & CRM', href: '/admin/enquiries', icon: PhoneCall, badge: 'CRM', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'New Admission Enquiry', href: '/admin/enquiries/new', icon: FileText, badge: 'Intake', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
         { name: 'Student & Family 360 Master', href: '/admin/students', icon: Users, badge: 'Master', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
       ],
     },
@@ -134,7 +136,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       items: [
         { name: 'Exams & Gradebook', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
         { name: 'AI Question Paper Studio', href: '/admin/exams/question-paper-generator', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'CBSE Report Cards (HPC)', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Report Cards & HPC', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
       ],
     },
     {

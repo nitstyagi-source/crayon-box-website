@@ -1238,7 +1238,7 @@ export default function TeacherLessonDiaryPage() {
                         }}
                         className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-lg border border-indigo-200 hover:bg-indigo-50"
                       >
-                        + CBSE Practice Worksheet.pdf
+                        + Chapter Practice Worksheet.pdf
                       </button>
                     </div>
                   )}

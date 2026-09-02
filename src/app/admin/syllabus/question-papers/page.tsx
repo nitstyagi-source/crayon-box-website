@@ -801,7 +801,7 @@ export default function QuestionPaperGeneratorPage() {
               Examinations & Assessment Suite
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Standard CBSE Question Papers & Foundational Worksheets</span>
+            <span className="text-stone-500 text-xs font-bold">Standard Question Papers &amp; Foundational Worksheets</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
             <Printer className="w-8 h-8 text-amber-600" />
@@ -1080,8 +1080,8 @@ export default function QuestionPaperGeneratorPage() {
                 </h1>
                 <p className="text-xs sm:text-sm font-sans font-bold text-stone-700 tracking-wide">
                   {selectedInstitutionObj?.affiliation_number 
-                    ? `Affiliation No: ${selectedInstitutionObj.affiliation_number} • CBSE, New Delhi`
-                    : "Affiliated to CBSE, New Delhi • School ID: 1253481 • UDISE: 07124100151"}
+                    ? `Affiliation No: ${selectedInstitutionObj.affiliation_number} • Recognized Institution, Delhi NCR`
+                    : "Recognized & Registered Institution, Delhi NCR • School ID: 1253481 • UDISE: 07124100151"}
                 </p>
                 <div className="pt-1.5 text-base sm:text-lg font-black font-sans uppercase tracking-tight text-stone-900">
                   {activePreviewPaper.exam_title} • SESSION {activePreviewPaper.academic_session}
@@ -1470,7 +1470,7 @@ export default function QuestionPaperGeneratorPage() {
                   {isMotherTeacherClass ? "Early Childhood Worksheet Designer" : "Standard Examination Designer"}
                 </span>
                 <h3 className="text-xl font-black text-stone-900 mt-1">
-                  {editingPaperId ? "Edit Examination / Worksheet" : isMotherTeacherClass ? `Design ${selectedClass} Activity Worksheet` : "Design Standard CBSE Question Paper"}
+                  {editingPaperId ? "Edit Examination / Worksheet" : isMotherTeacherClass ? `Design ${selectedClass} Activity Worksheet` : "Design Standard Question Paper"}
                 </h3>
               </div>
               <button onClick={() => setPaperModalOpen(false)} className="text-stone-400 hover:text-stone-900 font-bold">✕</button>

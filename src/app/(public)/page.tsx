@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, GraduationCap, ShieldCheck, Smartphone, CheckCircle2, ChevronRight, PlayCircle, Quote, Compass, BookOpen, Layers, RefreshCw, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { submitPublicEnquiry } from "@/app/actions/enquiry";
+import { PublicEnquiryForm } from "@/components/enquiry/PublicEnquiryForm";
 import { getPageContent } from "@/app/actions/cms";
 import { useLivePreview } from "@/hooks/useLivePreview";
 
@@ -311,57 +312,8 @@ export default function Home() {
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
               className="w-full lg:w-7/12"
             >
-              <div className="bg-blue-950/50 backdrop-blur-sm border border-blue-800 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
-                {success ? (
-                  <div className="text-center py-12 animate-in zoom-in">
-                    <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full mx-auto flex items-center justify-center mb-6">
-                      <CheckCircle2 className="w-10 h-10" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Request Received!</h3>
-                    <p className="text-blue-200 leading-relaxed">Thank you for your interest in Crayon Box School. Our Admissions Counselor will contact you shortly to schedule a campus tour.</p>
-                  </div>
-                ) : (
-                  <>
-                    <h3 className="text-2xl font-bold text-white mb-6">Request a Campus Tour</h3>
-                    <form onSubmit={handleEnquirySubmit} className="space-y-4">
-                      <div>
-                        <input type="text" name="parentName" required placeholder="Parent's Full Name" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
-                      </div>
-                      <div>
-                        <input type="tel" name="phone" required placeholder="Mobile Number (10 digits)" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <input type="text" name="childName" required placeholder="Child's Name" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all" />
-                        </div>
-                        <div>
-                          <select name="grade" required defaultValue="" className="w-full bg-blue-900/50 border border-blue-700 text-white placeholder:text-blue-400 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all appearance-none [&>option]:text-slate-800">
-                            <option value="" disabled>Select Grade</option>
-                            <option value="Kindergarten">Kindergarten</option>
-                            <option value="Grade 1">Grade 1</option>
-                            <option value="Grade 2">Grade 2</option>
-                            <option value="Grade 3">Grade 3</option>
-                            <option value="Grade 4">Grade 4</option>
-                            <option value="Grade 5">Grade 5</option>
-                            <option value="Grade 6">Grade 6</option>
-                            <option value="Grade 7">Grade 7</option>
-                            <option value="Grade 8">Grade 8</option>
-                          </select>
-                        </div>
-                      </div>
-                      
-                      {error && (
-                        <div className="p-3 bg-red-500/10 text-red-400 text-sm font-bold rounded-xl flex items-center gap-2 border border-red-500/20">
-                          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-                        </div>
-                      )}
-
-                      <button type="submit" disabled={isSubmitting} className="w-full mt-4 bg-white text-blue-900 font-bold text-lg py-4 rounded-xl shadow-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
-                        {isSubmitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : "Submit Enquiry"}
-                      </button>
-                    </form>
-                  </>
-                )}
+              <div className="bg-white rounded-3xl p-2 sm:p-4 shadow-2xl text-slate-900 border border-slate-100">
+                <PublicEnquiryForm />
               </div>
             </motion.div>
 
@@ -414,8 +366,8 @@ export default function Home() {
           <div className="pt-12 border-t border-stone-200 text-center">
             <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-8">Recognized For Excellence & Safety</h3>
             <div className="flex flex-wrap items-center justify-center gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-              <div className="text-2xl font-black text-stone-800 tracking-tighter">CBSE <span className="font-light">Board</span></div>
-              <div className="text-2xl font-black text-stone-800 tracking-tighter">ICSE <span className="font-light">Affiliated</span></div>
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">Accredited <span className="font-light">Curriculum</span></div>
+              <div className="text-2xl font-black text-stone-800 tracking-tighter">State <span className="font-light">Recognized</span></div>
               <div className="text-2xl font-black text-stone-800 tracking-tighter">ISO <span className="font-light">9001:2015</span></div>
               <div className="text-2xl font-black text-stone-800 tracking-tighter">Safety <span className="font-light">Certified</span></div>
             </div>

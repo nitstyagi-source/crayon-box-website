@@ -237,7 +237,7 @@ export default function ExamModerationPage() {
           }`}
         >
           <Award className="w-4 h-4 text-amber-400" />
-          <span>CBSE Scholastic Assessment &amp; Grading</span>
+          <span>Scholastic Assessment &amp; Grading</span>
         </button>
 
         <button
@@ -834,7 +834,7 @@ export default function ExamModerationPage() {
             {/* Modal Top Actions */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <span className="text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-                Official Standardized Report Card (CBSE Format)
+                Official Standardized Report Card (Academic Format)
               </span>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />}>
@@ -864,7 +864,7 @@ export default function ExamModerationPage() {
                       {reportCardData.institution?.name || selectedInstitutionObj?.name || 'Crayon Box High School'}
                     </h2>
                     <p className="text-[10px] text-slate-500 font-semibold">
-                      Affiliated to CBSE, New Delhi • Affiliation No: {reportCardData.institution?.affiliationNumber || selectedInstitutionObj?.affiliation_number || '2130045'}
+                      Recognized &amp; Registered Institution • Reg No: {reportCardData.institution?.affiliationNumber || selectedInstitutionObj?.affiliation_number || '2130045'}
                     </p>
                   </div>
                 </div>
@@ -899,7 +899,7 @@ export default function ExamModerationPage() {
               {/* Scholastic Assessment Marks Table */}
               <div className="space-y-2">
                 <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">
-                  Part 1: Scholastic Performance (CBSE 9-Point Scale)
+                  Part 1: Scholastic Performance (Standard 9-Point Scale)
                 </h4>
 
                 <div className="overflow-x-auto border border-slate-200 rounded-xl">

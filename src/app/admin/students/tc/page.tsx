@@ -18,6 +18,7 @@ import {
   getTransferCertificatesListAction,
   TcRecord
 } from "@/app/actions/tc-generator-actions";
+import { StudentSuiteTabs } from "@/components/students/StudentSuiteTabs";
 
 export default function TransferCertificateStudioPage() {
   const [certificates, setCertificates] = useState<TcRecord[]>([]);
@@ -91,14 +92,14 @@ export default function TransferCertificateStudioPage() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
             <Sparkles className="w-3.5 h-3.5" />
-            Official CBSE Transfer Certificate &amp; Leaving Certificate Studio
+            Official School Transfer Certificate &amp; Leaving Certificate Studio
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
             <FileText className="w-8 h-8 text-amber-400" />
-            CBSE School Leaving &amp; Transfer Certificate (TC) Studio
+            School Leaving &amp; Transfer Certificate (TC) Studio
           </h1>
           <p className="text-xs sm:text-sm text-stone-300 max-w-2xl">
-            Issue tamper-proof CBSE Transfer Certificates with serial numbers, dues clearance, and public anti-forgery QR verification codes.
+            Issue tamper-proof School Transfer Certificates with serial numbers, dues clearance, and public anti-forgery QR verification codes.
           </p>
         </div>
 
@@ -110,6 +111,16 @@ export default function TransferCertificateStudioPage() {
         </button>
       </div>
 
+      {/* Persistent Lifecycle Master Navigation Tabs */}
+      <div className="print:hidden">
+        <StudentSuiteTabs
+          activeTab="TC"
+          counts={{
+            issuedTc: certificates.length
+          }}
+        />
+      </div>
+
       {/* Main Form & Printable Document Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -118,138 +129,133 @@ export default function TransferCertificateStudioPage() {
           <div>
             <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-amber-600" />
-              Issue New Transfer Certificate
+              Transfer Certificate Issue Desk
             </h3>
-            <p className="text-xs text-stone-500 mt-0.5">
-              Verify all department dues clearances before generating official TC.
-            </p>
+            <p className="text-xs text-stone-500">Official student leaving dossier</p>
           </div>
 
-          <form onSubmit={handleGenerateTc} className="space-y-3.5 text-xs">
+          <form onSubmit={handleGenerateTc} className="space-y-4">
             <div>
-              <label className="font-bold text-stone-700 block mb-1">Student Full Name</label>
+              <label className="text-xs font-bold text-stone-700 block mb-1">Student Full Name *</label>
               <input
                 type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 font-bold text-stone-900"
                 required
+                value={studentName}
+                onChange={e => setStudentName(e.target.value)}
+                placeholder="e.g. Aarav Sharma"
+                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Admission No</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Admission No *</label>
                 <input
                   type="text"
+                  required
                   value={admissionNo}
-                  onChange={(e) => setAdmissionNo(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 font-mono font-bold text-stone-900"
-                  required
+                  onChange={e => setAdmissionNo(e.target.value)}
+                  placeholder="CBS-ADM-0921"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                 />
               </div>
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Class Left</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Class Left *</label>
                 <input
                   type="text"
+                  required
                   value={classLastAttended}
-                  onChange={(e) => setClassLastAttended(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 font-bold text-stone-900"
-                  required
+                  onChange={e => setClassLastAttended(e.target.value)}
+                  placeholder="Class 5"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Father's Name</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Father's Name *</label>
                 <input
                   type="text"
+                  required
                   value={fatherName}
-                  onChange={(e) => setFatherName(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-stone-900"
-                  required
+                  onChange={e => setFatherName(e.target.value)}
+                  placeholder="Dr. Rajesh Sharma"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                 />
               </div>
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Mother's Name</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Mother's Name *</label>
                 <input
                   type="text"
-                  value={motherName}
-                  onChange={(e) => setMotherName(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-stone-900"
                   required
+                  value={motherName}
+                  onChange={e => setMotherName(e.target.value)}
+                  placeholder="Mrs. Sunita Sharma"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Date of Birth</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Date of Birth *</label>
                 <input
                   type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 font-bold text-stone-900"
                   required
+                  value={dob}
+                  onChange={e => setDob(e.target.value)}
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                 />
               </div>
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Date Admitted</label>
+                <label className="text-xs font-bold text-stone-700 block mb-1">Admission Date</label>
                 <input
                   type="date"
                   value={admissionDate}
-                  onChange={(e) => setAdmissionDate(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 font-bold text-stone-900"
-                  required
+                  onChange={e => setAdmissionDate(e.target.value)}
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                 />
               </div>
             </div>
 
             <div>
-              <label className="font-bold text-stone-700 block mb-1">Annual Academic Result</label>
-              <input
-                type="text"
-                value={annualResult}
-                onChange={(e) => setAnnualResult(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-stone-900"
-                required
-              />
+              <label className="text-xs font-bold text-stone-700 block mb-1">Reason for Leaving School *</label>
+              <select
+                value={reasonForLeaving}
+                onChange={e => setReasonForLeaving(e.target.value)}
+                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+              >
+                <option value="Parent Relocation / Job Transfer">Parent Relocation / Job Transfer</option>
+                <option value="Admission to Higher Senior Secondary Institution">Admission to Higher Senior Secondary Institution</option>
+                <option value="Personal / Family Reasons">Personal / Family Reasons</option>
+                <option value="Completed Highest Class Available">Completed Highest Class Available</option>
+              </select>
             </div>
 
             <div>
-              <label className="font-bold text-stone-700 block mb-1">Reason for School Leaving</label>
-              <textarea
-                value={reasonForLeaving}
-                onChange={(e) => setReasonForLeaving(e.target.value)}
-                rows={2}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2 text-stone-900 leading-tight"
-                required
+              <label className="text-xs font-bold text-stone-700 block mb-1">Academic Result Status</label>
+              <input
+                type="text"
+                value={annualResult}
+                onChange={e => setAnnualResult(e.target.value)}
+                placeholder="Promoted to Higher Class (Passed)"
+                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
               />
-            </div>
-
-            {/* Clearances Checklist */}
-            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-1 text-[11px] text-emerald-950 font-medium">
-              <div className="font-bold text-emerald-900 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Automated Department Clearances:
-              </div>
-              <div>• Accounts Fee Dues: <strong>₹0.00 (Cleared)</strong></div>
-              <div>• Library Books Returned: <strong>All Returned</strong></div>
-              <div>• Transport Dues: <strong>Cleared</strong></div>
             </div>
 
             <button
               type="submit"
               disabled={isProcessing}
-              className="w-full py-3 bg-stone-950 hover:bg-stone-800 text-white font-bold rounded-2xl shadow-sm transition active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-[#0B1B30] hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
             >
               {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-amber-300" />}
-              Generate Official CBSE Certificate
+              Generate Official Certificate
             </button>
           </form>
         </div>
 
-        {/* Right 2 Cols: Official CBSE A4 Document Preview */}
+        {/* Right 2 Cols: Official A4 Document Preview */}
         <div className="lg:col-span-2 space-y-4">
           {selectedTc ? (
             <div className="bg-white p-8 sm:p-12 rounded-3xl border-4 border-stone-900 shadow-2xl space-y-6 text-stone-900 print:shadow-none print:border-4 print:p-8">
@@ -257,7 +263,7 @@ export default function TransferCertificateStudioPage() {
               {/* Official Header */}
               <div className="text-center space-y-1 border-b-2 border-stone-900 pb-4">
                 <div className="text-[10px] font-bold tracking-widest uppercase text-stone-600">
-                  Affiliated to the Central Board of Secondary Education (CBSE), New Delhi
+                  Recognized &amp; Registered Educational Institution, Delhi NCR
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-blue-950 tracking-tight">
                   CRAYON BOX SCHOOL
@@ -266,7 +272,7 @@ export default function TransferCertificateStudioPage() {
                   Sant Nagar, Burari, Delhi-110084 | Email: info@crayonboxschool.com
                 </div>
                 <div className="flex justify-center gap-6 text-[10px] font-mono text-stone-700 pt-1 font-bold">
-                  <span>CBSE Affiliation No: 2730588</span>
+                  <span>Registration No: 2730588</span>
                   <span>School Code: 25189</span>
                   <span>UDISE No: 07010101802</span>
                 </div>

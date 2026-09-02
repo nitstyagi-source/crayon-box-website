@@ -50,7 +50,7 @@ export default function SyllabusLayout({ children }: { children: React.ReactNode
 
         <div className="hidden lg:flex items-center gap-2 shrink-0">
           <span className="text-[11px] font-bold text-stone-500 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200">
-            CBSE / NEP 2020 Aligned
+            Holistic / NEP 2020 Aligned
           </span>
         </div>
       </div>

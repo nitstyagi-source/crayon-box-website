@@ -19,7 +19,16 @@ const NAV_LINKS = [
   { name: "Gallery", href: "/gallery" },
   { name: "News & Media", href: "/news" },
   { name: "Faculty", href: "/faculty" },
-  { name: "Admissions", href: "/admissions" },
+  { 
+    name: "Admissions", 
+    href: "/admissions",
+    megaMenu: [
+      { name: "Online Admission Enquiry", href: "/admissions/enquiry" },
+      { name: "Apply for Admission", href: "/admissions/apply" },
+      { name: "Track Application", href: "/admissions/track" },
+      { name: "Fee Calculator & Guidelines", href: "/admissions" },
+    ]
+  },
   { name: "Contact", href: "/contact" },
 ];
 
@@ -84,8 +93,15 @@ export default async function Header() {
             </div>
             
             <Link 
+              href="/admissions/enquiry" 
+              className="bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm ml-2 hidden sm:inline-flex items-center gap-1"
+            >
+              Enquire
+            </Link>
+
+            <Link 
               href="/admissions/apply" 
-              className="bg-accent text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-orange-800 transition-colors shadow-md hover:shadow-lg ml-2"
+              className="bg-accent text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-orange-800 transition-colors shadow-md hover:shadow-lg ml-1"
             >
               Apply Now
             </Link>

@@ -1,477 +1,873 @@
 "use server";
 
-import { createClient } from '@supabase/supabase-js';
-import { revalidatePath } from 'next/cache';
-import { createStudent } from '@/app/actions/students';
+import pg from "pg";
+import { revalidatePath } from "next/cache";
 
-function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const { Pool } = pg;
+const connectionString =
+  process.env.DATABASE_URL ||
+  "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-  });
+let pool: pg.Pool | null = null;
+function getPool() {
+  if (!pool) {
+    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
+  return pool;
 }
 
-function isValidUUID(id: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-}
-
-// -------------------------------------------------------------
-// 1. FETCH ALL ENQUIRIES WITH TIMELINE & METRICS
-// -------------------------------------------------------------
-export async function getEnquiries(campusId?: string, filters?: { status?: string; priority?: string; search?: string }) {
+function safeRevalidate(path: string) {
   try {
-    const supabase = getSupabaseAdmin();
+    revalidatePath(path);
+  } catch {}
+}
 
-    let query = supabase
-      .from('enquiries')
-      .select('*')
-      .order('created_at', { ascending: false });
+// -------------------------------------------------------------
+// TYPES & INTERFACES
+// -------------------------------------------------------------
+export interface PublicEnquiryInput {
+  academicSession: string; // "2026-2027"
+  institutionCode: string; // "CBS" | "AVM" | "AS" | "CBPS"
+  admissionClass: string; // "Nursery", "Class 1", etc.
+  childFirstName: string;
+  childMiddleName?: string;
+  childLastName: string;
+  childDob: string;
+  childGender: string;
+  currentClass?: string;
+  currentSchool?: string;
+  currentBoard?: string;
+  primaryGuardianName: string;
+  primaryGuardianRelation: string;
+  primaryGuardianPhone: string;
+  primaryGuardianWhatsapp?: string;
+  primaryGuardianEmail: string;
+  localityArea: string;
+  pincode: string;
+  transportRequired?: boolean;
+  visitRequested?: boolean;
+  visitDate?: string;
+  visitSlot?: string;
+  interestAreas?: string[];
+  enquirySource: string;
+  referralDetails?: string;
+  parentMessage?: string;
+  hasSibling?: boolean;
+  siblingAdmissionNo?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  landingPage?: string;
+  referrerUrl?: string;
+  deviceType?: string;
+}
 
-    if (filters?.status && filters.status !== 'All') {
-      query = query.eq('status', filters.status);
+export interface InternalEnquiryInput extends PublicEnquiryInput {
+  admissionType?: string; // "NEW" | "TRANSFER" | "SIBLING" | "READMISSION"
+  leadPriority?: string; // "HOT" | "WARM" | "COLD"
+  primaryGuardianOccupation?: string;
+  primaryGuardianCompany?: string;
+  primaryGuardianDesignation?: string;
+  secondaryGuardianName?: string;
+  secondaryGuardianRelation?: string;
+  secondaryGuardianPhone?: string;
+  secondaryGuardianEmail?: string;
+  secondaryGuardianOccupation?: string;
+  secondaryGuardianCompany?: string;
+  secondaryGuardianDesignation?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  landmark?: string;
+  reasonForChange?: string;
+  specialTalents?: string;
+  streamPreference?: string;
+  secondLanguagePreference?: string;
+  preferredContactChannel?: string;
+  preferredContactTime?: string;
+  counsellorNotes?: string;
+  assignedCounsellorName?: string;
+}
+
+export interface EnquiryFollowupInput {
+  enquiryId: string;
+  counsellorName?: string;
+  channel: string; // "PHONE" | "WHATSAPP" | "IN_PERSON" | "EMAIL" | "SMS"
+  contactedPerson?: string;
+  outcome: string; // "CONNECTED" | "NO_ANSWER" | "CALLBACK_REQUESTED" | "VISIT_SCHEDULED" | "APPLICATION_REQUESTED" | "APPLICATION_SUBMITTED" | "LOST" | "INTERESTED"
+  parentFeedback?: string;
+  internalNotes: string;
+  nextAction?: string;
+  nextActionDate?: string;
+  advanceStatusTo?: string;
+}
+
+// -------------------------------------------------------------
+// 1. GET ALL ENQUIRIES (WITH METRICS & PIPELINE BREAKDOWN)
+// -------------------------------------------------------------
+export async function getEnquiries(
+  campusOrInstCode?: string,
+  filters?: { status?: string; priority?: string; search?: string; session?: string }
+) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    let query = `
+      SELECT 
+        e.*,
+        COALESCE(e.child_first_name || ' ' || COALESCE(e.child_last_name, ''), e.child_name) as full_child_name,
+        COALESCE(e.primary_guardian_name, e.parent_name) as full_parent_name,
+        COALESCE(e.primary_guardian_phone, e.parent_phone) as full_parent_phone,
+        COALESCE(e.primary_guardian_email, e.parent_email) as full_parent_email,
+        COALESCE(e.admission_class, e.grade_interested) as target_class,
+        (
+          SELECT COUNT(*)
+          FROM public.enquiry_followups ef
+          WHERE ef.enquiry_id = e.id
+        ) as followups_count,
+        (
+          SELECT json_build_object(
+            'created_at', ef.created_at,
+            'outcome', ef.outcome,
+            'channel', ef.channel,
+            'notes', ef.internal_notes
+          )
+          FROM public.enquiry_followups ef
+          WHERE ef.enquiry_id = e.id
+          ORDER BY ef.created_at DESC
+          LIMIT 1
+        ) as last_followup
+      FROM public.enquiries e
+      WHERE 1=1
+    `;
+
+    const sqlParams: any[] = [];
+    let pIdx = 1;
+
+    if (campusOrInstCode && campusOrInstCode !== 'all' && campusOrInstCode !== 'ALL') {
+      query += ` AND (e.institution_code = $${pIdx} OR e.campus_id::text = $${pIdx} OR (e.institution_code IS NULL AND $${pIdx} = 'CBS'))`;
+      sqlParams.push(campusOrInstCode);
+      pIdx++;
     }
 
-    if (filters?.priority && filters.priority !== 'All') {
-      query = query.eq('priority', filters.priority);
+    if (filters?.session && filters.session !== 'ALL') {
+      query += ` AND (e.academic_session = $${pIdx} OR e.academic_session IS NULL)`;
+      sqlParams.push(filters.session);
+      pIdx++;
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
-
-    let list = data || [];
-    if (filters?.search && filters.search.trim()) {
-      const term = filters.search.toLowerCase().trim();
-      list = list.filter((e: any) => {
-        const fullChild = `${e.first_name || ''} ${e.last_name || ''} ${e.child_name || ''}`.toLowerCase();
-        const parent = `${e.father_name || ''} ${e.mother_name || ''} ${e.parent_name || ''}`.toLowerCase();
-        const phone = `${e.father_mobile || ''} ${e.mother_mobile || ''} ${e.parent_phone || ''}`;
-        const enqNo = (e.enquiry_no || '').toLowerCase();
-        return fullChild.includes(term) || parent.includes(term) || phone.includes(term) || enqNo.includes(term);
-      });
+    if (filters?.status && filters.status !== 'All' && filters.status !== 'ALL') {
+      query += ` AND LOWER(e.status) = LOWER($${pIdx})`;
+      sqlParams.push(filters.status);
+      pIdx++;
     }
 
-    return { success: true, data: list };
+    if (filters?.priority && filters.priority !== 'All' && filters.priority !== 'ALL') {
+      query += ` AND LOWER(e.lead_priority) = LOWER($${pIdx})`;
+      sqlParams.push(filters.priority);
+      pIdx++;
+    }
+
+    if (filters?.search && filters.search.trim() !== '') {
+      const term = `%${filters.search.trim()}%`;
+      query += ` AND (
+        e.enquiry_number ILIKE $${pIdx} OR
+        e.child_name ILIKE $${pIdx} OR
+        e.child_first_name ILIKE $${pIdx} OR
+        e.child_last_name ILIKE $${pIdx} OR
+        e.parent_name ILIKE $${pIdx} OR
+        e.primary_guardian_name ILIKE $${pIdx} OR
+        e.parent_phone ILIKE $${pIdx} OR
+        e.primary_guardian_phone ILIKE $${pIdx} OR
+        e.parent_email ILIKE $${pIdx} OR
+        e.locality_area ILIKE $${pIdx}
+      )`;
+      sqlParams.push(term);
+      pIdx++;
+    }
+
+    query += ` ORDER BY e.created_at DESC;`;
+
+    const res = await client.query(query, sqlParams);
+    const list = res.rows || [];
+
+    // Calculate Pipeline Breakdown Counts
+    const counts = {
+      total: list.length,
+      new: list.filter((e: any) => !e.status || e.status.toUpperCase() === 'NEW').length,
+      contacted: list.filter((e: any) => e.status?.toUpperCase() === 'CONTACTED').length,
+      counselling: list.filter((e: any) => e.status?.toUpperCase() === 'COUNSELLING').length,
+      visitScheduled: list.filter((e: any) => e.status?.toUpperCase() === 'CAMPUS_VISIT' || e.visit_requested).length,
+      applicationStarted: list.filter((e: any) => e.status?.toUpperCase() === 'APPLICATION_STARTED').length,
+      applicationSubmitted: list.filter((e: any) => e.status?.toUpperCase() === 'APPLICATION_SUBMITTED').length,
+      admitted: list.filter((e: any) => e.status?.toUpperCase() === 'ADMITTED' || e.status?.toUpperCase() === 'CONVERTED').length,
+      lost: list.filter((e: any) => e.status?.toUpperCase() === 'LOST' || e.status?.toUpperCase() === 'DROPPED').length,
+      hotPriority: list.filter((e: any) => e.lead_priority?.toUpperCase() === 'HOT').length,
+    };
+
+    return { success: true, data: list, counts };
   } catch (error: any) {
-    console.error("Error fetching enquiries:", error);
-    return { success: false, error: error.message, data: [] };
+    console.error("Error in getEnquiries:", error);
+    return { success: false, error: error.message, data: [], counts: { total: 0 } };
+  } finally {
+    client.release();
   }
 }
 
 // -------------------------------------------------------------
-// 2. FETCH SINGLE ENQUIRY WITH FULL AUDIT TIMELINE
+// 2. GET SINGLE ENQUIRY DOSSIER WITH FULL TIMELINE (~90 FIELDS)
 // -------------------------------------------------------------
 export async function getEnquiryDetails(id: string) {
+  const p = getPool();
+  const client = await p.connect();
+
   try {
-    if (!id) throw new Error("Enquiry ID is required.");
-    const supabase = getSupabaseAdmin();
+    const enqRes = await client.query(
+      `SELECT e.*, 
+              COALESCE(e.child_first_name || ' ' || COALESCE(e.child_last_name, ''), e.child_name) as full_child_name,
+              COALESCE(e.primary_guardian_name, e.parent_name) as full_parent_name,
+              COALESCE(e.primary_guardian_phone, e.parent_phone) as full_parent_phone,
+              COALESCE(e.primary_guardian_email, e.parent_email) as full_parent_email,
+              COALESCE(e.admission_class, e.grade_interested) as target_class,
+              s.first_name as linked_sibling_first,
+              s.last_name as linked_sibling_last,
+              s.admission_no as linked_sibling_adm_no
+       FROM public.enquiries e
+       LEFT JOIN public.students s ON e.linked_sibling_student_id = s.id
+       WHERE e.id = $1 LIMIT 1;`,
+      [id]
+    );
 
-    const [enqRes, logsRes] = await Promise.all([
-      supabase.from('enquiries').select('*').eq('id', id).single(),
-      supabase.from('enquiry_timeline_logs').select('*').eq('enquiry_id', id).order('created_at', { ascending: true })
-    ]);
+    if (enqRes.rows.length === 0) {
+      return { success: false, error: "Enquiry not found" };
+    }
 
-    if (enqRes.error) throw enqRes.error;
+    const enq = enqRes.rows[0];
+
+    const followupsRes = await client.query(
+      `SELECT * FROM public.enquiry_followups WHERE enquiry_id = $1 ORDER BY created_at DESC;`,
+      [id]
+    );
 
     return {
       success: true,
       data: {
-        ...enqRes.data,
-        timeline: logsRes.data || []
+        ...enq,
+        followups: followupsRes.rows || [],
+        timeline: followupsRes.rows || []
       }
     };
   } catch (error: any) {
-    console.error("Error fetching enquiry details:", error);
+    console.error("Error in getEnquiryDetails:", error);
     return { success: false, error: error.message };
+  } finally {
+    client.release();
   }
 }
 
 // -------------------------------------------------------------
-// 3. CREATE ADMISSION ENQUIRY (2-3 MIN RAPID INTAKE)
+// 3. PUBLIC ENQUIRY INTAKE (PARENT FACING 20-25 FIELDS)
 // -------------------------------------------------------------
-export async function createAdmissionEnquiry(data: any) {
+export async function createPublicEnquiryAction(input: PublicEnquiryInput) {
+  const p = getPool();
+  const client = await p.connect();
+
   try {
-    const supabase = getSupabaseAdmin();
+    // 1. Generate unique Enquiry Number
+    const seqRes = await client.query(`SELECT nextval('public.enquiry_number_seq') as seq;`);
+    const seqNum = seqRes.rows[0].seq;
+    const year = new Date().getFullYear();
+    const enquiryNumber = `ENQ-${year}-${String(seqNum).padStart(4, '0')}`;
 
-    // 1. Resolve Campus ID
-    let targetCampusId = data.campus_id;
-    if (!targetCampusId || !isValidUUID(targetCampusId)) {
-      const { data: c } = await supabase.from('campuses').select('id').limit(1).single();
-      targetCampusId = c?.id;
-    }
-
-    // 2. Auto-generate Enquiry No
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const enquiryNo = data.enquiry_no || `ENQ-2026-${randomSuffix}`;
-
-    // 3. Calculate Age from DOB
-    let currentAge = data.current_age || "";
-    if (data.dob && !currentAge) {
-      const birth = new Date(data.dob);
-      const now = new Date();
-      let years = now.getFullYear() - birth.getFullYear();
-      let months = now.getMonth() - birth.getMonth();
-      if (months < 0) {
-        years--;
-        months += 12;
-      }
-      currentAge = `${years} Yrs ${months} Mos`;
-    }
-
-    const childFullName = `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.child_name || 'Prospective Student';
-    const parentFullName = data.father_name || data.mother_name || data.parent_name || 'Parent/Guardian';
-    const contactPhone = data.father_mobile || data.mother_mobile || data.parent_phone || '';
-
-    const payload = {
-      enquiry_no: enquiryNo,
-      academic_session: data.academic_session || '2026-27',
-      campus_id: targetCampusId,
-      admission_type: data.admission_type || 'New',
-      priority: data.priority || 'Warm',
-      first_name: data.first_name || '',
-      middle_name: data.middle_name || null,
-      last_name: data.last_name || '',
-      child_name: childFullName,
-      dob: data.dob || null,
-      gender: data.gender || 'Male',
-      current_age: currentAge,
-      current_class: data.current_class || null,
-      grade_interested: data.grade_interested || data.class_applying_for || 'Nursery',
-      previous_school: data.previous_school || null,
-      previous_board: data.previous_board || null,
-      nationality: data.nationality || 'Indian',
-      sibling_studying: Boolean(data.sibling_studying),
-      sibling_name: data.sibling_name || null,
-      sibling_admission_no: data.sibling_admission_no || null,
-      father_name: data.father_name || null,
-      father_mobile: data.father_mobile || null,
-      father_whatsapp: data.father_whatsapp || data.father_mobile || null,
-      father_email: data.father_email || null,
-      father_occupation: data.father_occupation || null,
-      father_company: data.father_company || null,
-      father_designation: data.father_designation || null,
-      mother_name: data.mother_name || null,
-      mother_mobile: data.mother_mobile || null,
-      mother_whatsapp: data.mother_whatsapp || data.mother_mobile || null,
-      mother_email: data.mother_email || null,
-      mother_occupation: data.mother_occupation || null,
-      mother_company: data.mother_company || null,
-      mother_designation: data.mother_designation || null,
-      parent_name: parentFullName,
-      parent_phone: contactPhone,
-      parent_email: data.father_email || data.mother_email || null,
-      primary_contact: data.primary_contact || 'Father',
-      preferred_contact_mode: data.preferred_contact_mode || 'Call',
-      address: data.address || null,
-      locality: data.locality || null,
-      city: data.city || 'Delhi',
-      state: data.state || 'Delhi',
-      pin_code: data.pin_code || null,
-      landmark: data.landmark || null,
-      distance_km: data.distance_km || null,
-      transport_required: Boolean(data.transport_required),
-      preferred_transport_route: data.preferred_transport_route || null,
-      source: data.source || 'Walk-in',
-      campaign_name: data.campaign_name || null,
-      referral_name: data.referral_name || null,
-      referral_mobile: data.referral_mobile || null,
-      fee_budget_range: data.fee_budget_range || null,
-      school_timing_pref: data.school_timing_pref || null,
-      reason_for_choosing: data.reason_for_choosing || null,
-      parent_expectations: data.parent_expectations || null,
-      student_interests: data.student_interests || null,
-      special_requirements: data.special_requirements || null,
-      remarks: data.remarks || null,
-      counsellor_name: data.counsellor_name || 'Priya Sharma (Senior Counsellor)',
-      counselling_date: data.counselling_date || new Date().toISOString().split('T')[0],
-      counselling_mode: data.counselling_mode || 'Walk-in',
-      questions_concerns: data.questions_concerns || null,
-      fee_structure_shared: Boolean(data.fee_structure_shared),
-      brochure_shared: Boolean(data.brochure_shared),
-      school_tour_offered: Boolean(data.school_tour_offered),
-      process_explained: Boolean(data.process_explained),
-      visit_scheduled: Boolean(data.visit_scheduled),
-      visit_date: data.visit_date || null,
-      visit_time: data.visit_time || null,
-      visitors_count: Number(data.visitors_count) || 2,
-      student_accompanied: Boolean(data.student_accompanied),
-      campus_tour_completed: Boolean(data.campus_tour_completed),
-      principal_interaction: Boolean(data.principal_interaction),
-      interest_level: data.interest_level || 'High',
-      parent_feedback: data.parent_feedback || null,
-      status: data.status || 'New',
-      next_follow_up_date: data.next_follow_up_date || null,
-      next_follow_up_time: data.next_follow_up_time || '11:00 AM',
-      follow_up_type: data.follow_up_type || 'Phone Call',
-      follow_up_notes: data.follow_up_notes || null,
-      parent_response: data.parent_response || null,
-      next_action: data.next_action || null
-    };
-
-    const { data: newEnquiry, error } = await supabase
-      .from('enquiries')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Dual-write to public.admissions_applications for pipeline synchronization
-    try {
-      const kitsPayload = {
-        parent_name: parentFullName,
-        parent_phone: contactPhone,
-        parent_email: data.father_email || data.mother_email || '',
-        submission_channel: data.source || 'Walk-in Enquiry CRM',
-        created_at: new Date().toISOString()
-      };
-
-      await supabase.from('admissions_applications').insert([{
-        campus_id: targetCampusId,
-        tracking_token: enquiryNo,
-        student_first_name: data.first_name || '',
-        student_last_name: data.last_name || '',
-        grade_applied: data.grade_interested || data.class_applying_for || 'Nursery',
-        date_of_birth: data.dob || '2021-01-01',
-        previous_school: data.previous_school || '',
-        transport_required: Boolean(data.transport_required),
-        co_curricular_kits: kitsPayload,
-        status: data.status === 'Converted' ? 'APPROVED' : 'SUBMITTED'
-      }]);
-    } catch (dualErr: any) {
-      console.warn("Dual write note to admissions_applications:", dualErr.message);
-    }
-
-    // Write initial timeline logs
-    await supabase.from('enquiry_timeline_logs').insert([
-      {
-        enquiry_id: newEnquiry.id,
-        stage: 'Enquiry Created',
-        title: `Enquiry Logged (${newEnquiry.source})`,
-        description: `Enquiry ${enquiryNo} registered for ${childFullName} (${newEnquiry.grade_interested}). Priority: ${newEnquiry.priority}.`,
-        performed_by: newEnquiry.counsellor_name || 'Receptionist'
-      }
-    ]);
-
-    if (newEnquiry.visit_scheduled && newEnquiry.visit_date) {
-      await supabase.from('enquiry_timeline_logs').insert([
-        {
-          enquiry_id: newEnquiry.id,
-          stage: 'School Visit',
-          title: `Campus Tour Scheduled`,
-          description: `Visit scheduled for ${newEnquiry.visit_date} at ${newEnquiry.visit_time || '10:30 AM'}.`,
-          performed_by: newEnquiry.counsellor_name || 'Counsellor'
-        }
-      ]);
-    }
-
-    if (newEnquiry.next_follow_up_date) {
-      await supabase.from('enquiry_timeline_logs').insert([
-        {
-          enquiry_id: newEnquiry.id,
-          stage: 'Follow-up Scheduled',
-          title: `Next Follow-up: ${newEnquiry.follow_up_type}`,
-          description: `Due on ${newEnquiry.next_follow_up_date} at ${newEnquiry.next_follow_up_time}. Note: ${newEnquiry.follow_up_notes || 'Routine follow-up call.'}`,
-          performed_by: newEnquiry.counsellor_name || 'Counsellor'
-        }
-      ]);
-    }
-
-    revalidatePath('/admin/enquiries');
-    return { success: true, data: newEnquiry, enquiryNo };
-  } catch (error: any) {
-    console.error("Error creating admission enquiry:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// -------------------------------------------------------------
-// 4. UPDATE ENQUIRY & LOG INTERACTION
-// -------------------------------------------------------------
-export async function updateAdmissionEnquiry(id: string, payload: any) {
-  try {
-    if (!id) throw new Error("Enquiry ID is required.");
-    const supabase = getSupabaseAdmin();
-
-    const { data: updated, error } = await supabase
-      .from('enquiries')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Log status or note changes
-    if (payload.status) {
-      await supabase.from('enquiry_timeline_logs').insert([{
-        enquiry_id: id,
-        stage: payload.status,
-        title: `Status Changed to ${payload.status}`,
-        description: payload.lost_reason ? `Marked Lost: ${payload.lost_reason}. Notes: ${payload.lost_notes || ''}` : (payload.follow_up_notes || `Pipeline stage updated to ${payload.status}.`),
-        performed_by: updated.counsellor_name || 'Admissions Team'
-      }]);
-    }
-
-    revalidatePath('/admin/enquiries');
-    return { success: true, data: updated };
-  } catch (error: any) {
-    console.error("Error updating enquiry:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// -------------------------------------------------------------
-// 5. ADD TIMELINE LOG ENTRY
-// -------------------------------------------------------------
-export async function addEnquiryTimelineLog(enquiryId: string, payload: { stage: string; title: string; description: string; performedBy?: string }) {
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from('enquiry_timeline_logs')
-      .insert([{
-        enquiry_id: enquiryId,
-        stage: payload.stage,
-        title: payload.title,
-        description: payload.description,
-        performed_by: payload.performedBy || 'Admissions Counsellor'
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    revalidatePath('/admin/enquiries');
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-// -------------------------------------------------------------
-// 6. 1-CLICK CONVERSION: ENQUIRY → STUDENT MASTER
-// -------------------------------------------------------------
-export async function convertEnquiryToStudent(enquiryId: string, customOptions?: { class_name?: string; section_name?: string; admission_no?: string }) {
-  try {
-    const supabase = getSupabaseAdmin();
-
-    const { data: enq, error } = await supabase.from('enquiries').select('*').eq('id', enquiryId).single();
-    if (error || !enq) throw new Error("Enquiry not found.");
-
-    const childNames = (enq.child_name || `${enq.first_name || 'Student'} ${enq.last_name || ''}`).trim().split(' ');
-    const firstName = enq.first_name || childNames[0] || "Student";
-    const lastName = enq.last_name || childNames.slice(1).join(' ') || "";
-    const admNo = customOptions?.admission_no || `CBS-${Math.floor(1000 + Math.random() * 9000)}`;
-    const className = customOptions?.class_name || enq.grade_interested || "Grade 1";
-    const sectionName = customOptions?.section_name || "A";
-
-    // Check if student already exists or already converted to prevent duplicate entries
-    let newStudentId = enq.converted_student_id;
-    let finalAdmNo = customOptions?.admission_no || enq.enquiry_no || `CBS-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    if (!newStudentId) {
-      const { data: existingStudents } = await supabase
-        .from('students')
-        .select('id, admission_no')
-        .ilike('first_name', firstName.trim())
-        .ilike('last_name', lastName.trim())
-        .limit(1);
-
-      if (existingStudents && existingStudents.length > 0) {
-        newStudentId = existingStudents[0].id;
-        finalAdmNo = existingStudents[0].admission_no || finalAdmNo;
+    // 2. Resolve Sibling Link if admission no provided
+    let linkedSiblingId: string | null = null;
+    let linkedSiblingName: string | null = null;
+    if (input.hasSibling && input.siblingAdmissionNo && input.siblingAdmissionNo.trim() !== '') {
+      const sibRes = await client.query(
+        `SELECT id, first_name, last_name, admission_no FROM public.students WHERE LOWER(TRIM(admission_no)) = LOWER(TRIM($1)) LIMIT 1;`,
+        [input.siblingAdmissionNo.trim()]
+      );
+      if (sibRes.rows.length > 0) {
+        linkedSiblingId = sibRes.rows[0].id;
+        linkedSiblingName = `${sibRes.rows[0].first_name} ${sibRes.rows[0].last_name} (${sibRes.rows[0].admission_no})`;
       }
     }
 
-    if (!newStudentId) {
-      // 1. Create Student Master Entry
-      const stuRes = await createStudent({
-        campus_id: enq.campus_id,
-        admission_no: finalAdmNo,
-        first_name: firstName,
-        middle_name: enq.middle_name || null,
-        last_name: lastName,
-        dob: enq.dob || "2020-01-01",
-        gender: enq.gender || "Male",
-        nationality: enq.nationality || "Indian",
-        category: "General",
-        blood_group: "O+",
-        class_name: className,
-        section_name: sectionName,
-        father_name: enq.father_name || enq.parent_name || "Father",
-        father_mobile: enq.father_mobile || enq.parent_phone || "",
-        father_email: enq.father_email || "",
-        father_occupation: enq.father_occupation || "",
-        mother_name: enq.mother_name || "",
-        mother_mobile: enq.mother_mobile || "",
-        primary_contact: enq.primary_contact || "Father",
-        address_line1: enq.address || enq.locality || "Delhi",
-        city: enq.city || "Delhi",
-        pin_code: enq.pin_code || "110084",
-        transport_route: enq.preferred_transport_route || (enq.transport_required ? "Route #04" : "")
-      });
+    const childFullName = `${input.childFirstName.trim()} ${input.childMiddleName ? input.childMiddleName.trim() + ' ' : ''}${input.childLastName.trim()}`;
 
-      if (!stuRes.success) throw new Error(stuRes.error);
-      newStudentId = stuRes.data.id;
-    }
+    const insertRes = await client.query(
+      `INSERT INTO public.enquiries (
+        enquiry_number,
+        academic_session,
+        institution_code,
+        admission_type,
+        lead_priority,
+        child_name,
+        child_first_name,
+        child_middle_name,
+        child_last_name,
+        child_dob,
+        child_gender,
+        grade_interested,
+        admission_class,
+        current_class,
+        current_school,
+        current_board,
+        parent_name,
+        primary_guardian_name,
+        primary_guardian_relation,
+        parent_phone,
+        primary_guardian_phone,
+        primary_guardian_whatsapp,
+        parent_email,
+        primary_guardian_email,
+        locality_area,
+        pincode,
+        transport_required,
+        visit_requested,
+        visit_date,
+        visit_slot,
+        visit_status,
+        interest_areas,
+        source,
+        parent_message,
+        has_sibling,
+        linked_sibling_student_id,
+        linked_sibling_admission_no,
+        linked_sibling_name,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_term,
+        utm_content,
+        landing_page,
+        referrer_url,
+        device_type,
+        consent_given,
+        consent_timestamp,
+        status
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
+        $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
+        $41, $42, $43, $44, $45, $46, $47, NOW(), 'NEW'
+      )
+      RETURNING id, enquiry_number;`,
+      [
+        enquiryNumber,
+        input.academicSession || '2026-2027',
+        input.institutionCode || 'CBS',
+        input.hasSibling && linkedSiblingId ? 'SIBLING' : 'NEW',
+        input.visitRequested ? 'HOT' : 'WARM',
+        childFullName,
+        input.childFirstName.trim(),
+        input.childMiddleName?.trim() || null,
+        input.childLastName.trim(),
+        input.childDob || null,
+        input.childGender || 'Male',
+        input.admissionClass,
+        input.admissionClass,
+        input.currentClass || null,
+        input.currentSchool || null,
+        input.currentBoard || null,
+        input.primaryGuardianName.trim(),
+        input.primaryGuardianName.trim(),
+        input.primaryGuardianRelation || 'FATHER',
+        input.primaryGuardianPhone.trim(),
+        input.primaryGuardianPhone.trim(),
+        input.primaryGuardianWhatsapp?.trim() || input.primaryGuardianPhone.trim(),
+        input.primaryGuardianEmail.trim(),
+        input.primaryGuardianEmail.trim(),
+        input.localityArea.trim(),
+        input.pincode.trim(),
+        Boolean(input.transportRequired),
+        Boolean(input.visitRequested),
+        input.visitDate || null,
+        input.visitSlot || null,
+        input.visitRequested ? 'SCHEDULED' : 'NONE',
+        input.interestAreas || [],
+        input.enquirySource || 'Website',
+        input.parentMessage || null,
+        Boolean(input.hasSibling),
+        linkedSiblingId,
+        input.siblingAdmissionNo || null,
+        linkedSiblingName,
+        input.utmSource || null,
+        input.utmMedium || null,
+        input.utmCampaign || null,
+        input.utmTerm || null,
+        input.utmContent || null,
+        input.landingPage || null,
+        input.referrerUrl || null,
+        input.deviceType || 'Desktop',
+        true
+      ]
+    );
 
-    // 2. Mark Enquiry as Admitted with converted student reference
-    await supabase.from('enquiries').update({
-      status: 'Admitted',
-      admission_decision: 'Approved',
-      converted_student_id: newStudentId
-    }).eq('id', enquiryId);
+    const enq = insertRes.rows[0];
 
-    // 3. Log Timeline entry
-    await supabase.from('enquiry_timeline_logs').insert([{
-      enquiry_id: enquiryId,
-      stage: 'Admission Confirmed',
-      title: `Converted to Enrolled Student (Adm: ${finalAdmNo})`,
-      description: `Student Master profile created automatically. Enrolled in ${className}-${sectionName}.`,
-      performed_by: 'Admissions Desk'
-    }]);
+    // Log initial ingestion event
+    await client.query(
+      `INSERT INTO public.enquiry_followups (
+        enquiry_id, counsellor_name, channel, outcome, internal_notes
+      ) VALUES ($1, 'Website Portal', 'WEB', 'CONNECTED', 'Online enquiry submitted by parent via public admission portal.');`,
+      [enq.id]
+    );
 
-    revalidatePath('/admin/enquiries');
-    revalidatePath('/admin/students');
+    safeRevalidate('/admin/enquiries');
+    safeRevalidate('/admin/admissions');
+
     return {
       success: true,
-      message: `Enquiry converted successfully! Student Admission No: ${finalAdmNo}`,
-      studentId: newStudentId,
-      admissionNo: finalAdmNo
+      enquiryId: enq.id,
+      enquiryNumber: enq.enquiry_number,
+      message: `Enquiry ${enq.enquiry_number} has been successfully recorded! Our admissions desk will contact you within 24 hours.`
     };
   } catch (error: any) {
-    console.error("Error converting enquiry to student:", error);
+    console.error("Error in createPublicEnquiryAction:", error);
     return { success: false, error: error.message };
+  } finally {
+    client.release();
   }
 }
 
 // -------------------------------------------------------------
-// 7. PUBLIC WEBSITE CONTACT FORM HANDLER
+// 4. INTERNAL ENQUIRY INTAKE (COUNSELLOR 90-FIELD DESK)
 // -------------------------------------------------------------
-export async function submitPublicEnquiry(formData: FormData) {
-  try {
-    const parentName = formData.get("parentName")?.toString();
-    const phone = formData.get("phone")?.toString();
-    const childName = formData.get("childName")?.toString();
-    const grade = formData.get("grade")?.toString();
+export async function createInternalEnquiryAction(input: InternalEnquiryInput) {
+  const p = getPool();
+  const client = await p.connect();
 
-    if (!parentName || !phone || !childName || !grade) {
-      return { success: false, error: "Please fill out all required fields." };
+  try {
+    const seqRes = await client.query(`SELECT nextval('public.enquiry_number_seq') as seq;`);
+    const seqNum = seqRes.rows[0].seq;
+    const year = new Date().getFullYear();
+    const enquiryNumber = `ENQ-${year}-${String(seqNum).padStart(4, '0')}`;
+
+    const childFullName = `${input.childFirstName.trim()} ${input.childMiddleName ? input.childMiddleName.trim() + ' ' : ''}${input.childLastName.trim()}`;
+
+    const insertRes = await client.query(
+      `INSERT INTO public.enquiries (
+        enquiry_number, academic_session, institution_code, admission_type, lead_priority,
+        child_name, child_first_name, child_middle_name, child_last_name, child_dob, child_gender,
+        grade_interested, admission_class, current_class, current_school, current_board,
+        reason_for_change, special_talents, stream_preference, second_language_preference,
+        parent_name, primary_guardian_name, primary_guardian_relation, parent_phone,
+        primary_guardian_phone, primary_guardian_whatsapp, parent_email, primary_guardian_email,
+        primary_guardian_occupation, primary_guardian_company, primary_guardian_designation,
+        secondary_guardian_name, secondary_guardian_relation, secondary_guardian_phone,
+        secondary_guardian_email, secondary_guardian_occupation,
+        address_line1, locality_area, city, state, pincode, landmark,
+        transport_required, visit_requested, visit_date, visit_slot, visit_status,
+        interest_areas, source, parent_message, counsellor_notes,
+        preferred_contact_channel, preferred_contact_time,
+        status
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9, $10, $11,
+        $12, $13, $14, $15, $16,
+        $17, $18, $19, $20,
+        $21, $22, $23, $24,
+        $25, $26, $27, $28,
+        $29, $30, $31,
+        $32, $33, $34,
+        $35, $36,
+        $37, $38, $39, $40, $41, $42,
+        $43, $44, $45, $46, $47,
+        $48, $49, $50, $51,
+        $52, $53,
+        'NEW'
+      ) RETURNING id, enquiry_number;`,
+      [
+        enquiryNumber,
+        input.academicSession || '2026-2027',
+        input.institutionCode || 'CBS',
+        input.admissionType || 'NEW',
+        input.leadPriority || 'WARM',
+        childFullName,
+        input.childFirstName.trim(),
+        input.childMiddleName?.trim() || null,
+        input.childLastName.trim(),
+        input.childDob || null,
+        input.childGender || 'Male',
+        input.admissionClass,
+        input.admissionClass,
+        input.currentClass || null,
+        input.currentSchool || null,
+        input.currentBoard || null,
+        input.reasonForChange || null,
+        input.specialTalents || null,
+        input.streamPreference || null,
+        input.secondLanguagePreference || null,
+        input.primaryGuardianName.trim(),
+        input.primaryGuardianName.trim(),
+        input.primaryGuardianRelation || 'FATHER',
+        input.primaryGuardianPhone.trim(),
+        input.primaryGuardianPhone.trim(),
+        input.primaryGuardianWhatsapp?.trim() || null,
+        input.primaryGuardianEmail.trim(),
+        input.primaryGuardianEmail.trim(),
+        input.primaryGuardianOccupation || null,
+        input.primaryGuardianCompany || null,
+        input.primaryGuardianDesignation || null,
+        input.secondaryGuardianName || null,
+        input.secondaryGuardianRelation || null,
+        input.secondaryGuardianPhone || null,
+        input.secondaryGuardianEmail || null,
+        input.secondaryGuardianOccupation || null,
+        input.addressLine1 || null,
+        input.localityArea?.trim() || 'Delhi',
+        'Delhi',
+        'Delhi',
+        input.pincode || '110084',
+        input.landmark || null,
+        Boolean(input.transportRequired),
+        Boolean(input.visitRequested),
+        input.visitDate || null,
+        input.visitSlot || null,
+        input.visitRequested ? 'SCHEDULED' : 'NONE',
+        input.interestAreas || [],
+        input.enquirySource || 'Walk-in',
+        input.parentMessage || null,
+        input.counsellorNotes || null,
+        input.preferredContactChannel || 'PHONE',
+        input.preferredContactTime || null
+      ]
+    );
+
+    const enq = insertRes.rows[0];
+
+    // Log initial counsellor note if provided
+    if (input.counsellorNotes) {
+      await client.query(
+        `INSERT INTO public.enquiry_followups (
+          enquiry_id, counsellor_name, channel, outcome, internal_notes
+        ) VALUES ($1, $2, 'IN_PERSON', 'CONNECTED', $3);`,
+        [enq.id, input.assignedCounsellorName || 'Admissions Desk', input.counsellorNotes]
+      );
     }
 
-    return await createAdmissionEnquiry({
-      parent_name: parentName,
-      father_name: parentName,
-      father_mobile: phone,
-      child_name: childName,
-      first_name: childName.split(' ')[0],
-      last_name: childName.split(' ').slice(1).join(' '),
-      grade_interested: grade,
-      source: 'Website',
-      priority: 'Hot',
-      status: 'New'
-    });
+    safeRevalidate('/admin/enquiries');
+    safeRevalidate('/admin/admissions');
+
+    return {
+      success: true,
+      enquiryId: enq.id,
+      enquiryNumber: enq.enquiry_number,
+      message: `Enquiry ${enq.enquiry_number} created successfully!`
+    };
   } catch (error: any) {
+    console.error("Error in createInternalEnquiryAction:", error);
     return { success: false, error: error.message };
+  } finally {
+    client.release();
   }
 }
+
+// -------------------------------------------------------------
+// 5. LOG FOLLOW-UP ACTIVITY & AUTO-ADVANCE STATUS
+// -------------------------------------------------------------
+export async function logEnquiryFollowupAction(input: EnquiryFollowupInput) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    // 1. Insert activity log
+    await client.query(
+      `INSERT INTO public.enquiry_followups (
+        enquiry_id, counsellor_name, channel, contacted_person,
+        outcome, parent_feedback, internal_notes, next_action, next_action_date, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'COMPLETED');`,
+      [
+        input.enquiryId,
+        input.counsellorName || 'Admissions Counsellor',
+        input.channel,
+        input.contactedPerson || 'Parent',
+        input.outcome,
+        input.parentFeedback || null,
+        input.internalNotes,
+        input.nextAction || null,
+        input.nextActionDate || null
+      ]
+    );
+
+    // 2. Update Enquiry Master
+    let newStatus = input.advanceStatusTo;
+    if (!newStatus) {
+      if (input.outcome === 'VISIT_SCHEDULED') newStatus = 'CAMPUS_VISIT';
+      else if (input.outcome === 'APPLICATION_REQUESTED') newStatus = 'APPLICATION_STARTED';
+      else if (input.outcome === 'APPLICATION_SUBMITTED') newStatus = 'APPLICATION_SUBMITTED';
+      else if (input.outcome === 'LOST') newStatus = 'LOST';
+      else newStatus = 'CONTACTED';
+    }
+
+    await client.query(
+      `UPDATE public.enquiries
+       SET status = $1,
+           follow_up_date = $2,
+           updated_at = NOW()
+       WHERE id = $3;`,
+      [newStatus, input.nextActionDate || null, input.enquiryId]
+    );
+
+    safeRevalidate('/admin/enquiries');
+    safeRevalidate('/admin/admissions');
+
+    return {
+      success: true,
+      message: `Follow-up logged successfully! Lead status updated to ${newStatus}.`
+    };
+  } catch (error: any) {
+    console.error("Error in logEnquiryFollowupAction:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 6. SEARCH EXISTING SIBLING STUDENT
+// -------------------------------------------------------------
+export async function searchExistingSiblingStudentAction(searchTerm: string) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    const term = `%${searchTerm.trim()}%`;
+    const res = await client.query(
+      `SELECT s.id, s.first_name, s.last_name, s.admission_no, s.dob, s.photo_url,
+              se.class_name, se.section_name, se.institution_code
+       FROM public.students s
+       LEFT JOIN public.student_enrollments se ON s.id = se.student_id AND se.is_current = true
+       WHERE (
+         s.first_name ILIKE $1 OR
+         s.last_name ILIKE $1 OR
+         s.admission_no ILIKE $1 OR
+         s.universal_id ILIKE $1
+       )
+       LIMIT 10;`,
+      [term]
+    );
+
+    return { success: true, students: res.rows || [] };
+  } catch (error: any) {
+    console.error("Error in searchExistingSiblingStudentAction:", error);
+    return { success: false, error: error.message, students: [] };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 7. 1-CLICK CONVERT ENQUIRY TO ADMISSION APPLICATION
+// -------------------------------------------------------------
+export async function convertEnquiryToApplicationAction(enquiryId: string) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const enqRes = await client.query(`SELECT * FROM public.enquiries WHERE id = $1 LIMIT 1;`, [enquiryId]);
+    if (enqRes.rows.length === 0) throw new Error("Enquiry not found");
+    const enq = enqRes.rows[0];
+
+    // Check if already converted
+    if (enq.converted_application_id) {
+      return {
+        success: true,
+        alreadyConverted: true,
+        applicationId: enq.converted_application_id,
+        message: "Enquiry already converted to an application."
+      };
+    }
+
+    // Generate Application Number
+    const appSeq = Math.floor(1000 + Math.random() * 9000);
+    const appNo = `APP-2026-${appSeq}`;
+
+    const appInsert = await client.query(
+      `INSERT INTO public.admissions_applications (
+        enquiry_id, application_number, student_name, first_name, last_name,
+        dob, gender, grade_applying_for, academic_year,
+        father_name, father_mobile, father_email,
+        mother_name, address, status, created_at
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12,
+        $13, $14, 'SUBMITTED', NOW()
+      ) RETURNING id, application_number;`,
+      [
+        enq.id,
+        appNo,
+        enq.child_name || `${enq.child_first_name} ${enq.child_last_name}`,
+        enq.child_first_name || enq.child_name?.split(' ')[0] || 'Student',
+        enq.child_last_name || enq.child_name?.split(' ').slice(1).join(' ') || '',
+        enq.child_dob || '2020-01-01',
+        enq.child_gender || 'Male',
+        enq.admission_class || enq.grade_interested || 'Class 1',
+        enq.academic_session || '2026-2027',
+        enq.primary_guardian_name || enq.parent_name,
+        enq.primary_guardian_phone || enq.parent_phone,
+        enq.primary_guardian_email || enq.parent_email,
+        enq.secondary_guardian_name || 'Mother',
+        enq.address_line1 || enq.locality_area || 'Delhi NCR',
+      ]
+    );
+
+    const appId = appInsert.rows[0].id;
+
+    // Update enquiry conversion status
+    await client.query(
+      `UPDATE public.enquiries
+       SET conversion_status = 'CONVERTED',
+           converted_application_id = $1,
+           conversion_date = NOW(),
+           status = 'APPLICATION_SUBMITTED'
+       WHERE id = $2;`,
+      [appId, enquiryId]
+    );
+
+    // Log followup
+    await client.query(
+      `INSERT INTO public.enquiry_followups (
+        enquiry_id, counsellor_name, channel, outcome, internal_notes
+      ) VALUES ($1, 'Admissions CRM', 'SYSTEM', 'APPLICATION_SUBMITTED', 'Enquiry converted to official Admission Application #' || $2 || '.');`,
+      [enquiryId, appNo]
+    );
+
+    await client.query('COMMIT');
+
+    safeRevalidate('/admin/enquiries');
+    safeRevalidate('/admin/admissions');
+
+    return {
+      success: true,
+      applicationId: appId,
+      applicationNumber: appNo,
+      message: `Enquiry converted successfully! Generated Official Application #${appNo}.`
+    };
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error("Error in convertEnquiryToApplicationAction:", error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 8. UPDATE ENQUIRY STATUS / PRIORITY DIRECT
+// -------------------------------------------------------------
+export async function updateEnquiryStatusAction(enquiryId: string, status: string, notes?: string) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    await client.query(
+      `UPDATE public.enquiries SET status = $1, updated_at = NOW() WHERE id = $2;`,
+      [status, enquiryId]
+    );
+
+    if (notes) {
+      await client.query(
+        `INSERT INTO public.enquiry_followups (
+          enquiry_id, channel, outcome, internal_notes
+        ) VALUES ($1, 'SYSTEM', $2, $3);`,
+        [enquiryId, status, notes]
+      );
+    }
+
+    safeRevalidate('/admin/enquiries');
+    safeRevalidate('/admin/admissions');
+
+    return { success: true, message: `Status updated to ${status}` };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 9. BACKWARD COMPATIBILITY ALIASES
+// -------------------------------------------------------------
+export async function createAdmissionEnquiry(data: any) {
+  const res = await createInternalEnquiryAction({
+    academicSession: data.academic_session || "2026-2027",
+    institutionCode: data.institution_code || "CBS",
+    admissionClass: data.class_applying_for || data.grade_interested || "Class 1",
+    childFirstName: data.first_name || data.child_name?.split(' ')[0] || "Child",
+    childMiddleName: data.middle_name || "",
+    childLastName: data.last_name || data.child_name?.split(' ').slice(1).join(' ') || "Student",
+    childDob: data.dob || "2020-01-01",
+    childGender: data.gender || "Male",
+    primaryGuardianName: data.father_name || data.parent_name || data.mother_name || "Parent",
+    primaryGuardianRelation: data.primary_contact?.toUpperCase() || "FATHER",
+    primaryGuardianPhone: data.father_mobile || data.parent_phone || data.mother_mobile || "9811102008",
+    primaryGuardianWhatsapp: data.father_whatsapp || data.mother_whatsapp,
+    primaryGuardianEmail: data.father_email || data.parent_email || data.mother_email || "parent@gmail.com",
+    localityArea: data.locality || data.address || "Delhi",
+    pincode: data.pincode || "110084",
+    enquirySource: data.source || "Walk-in",
+    counsellorNotes: data.counselling_notes || data.notes || ""
+  });
+
+  if (res.success) {
+    return {
+      success: true,
+      enquiryId: res.enquiryId,
+      enquiryNo: res.enquiryNumber,
+      enquiryNumber: res.enquiryNumber,
+      message: res.message
+    };
+  }
+  return res;
+}
+
+export async function submitPublicEnquiry(data: any) {
+  return createPublicEnquiryAction({
+    academicSession: data.academic_session || "2026-2027",
+    institutionCode: data.campus || data.institution_code || "CBS",
+    admissionClass: data.grade_interested || data.admissionClass || "Class 1",
+    childFirstName: data.child_name?.split(' ')[0] || "Student",
+    childLastName: data.child_name?.split(' ').slice(1).join(' ') || "",
+    childDob: data.dob || "2020-01-01",
+    childGender: data.gender || "Male",
+    primaryGuardianName: data.parent_name || "Parent",
+    primaryGuardianRelation: "FATHER",
+    primaryGuardianPhone: data.parent_phone || "9811102008",
+    primaryGuardianEmail: data.parent_email || "parent@gmail.com",
+    localityArea: data.locality || "Delhi",
+    pincode: "110084",
+    enquirySource: data.source || "Website",
+    parentMessage: data.notes || ""
+  });
+}
+
+export async function updateAdmissionEnquiry(enquiryId: string, data: any) {
+  return updateEnquiryStatusAction(enquiryId, data.status || "CONTACTED", data.notes);
+}
+
+export async function addEnquiryTimelineLog(enquiryId: string, logData: any) {
+  return logEnquiryFollowupAction({
+    enquiryId,
+    counsellorName: logData.staff_name || "Admissions Counsellor",
+    channel: logData.interaction_type || "PHONE",
+    outcome: logData.stage || "CONNECTED",
+    internalNotes: logData.notes || logData.remarks || "Follow-up interaction logged."
+  });
+}
+
+export async function convertEnquiryToStudent(enquiryId: string, _classId?: string, _secId?: string) {
+  return convertEnquiryToApplicationAction(enquiryId);
+}
+
+

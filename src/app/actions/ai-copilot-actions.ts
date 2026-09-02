@@ -80,7 +80,7 @@ export async function generateSchoolCircularAction(params: {
     const circularHtml = `
       <div class="circular-document space-y-4 text-xs font-serif leading-relaxed">
         <div class="text-center border-b-2 border-stone-900 pb-3">
-          <div class="font-bold tracking-widest text-[10px] text-stone-500 uppercase">CBSE Affiliation No: 2730588 • School Code: 25189</div>
+          <div class="font-bold tracking-widest text-[10px] text-stone-500 uppercase">Registration No: 2730588 • School Code: 25189</div>
           <h2 class="text-xl font-black text-blue-950 tracking-tight">CRAYON BOX SCHOOL</h2>
           <div class="text-[11px] text-stone-600 font-sans font-medium">Sant Nagar • Burari • Delhi-110084 | Email: contact@crayonboxschool.com</div>
         </div>

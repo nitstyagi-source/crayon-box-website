@@ -170,7 +170,7 @@ export default function WhatsAppCommandCenterPage() {
             Automated WhatsApp Notification Engine
           </h1>
           <p className="text-xs sm:text-sm text-emerald-200/80 max-w-2xl">
-            Dispatch instant 09:30 AM absentee notices, 1-click UPI fee due reminders, emergency circulars, and digital CBSE report cards directly to parent WhatsApp numbers.
+            Dispatch instant 09:30 AM absentee notices, 1-click UPI fee due reminders, emergency circulars, and digital progress report cards directly to parent WhatsApp numbers.
           </p>
         </div>
 

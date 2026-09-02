@@ -130,7 +130,7 @@ export default function AICommunicationsStudioPage() {
             AI Teacher Assistant &amp; Communications Copilot
           </h1>
           <p className="text-xs sm:text-sm text-purple-200/80 max-w-2xl">
-            Draft official CBSE circulars, polish parent grievance responses into empathetic partnership notes, and generate 5-day structured NCERT lesson plans in seconds.
+            Draft official school circulars, polish parent grievance responses into empathetic partnership notes, and generate 5-day structured lesson plans in seconds.
           </p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function AICommunicationsStudioPage() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          📜 Official CBSE Circular Drafter
+          📜 Official School Circular Drafter
         </button>
 
         <button
@@ -242,7 +242,7 @@ export default function AICommunicationsStudioPage() {
                 className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-sm transition active:scale-98 flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
               >
                 {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-amber-300" />}
-                ⚡ Draft Official CBSE Circular &amp; Broadcast
+                ⚡ Draft Official Circular &amp; Broadcast
               </button>
             </form>
           </div>
@@ -288,7 +288,7 @@ export default function AICommunicationsStudioPage() {
             ) : (
               <div className="bg-white p-12 rounded-3xl border border-stone-200 text-center text-xs font-bold text-stone-400 space-y-2">
                 <FileText className="w-10 h-10 text-stone-300 mx-auto" />
-                <div>Click "Draft Official CBSE Circular" to generate the document preview.</div>
+                <div>Click "Draft Official Circular" to generate the document preview.</div>
               </div>
             )}
           </div>

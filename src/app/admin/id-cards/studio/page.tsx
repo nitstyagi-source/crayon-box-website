@@ -19,6 +19,7 @@ import {
   getBatchIdCardDataAction,
   StudentIdCardBadge
 } from "@/app/actions/id-card-studio-actions";
+import { StudentSuiteTabs } from "@/components/students/StudentSuiteTabs";
 
 export default function BatchIDCardStudioPage() {
   const [selectedClass, setSelectedClass] = useState("Class 1");
@@ -85,6 +86,16 @@ export default function BatchIDCardStudioPage() {
         </div>
       </div>
 
+      {/* Persistent Navigation Tabs */}
+      <div className="print:hidden">
+        <StudentSuiteTabs
+          activeTab="ID_CARDS"
+          counts={{
+            activeIdCards: cards.length
+          }}
+        />
+      </div>
+
       {/* 8-Up ID Cards Grid for Print & Screen */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-2 print:gap-4 print:p-0">
         {cards.map((card) => (
@@ -96,7 +107,7 @@ export default function BatchIDCardStudioPage() {
             {/* ID Card Top Header */}
             <div className="bg-gradient-to-r from-blue-950 to-indigo-950 text-white p-3 text-center space-y-0.5 relative">
               <div className="text-[8px] font-bold text-amber-300 uppercase tracking-widest">
-                CBSE Affiliated School • Delhi
+                Recognized &amp; Registered School • Delhi
               </div>
               <h4 className="text-sm font-black tracking-tight">CRAYON BOX SCHOOL</h4>
               <div className="text-[8px] text-blue-200/80 font-sans">

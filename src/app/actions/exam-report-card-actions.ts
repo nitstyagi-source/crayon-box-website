@@ -495,13 +495,15 @@ export async function getBulkClassReportCardsAction(params: {
           attendancePercentage: 96.5
         },
         holistic: hol,
-        verificationUrl: `https://www.crayonboxschool.com/verify-report-card/${verificationToken}`
+      verificationUrl: `https://www.crayonboxschool.com/verify-report-card/${verificationToken}`
       });
     }
 
     return {
       success: true,
-      data: reportCards
+      data: reportCards,
+      boardAffiliation: 'Accredited',
+      boardStandard: 'Holistic Progress Card (NEP 2020)',
     };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -527,7 +529,7 @@ export async function sendReportCardWhatsAppAction(params: {
   const client = await pool.connect();
 
   try {
-    const msgContent = `🎓 *Crayon Box School — CBSE Holistic Progress Report Card*\n\nDear Parent, the official examination results for *${params.studentName}* (${params.className}) for *${params.examTerm}* are now available:\n\n• *Overall Grade*: ${params.overallGrade}\n• *Percentage*: ${params.percentage}%\n• *Result Status*: PROMOTED / PASSED\n\n📄 *View & Download Verified Digital Report Card*:\n${params.reportCardUrl}\n\n_Principal, Crayon Box School_`;
+    const msgContent = `🎓 *Crayon Box School — Holistic Progress Report Card*\n\nDear Parent, the official examination results for *${params.studentName}* (${params.className}) for *${params.examTerm}* are now available:\n\n• *Overall Grade*: ${params.overallGrade}\n• *Percentage*: ${params.percentage}%\n• *Result Status*: PROMOTED / PASSED\n\n📄 *View & Download Verified Digital Report Card*:\n${params.reportCardUrl}\n\n_Principal, Crayon Box School_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (
@@ -584,7 +586,7 @@ export async function verifyReportCardTokenAction(token: string) {
           sectionName: stu.section_name,
           academicSession: session || '2026–2027',
           institution: 'Crayon Box School',
-          affiliation: 'CBSE Affiliated (Affiliation No: 2730588)',
+          affiliation: 'Recognized Institution (Affiliation No: 2730588)',
           isAuthentic: true,
           verificationDate: new Date().toISOString()
         }

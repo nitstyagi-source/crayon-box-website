@@ -75,7 +75,7 @@ export default function TransferCertificatesPage() {
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-emerald-400" />
-              CBSE / State Board Transfer Certificates (Rule 24 Compliant)
+              Standard Transfer Certificates (Rule 24 Compliant)
             </span>
             <span className="text-slate-600 text-xs">•</span>
             <span className="text-indigo-300 text-xs font-semibold">
@@ -289,7 +289,7 @@ export default function TransferCertificatesPage() {
             <div className="text-center border-b-2 border-emerald-900 pb-4 space-y-1">
               <span className="text-[10px] font-sans font-black tracking-widest text-emerald-900 uppercase">Vani Educational Trust</span>
               <h2 className="text-xl font-bold uppercase tracking-tight text-emerald-950">CRAYON BOX INTERNATIONAL SCHOOL</h2>
-              <p className="text-[10px] font-sans text-slate-500">Affiliated to CBSE, New Delhi • Affiliation No: 2730891 • School Code: 07010203401</p>
+              <p className="text-[10px] font-sans text-slate-500">Recognized &amp; Registered Institution, Delhi NCR • Reg No: 2730891 • School Code: 07010203401</p>
               <h3 className="text-sm font-sans font-black uppercase text-emerald-800 tracking-wider pt-2">TRANSFER CERTIFICATE</h3>
             </div>
 

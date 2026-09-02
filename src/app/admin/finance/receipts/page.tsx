@@ -41,14 +41,14 @@ export default function OfficialReceiptsHubPage() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [templateSettings, setTemplateSettings] = useState<ReceiptTemplateSettings>({
     institution_name: "CRAYON BOX HIGH SCHOOL",
-    affiliation_number: "CBSE-1253481",
+    affiliation_number: "REG-1253481",
     school_id: "1253481",
     udise_code: "07124100151",
     contact_phone: "9811102008",
     contact_email: "crayonboxdelhi@gmail.com",
     address: "Burari, Sant Nagar, Delhi - 110084",
     receipt_title: "FEE RECEIPT",
-    sub_title: "Affiliated to CBSE, New Delhi • Quality Education Foundation",
+    sub_title: "Recognized & Registered Institution, Delhi NCR • Quality Education Foundation",
     default_signatory: "LAXMI (2026-2027)",
     terms_and_conditions: "1. Fees once paid is non-refundable. 2. Cheques are subject to realization. 3. Please retain this receipt for year-end tax and verification purposes.",
     footer_disclaimer: "This is a computer-generated fee receipt and does not require a physical seal unless explicitly requested.",
@@ -925,7 +925,7 @@ export default function OfficialReceiptsHubPage() {
                     type="text"
                     value={templateSettings.affiliation_number}
                     onChange={(e) => setTemplateSettings({ ...templateSettings, affiliation_number: e.target.value })}
-                    placeholder="e.g. CBSE-1253481"
+                    placeholder="e.g. REG-1253481"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-semibold text-stone-900 focus:outline-none"
                   />
                 </div>

@@ -37,10 +37,10 @@ export default async function PublicVerifyTcPage({
           <ShieldCheck className="w-8 h-8 text-emerald-600 shrink-0" />
           <div>
             <h3 className="text-sm font-black flex items-center gap-1.5 text-emerald-900">
-              ✓ Verified Authentic CBSE Transfer Certificate
+              ✓ Verified Authentic School Transfer Certificate
             </h3>
             <p className="text-[11px] text-emerald-700 font-medium">
-              Officially issued by Crayon Box School (CBSE Affiliation No: 2730588).
+              Officially issued by Crayon Box School (Institutional Registration No: 2730588).
             </p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default async function PublicVerifyTcPage({
 
         {/* Registry Seal Footer */}
         <div className="pt-4 border-t border-stone-200 text-center text-[10px] text-stone-400 font-mono">
-          Cryptographically Verified Digital Record • Crayon Box School CBSE Registry
+          Cryptographically Verified Digital Record • Crayon Box School Institutional Registry
         </div>
 
       </div>

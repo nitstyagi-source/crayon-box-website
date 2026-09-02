@@ -33,7 +33,7 @@ export default function AIAdmissionsReceptionistPage() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "bot"; text: string; time: string }>>([
     {
       sender: "bot",
-      text: "Namaste! 🙏 Welcome to Crayon Box School Admissions Helpdesk. I can answer questions about fee structures, CBSE curriculum, age criteria, and bus transport routes across Delhi. How may I assist you today?",
+      text: "Namaste! 🙏 Welcome to Crayon Box School Admissions Helpdesk. I can answer questions about fee structures, academic curriculum, age criteria, and bus transport routes across Delhi. How may I assist you today?",
       time: "Just now"
     }
   ]);

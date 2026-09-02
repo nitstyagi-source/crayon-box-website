@@ -28,7 +28,7 @@ export default function PublicCareersPage() {
     positionApplied: "PRT Mathematics Teacher",
     highestQualification: "B.Sc (Maths), B.Ed",
     experienceYears: 3,
-    currentEmployer: "Reputed CBSE School",
+    currentEmployer: "Reputed K-12 School",
     currentSalary: "₹42,000 / month",
     expectedSalary: "₹52,000 / month",
     noticePeriodDays: 15,
@@ -100,7 +100,7 @@ export default function PublicCareersPage() {
             </div>
             <strong className="text-stone-900 font-bold text-base block">Professional Growth</strong>
             <p className="text-xs text-stone-500 leading-relaxed">
-              Regular teacher training workshops, CBSE pedagogy seminars, and leadership development pathways.
+              Regular teacher training workshops, modern pedagogy seminars, and leadership development pathways.
             </p>
           </div>
 

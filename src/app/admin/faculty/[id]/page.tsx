@@ -1097,7 +1097,7 @@ export default function FacultyProfile360Page() {
                 Exit Clearance, Work Handover & Archival
               </h3>
               <p className="text-xs text-stone-500">
-                CBSE compliant offboarding, work reassignment to replacement faculty, and profile archival.
+                Statutory compliant offboarding, work reassignment to replacement faculty, and profile archival.
               </p>
             </div>
 
@@ -1153,10 +1153,10 @@ export default function FacultyProfile360Page() {
             </div>
           </div>
 
-          {/* CBSE Audit Compliance Guarantee Card */}
+          {/* Institutional Audit Compliance Guarantee Card */}
           <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-3">
             <h4 className="font-black text-emerald-900 text-sm flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-700" /> CBSE Audit Compliance & Data Integrity Standard
+              <ShieldCheck className="w-4 h-4 text-emerald-700" /> Institutional Audit Compliance &amp; Data Integrity Standard
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white rounded-xl border border-emerald-100">
@@ -1509,7 +1509,7 @@ export default function FacultyProfile360Page() {
                     <ArrowRightLeft className="w-3 h-3 text-amber-700" /> Work Reassignment & Archival
                   </span>
                   <span className="text-stone-400 text-xs">•</span>
-                  <span className="text-stone-500 text-xs font-bold">CBSE Audit Safe</span>
+                  <span className="text-stone-500 text-xs font-bold">Statutory Audit Safe</span>
                 </div>
                 <h3 className="text-xl font-black text-stone-900">
                   Offboard Faculty & Hand Over Work
@@ -1685,10 +1685,10 @@ export default function FacultyProfile360Page() {
                 />
               </div>
 
-              {/* CBSE Audit Compliance Guarantee Notice */}
+              {/* Institutional Audit Compliance Guarantee Notice */}
               <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 space-y-1.5">
                 <div className="flex items-center gap-2 font-black text-xs text-emerald-800">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> CBSE Audit Compliance & Data Integrity Guarantee
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Institutional Audit Compliance &amp; Data Integrity Guarantee
                 </div>
                 <ul className="list-disc pl-5 space-y-0.5 text-[11px] text-emerald-900">
                   <li><strong>Student Marks & Results</strong>: Question papers, gradebooks, and student results remain 100% intact.</li>

@@ -125,7 +125,7 @@ export default function FacultyIdCardPreview({
           </div>
           
           <div className="flex items-center justify-center gap-1.5 text-[9px] font-semibold text-white/80">
-            <span>CBSE AFFILIATED</span>
+            <span>RECOGNIZED INSTITUTION</span>
             <span>•</span>
             <span className="font-mono">DELHI</span>
             <span>•</span>

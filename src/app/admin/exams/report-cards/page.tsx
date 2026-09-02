@@ -98,7 +98,7 @@ export default function CBSEHolisticReportCardsPage() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[11px] font-bold border border-blue-200">
             <Award className="w-3.5 h-3.5 text-blue-600" />
-            CBSE &amp; NEP 2020 Holistic Progress Card (HPC) Engine
+            Holistic Progress Card (HPC) &amp; Academic Engine
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-stone-900 flex items-center gap-2.5">
             <FileText className="w-6 h-6 text-blue-600" />
@@ -214,13 +214,13 @@ export default function CBSEHolisticReportCardsPage() {
                 {/* School Crest & Header */}
                 <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1">
                   <div className="text-[11px] font-bold text-stone-600 tracking-widest uppercase">
-                    Affiliated to Central Board of Secondary Education (CBSE), New Delhi
+                    Recognized &amp; Registered Educational Institution, Delhi NCR
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-950">
                     CRAYON BOX SCHOOL
                   </h2>
                   <div className="text-xs text-stone-600 font-medium">
-                    Kh. No. 6/20, D-Block, Shastri Park Extn, Burari, Delhi-110084 • CBSE Affiliation No: <strong>2730588</strong>
+                    Kh. No. 6/20, D-Block, Shastri Park Extn, Burari, Delhi-110084 • Registration No: <strong>2730588</strong>
                   </div>
                   <div className="inline-block mt-2 bg-stone-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                     Holistic Progress Card (HPC) • Academic Session {currentCard.academic.academicSession}
@@ -266,7 +266,7 @@ export default function CBSEHolisticReportCardsPage() {
                 {/* Part 1: Scholastic Areas Table */}
                 <div className="space-y-2">
                   <div className="text-xs font-black uppercase tracking-wider text-blue-950 border-b border-stone-200 pb-1">
-                    Part 1: Scholastic Performance (CBSE 8-Point Scale)
+                    Part 1: Scholastic Performance (Standard 8-Point Scale)
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -389,7 +389,7 @@ export default function CBSEHolisticReportCardsPage() {
                     </div>
                     <div className="text-[10px] space-y-0.5 font-mono">
                       <div className="font-bold text-stone-900">Scan to Verify</div>
-                      <div className="text-stone-400">CBSE Digital Signature</div>
+                      <div className="text-stone-400">Institutional Digital Seal</div>
                       <div className="text-emerald-600 font-bold">✓ Authentic Certificate</div>
                     </div>
                   </div>

@@ -9,6 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { StudentSuiteTabs } from '@/components/students/StudentSuiteTabs';
 
 export default function FamiliesDirectoryPage() {
   const [families, setFamilies] = useState<any[]>([]);
@@ -158,6 +159,14 @@ export default function FamiliesDirectoryPage() {
           </Link>
         </div>
       </div>
+
+      {/* Persistent Navigation Tabs */}
+      <StudentSuiteTabs
+        activeTab="FAMILIES"
+        counts={{
+          totalFamilies: families.length,
+        }}
+      />
 
       {/* Live Families Table with Clean Empty State */}
       <DataTable

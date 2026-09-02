@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     ];
 
     const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
-      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
+      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
       { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
       { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
-      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'CBSE', affiliationNumber: 'CBSE/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
+      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: 'REG/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
     ];
 
     const departments = [

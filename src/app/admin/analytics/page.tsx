@@ -88,7 +88,7 @@ export default function AdvancedAnalyticsPage() {
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Scholastic Pass Index</span>
           <span className="text-3xl font-black text-slate-900 block">100.0%</span>
-          <p className="text-xs text-slate-500 font-medium">Term 1 CBSE Exam Class Average: 91.1%</p>
+          <p className="text-xs text-slate-500 font-medium">Term 1 Exam Class Average: 91.1%</p>
         </div>
 
         <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
@@ -106,7 +106,7 @@ export default function AdvancedAnalyticsPage() {
           <div className="flex items-center justify-between">
             <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
               <Award className="w-4 h-4 text-amber-500" />
-              CBSE 9-Point Grade Distribution (Term 1)
+              Standard 9-Point Grade Distribution (Term 1)
             </h3>
             <span className="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200">
               Scholastic Assessment

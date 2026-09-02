@@ -142,7 +142,7 @@ export function NotificationCenter({
       },
       {
         title: '🎓 Online Admission Application',
-        message: 'New application received for Class 1 (CBSE) with full document attestations.',
+        message: 'New application received for Class 1 (Primary Wing) with full document attestations.',
         category: 'ADMISSIONS' as const,
         priority: 'HIGH' as const,
         link: '/admin/admissions'

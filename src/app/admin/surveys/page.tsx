@@ -561,7 +561,7 @@ export default function SurveysManagementPage() {
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
           <div className="border-b border-stone-100 pb-3">
             <h3 className="text-base font-black text-stone-900">Pre-Built Institutional Templates</h3>
-            <p className="text-stone-500">1-click survey templates compliant with CBSE &amp; National Education standards.</p>
+            <p className="text-stone-500">1-click survey templates aligned with National Education Policy standards.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

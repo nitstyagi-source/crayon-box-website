@@ -443,8 +443,8 @@ export default function HumanResourcesPayrollPage() {
                 <Select
                   label="Assigned Institution *"
                   options={[
-                    { value: 'CBS', label: 'CBS (Crayon Box School - K-12 CBSE)' },
-                    { value: 'AVM', label: 'AVM (Avinya Vidya Mandir - K-12 CBSE)' },
+                    { value: 'CBS', label: 'CBS (Crayon Box School - K-12 Senior Campus)' },
+                    { value: 'AVM', label: 'AVM (Avinya Vidya Mandir - K-12 Senior Campus)' },
                     { value: 'AS', label: 'AS (Avinya School - Kindergarten Montessori)' },
                     { value: 'CBPS', label: 'CBPS (Crayon Box Pre School - Kindergarten)' },
                   ]}

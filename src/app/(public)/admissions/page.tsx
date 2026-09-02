@@ -63,12 +63,15 @@ export default function AdmissionsHub() {
             <motion.p variants={fadeUp} className="text-xl text-stone-200 font-light leading-relaxed border-l-4 border-accent pl-6">
               {cmsData.hero?.description || "Welcome to a paperless, transparent, and seamless admissions experience. We are currently accepting applications for the 2026–27 academic year."}
             </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
-              <Link href="/admissions/apply" className="px-8 py-4 bg-accent text-white font-bold rounded-full hover:bg-orange-800 transition-colors shadow-xl text-center">
-                Apply Now (New Admissions)
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Link href="/admissions/enquiry" className="px-7 py-3.5 bg-slate-900 text-white font-bold rounded-full hover:bg-slate-800 transition-colors shadow-xl text-center text-sm flex items-center justify-center gap-2">
+                <span>📝</span> Online Admission Enquiry
               </Link>
-              <Link href="/pay-fees" className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-full hover:bg-white/20 transition-colors text-center">
-                Pay Fees (Current Students)
+              <Link href="/admissions/apply" className="px-7 py-3.5 bg-accent text-white font-bold rounded-full hover:bg-orange-800 transition-colors shadow-xl text-center text-sm">
+                Apply for Admission
+              </Link>
+              <Link href="/pay-fees" className="px-6 py-3.5 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-full hover:bg-white/20 transition-colors text-center text-sm">
+                Pay Fees
               </Link>
             </motion.div>
           </motion.div>

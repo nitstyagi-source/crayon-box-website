@@ -41,7 +41,7 @@ export default async function VerifyReportCardPage({ params }: Props) {
         
         {/* Top Verified Ribbon */}
         <div className="absolute top-0 right-0 left-0 bg-emerald-600 text-white py-1.5 px-4 text-center text-xs font-black tracking-wider uppercase flex items-center justify-center gap-1.5 shadow-sm">
-          <ShieldCheck className="w-4 h-4" /> Verified Authentic CBSE Academic Record
+          <ShieldCheck className="w-4 h-4" /> Verified Authentic Academic Record
         </div>
 
         <div className="text-center pt-4 space-y-2">

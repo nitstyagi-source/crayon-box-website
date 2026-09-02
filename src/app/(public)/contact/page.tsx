@@ -293,7 +293,7 @@ export default function ContactUs() {
             <motion.div variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-stone-800">
               <div className="flex flex-col items-center justify-center gap-3">
                 <Award className="w-8 h-8 text-stone-500" />
-                <span className="text-xs uppercase tracking-widest font-bold text-stone-400">CBSE Affiliation: 1234567</span>
+                <span className="text-xs uppercase tracking-widest font-bold text-stone-400">Recognized Institution: Delhi NCR</span>
               </div>
               <div className="flex flex-col items-center justify-center gap-3">
                 <ShieldAlert className="w-8 h-8 text-stone-500" />

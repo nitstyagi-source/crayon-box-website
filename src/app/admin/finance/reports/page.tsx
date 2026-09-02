@@ -397,8 +397,8 @@ export default function ManagementReportsModule() {
 
     const schoolName = selectedInstitutionObj?.name || "CRAYON BOX HIGH SCHOOL";
     const affiliation = selectedInstitutionObj?.affiliation_number 
-      ? `Affiliation No: ${selectedInstitutionObj.affiliation_number} • CBSE Board`
-      : "Affiliated to CBSE, New Delhi • Quality Education Foundation";
+      ? `Registration No: ${selectedInstitutionObj.affiliation_number} • Delhi NCR`
+      : "Recognized & Registered Institution, Delhi NCR • Quality Education Foundation";
     const generatedOn = new Date().toLocaleString("en-IN");
     const totalDue = filteredDefaulters.reduce((acc, d) => acc + Number(d.balanceDue || 0), 0);
 
@@ -524,7 +524,7 @@ export default function ManagementReportsModule() {
                 </span>
               </div>
               <p className="text-xs text-stone-500 font-medium mt-0.5">
-                Authentic CBSE/ICSE Day Book register with payment mode groupings (Cash / Online), customizable columns from Fee Master &amp; Class Structures, concessions, dues, advances, and multi-head fee breakdown.
+                Authentic Standard Day Book register with payment mode groupings (Cash / Online), customizable columns from Fee Master &amp; Class Structures, concessions, dues, advances, and multi-head fee breakdown.
               </p>
             </div>
           </div>

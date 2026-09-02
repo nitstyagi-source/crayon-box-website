@@ -680,4 +680,106 @@ export async function getStudentEnrollmentPeriodsAction(studentId: string) {
   }
 }
 
+// 8. Get All Family Households with Linked Children
+export async function getFamilyHouseholdsAction(params?: {
+  search?: string;
+  institutionCode?: string;
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    let query = `
+      SELECT 
+        g.id,
+        g.first_name,
+        g.last_name,
+        g.relationship,
+        g.phone,
+        g.email,
+        g.occupation,
+        g.address,
+        g.is_primary_contact,
+        g.created_at,
+        f.id as family_id,
+        f.family_code,
+        f.family_name,
+        f.primary_address,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', s.id,
+              'universal_id', s.universal_id,
+              'first_name', s.first_name,
+              'last_name', s.last_name,
+              'dob', s.dob,
+              'photo_url', s.photo_url,
+              'status', s.status,
+              'admission_no', COALESCE(se.admission_number, s.admission_no),
+              'class_name', se.class_name,
+              'section_name', se.section_name,
+              'institution_code', COALESCE(se.institution_code, 'CBS'),
+              'academic_stage', se.academic_stage
+            )
+          ) FILTER (WHERE s.id IS NOT NULL),
+          '[]'
+        ) as children
+      FROM public.guardians g
+      LEFT JOIN public.families f ON g.family_id = f.id
+      LEFT JOIN public.student_guardians sg ON g.id = sg.guardian_id
+      LEFT JOIN public.students s ON sg.student_id = s.id
+      LEFT JOIN LATERAL (
+        SELECT institution_code, class_name, section_name, academic_stage, admission_number
+        FROM public.student_enrollments
+        WHERE student_id = s.id AND is_current = true
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) se ON true
+      WHERE 1=1
+    `;
+
+    const sqlParams: any[] = [];
+    let pIdx = 1;
+
+    if (params?.search && params.search.trim() !== '') {
+      const term = `%${params.search.trim()}%`;
+      query += ` AND (
+        g.first_name ILIKE $${pIdx} OR 
+        g.last_name ILIKE $${pIdx} OR 
+        g.phone ILIKE $${pIdx} OR 
+        g.email ILIKE $${pIdx} OR 
+        f.family_name ILIKE $${pIdx} OR 
+        f.family_code ILIKE $${pIdx} OR
+        s.first_name ILIKE $${pIdx} OR
+        s.last_name ILIKE $${pIdx}
+      )`;
+      sqlParams.push(term);
+      pIdx++;
+    }
+
+    if (params?.institutionCode && params.institutionCode !== 'ALL') {
+      query += ` AND (se.institution_code = $${pIdx} OR se.institution_code IS NULL)`;
+      sqlParams.push(params.institutionCode);
+      pIdx++;
+    }
+
+    query += `
+      GROUP BY g.id, f.id
+      ORDER BY g.created_at DESC;
+    `;
+
+    const res = await client.query(query, sqlParams);
+
+    return {
+      success: true,
+      data: res.rows || [],
+      totalCount: res.rows.length,
+    };
+  } catch (error: any) {
+    console.error('Error in getFamilyHouseholdsAction:', error);
+    return { success: false, error: error.message, data: [] };
+  } finally {
+    client.release();
+  }
+}
 

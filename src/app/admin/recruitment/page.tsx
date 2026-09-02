@@ -667,7 +667,7 @@ export default function RecruitmentPortalPage() {
               <p className="text-xs text-stone-500">Live evaluation on Subject Knowledge, Board Work, Classroom Management &amp; Confidence.</p>
             </div>
             <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-xl">
-              CBSE Teaching Rubric Linked
+              Institutional Teaching Rubric Linked
             </span>
           </div>
 
@@ -691,7 +691,7 @@ export default function RecruitmentPortalPage() {
                 round: "Subject Technical Round",
                 date: "26 August 2026",
                 time: "11:30 AM",
-                topic: "CBSE Syllabus Pacing & Math Lab Tools",
+                topic: "Curriculum Syllabus Pacing & Math Lab Tools",
                 interviewer: "Vice Principal",
                 score: 4.2,
                 recommendation: "Hold",

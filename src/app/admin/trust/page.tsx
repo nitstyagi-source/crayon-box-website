@@ -582,7 +582,7 @@ export default function TrustCommandCenterPage() {
                 School-Wise Statutory Certificates & Validity
               </h2>
               <p className="text-xs text-slate-500">
-                Manage CBSE affiliations, Fire NOCs, Building Fitness, Clean Water, and POCSO audits per campus.
+                Manage School recognitions &amp; affiliations, Fire NOCs, Building Fitness, Clean Water, and POCSO audits per campus.
               </p>
             </div>
 
@@ -903,10 +903,10 @@ export default function TrustCommandCenterPage() {
                     onChange={(e) => setCertForm({ ...certForm, certificateType: e.target.value })}
                     className="w-full text-xs px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-800"
                   >
-                    <option value="BOARD_AFFILIATION">CBSE / Board Affiliation</option>
-                    <option value="FIRE_NOC">Fire & Disaster Safety NOC</option>
+                    <option value="BOARD_AFFILIATION">Education Board / Department Recognition</option>
+                    <option value="FIRE_NOC">Fire &amp; Disaster Safety NOC</option>
                     <option value="BUILDING_SAFETY">Building Structural Fitness</option>
-                    <option value="WATER_SANITATION">Clean Water & Sanitation</option>
+                    <option value="WATER_SANITATION">Clean Water &amp; Sanitation</option>
                     <option value="POCSO_AUDIT">POCSO Child Safeguarding</option>
                     <option value="TRUST_REGISTRATION">Trust Registration Act</option>
                     <option value="TAX_80G">Income Tax 80G / 12A</option>
@@ -922,7 +922,7 @@ export default function TrustCommandCenterPage() {
                   required
                   value={certForm.title}
                   onChange={(e) => setCertForm({ ...certForm, title: e.target.value })}
-                  placeholder="e.g. CBSE Composite Provisional Affiliation"
+                  placeholder="e.g. Composite Provisional Affiliation / Recognition"
                   className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
                 />
               </div>
@@ -934,7 +934,7 @@ export default function TrustCommandCenterPage() {
                     type="text"
                     value={certForm.certificateNumber}
                     onChange={(e) => setCertForm({ ...certForm, certificateNumber: e.target.value })}
-                    placeholder="e.g. CBSE/AFF/2130891/2026"
+                    placeholder="e.g. REG/AFF/2130891/2026"
                     className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-mono text-slate-800"
                   />
                 </div>

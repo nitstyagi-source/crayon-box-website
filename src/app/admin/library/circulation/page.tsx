@@ -189,7 +189,7 @@ export default function DigitalLibraryCirculationPage() {
           <div className="text-2xl sm:text-3xl font-black text-blue-950">
             3,420+
           </div>
-          <div className="text-[10px] text-stone-500 font-bold">NCERT &amp; CBSE Fiction</div>
+          <div className="text-[10px] text-stone-500 font-bold">Curriculum &amp; General Fiction</div>
         </div>
       </div>
 

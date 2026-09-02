@@ -95,7 +95,7 @@ export default function AIQuestionPaperGeneratorPage() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30">
             <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered CBSE Blueprint &amp; Bloom's Taxonomy Engine
+            AI-Powered Academic Blueprint &amp; Bloom's Taxonomy Engine
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
             <FileText className="w-8 h-8 text-blue-400" />
@@ -126,7 +126,7 @@ export default function AIQuestionPaperGeneratorPage() {
             Configure Examination Blueprint
           </h3>
           <span className="text-[11px] font-bold text-stone-500">
-            CBSE 2026 Assessment Pattern
+            Standard 2026 Assessment Pattern
           </span>
         </div>
 
@@ -250,7 +250,7 @@ export default function AIQuestionPaperGeneratorPage() {
             {/* School Crest & Exam Header */}
             <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1">
               <div className="text-[11px] font-bold text-stone-600 tracking-widest uppercase">
-                Central Board of Secondary Education (CBSE) Assessment
+                Annual / Term Scholastic Assessment
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-blue-950">
                 CRAYON BOX SCHOOL

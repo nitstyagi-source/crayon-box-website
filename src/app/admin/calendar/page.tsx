@@ -1327,7 +1327,7 @@ export default function SchoolCalendarPage() {
             </div>
             <button
               type="button"
-              onClick={() => alert("Downloading official CBSE Academic Calendar 2026-2027 (PDF)...")}
+              onClick={() => alert("Downloading official Academic Calendar 2026-2027 (PDF)...")}
               className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" /> Download Academic Planner (PDF)

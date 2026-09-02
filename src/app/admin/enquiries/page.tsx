@@ -6,7 +6,7 @@ import {
   PhoneCall, Plus, Search, Filter, Calendar, Clock, MessageSquare, 
   ArrowRight, X, Phone, User, CheckCircle2, AlertCircle, Sparkles, 
   GraduationCap, Printer, Shield, ChevronRight, Check, Eye, Trash2, 
-  Heart, Bus, Award, Building, Share2, Layers, IndianRupee, RefreshCw
+  Heart, Bus, Award, Building, Share2, Layers, IndianRupee, RefreshCw, FileText
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
@@ -18,6 +18,8 @@ import {
   convertEnquiryToStudent 
 } from "@/app/actions/enquiry";
 import { getClasses } from "@/app/actions/classes";
+import { AdminNewEnquiryModal } from "@/components/enquiry/AdminNewEnquiryModal";
+import { Enquiry360DossierModal } from "@/components/enquiry/Enquiry360DossierModal";
 
 export default function AdmissionEnquiryCRM() {
   const { activeCampusId } = useCampusContext();
@@ -200,13 +202,13 @@ export default function AdmissionEnquiryCRM() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await createAdmissionEnquiry(formData);
+      const res: any = await createAdmissionEnquiry(formData);
       if (res.success) {
-        alert(`Enquiry ${res.enquiryNo} created successfully! Automated follow-up task scheduled.`);
+        alert(`Enquiry ${res.enquiryNo || res.enquiryNumber} created successfully! Automated follow-up task scheduled.`);
         setShowNewModal(false);
         await loadData();
       } else {
-        alert("Failed to save enquiry: " + res.error);
+        alert("Failed to save enquiry: " + (res.error || "Unknown error"));
       }
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -248,10 +250,7 @@ export default function AdmissionEnquiryCRM() {
     if (!selectedEnquiry) return;
     setIsConverting(true);
     try {
-      const res = await convertEnquiryToStudent(selectedEnquiry.id, {
-        class_name: convertClassName,
-        section_name: convertSectionName
-      });
+      const res: any = await convertEnquiryToStudent(selectedEnquiry.id, convertClassName, convertSectionName);
 
       if (res.success) {
         alert(`🎉 ${res.message}`);
@@ -318,11 +317,17 @@ export default function AdmissionEnquiryCRM() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-stone-900 hover:bg-stone-800 text-white font-black px-5 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 active:scale-98"
+          <Link
+            href="/admin/enquiries/new"
+            className="bg-white hover:bg-stone-50 text-stone-800 border border-stone-300 font-bold px-4 py-2.5 rounded-xl text-xs shadow-2xs transition-all flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4 text-amber-400" /> + New Admission Enquiry (2 Min)
+            <FileText className="w-4 h-4 text-purple-600" /> Full-Page Form
+          </Link>
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="bg-stone-900 hover:bg-stone-800 text-white font-black px-5 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 active:scale-98 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-amber-400" /> + New Admission Enquiry
           </button>
         </div>
       </div>
@@ -569,555 +574,15 @@ export default function AdmissionEnquiryCRM() {
         </div>
       )}
 
-      {/* Modal: New Admission Enquiry (2-3 Min Rapid Intake) */}
-      {showNewModal && (
-        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-stone-200 max-h-[90vh] flex flex-col">
-            
-            {/* Modal Header */}
-            <div className="p-5 border-b border-stone-100 flex justify-between items-center bg-stone-50/50 rounded-t-3xl shrink-0">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-stone-900">New Admission Enquiry</h3>
-                  <span className="bg-amber-100 text-amber-900 font-mono text-[10px] font-black px-2 py-0.2 rounded">
-                    {formData.enquiry_no}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-500">Fast 2-3 minute intake for walk-in &amp; call counselling</p>
-              </div>
-              <button onClick={() => setShowNewModal(false)} className="p-1 text-stone-400 hover:text-stone-800">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Tabs */}
-            <div className="flex gap-2 px-5 pt-3 pb-2 border-b border-stone-100 overflow-x-auto text-xs font-bold shrink-0">
-              {[
-                { key: "basic", label: "1. Student & Enquiry" },
-                { key: "parents", label: "2. Parents Details" },
-                { key: "address", label: "3. Address & Transport" },
-                { key: "source", label: "4. Lead Source & Requirements" },
-                { key: "counselling", label: "5. Counselling & Tour" },
-                { key: "followup", label: "6. Follow-up Action" }
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setModalTab(tab.key as any)}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all ${
-                    modalTab === tab.key ? "bg-stone-900 text-white shadow-xs" : "bg-stone-50 text-stone-500 hover:bg-stone-100"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Modal Form */}
-            <form onSubmit={handleSaveEnquiry} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
-              
-              {/* Tab 1: Basic & Student */}
-              {modalTab === "basic" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Academic Session</label>
-                      <input
-                        type="text"
-                        value={formData.academic_session}
-                        onChange={e => setFormData({ ...formData, academic_session: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Class Applying For *</label>
-                      <select
-                        value={formData.class_applying_for}
-                        onChange={e => setFormData({ ...formData, class_applying_for: e.target.value, grade_interested: e.target.value } as any)}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      >
-                        {["Pre-Nursery", "Nursery", "KG", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"].map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Lead Priority *</label>
-                      <select
-                        value={formData.priority}
-                        onChange={e => setFormData({ ...formData, priority: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold text-red-700"
-                      >
-                        <option value="Hot">🔥 Hot Lead (High Conversion)</option>
-                        <option value="Warm">⚡ Warm Lead (Exploring)</option>
-                        <option value="Cold">❄️ Cold Lead (Future Session)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">First Name *</label>
-                      <input
-                        required
-                        type="text"
-                        placeholder="e.g. Reyansh"
-                        value={formData.first_name}
-                        onChange={e => setFormData({ ...formData, first_name: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Middle Name</label>
-                      <input
-                        type="text"
-                        placeholder="Optional"
-                        value={formData.middle_name}
-                        onChange={e => setFormData({ ...formData, middle_name: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Last Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Kapoor"
-                        value={formData.last_name}
-                        onChange={e => setFormData({ ...formData, last_name: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Date of Birth *</label>
-                      <input
-                        required
-                        type="date"
-                        value={formData.dob}
-                        onChange={e => handleDobChange(e.target.value)}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Gender</label>
-                      <select
-                        value={formData.gender}
-                        onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Auto Computed Age</label>
-                      <input
-                        readOnly
-                        type="text"
-                        value={formData.current_age}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold bg-stone-50 text-purple-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Previous School / Playschool</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Little Bloomers Playschool"
-                        value={formData.previous_school}
-                        onChange={e => setFormData({ ...formData, previous_school: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Previous Board</label>
-                      <select
-                        value={formData.previous_board}
-                        onChange={e => setFormData({ ...formData, previous_board: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl"
-                      >
-                        <option value="CBSE">CBSE</option>
-                        <option value="ICSE">ICSE</option>
-                        <option value="State Board">State Board</option>
-                        <option value="IB">IB</option>
-                        <option value="Playway / Montessori">Playway / Montessori</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Parents Details */}
-              {modalTab === "parents" && (
-                <div className="space-y-4">
-                  {/* Father Details */}
-                  <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-                    <h4 className="font-black text-stone-900 text-xs">Father&apos;s Information</h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Father Name *</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="e.g. Vikram Kapoor"
-                          value={formData.father_name}
-                          onChange={e => setFormData({ ...formData, father_name: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl font-bold bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Mobile Number *</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="9811223344"
-                          value={formData.father_mobile}
-                          onChange={e => setFormData({ ...formData, father_mobile: e.target.value, father_whatsapp: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl font-mono bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Occupation / Profession</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Software Architect"
-                          value={formData.father_occupation}
-                          onChange={e => setFormData({ ...formData, father_occupation: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mother Details */}
-                  <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-                    <h4 className="font-black text-stone-900 text-xs">Mother&apos;s Information</h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Mother Name</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Pooja Kapoor"
-                          value={formData.mother_name}
-                          onChange={e => setFormData({ ...formData, mother_name: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl font-bold bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Mobile Number</label>
-                        <input
-                          type="text"
-                          placeholder="9811223345"
-                          value={formData.mother_mobile}
-                          onChange={e => setFormData({ ...formData, mother_mobile: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl font-mono bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-stone-600 block mb-1">Occupation / Profession</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Teacher / Doctor"
-                          value={formData.mother_occupation}
-                          onChange={e => setFormData({ ...formData, mother_occupation: e.target.value })}
-                          className="w-full border border-stone-200 p-2.5 rounded-xl bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Address & Transport */}
-              {modalTab === "address" && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="font-bold text-stone-600 block mb-1">Residential Address</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Flat 402, Royal Residency, Sant Nagar"
-                      value={formData.address}
-                      onChange={e => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Locality *</label>
-                      <input
-                        type="text"
-                        placeholder="Burari Main"
-                        value={formData.locality}
-                        onChange={e => setFormData({ ...formData, locality: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">City</label>
-                      <input
-                        type="text"
-                        value={formData.city}
-                        onChange={e => setFormData({ ...formData, city: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">PIN Code</label>
-                      <input
-                        type="text"
-                        value={formData.pin_code}
-                        onChange={e => setFormData({ ...formData, pin_code: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Bus className="w-5 h-5 text-purple-700" />
-                      <div>
-                        <h5 className="font-black text-purple-950 text-xs">School Transport Required</h5>
-                        <p className="text-[10px] text-purple-700">Burari &amp; North Delhi Transport Routes</p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.transport_required}
-                      onChange={e => setFormData({ ...formData, transport_required: e.target.checked })}
-                      className="w-5 h-5 text-purple-600 rounded"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Lead Source & Marketing ROI */}
-              {modalTab === "source" && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Lead Source (Mandatory) *</label>
-                      <select
-                        value={formData.source}
-                        onChange={e => setFormData({ ...formData, source: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold bg-amber-50/50"
-                      >
-                        {[
-                          "Google Search", "Google Ads", "Instagram", "Facebook", "Website", 
-                          "WhatsApp", "Walk-in", "Phone Call", "Existing Parent", "Parent Referral", 
-                          "Hoarding", "Pamphlet", "Event", "Other"
-                        ].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Campaign / Referral Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Spring 2026 Drive / Mr. Sharma"
-                        value={formData.campaign_name}
-                        onChange={e => setFormData({ ...formData, campaign_name: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-stone-600 block mb-1">Reason for Choosing Crayon Box</label>
-                    <textarea
-                      rows={2}
-                      placeholder="Why is parent interested? e.g. STEM labs, activity-based learning..."
-                      value={formData.reason_for_choosing}
-                      onChange={e => setFormData({ ...formData, reason_for_choosing: e.target.value })}
-                      className="w-full border border-stone-200 p-2.5 rounded-xl"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 5: Counselling & Tour */}
-              {modalTab === "counselling" && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Assigned Counsellor *</label>
-                      <input
-                        type="text"
-                        value={formData.counsellor_name}
-                        onChange={e => setFormData({ ...formData, counsellor_name: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Counselling Mode</label>
-                      <select
-                        value={formData.counselling_mode}
-                        onChange={e => setFormData({ ...formData, counselling_mode: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      >
-                        <option value="Walk-in">Walk-in at Reception</option>
-                        <option value="Phone Call">Phone Call</option>
-                        <option value="WhatsApp">WhatsApp Conversation</option>
-                        <option value="Online">Online Video Meet</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-2xl border border-stone-200">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.fee_structure_shared}
-                        onChange={e => setFormData({ ...formData, fee_structure_shared: e.target.checked })}
-                        className="w-4 h-4 text-purple-600 rounded"
-                      />
-                      <span className="font-bold text-stone-700">Fee Structure Shared</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.brochure_shared}
-                        onChange={e => setFormData({ ...formData, brochure_shared: e.target.checked })}
-                        className="w-4 h-4 text-purple-600 rounded"
-                      />
-                      <span className="font-bold text-stone-700">Brochure / Prospectus Given</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.school_tour_offered}
-                        onChange={e => setFormData({ ...formData, school_tour_offered: e.target.checked })}
-                        className="w-4 h-4 text-purple-600 rounded"
-                      />
-                      <span className="font-bold text-stone-700">Campus Tour Completed</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.process_explained}
-                        onChange={e => setFormData({ ...formData, process_explained: e.target.checked })}
-                        className="w-4 h-4 text-purple-600 rounded"
-                      />
-                      <span className="font-bold text-stone-700">Admission Process Explained</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 6: Follow-up Action */}
-              {modalTab === "followup" && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Next Follow-up Date *</label>
-                      <input
-                        required
-                        type="date"
-                        value={formData.next_follow_up_date}
-                        onChange={e => setFormData({ ...formData, next_follow_up_date: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Follow-up Time</label>
-                      <input
-                        type="text"
-                        value={formData.next_follow_up_time}
-                        onChange={e => setFormData({ ...formData, next_follow_up_time: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-stone-600 block mb-1">Follow-up Mode</label>
-                      <select
-                        value={formData.follow_up_type}
-                        onChange={e => setFormData({ ...formData, follow_up_type: e.target.value })}
-                        className="w-full border border-stone-200 p-2.5 rounded-xl font-bold"
-                      >
-                        <option value="Phone Call">📞 Phone Call</option>
-                        <option value="WhatsApp">💬 WhatsApp Follow-up</option>
-                        <option value="Campus Visit">🏫 Campus Visit</option>
-                        <option value="Email">✉️ Email</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-stone-600 block mb-1">Follow-up Task Instructions / Notes</label>
-                    <textarea
-                      rows={2}
-                      placeholder="e.g. Call parent to confirm date of student interaction & fee payment."
-                      value={formData.follow_up_notes}
-                      onChange={e => setFormData({ ...formData, follow_up_notes: e.target.value })}
-                      className="w-full border border-stone-200 p-2.5 rounded-xl"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom Actions */}
-              <div className="flex justify-between items-center pt-4 border-t border-stone-100">
-                <div className="flex gap-2">
-                  {modalTab !== "basic" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tabs: any[] = ["basic", "parents", "address", "source", "counselling", "followup"];
-                        const currentIdx = tabs.indexOf(modalTab);
-                        if (currentIdx > 0) setModalTab(tabs[currentIdx - 1]);
-                      }}
-                      className="px-3 py-2 bg-stone-100 rounded-xl font-bold text-stone-600 hover:text-stone-900"
-                    >
-                      ← Previous
-                    </button>
-                  )}
-                  {modalTab !== "followup" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tabs: any[] = ["basic", "parents", "address", "source", "counselling", "followup"];
-                        const currentIdx = tabs.indexOf(modalTab);
-                        if (currentIdx < tabs.length - 1) setModalTab(tabs[currentIdx + 1]);
-                      }}
-                      className="px-4 py-2 bg-stone-900 text-white rounded-xl font-bold"
-                    >
-                      Next Step →
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowNewModal(false)}
-                    className="px-4 py-2 rounded-xl font-bold text-stone-500 hover:text-stone-800"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-purple-600 hover:bg-purple-500 text-white font-black px-6 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
-                  >
-                    <Check className="w-4 h-4 text-amber-300" />
-                    {isSubmitting ? "Saving..." : "Save & Schedule Follow-up"}
-                  </button>
-                </div>
-              </div>
-
-            </form>
-
-          </div>
-        </div>
-      )}
+      {/* ======================================================== */}
+      <AdminNewEnquiryModal
+        isOpen={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        onSuccess={() => {
+          setShowNewModal(false);
+          loadData();
+        }}
+      />
 
       {/* Drawer: Detailed Enquiry Profile + Interaction Timeline */}
       {selectedEnquiry && (

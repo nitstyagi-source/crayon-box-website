@@ -294,7 +294,7 @@ export default function VisitorsManagementPage() {
                   >
                     <option value="PARENT">Parent / Guardian</option>
                     <option value="VENDOR">Vendor / Contractor</option>
-                    <option value="INSPECTOR">Government / CBSE Official</option>
+                    <option value="INSPECTOR">Government / Education Official</option>
                     <option value="ALUMNI">Alumni Guest</option>
                   </select>
                 </div>

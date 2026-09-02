@@ -1152,7 +1152,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
             </div>
           ) : (
             <div className="space-y-4 text-xs">
-              <h3 className="text-sm font-bold text-slate-900">K-12 Scholastic Gradebook (CBSE Board Standard)</h3>
+              <h3 className="text-sm font-bold text-slate-900">K-12 Scholastic Gradebook (Academic Standard)</h3>
               <EmptyState
                 icon={<Award className="w-8 h-8 text-slate-400" />}
                 title="Term Gradebook & Scholastic Records"
