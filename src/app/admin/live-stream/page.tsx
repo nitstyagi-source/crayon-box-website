@@ -1831,14 +1831,31 @@ export default function AdminLiveStreamPage() {
               </div>
 
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Camera Friendly Name *</label>
+                <label className="font-bold text-stone-700 block mb-1">Camera Friendly / Display Name *</label>
                 <input
                   type="text"
                   value={camForm.camera_name}
                   onChange={(e) => setCamForm({ ...camForm, camera_name: e.target.value })}
-                  placeholder="e.g. Grade 5 Junior High Cam A"
+                  placeholder="e.g. Nursery Sunshine Classroom Cam"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900"
                   required
+                />
+              </div>
+
+              <div className="p-3 bg-purple-50/60 border border-purple-200 rounded-2xl flex items-center justify-between gap-4">
+                <div>
+                  <strong className="block text-purple-950 font-bold text-xs">
+                    Stream this Camera to Parents
+                  </strong>
+                  <p className="text-[11px] text-purple-900/80 mt-0.5">
+                    Uncheck to keep this camera internal/private (e.g. staffroom, records room).
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={(camForm as any).is_streaming_enabled ?? true}
+                  onChange={(e) => setCamForm({ ...camForm, is_streaming_enabled: e.target.checked } as any)}
+                  className="w-5 h-5 accent-purple-600 rounded"
                 />
               </div>
 

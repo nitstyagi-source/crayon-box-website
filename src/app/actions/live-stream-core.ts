@@ -734,3 +734,155 @@ export async function getSchoolClassesWithSections(campusId?: string) {
     client.release();
   }
 }
+
+// -------------------------------------------------------------
+// 11. SAVE ADVANCED CAMERA CONFIGURATION (Selective, Custom Name & Channel)
+// -------------------------------------------------------------
+export async function saveCameraExtendedAction(payload: {
+  id?: string;
+  institution_code?: string;
+  classroom_name: string;
+  room_number: string;
+  camera_name: string;
+  custom_display_name?: string;
+  nvr_channel_number?: number;
+  is_streaming_enabled?: boolean;
+  stream_url: string;
+  allowed_classes?: string[];
+  allowed_student_ids?: string[];
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const institutionCode = payload.institution_code || "CBS";
+    const isStreaming = payload.is_streaming_enabled ?? true;
+    const channelNum = payload.nvr_channel_number || 1;
+    const customName = payload.custom_display_name || payload.camera_name;
+    const allowedClasses = payload.allowed_classes || [];
+    const allowedStudents = payload.allowed_student_ids || [];
+
+    if (payload.id) {
+      await client.query(`
+        UPDATE public.cameras
+        SET classroom_name = $1,
+            room_number = $2,
+            camera_name = $3,
+            custom_display_name = $4,
+            nvr_channel_number = $5,
+            is_streaming_enabled = $6,
+            stream_url = $7,
+            allowed_classes = $8,
+            allowed_student_ids = $9,
+            institution_code = $10,
+            updated_at = NOW()
+        WHERE id = $11;
+      `, [
+        payload.classroom_name, payload.room_number, payload.camera_name,
+        customName, channelNum, isStreaming, payload.stream_url,
+        allowedClasses, allowedStudents, institutionCode, payload.id
+      ]);
+    } else {
+      await client.query(`
+        INSERT INTO public.cameras (
+          classroom_name, room_number, camera_name, custom_display_name,
+          nvr_channel_number, is_streaming_enabled, stream_url,
+          allowed_classes, allowed_student_ids, institution_code,
+          is_active, kill_switch_active, status, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, false, 'Online', NOW(), NOW()
+        );
+      `, [
+        payload.classroom_name, payload.room_number, payload.camera_name,
+        customName, channelNum, isStreaming, payload.stream_url,
+        allowedClasses, allowedStudents, institutionCode
+      ]);
+    }
+
+    safeRevalidate("/admin/live-stream");
+    safeRevalidate("/parent/live-stream");
+    return { success: true, message: `✓ Camera "${customName}" saved with selective streaming settings!` };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 12. TOGGLE CAMERA STREAMING PERMISSION (Selective Publishing)
+// -------------------------------------------------------------
+export async function toggleCameraStreamingAction(cameraId: string, isStreamingEnabled: boolean) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query(`
+      UPDATE public.cameras
+      SET is_streaming_enabled = $1, updated_at = NOW()
+      WHERE id = $2;
+    `, [isStreamingEnabled, cameraId]);
+
+    safeRevalidate("/admin/live-stream");
+    safeRevalidate("/parent/live-stream");
+    return { success: true, isStreamingEnabled };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
+// 13. SAVE INSTITUTION-SPECIFIC CCTV & GO2RTC SETTINGS
+// -------------------------------------------------------------
+export async function saveSchoolCctvConfigAction(payload: {
+  institution_code: string;
+  dvr_ip: string;
+  dvr_port: string;
+  gateway_url: string;
+  streaming_start_time: string;
+  streaming_end_time: string;
+  block_ews_default: boolean;
+  require_student_present: boolean;
+  active_streaming_engine?: string;
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const instCode = payload.institution_code || "CBS";
+    const engine = payload.active_streaming_engine || "GO2RTC";
+
+    await client.query(`
+      INSERT INTO public.live_stream_settings (
+        institution_code, dvr_ip, dvr_port, gateway_url,
+        streaming_start_time, streaming_end_time, block_ews_default,
+        require_student_present, active_streaming_engine, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+      )
+      ON CONFLICT (id) DO UPDATE
+      SET dvr_ip = EXCLUDED.dvr_ip,
+          dvr_port = EXCLUDED.dvr_port,
+          gateway_url = EXCLUDED.gateway_url,
+          streaming_start_time = EXCLUDED.streaming_start_time,
+          streaming_end_time = EXCLUDED.streaming_end_time,
+          block_ews_default = EXCLUDED.block_ews_default,
+          require_student_present = EXCLUDED.require_student_present,
+          active_streaming_engine = EXCLUDED.active_streaming_engine,
+          updated_at = NOW();
+    `, [
+      instCode, payload.dvr_ip, payload.dvr_port, payload.gateway_url,
+      payload.streaming_start_time, payload.streaming_end_time,
+      payload.block_ews_default, payload.require_student_present, engine
+    ]);
+
+    safeRevalidate("/admin/live-stream");
+    return { success: true, message: `✓ CCTV settings saved for ${instCode}!` };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
