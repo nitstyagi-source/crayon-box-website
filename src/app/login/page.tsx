@@ -216,75 +216,98 @@ export default function UniversalLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070709] flex flex-col justify-center items-center p-4 sm:p-6 text-stone-100 font-sans selection:bg-amber-500 selection:text-stone-950 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FBF9F5] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#C85A32] selection:text-white relative">
       
-      {/* Dynamic Ambient Background Glows */}
+      {/* Subtle Warm Ivory & Ambient Glow Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[140px]" />
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[160px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.03)_0,transparent_70%)]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[#EADCC9]/40 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full bg-[#E3D5C3]/30 blur-[140px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(#C5A059_0.5px,transparent_0.5px)] [background-size:24px_24px] opacity-[0.15]" />
       </div>
 
-      {/* Main Luxury Container */}
-      <div className="relative w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10 my-auto">
+      {/* Main Apple-Level Split Canvas */}
+      <div className="relative w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-[32px] bg-white border border-[#EFE8DC] shadow-[0_30px_90px_-20px_rgba(11,27,48,0.12)] overflow-hidden z-10 my-auto">
         
-        {/* Left Column: Trust Branding & Multi-Campus Showcase (lg:col-span-5) */}
-        <div className="lg:col-span-5 space-y-6 text-center lg:text-left">
+        {/* ========================================================================= */}
+        {/* LEFT COLUMN: DEEP NAVY + MUTED GOLD + WARMTH SHOWCASE (lg:col-span-5) */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-5 bg-[#0B1B30] p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden">
           
-          <div className="inline-flex items-center justify-center p-3 rounded-3xl bg-stone-900/90 border border-stone-800 shadow-2xl shadow-amber-500/10 backdrop-blur-xl group hover:border-amber-500/40 transition">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/trust-logo.png"
-              alt="Vaani Educational Trust"
-              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-400">
-              <Sparkles className="w-3 h-3" />
-              <span>Vaani Educational Trust Gateway</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase leading-tight">
-              Universal Multi-Campus Portal
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-400 font-medium leading-relaxed">
-              Apex Enterprise System for CBS, CBPS, AS, and AVM campuses.
-            </p>
-          </div>
-
-          {/* Feature Badges */}
-          <div className="hidden lg:grid grid-cols-1 gap-2.5 pt-2">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-900/40 border border-stone-800/60 backdrop-blur-md">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
+          {/* Subtle Golden Geometric Pattern */}
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full border border-[#D4AF37]/10 pointer-events-none" />
+          <div className="absolute -right-10 -bottom-10 w-60 h-60 rounded-full border border-[#D4AF37]/15 pointer-events-none" />
+          
+          <div className="space-y-6 relative z-10">
+            
+            {/* Trust Crest */}
+            <div className="inline-flex items-center gap-3 p-2.5 pr-5 rounded-2xl bg-[#132842] border border-[#213F63] shadow-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/trust-logo.png"
+                alt="Vaani Educational Trust"
+                className="w-12 h-12 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]"
+              />
               <div>
-                <p className="text-xs font-bold text-stone-200">256-Bit Hardware Encrypted</p>
-                <p className="text-[10px] text-stone-500">Zero-Trust Cloud Architecture</p>
+                <span className="text-[10px] font-bold tracking-widest text-[#D4AF37] uppercase block">
+                  Vaani Educational Trust
+                </span>
+                <span className="text-xs font-semibold text-stone-200">
+                  Apex Multi-Campus Portal
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-900/40 border border-stone-800/60 backdrop-blur-md">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-stone-200">Unified Role Resolution</p>
-                <p className="text-[10px] text-stone-500">Super Admin • Faculty • Parent</p>
-              </div>
+            <div className="space-y-3 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#183454] border border-[#2A4D75] text-[11px] font-semibold text-[#E5C378]">
+                <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+                <span>Excellence • Empathy • Innovation</span>
+              </span>
+              
+              <h1 className="text-2xl sm:text-3xl font-serif tracking-tight text-stone-100 leading-snug">
+                Nurturing Potential with Precision & Care.
+              </h1>
+              
+              <p className="text-xs sm:text-sm text-stone-300 font-normal leading-relaxed">
+                Seamless digital gateway for School Leadership, Faculty, and Parents across CBS, CBPS, AS, and AVM campuses.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Institutional Values & Campus Badges */}
+          <div className="pt-8 space-y-3 relative z-10 border-t border-[#1E3A5F]">
+            <div className="flex items-center justify-between text-[11px] text-stone-300">
+              <span className="font-medium text-[#E5C378]">Campuses Connected</span>
+              <span className="font-semibold text-stone-200">CBS • CBPS • AS • AVM</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-[11px] text-stone-400">
+              <ShieldCheck className="w-4 h-4 text-[#D4AF37] shrink-0" />
+              <span>256-Bit Encrypted Session Authentication</span>
             </div>
           </div>
 
         </div>
 
-        {/* Right Column: Interactive Authentication Card (lg:col-span-7) */}
-        <div className="lg:col-span-7 w-full max-w-md mx-auto">
+        {/* ========================================================================= */}
+        {/* RIGHT COLUMN: WARM IVORY AUTHENTICATION CARD (lg:col-span-7) */}
+        {/* ========================================================================= */}
+        <div className="lg:col-span-7 p-8 sm:p-12 flex flex-col justify-between bg-white">
           
-          <div className="bg-stone-900/80 border border-stone-800/90 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.8)] space-y-6">
+          <div className="space-y-6">
             
-            {/* Mode Switcher Tabs */}
-            <div className="flex bg-stone-950/80 p-1 rounded-2xl border border-stone-800 text-xs font-bold">
+            {/* Header Title */}
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-serif text-[#0B1B30] tracking-tight">
+                Welcome to Crayon Box
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-500 font-normal">
+                Sign in to your institutional workspace with 1-tap verification.
+              </p>
+            </div>
+
+            {/* Apple-Style Segmented Tab Switcher */}
+            <div className="flex bg-[#F4EFE6] p-1 rounded-2xl border border-[#E8E0D2] text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => {
@@ -292,13 +315,13 @@ export default function UniversalLoginPage() {
                   setOtpDispatched(false);
                   setError(null);
                 }}
-                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition ${
+                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition duration-200 ${
                   authTab !== "PIN"
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black shadow-md shadow-amber-500/20"
-                    : "text-stone-400 hover:text-white"
+                    ? "bg-white text-[#0B1B30] font-bold shadow-sm"
+                    : "text-stone-500 hover:text-[#0B1B30]"
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-[#C85A32]" />
                 <span>Verification Code</span>
               </button>
 
@@ -309,38 +332,40 @@ export default function UniversalLoginPage() {
                   setOtpDispatched(false);
                   setError(null);
                 }}
-                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition ${
+                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition duration-200 ${
                   authTab === "PIN"
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black shadow-md shadow-amber-500/20"
-                    : "text-stone-400 hover:text-white"
+                    ? "bg-white text-[#0B1B30] font-bold shadow-sm"
+                    : "text-stone-500 hover:text-[#0B1B30]"
                 }`}
               >
-                <KeyRound className="w-3.5 h-3.5" />
+                <KeyRound className="w-3.5 h-3.5 text-[#C85A32]" />
                 <span>Admin PIN</span>
               </button>
             </div>
 
-            {/* Feedback Messages */}
+            {/* Feedback Alerts */}
             {error && (
-              <div className="bg-red-950/60 border border-red-800/80 p-3.5 rounded-2xl text-xs text-red-200 flex items-start gap-2.5 animate-in fade-in">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="bg-[#FFF5F5] border border-[#FCDAD7] p-3.5 rounded-2xl text-xs text-[#B91C1C] flex items-start gap-2.5 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-[#C85A32] shrink-0 mt-0.5" />
                 <span className="leading-relaxed font-medium">{error}</span>
               </div>
             )}
 
             {successMsg && (
-              <div className="bg-emerald-950/60 border border-emerald-800/80 p-3.5 rounded-2xl text-xs text-emerald-200 flex items-start gap-2.5 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="bg-[#F2F9F6] border border-[#D1EDE1] p-3.5 rounded-2xl text-xs text-[#166534] flex items-start gap-2.5 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
                 <span className="leading-relaxed font-medium">{successMsg}</span>
               </div>
             )}
 
-            {/* TAB 1: UNIFIED DYNAMIC OTP LOGIN */}
+            {/* ========================================================================= */}
+            {/* TAB 1: UNIFIED DYNAMIC VERIFICATION OTP */}
+            {/* ========================================================================= */}
             {authTab !== "PIN" && (
               <div className="space-y-4">
                 
                 {!otpDispatched ? (
-                  /* Step 1: Enter Phone or Email */
+                  /* Step 1: Identifier Input */
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -351,29 +376,29 @@ export default function UniversalLoginPage() {
                     className="space-y-4"
                   >
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-stone-300 block tracking-wide">
-                        Registered Mobile or Email
+                      <label className="text-xs font-bold text-[#0B1B30] block tracking-wide">
+                        Mobile Number or Email Address
                       </label>
                       <div className="relative">
                         {identifier.includes("@") ? (
-                          <Mail className="w-4 h-4 text-amber-400 absolute left-4 top-3.5" />
+                          <Mail className="w-4 h-4 text-[#C85A32] absolute left-4 top-3.5" />
                         ) : (
-                          <Phone className="w-4 h-4 text-emerald-400 absolute left-4 top-3.5" />
+                          <Phone className="w-4 h-4 text-[#0B1B30] absolute left-4 top-3.5" />
                         )}
                         <input
                           type="text"
                           value={identifier}
                           onChange={(e) => setIdentifier(e.target.value)}
                           placeholder="Enter Mobile Number or Email Address"
-                          className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                          className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-[#0B1B30] placeholder-stone-400 focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                           required
                           autoFocus
                         />
                       </div>
                       <p className="text-[11px] text-stone-500 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C85A32]" />
                         {identifier.includes("@")
-                          ? "Verification code will be sent to your registered email inbox."
+                          ? "Verification code will be delivered directly to your email inbox."
                           : "Instant verification code will be sent to your WhatsApp."}
                       </p>
                     </div>
@@ -381,7 +406,7 @@ export default function UniversalLoginPage() {
                     <button
                       type="submit"
                       disabled={isLoading || !identifier.trim()}
-                      className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 shadow-lg shadow-amber-500/20 transition active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-[#C85A32] hover:bg-[#B34D28] text-white shadow-lg shadow-[#C85A32]/25 transition active:scale-[0.99] disabled:opacity-50"
                     >
                       {isLoading ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -394,18 +419,18 @@ export default function UniversalLoginPage() {
                     </button>
                   </form>
                 ) : (
-                  /* Step 2: Enter OTP Code */
+                  /* Step 2: Verification Code Input */
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-stone-300">Enter Verification Code</span>
+                        <span className="font-bold text-[#0B1B30]">Enter Verification Code</span>
                         <button
                           type="button"
                           onClick={() => {
                             setOtpDispatched(false);
                             setError(null);
                           }}
-                          className="text-amber-400 hover:underline font-semibold text-[11px]"
+                          className="text-[#C85A32] hover:underline font-bold text-[11px]"
                         >
                           {identifier.includes("@") ? "Change Email" : "Change Number"}
                         </button>
@@ -417,15 +442,15 @@ export default function UniversalLoginPage() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                         placeholder="• • • • • •"
-                        className="w-full bg-stone-950 border border-stone-800 rounded-2xl py-3.5 text-center text-2xl font-mono tracking-[0.4em] font-black text-amber-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl py-3.5 text-center text-2xl font-mono tracking-[0.4em] font-black text-[#0B1B30] focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                         autoFocus
                         required
                       />
 
-                      <div className="flex justify-between items-center text-[11px] text-stone-400 pt-1">
-                        <span>Valid for 5 minutes</span>
+                      <div className="flex justify-between items-center text-[11px] text-stone-500 pt-1">
+                        <span>Code valid for 5 minutes</span>
                         {resendTimer > 0 ? (
-                          <span className="font-medium text-stone-500">Resend in {resendTimer}s</span>
+                          <span className="font-medium text-stone-400">Resend in {resendTimer}s</span>
                         ) : (
                           <button
                             type="button"
@@ -433,7 +458,7 @@ export default function UniversalLoginPage() {
                               const channel = identifier.includes("@") ? "EMAIL" : "WHATSAPP";
                               handleSendOtp(channel);
                             }}
-                            className="text-amber-400 font-bold hover:underline"
+                            className="text-[#C85A32] font-bold hover:underline"
                           >
                             Resend Code
                           </button>
@@ -444,29 +469,29 @@ export default function UniversalLoginPage() {
                     <button
                       type="submit"
                       disabled={isLoading || otpCode.length < 6}
-                      className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-3.5 bg-[#0B1B30] hover:bg-[#132842] text-white font-bold text-sm rounded-2xl shadow-lg shadow-[#0B1B30]/20 transition active:scale-[0.99] disabled:opacity-50"
                     >
                       {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify & Access Dashboard"}
                     </button>
 
                     {/* Alternate Channel Fallback */}
-                    <div className="pt-2 border-t border-stone-800 text-center">
+                    <div className="pt-2 border-t border-stone-100 text-center">
                       {activeChannel === "WHATSAPP" ? (
                         <button
                           type="button"
                           onClick={() => handleSendOtp("EMAIL")}
-                          className="text-[11px] font-bold text-stone-400 hover:text-indigo-400 flex items-center justify-center gap-1.5 mx-auto transition"
+                          className="text-[11px] font-semibold text-stone-500 hover:text-[#C85A32] flex items-center justify-center gap-1.5 mx-auto transition"
                         >
-                          <Mail className="w-3.5 h-3.5" />
+                          <Mail className="w-3.5 h-3.5 text-[#C85A32]" />
                           <span>Didn't receive WhatsApp? Send to Email instead</span>
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleSendOtp("WHATSAPP")}
-                          className="text-[11px] font-bold text-stone-400 hover:text-emerald-400 flex items-center justify-center gap-1.5 mx-auto transition"
+                          className="text-[11px] font-semibold text-stone-500 hover:text-[#0B1B30] flex items-center justify-center gap-1.5 mx-auto transition"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-3.5 h-3.5 text-[#0B1B30]" />
                           <span>Send to WhatsApp instead</span>
                         </button>
                       )}
@@ -477,12 +502,14 @@ export default function UniversalLoginPage() {
               </div>
             )}
 
-            {/* TAB 2: EMERGENCY OFFLINE PIN LOGIN */}
+            {/* ========================================================================= */}
+            {/* TAB 2: EMERGENCY ADMIN / MASTER PIN */}
+            {/* ========================================================================= */}
             {authTab === "PIN" && (
               <form onSubmit={handleVerifyPin} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-stone-300 block tracking-wide">
-                    Registered Mobile / Admission Number
+                  <label className="text-xs font-bold text-[#0B1B30] block tracking-wide">
+                    Registered Mobile or Admission Number
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-stone-400 absolute left-4 top-3.5" />
@@ -491,36 +518,36 @@ export default function UniversalLoginPage() {
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder="e.g. 9911102027 or ADM-2026-0089"
-                      className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-[#0B1B30] placeholder-stone-400 focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-stone-300 block tracking-wide">
+                  <label className="text-xs font-bold text-[#0B1B30] block tracking-wide">
                     Security / Master PIN
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-amber-400 absolute left-4 top-3.5" />
+                    <Lock className="w-4 h-4 text-[#C85A32] absolute left-4 top-3.5" />
                     <input
                       type="password"
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value)}
                       placeholder="e.g. 100800"
-                      className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-mono font-black text-amber-400 placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-mono font-black text-[#0B1B30] placeholder-stone-400 focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                       required
                     />
                   </div>
                   <p className="text-[11px] text-stone-500">
-                    Chairman & Admin Master PIN for instant 0.1-second access.
+                    Chairman & School Leadership Master PIN for 0.1-second access.
                   </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-[0.98]"
+                  className="w-full py-3.5 bg-[#C85A32] hover:bg-[#B34D28] text-white font-bold text-sm rounded-2xl shadow-lg shadow-[#C85A32]/25 transition active:scale-[0.99]"
                 >
                   {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify Security PIN"}
                 </button>
@@ -529,10 +556,14 @@ export default function UniversalLoginPage() {
 
           </div>
 
-          {/* Footer Help */}
-          <div className="text-center text-xs text-stone-500 space-y-1 pt-4">
-            <div>Need assistance? Front Desk: <strong className="text-stone-300">+91 98100 81008</strong></div>
-            <div className="text-[10px] text-stone-600">Encrypted 256-Bit SSL • Vaani Educational Trust 2026</div>
+          {/* Clean Institutional Footer */}
+          <div className="pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-500">
+            <div>
+              Front Desk Assistance: <strong className="text-[#0B1B30] font-bold">+91 98111 02008</strong>
+            </div>
+            <div className="text-[11px] text-stone-400">
+              © 2026 Vaani Educational Trust
+            </div>
           </div>
 
         </div>
@@ -543,18 +574,18 @@ export default function UniversalLoginPage() {
       {/* DUAL-ROLE RESOLVER MODAL (SUPER ADMIN / TEACHER + PARENT) */}
       {/* ========================================================================= */}
       {dualRoleUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-700 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl text-white animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-[#0B1B30]/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-[#EFE8DC] rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl text-[#0B1B30] animate-in fade-in zoom-in-95">
             
             <div className="text-center space-y-1.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[11px] font-bold border border-purple-500/30">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F4EFE6] text-[#C85A32] text-[11px] font-bold border border-[#E8DFD3]">
                 <Sparkles className="w-3.5 h-3.5" />
                 {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'Super Admin & Parent Profile' : 'Dual-Role Profile Detected'}
               </span>
-              <h3 className="text-lg font-black text-white">
+              <h3 className="text-xl font-serif font-bold text-[#0B1B30]">
                 Welcome, {dualRoleUser.faculty?.name || "User"}!
               </h3>
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-stone-500">
                 You are registered as {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? <strong>Super Admin / Trustee</strong> : <strong>Faculty Member</strong>} and also a <strong>Parent</strong> of enrolled students. How would you like to continue?
               </p>
             </div>
@@ -565,49 +596,49 @@ export default function UniversalLoginPage() {
               <button
                 type="button"
                 onClick={() => completeLoginSession(dualRoleUser, dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'FACULTY')}
-                className="w-full p-4 rounded-2xl bg-stone-950 hover:bg-stone-800 border-2 border-purple-500/40 hover:border-purple-500 transition flex items-center justify-between text-left group"
+                className="w-full p-4 rounded-2xl bg-[#FAF7F2] hover:bg-[#F4EFE6] border-2 border-[#E8DFD3] hover:border-[#0B1B30] transition flex items-center justify-between text-left group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-[#0B1B30] text-white flex items-center justify-center font-bold">
                     <BookOpen className="w-5 h-5" />
                   </div>
                   <div>
-                    <strong className="block text-sm font-bold text-white group-hover:text-purple-300">
+                    <strong className="block text-sm font-bold text-[#0B1B30] group-hover:text-[#C85A32]">
                       {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? '👑 Continue as Super Admin (Trust HQ)' : '👩‍🏫 Continue as Faculty / Teacher'}
                     </strong>
-                    <span className="text-xs text-stone-400">
+                    <span className="text-xs text-stone-500">
                       {dualRoleUser.faculty?.designation || (dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'Managing Trustee' : 'Class Teacher')} • {dualRoleUser.faculty?.role === 'SUPER_ADMIN' ? 'All 4 Campuses, CCTV & Matrix' : 'Attendance & Lesson Diary'}
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-stone-500 group-hover:text-purple-300" />
+                <ChevronRight className="w-5 h-5 text-stone-400 group-hover:text-[#0B1B30]" />
               </button>
 
               {/* Option 2: Parent Mode */}
               <button
                 type="button"
                 onClick={() => completeLoginSession(dualRoleUser, "PARENT")}
-                className="w-full p-4 rounded-2xl bg-stone-950 hover:bg-stone-800 border-2 border-amber-500/40 hover:border-amber-500 transition flex items-center justify-between text-left group"
+                className="w-full p-4 rounded-2xl bg-[#FAF7F2] hover:bg-[#F4EFE6] border-2 border-[#E8DFD3] hover:border-[#C85A32] transition flex items-center justify-between text-left group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-[#C85A32] text-white flex items-center justify-center font-bold">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <strong className="block text-sm font-bold text-white group-hover:text-amber-300">
+                    <strong className="block text-sm font-bold text-[#0B1B30] group-hover:text-[#C85A32]">
                       👨‍👩‍👧 Continue as Parent
                     </strong>
-                    <span className="text-xs text-stone-400">
+                    <span className="text-xs text-stone-500">
                       Parent of {dualRoleUser.children?.map((c: any) => `${c.name} (${c.grade || 'Class 5'})`).join(", ") || "Viraj Tyagi"} • Fees, Bus GPS &amp; Report Card
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-stone-500 group-hover:text-amber-300" />
+                <ChevronRight className="w-5 h-5 text-stone-400 group-hover:text-[#C85A32]" />
               </button>
 
             </div>
 
-            <p className="text-[11px] text-center text-stone-500">
+            <p className="text-[11px] text-center text-stone-400">
               💡 You can also switch between Super Admin and Parent modes anytime from the top header switcher!
             </p>
 
