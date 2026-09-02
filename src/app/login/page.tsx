@@ -36,7 +36,7 @@ export default function UniversalLoginPage() {
   const [authTab, setAuthTab] = useState<"WHATSAPP" | "EMAIL" | "PIN">("WHATSAPP");
   
   // Inputs
-  const [identifier, setIdentifier] = useState("9810081008");
+  const [identifier, setIdentifier] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [pinCode, setPinCode] = useState("");
   
