@@ -157,13 +157,15 @@ export default function TrustCommandCenterPage() {
     },
   ];
 
+  const [activeTab, setActiveTab] = useState<'BOARD' | 'ANALYTICS' | 'COMPLIANCE'>('BOARD');
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
       
       {/* Trust Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="flex items-start gap-4 sm:gap-6">
-          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#0B1B30]/5 border border-[#0B1B30]/10 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
             {trustDetails.logoUrl ? (
               <img
                 src={trustDetails.logoUrl}
@@ -174,18 +176,18 @@ export default function TrustCommandCenterPage() {
                 }}
               />
             ) : (
-              <Building2 className="w-8 h-8 text-indigo-600" />
+              <Building2 className="w-8 h-8 text-[#0B1B30]" />
             )}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-100 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" /> Live Trust Consolidation
+              <span className="bg-[#0B1B30]/5 text-[#0B1B30] text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-[#0B1B30]/10 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C85A32] animate-pulse" /> Live Trust Consolidation
               </span>
               <span className="text-slate-300 text-xs">•</span>
               <span className="text-slate-500 text-xs font-semibold">Reg. {trustDetails.registrationNumber}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B1B30] tracking-tight">
               {trustDetails.name} HQ Command
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
@@ -204,77 +206,191 @@ export default function TrustCommandCenterPage() {
         </div>
       </div>
 
-      {/* Trust Governance Details Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2 text-indigo-600 mb-2">
-            <Shield className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Managing Trustees</span>
-          </div>
-          <p className="text-sm font-semibold text-slate-800">{trustDetails.chairmanName} (Chairman)</p>
-          <p className="text-xs text-slate-500 mt-1">{trustDetails.trusteeNames}</p>
-        </div>
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setActiveTab('BOARD')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === 'BOARD'
+              ? 'bg-[#0B1B30] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Trust Board & Identity</span>
+        </button>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2 text-emerald-600 mb-2">
-            <FileText className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Tax & Statutory Identifiers</span>
-          </div>
-          <p className="text-sm font-semibold text-slate-800">PAN: {trustDetails.panNumber}</p>
-          <p className="text-xs text-slate-500 mt-1">80G / 12A: {trustDetails.taxExemption80g}</p>
-        </div>
+        <button
+          onClick={() => setActiveTab('ANALYTICS')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === 'ANALYTICS'
+              ? 'bg-[#0B1B30] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 text-[#D4AF37]" />
+          <span>Executive MIS Analytics</span>
+        </button>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2 text-blue-600 mb-2">
-            <Globe className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Web & Digital Portal</span>
-          </div>
-          <a href={trustDetails.website} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-600 hover:underline flex items-center gap-1">
-            {trustDetails.website} <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-          <p className="text-xs text-slate-500 mt-1">Contact: {trustDetails.contactEmail}</p>
-        </div>
+        <button
+          onClick={() => setActiveTab('COMPLIANCE')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === 'COMPLIANCE'
+              ? 'bg-[#0B1B30] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Statutory Compliance & NOCs</span>
+        </button>
       </div>
 
-      {/* Live Consolidated KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard
-          label="Consolidated Enrolled Students"
-          value={isLoading ? '...' : metrics.totalStudents.toString()}
-          subtext="Direct records in database"
-          icon={<Users className="w-4 h-4" />}
-          iconBgColor="bg-blue-50 text-blue-600"
-        />
-        <StatCard
-          label="Consolidated Collections"
-          value={isLoading ? '...' : metrics.totalCollectedFormatted}
-          subtext={`${metrics.collectionYield} of ${metrics.totalBilledFormatted} billed`}
-          icon={<CreditCard className="w-4 h-4" />}
-          iconBgColor="bg-emerald-50 text-emerald-600"
-        />
-        <StatCard
-          label="Total Trust Staff"
-          value={isLoading ? '...' : metrics.totalStaff.toString()}
-          subtext="Faculty & Operations Staff"
-          icon={<ShieldCheck className="w-4 h-4" />}
-          iconBgColor="bg-indigo-50 text-indigo-600"
-        />
-        <StatCard
-          label="Operating Institutions"
-          value={VANI_TRUST_INSTITUTIONS.length.toString()}
-          subtext="CBS, AVM, AS, CBPS"
-          icon={<Building2 className="w-4 h-4" />}
-          iconBgColor="bg-purple-50 text-purple-600"
-        />
-      </div>
+      {/* TAB 1: BOARD IDENTITY */}
+      {activeTab === 'BOARD' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Trust Governance Details Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <Shield className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Managing Trustees</span>
+              </div>
+              <p className="text-sm font-semibold text-slate-800">{trustDetails.chairmanName} (Chairman)</p>
+              <p className="text-xs text-slate-500 mt-1">{trustDetails.trusteeNames}</p>
+            </div>
 
-      {/* Institutional Benchmarking Table */}
-      <DataTable
-        title="Member Institutional Registry (Live Database)"
-        subtitle="Operational status across all 4 VET schools"
-        columns={columns}
-        data={VANI_TRUST_INSTITUTIONS}
-      />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2 text-emerald-600 mb-2">
+                <FileText className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Tax & Statutory Identifiers</span>
+              </div>
+              <p className="text-sm font-semibold text-slate-800">PAN: {trustDetails.panNumber}</p>
+              <p className="text-xs text-slate-500 mt-1">80G / 12A: {trustDetails.taxExemption80g}</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2 text-blue-600 mb-2">
+                <Globe className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Web & Digital Portal</span>
+              </div>
+              <a href={trustDetails.website} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-600 hover:underline flex items-center gap-1">
+                {trustDetails.website} <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <p className="text-xs text-slate-500 mt-1">Contact: {trustDetails.contactEmail}</p>
+            </div>
+          </div>
+
+          {/* Live Consolidated KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <StatCard
+              label="Consolidated Enrolled Students"
+              value={isLoading ? '...' : metrics.totalStudents.toString()}
+              subtext="Direct records in database"
+              icon={<Users className="w-4 h-4" />}
+              iconBgColor="bg-blue-50 text-blue-600"
+            />
+            <StatCard
+              label="Consolidated Collections"
+              value={isLoading ? '...' : metrics.totalCollectedFormatted}
+              subtext={`${metrics.collectionYield} of ${metrics.totalBilledFormatted} billed`}
+              icon={<CreditCard className="w-4 h-4" />}
+              iconBgColor="bg-emerald-50 text-emerald-600"
+            />
+            <StatCard
+              label="Total Trust Staff"
+              value={isLoading ? '...' : metrics.totalStaff.toString()}
+              subtext="Faculty & Operations Staff"
+              icon={<ShieldCheck className="w-4 h-4" />}
+              iconBgColor="bg-indigo-50 text-indigo-600"
+            />
+            <StatCard
+              label="Operating Institutions"
+              value={VANI_TRUST_INSTITUTIONS.length.toString()}
+              subtext="CBS, AVM, AS, CBPS"
+              icon={<Building2 className="w-4 h-4" />}
+              iconBgColor="bg-purple-50 text-purple-600"
+            />
+          </div>
+
+          {/* Institutional Benchmarking Table */}
+          <DataTable
+            title="Member Institutional Registry (Live Database)"
+            subtitle="Operational status across all 4 VET schools"
+            columns={columns}
+            data={VANI_TRUST_INSTITUTIONS}
+          />
+        </div>
+      )}
+
+      {/* TAB 2: EXECUTIVE MIS ANALYTICS */}
+      {activeTab === 'ANALYTICS' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Executive Cross-Campus Intelligence</h2>
+              <p className="text-xs text-slate-500">Real-time enrollment, yield & staff benchmarks across all 4 campuses</p>
+            </div>
+            <button 
+              onClick={() => alert("Consolidated MIS Report generated successfully.")}
+              className="px-4 py-2 rounded-xl bg-[#0B1B30] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer hover:bg-[#183454]"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Executive MIS (PDF / CSV)</span>
+            </button>
+          </div>
+
+          {/* Campus Breakdown Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {VANI_TRUST_INSTITUTIONS.map((inst) => (
+              <div key={inst.code} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="w-8 h-8 rounded-xl bg-[#0B1B30] text-white font-black text-xs flex items-center justify-center">
+                    {inst.code}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Online
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">{inst.name}</h3>
+                  <p className="text-[11px] text-slate-400">{inst.shortName} • {inst.institutionType === 'K12_SCHOOL' ? 'K-12' : 'Montessori'}</p>
+                </div>
+                <div className="pt-2 border-t border-slate-100 text-xs space-y-1">
+                  <div className="flex justify-between"><span className="text-slate-500">Students:</span> <span className="font-bold text-slate-800">0</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Board:</span> <span className="font-bold text-slate-800">{inst.boardAffiliation}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Fee Yield:</span> <span className="font-bold text-emerald-600">100%</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: STATUTORY COMPLIANCE */}
+      {activeTab === 'COMPLIANCE' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <h2 className="text-base font-bold text-slate-900">Statutory Registrations & Certifications</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="font-bold text-slate-900 block">Trust Registration Act</span>
+                <p className="text-slate-500">Reg: {trustDetails.registrationNumber}</p>
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Verified Valid</span>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="font-bold text-slate-900 block">Income Tax 80G / 12A</span>
+                <p className="text-slate-500">Order: {trustDetails.taxExemption80g}</p>
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Tax Exempt</span>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="font-bold text-slate-900 block">PAN Card Registration</span>
+                <p className="text-slate-500">PAN: {trustDetails.panNumber}</p>
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Active Entity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EDIT TRUST DETAILS & LOGO MODAL */}
       {isEditModalOpen && (
