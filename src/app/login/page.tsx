@@ -27,6 +27,7 @@ import {
   verifyUniversalOtpAction,
   verifyEmergencyPinAction
 } from "@/app/actions/universal-auth-actions";
+import { setServerAuthSession } from "@/app/actions/auth";
 
 export default function UniversalLoginPage() {
   const router = useRouter();
@@ -47,7 +48,6 @@ export default function UniversalLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
   // Dual-Role Modal State
   const [dualRoleUser, setDualRoleUser] = useState<any | null>(null);
@@ -85,7 +85,6 @@ export default function UniversalLoginPage() {
       if (res.channel) setActiveChannel(res.channel);
       setMaskedDestination(res.maskedDestination || "");
       setResendTimer(30);
-      setDevOtpHint(res.devOtpCode || null);
       setSuccessMsg(res.message || `✓ 6-Digit OTP sent to ${res.maskedDestination || "destination"}`);
     } catch (err: any) {
       setError(err.message || "Unable to dispatch verification OTP.");
@@ -123,7 +122,7 @@ export default function UniversalLoginPage() {
       }
 
       // Single Role Redirect
-      completeLoginSession(res.user, res.user.primaryRole);
+      await completeLoginSession(res.user, res.user.primaryRole);
     } catch (err: any) {
       setError(err.message || "OTP verification failed.");
       setIsLoading(false);
@@ -151,7 +150,7 @@ export default function UniversalLoginPage() {
         throw new Error(res.error || "Invalid Emergency PIN.");
       }
 
-      completeLoginSession(res.user, res.user.primaryRole);
+      await completeLoginSession(res.user, res.user.primaryRole);
     } catch (err: any) {
       setError(err.message || "Invalid Emergency PIN.");
       setIsLoading(false);
@@ -159,17 +158,22 @@ export default function UniversalLoginPage() {
   }
 
   // Save session & redirect
-  function completeLoginSession(userData: any, chosenRole: string) {
+  async function completeLoginSession(userData: any, chosenRole: string) {
     try {
       localStorage.setItem("cbs_auth_user", JSON.stringify(userData));
       localStorage.setItem("cbs_active_role", chosenRole);
       localStorage.setItem("cbs_auth_token", userData.token);
 
-      if (chosenRole === "PARENT") {
-        window.location.href = "/parent/live-stream";
-      } else {
-        window.location.href = "/admin/dashboard";
-      }
+      // Set cookie session so Next.js server actions / middleware authorize the session
+      await setServerAuthSession({
+        userId: userData.identifier || 'admin',
+        email: userData.faculty?.email || userData.parent?.email || `${userData.identifier}@crayonboxschool.com`,
+        role: chosenRole,
+        fullName: userData.faculty?.name || userData.parent?.name || 'User',
+        accessToken: userData.token || `cb_token_${Date.now()}`
+      });
+
+      window.location.href = "/admin/dashboard";
     } catch (e) {
       window.location.href = "/admin/dashboard";
     }
@@ -270,20 +274,6 @@ export default function UniversalLoginPage() {
             <div className="bg-emerald-950/60 border border-emerald-800/80 p-3.5 rounded-2xl text-xs text-emerald-200 flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span className="leading-relaxed">{successMsg}</span>
-            </div>
-          )}
-
-          {/* Dev OTP Helper Banner (Instant Verification) */}
-          {devOtpHint && (
-            <div className="bg-purple-950/40 border border-purple-800/60 p-2.5 rounded-xl text-[11px] text-purple-200 flex items-center justify-between font-mono">
-              <span>Test OTP Code: <strong>{devOtpHint}</strong></span>
-              <button
-                type="button"
-                onClick={() => setOtpCode(devOtpHint)}
-                className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-[10px] font-bold"
-              >
-                Auto-Fill
-              </button>
             </div>
           )}
 

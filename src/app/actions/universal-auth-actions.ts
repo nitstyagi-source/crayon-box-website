@@ -258,7 +258,6 @@ export async function requestUniversalOtpAction(params: {
       targetEmail,
       expiryMinutes: 5,
       isDualRoleCandidate,
-      devOtpCode: otpCode, // Provided for instant test verification
       message: `✓ 6-Digit OTP dispatched via ${channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} to ${maskedDestination}`
     };
   } catch (error: any) {
