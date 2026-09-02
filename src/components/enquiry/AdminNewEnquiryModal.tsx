@@ -22,6 +22,7 @@ export function AdminNewEnquiryModal({
       isOpen={isOpen}
       onClose={onClose}
       title="New Admission Enquiry Intake (360° Lead Master)"
+      maxWidth="5xl"
     >
       <div className="max-h-[82vh] overflow-y-auto pr-1">
         <AdminNewEnquiryForm

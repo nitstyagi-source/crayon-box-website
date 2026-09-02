@@ -291,7 +291,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
   const isSeniorGrade = !["Pre-Nursery", "Nursery", "KG / Prep", "Playschool"].includes(formData.admissionClass);
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200 p-6 md:p-10 shadow-xs space-y-8 font-sans">
+    <form onSubmit={handleSubmit} className={`bg-white space-y-8 font-sans ${isModal ? 'p-2 sm:p-4 border-0 shadow-none' : 'rounded-3xl border border-slate-200 p-6 md:p-10 shadow-xs'}`}>
       
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">

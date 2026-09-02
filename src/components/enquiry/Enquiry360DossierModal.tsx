@@ -147,6 +147,7 @@ export function Enquiry360DossierModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      maxWidth="5xl"
       title={
         enquiry
           ? `Enquiry 360° Dossier: ${enquiry.enquiry_number || "ENQ-LIVE"} — ${enquiry.full_child_name || enquiry.child_name}`
@@ -159,7 +160,7 @@ export function Enquiry360DossierModal({
           <p className="text-xs font-bold text-slate-500">Loading comprehensive lead records...</p>
         </div>
       ) : (
-        <div className="space-y-6 max-w-4xl mx-auto font-sans">
+        <div className="space-y-6 w-full font-sans">
           
           {/* Executive Top Banner Card */}
           <div className="p-5 rounded-3xl bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
