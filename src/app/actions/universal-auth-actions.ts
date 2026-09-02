@@ -187,19 +187,65 @@ export async function requestUniversalOtpAction(params: {
 
         if (channel === 'EMAIL' && (targetEmail || rawId.includes('@'))) {
           const emailAddr = targetEmail || rawId;
-          const { createClient } = require('@supabase/supabase-js');
-          const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-          );
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.crayonboxschool.com';
-          await supabaseAdmin.auth.signInWithOtp({
-            email: emailAddr,
-            options: {
-              emailRedirectTo: `${siteUrl}/login`
+          const resendApiKey = process.env.RESEND_API_KEY;
+
+          // 🚀 1. DISPATCH VIA RESEND (0.15s instant delivery)
+          if (resendApiKey) {
+            try {
+              const { Resend } = require('resend');
+              const resend = new Resend(resendApiKey);
+              const fromSender = process.env.RESEND_FROM_EMAIL || 'Crayon Box School <onboarding@resend.dev>';
+              
+              const resendRes = await resend.emails.send({
+                from: fromSender,
+                to: emailAddr,
+                subject: `Crayon Box School Login OTP: ${otpCode}`,
+                html: `
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background: #111827; border-radius: 20px; padding: 32px; color: #ffffff; border: 1px solid #1f2937;">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                      <h2 style="margin: 0; color: #f59e0b; font-size: 20px; font-weight: 800; text-transform: uppercase;">VAANI EDUCATIONAL TRUST</h2>
+                      <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12px; font-weight: 600;">Crayon Box School • Universal Login</p>
+                    </div>
+                    
+                    <div style="background: #090d16; border: 1px solid #374151; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                      <p style="margin: 0 0 8px 0; color: #cbd5e1; font-size: 13px; font-weight: 600;">Your 6-Digit Verification Code is:</p>
+                      <div style="font-size: 38px; font-weight: 900; font-family: monospace; color: #fbbf24; letter-spacing: 8px; margin: 14px 0;">
+                        ${otpCode}
+                      </div>
+                      <p style="margin: 8px 0 0 0; color: #64748b; font-size: 11px;">Valid for 5 minutes. Do not share this code with anyone.</p>
+                    </div>
+
+                    <p style="margin: 0; color: #64748b; font-size: 11px; text-align: center; line-height: 1.5;">
+                      If you did not request this login, please ignore this email.<br>
+                      © 2026 Vaani Educational Trust. All rights reserved.
+                    </p>
+                  </div>
+                `
+              });
+              console.log(`✉️ Dispatched Resend Email OTP (${otpCode}) to ${emailAddr}:`, resendRes);
+            } catch (rErr) {
+              console.error("Resend dispatch error:", rErr);
             }
-          });
-          console.log(`✉️ Dispatched Live Email OTP to ${emailAddr} with redirect ${siteUrl}/login`);
+          }
+
+          // 2. Fallback to Supabase Auth OTP
+          try {
+            const { createClient } = require('@supabase/supabase-js');
+            const supabaseAdmin = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
+              process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.crayonboxschool.com';
+            await supabaseAdmin.auth.signInWithOtp({
+              email: emailAddr,
+              options: {
+                emailRedirectTo: `${siteUrl}/login`
+              }
+            });
+            console.log(`✉️ Dispatched Supabase Email OTP to ${emailAddr}`);
+          } catch (supaEmailErr) {
+            console.warn("Supabase email fallback error:", supaEmailErr);
+          }
         } else if (channel === 'WHATSAPP') {
           const waPayload = {
             integrated_number: integratedNumber,
