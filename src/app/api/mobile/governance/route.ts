@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       complianceScorePercent: 100,
     };
 
-    const [instsRes, certsRes] = await Promise.all([
+    const [instsRes, certsRes, resRes] = await Promise.all([
       pool.query(`
         SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
                academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
@@ -73,6 +73,12 @@ export async function GET(request: NextRequest) {
                audit_score as "score", notes
         FROM public.institution_compliance_certificates
         ORDER BY institution_code ASC, created_at ASC;
+      `).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT id, resolution_number as "resolutionNumber", title, category,
+               resolution_date as "date", quorum, status, summary, document_url as "documentUrl"
+        FROM public.board_resolutions
+        ORDER BY created_at DESC;
       `).catch(() => ({ rows: [] }))
     ]);
 
@@ -99,10 +105,10 @@ export async function GET(request: NextRequest) {
       { category: "Child Healthcare & Sports Hub", allocated: 4000000, spent: 2900000, percentage: 72 }
     ];
 
-    const boardResolutions = [
-      { id: "RES-2026-04", date: "15 Aug 2026", title: "Approval of 16-Channel CCTV Low-Latency AI Streaming", quorum: "5/5 Present", status: "ENACTED" },
-      { id: "RES-2026-03", date: "01 Jul 2026", title: "Electric Bus Fleet Expansion with GPS Telematics", quorum: "5/5 Present", status: "ENACTED" },
-      { id: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + CBSE Hybrid Academic Framework", quorum: "4/5 Present", status: "ENACTED" }
+    const boardResolutions = resRes.rows.length > 0 ? resRes.rows : [
+      { id: "RES-2026-04", resolutionNumber: "RES-2026-04", date: "15 Aug 2026", title: "Approval of 16-Channel CCTV Low-Latency AI Streaming", quorum: "5/5 Present", status: "ENACTED" },
+      { id: "RES-2026-03", resolutionNumber: "RES-2026-03", date: "01 Jul 2026", title: "Electric Bus Fleet Expansion with GPS Telematics", quorum: "5/5 Present", status: "ENACTED" },
+      { id: "RES-2026-02", resolutionNumber: "RES-2026-02", date: "10 Apr 2026", title: "Adoption of Montessori + CBSE Hybrid Academic Framework", quorum: "4/5 Present", status: "ENACTED" }
     ];
 
     return NextResponse.json({
@@ -153,6 +159,32 @@ export async function POST(request: NextRequest) {
     if (body.action === 'DELETE_CERTIFICATE') {
       await pool.query(`DELETE FROM public.institution_compliance_certificates WHERE id = $1`, [body.id]);
       return NextResponse.json({ success: true, message: 'Certificate deleted successfully.' });
+    }
+
+    // Support Board Resolution CRUD
+    if (body.action === 'UPSERT_RESOLUTION') {
+      const { id, resolutionNumber, title, category, resolutionDate, quorum, status, summary, documentUrl } = body;
+      if (id) {
+        await pool.query(`
+          UPDATE public.board_resolutions
+          SET resolution_number = $1, title = $2, category = $3, resolution_date = $4,
+              quorum = $5, status = $6, summary = $7, document_url = $8,
+              updated_at = NOW()
+          WHERE id = $9;
+        `, [resolutionNumber, title, category || 'GOVERNANCE', resolutionDate, quorum || '5/5 Present', status || 'ENACTED', summary || '', documentUrl || '', id]);
+      } else {
+        await pool.query(`
+          INSERT INTO public.board_resolutions
+            (resolution_number, title, category, resolution_date, quorum, status, summary, document_url)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+        `, [resolutionNumber, title, category || 'GOVERNANCE', resolutionDate, quorum || '5/5 Present', status || 'ENACTED', summary || '', documentUrl || '']);
+      }
+      return NextResponse.json({ success: true, message: 'Resolution saved successfully.' });
+    }
+
+    if (body.action === 'DELETE_RESOLUTION') {
+      await pool.query(`DELETE FROM public.board_resolutions WHERE id = $1`, [body.id]);
+      return NextResponse.json({ success: true, message: 'Resolution deleted successfully.' });
     }
 
     // Default Trust details update

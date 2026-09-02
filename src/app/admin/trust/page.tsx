@@ -21,7 +21,10 @@ import {
   updateTrustDetailsAction,
   getComplianceCertificatesAction,
   upsertComplianceCertificateAction,
-  deleteComplianceCertificateAction
+  deleteComplianceCertificateAction,
+  getBoardResolutionsAction,
+  upsertBoardResolutionAction,
+  deleteBoardResolutionAction
 } from '@/app/actions/governance-analytics-actions';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
@@ -80,6 +83,22 @@ export default function TrustCommandCenterPage() {
     notes: '',
   });
 
+  // Board Resolutions State
+  const [resolutions, setResolutions] = useState<any[]>([]);
+  const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false);
+  const [resolutionSaving, setResolutionSaving] = useState(false);
+  const [resolutionForm, setResolutionForm] = useState<any>({
+    id: '',
+    resolutionNumber: '',
+    title: '',
+    category: 'GOVERNANCE',
+    resolutionDate: '',
+    quorum: '5/5 Present',
+    status: 'ENACTED',
+    summary: '',
+    documentUrl: '',
+  });
+
   const fetchCertificates = async () => {
     const res = await getComplianceCertificatesAction({ institutionCode: selectedCertCampus });
     if (res.success && res.certificates) {
@@ -87,13 +106,21 @@ export default function TrustCommandCenterPage() {
     }
   };
 
+  const fetchResolutions = async () => {
+    const res = await getBoardResolutionsAction();
+    if (res.success && res.resolutions) {
+      setResolutions(res.resolutions);
+    }
+  };
+
   const fetchMetricsAndTrust = async () => {
     setIsLoading(true);
     try {
-      const [mRes, tRes, cRes] = await Promise.all([
+      const [mRes, tRes, cRes, rRes] = await Promise.all([
         getLiveDashboardMetrics(),
         getTrustDetailsAction(),
-        getComplianceCertificatesAction({ institutionCode: selectedCertCampus })
+        getComplianceCertificatesAction({ institutionCode: selectedCertCampus }),
+        getBoardResolutionsAction()
       ]);
       if (mRes.success && mRes.data) {
         setMetrics(mRes.data);
@@ -105,6 +132,9 @@ export default function TrustCommandCenterPage() {
       if (cRes.success && cRes.certificates) {
         setCertificates(cRes.certificates);
       }
+      if (rRes.success && rRes.resolutions) {
+        setResolutions(rRes.resolutions);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -115,6 +145,63 @@ export default function TrustCommandCenterPage() {
   useEffect(() => {
     fetchMetricsAndTrust();
   }, [selectedCertCampus]);
+
+  const handleOpenAddResolution = () => {
+    setResolutionForm({
+      id: '',
+      resolutionNumber: `RES-${new Date().getFullYear()}-0${resolutions.length + 1}`,
+      title: '',
+      category: 'GOVERNANCE',
+      resolutionDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      quorum: '5/5 Present',
+      status: 'ENACTED',
+      summary: '',
+      documentUrl: '',
+    });
+    setIsResolutionModalOpen(true);
+  };
+
+  const handleOpenEditResolution = (res: any) => {
+    setResolutionForm({
+      id: res.id,
+      resolutionNumber: res.resolutionNumber || res.resolution_number,
+      title: res.title,
+      category: res.category || 'GOVERNANCE',
+      resolutionDate: res.resolutionDate || res.resolution_date || res.date,
+      quorum: res.quorum || '5/5 Present',
+      status: res.status || 'ENACTED',
+      summary: res.summary || '',
+      documentUrl: res.documentUrl || res.document_url || '',
+    });
+    setIsResolutionModalOpen(true);
+  };
+
+  const handleSaveResolution = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResolutionSaving(true);
+    try {
+      const res = await upsertBoardResolutionAction(resolutionForm);
+      if (res.success) {
+        setIsResolutionModalOpen(false);
+        await fetchResolutions();
+      } else {
+        alert(res.error || 'Failed to save board resolution');
+      }
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setResolutionSaving(false);
+    }
+  };
+
+  const handleDeleteResolution = async (id: string) => {
+    if (confirm('Are you sure you want to delete this board resolution record?')) {
+      const res = await deleteBoardResolutionAction(id);
+      if (res.success) {
+        await fetchResolutions();
+      }
+    }
+  };
 
   const handleOpenEditModal = () => {
     setEditForm({ ...trustDetails });
@@ -256,7 +343,7 @@ export default function TrustCommandCenterPage() {
     },
   ];
 
-  const [activeTab, setActiveTab] = useState<'BOARD' | 'ANALYTICS' | 'COMPLIANCE'>('BOARD');
+  const [activeTab, setActiveTab] = useState<'BOARD' | 'ANALYTICS' | 'COMPLIANCE' | 'RESOLUTIONS'>('BOARD');
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
@@ -306,10 +393,10 @@ export default function TrustCommandCenterPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('BOARD')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'BOARD'
               ? 'bg-[#0B1B30] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -321,7 +408,7 @@ export default function TrustCommandCenterPage() {
 
         <button
           onClick={() => setActiveTab('ANALYTICS')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'ANALYTICS'
               ? 'bg-[#0B1B30] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -333,7 +420,7 @@ export default function TrustCommandCenterPage() {
 
         <button
           onClick={() => setActiveTab('COMPLIANCE')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'COMPLIANCE'
               ? 'bg-[#0B1B30] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -341,6 +428,18 @@ export default function TrustCommandCenterPage() {
         >
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>Statutory Compliance & NOCs</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('RESOLUTIONS')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'RESOLUTIONS'
+              ? 'bg-[#0B1B30] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-purple-500" />
+          <span>Board Resolutions</span>
         </button>
       </div>
 
@@ -627,6 +726,128 @@ export default function TrustCommandCenterPage() {
               <h3 className="font-bold text-slate-700">No Certificates Found for this School Scope</h3>
               <p className="text-xs text-slate-400">Click &ldquo;+ Add Certificate&rdquo; above to register statutory clearances.</p>
               <Button size="sm" onClick={() => handleOpenAddCert()}>+ Add Certificate</Button>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* TAB 4: BOARD RESOLUTIONS & OFFICIAL EXECUTIVE ORDERS */}
+      {activeTab === 'RESOLUTIONS' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          
+          {/* Header & Actions */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-purple-50 text-purple-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-purple-100 flex items-center gap-1">
+                  <FileText className="w-3 h-3 text-purple-600" /> Trust Board Resolutions & Policy Ledger
+                </span>
+                <span className="text-slate-300 text-xs">•</span>
+                <span className="text-slate-500 text-xs font-semibold">{resolutions.length} Enacted Orders</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                Official Board Resolutions & Executive Decrees
+              </h2>
+              <p className="text-xs text-slate-500">
+                Formal trustee approvals for capital budgets, academic frameworks, EV bus procurements, and IT gateways.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenAddResolution}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                + New Resolution Order
+              </Button>
+            </div>
+          </div>
+
+          {/* Resolutions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {resolutions.map((res) => (
+              <div
+                key={res.id}
+                className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between hover:border-purple-200 transition space-y-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#0B1B30] text-white font-mono font-bold text-xs">
+                        {res.resolutionNumber || res.resolution_number}
+                      </span>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                        {res.category || 'GOVERNANCE'}
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {res.status || 'ENACTED'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base leading-snug">
+                      {res.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                      <span>Date: {res.resolutionDate || res.resolution_date || res.date}</span>
+                      <span>•</span>
+                      <span className="font-semibold text-slate-700">Quorum: {res.quorum || '5/5 Present'}</span>
+                    </p>
+                  </div>
+
+                  {res.summary && (
+                    <p className="text-xs text-slate-600 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 leading-relaxed">
+                      {res.summary}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div>
+                    {res.documentUrl ? (
+                      <a
+                        href={res.documentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> View Scanned Order
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">No document attached</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleOpenEditResolution(res)}
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Edit / Upload Doc
+                    </button>
+                    <button
+                      onClick={() => handleDeleteResolution(res.id)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                      title="Delete resolution"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {resolutions.length === 0 && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-3">
+              <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="font-bold text-slate-700">No Board Resolutions Logged Yet</h3>
+              <p className="text-xs text-slate-400">Record unanimous board decisions, capital grants, or executive policies.</p>
+              <Button size="sm" onClick={handleOpenAddResolution}>+ New Resolution Order</Button>
             </div>
           )}
 
@@ -963,6 +1184,157 @@ export default function TrustCommandCenterPage() {
                   {saveSuccess ? 'Saved to Database!' : 'Save Trust Profile'}
                 </Button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT / ADD BOARD RESOLUTION MODAL */}
+      {isResolutionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {resolutionForm.id ? 'Edit Board Resolution Order' : 'Record New Board Resolution'}
+                  </h2>
+                  <p className="text-xs text-slate-500">Log official trustee decree, date, quorum, and signed order</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsResolutionModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveResolution} className="space-y-4 mt-6">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Resolution Number / Ref</label>
+                  <input
+                    type="text"
+                    required
+                    value={resolutionForm.resolutionNumber}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionNumber: e.target.value })}
+                    placeholder="e.g. RES-2026-05"
+                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-mono text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Policy Category</label>
+                  <select
+                    value={resolutionForm.category}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, category: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-800"
+                  >
+                    <option value="GOVERNANCE">Trust Governance &amp; Policy</option>
+                    <option value="INFRASTRUCTURE">Campus Infrastructure &amp; IT</option>
+                    <option value="ACADEMIC">Academic NEP 2020 Framework</option>
+                    <option value="LOGISTICS">Transport &amp; EV Bus Fleet</option>
+                    <option value="FINANCE">Capital Grants &amp; Budget</option>
+                    <option value="SAFEGUARDING">POCSO &amp; Child Safety</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Resolution Title / Subject</label>
+                <input
+                  type="text"
+                  required
+                  value={resolutionForm.title}
+                  onChange={(e) => setResolutionForm({ ...resolutionForm, title: e.target.value })}
+                  placeholder="e.g. Approval of 16-Channel CCTV Low-Latency AI Streaming Gateway"
+                  className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Enactment Date</label>
+                  <input
+                    type="text"
+                    required
+                    value={resolutionForm.resolutionDate}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionDate: e.target.value })}
+                    placeholder="e.g. 15 Aug 2026"
+                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Board Quorum</label>
+                  <input
+                    type="text"
+                    value={resolutionForm.quorum}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, quorum: e.target.value })}
+                    placeholder="e.g. 5/5 Present"
+                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Status</label>
+                  <select
+                    value={resolutionForm.status}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, status: e.target.value })}
+                    className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-bold text-slate-800"
+                  >
+                    <option value="ENACTED">ENACTED</option>
+                    <option value="ADOPTED">ADOPTED</option>
+                    <option value="PENDING_ASSENT">PENDING ASSENT</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Executive Summary / Order Text</label>
+                <textarea
+                  rows={3}
+                  value={resolutionForm.summary}
+                  onChange={(e) => setResolutionForm({ ...resolutionForm, summary: e.target.value })}
+                  placeholder="Summarize the core resolution passed by the board of trustees..."
+                  className="w-full text-xs p-3 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
+                />
+              </div>
+
+              {/* Resolution Signed Document Upload (File & Link) */}
+              <DualFileUpload
+                label="Signed Resolution Order Attachment (Upload Scan or Link)"
+                helperText="Upload official stamped PDF or photo of signed minutes of meeting, or paste document URL."
+                value={resolutionForm.documentUrl}
+                onChange={(val) => setResolutionForm({ ...resolutionForm, documentUrl: val })}
+                accept=".pdf,image/*"
+                placeholder="https://... or /documents/resolution-signed.pdf"
+                standardizeBackground={false}
+              />
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsResolutionModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resolutionSaving}
+                  className="px-5 py-2 rounded-xl bg-[#0B1B30] text-white text-xs font-bold hover:bg-[#183454] transition shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  {resolutionSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  <span>{resolutionForm.id ? 'Save Changes' : 'Enact Resolution'}</span>
+                </button>
+              </div>
+
             </form>
           </div>
         </div>

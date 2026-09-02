@@ -1049,4 +1049,110 @@ export async function deleteComplianceCertificateAction(id: string) {
   }
 }
 
+// -------------------------------------------------------------
+// 13. BOARD RESOLUTIONS & OFFICIAL EXECUTIVE ORDERS
+// -------------------------------------------------------------
+export async function getBoardResolutionsAction() {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const res = await client.query(`
+      SELECT id, resolution_number as "resolutionNumber", title, category,
+             resolution_date as "resolutionDate", quorum, status, summary,
+             document_url as "documentUrl", created_at as "createdAt"
+      FROM public.board_resolutions
+      ORDER BY created_at DESC;
+    `);
+    return { success: true, resolutions: res.rows };
+  } catch (error: any) {
+    console.error('Error in getBoardResolutionsAction:', error);
+    return { success: false, error: error.message, resolutions: [] };
+  } finally {
+    client.release();
+  }
+}
+
+export async function upsertBoardResolutionAction(payload: {
+  id?: string;
+  resolutionNumber: string;
+  title: string;
+  category: string;
+  resolutionDate: string;
+  quorum: string;
+  status: string;
+  summary?: string;
+  documentUrl?: string;
+}) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    if (payload.id) {
+      await client.query(`
+        UPDATE public.board_resolutions
+        SET resolution_number = $1,
+            title = $2,
+            category = $3,
+            resolution_date = $4,
+            quorum = $5,
+            status = $6,
+            summary = $7,
+            document_url = $8,
+            updated_at = NOW()
+        WHERE id = $9;
+      `, [
+        payload.resolutionNumber,
+        payload.title,
+        payload.category || 'GOVERNANCE',
+        payload.resolutionDate,
+        payload.quorum || '5/5 Present',
+        payload.status || 'ENACTED',
+        payload.summary || '',
+        payload.documentUrl || '',
+        payload.id
+      ]);
+    } else {
+      await client.query(`
+        INSERT INTO public.board_resolutions
+          (resolution_number, title, category, resolution_date, quorum, status, summary, document_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+      `, [
+        payload.resolutionNumber,
+        payload.title,
+        payload.category || 'GOVERNANCE',
+        payload.resolutionDate,
+        payload.quorum || '5/5 Present',
+        payload.status || 'ENACTED',
+        payload.summary || '',
+        payload.documentUrl || ''
+      ]);
+    }
+
+    safeRevalidate('/admin/trust');
+    return { success: true, message: 'Board resolution saved successfully.' };
+  } catch (error: any) {
+    console.error('Error in upsertBoardResolutionAction:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteBoardResolutionAction(id: string) {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query(`DELETE FROM public.board_resolutions WHERE id = $1`, [id]);
+    safeRevalidate('/admin/trust');
+    return { success: true, message: 'Board resolution removed successfully.' };
+  } catch (error: any) {
+    console.error('Error in deleteBoardResolutionAction:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
 
