@@ -137,8 +137,8 @@ export default function UniversalLoginPage() {
 
     try {
       const code = otpCode.trim();
-      if (code.length !== 6) {
-        throw new Error("Please enter the complete 6-digit verification code.");
+      if (code.length < 6) {
+        throw new Error("Please enter the complete verification code.");
       }
 
       const res = await verifyUniversalOtpAction({
@@ -359,11 +359,11 @@ export default function UniversalLoginPage() {
                   </button>
                 </form>
               ) : (
-                /* Step 2: Enter 6-Digit OTP */
+                /* Step 2: Enter OTP Code */
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-stone-300">Enter 6-Digit Code</span>
+                      <span className="font-bold text-stone-300">Enter Verification Code</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -378,7 +378,7 @@ export default function UniversalLoginPage() {
 
                     <input
                       type="text"
-                      maxLength={6}
+                      maxLength={8}
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                       placeholder="• • • • • •"
@@ -408,7 +408,7 @@ export default function UniversalLoginPage() {
 
                   <button
                     type="submit"
-                    disabled={isLoading || otpCode.length !== 6}
+                    disabled={isLoading || otpCode.length < 6}
                     className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-98 disabled:opacity-50"
                   >
                     {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify & Access Dashboard"}
