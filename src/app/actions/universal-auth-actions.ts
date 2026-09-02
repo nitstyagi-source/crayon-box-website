@@ -322,20 +322,37 @@ export async function verifyUniversalOtpAction(params: {
       [`%${phone}%`, rawId, code]
     );
 
-    if (otpRes.rows.length === 0) {
+    let isOtpValid = otpRes.rows.length > 0;
+    if (!isOtpValid && isEmail) {
+      const { createClient } = require('@supabase/supabase-js');
+      const supabaseClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: supaVerify, error: supaErr } = await supabaseClient.auth.verifyOtp({
+        email: rawId,
+        token: code,
+        type: 'email'
+      });
+      if (supaVerify?.session || !supaErr) {
+        isOtpValid = true;
+      }
+    }
+
+    if (!isOtpValid) {
       return {
         success: false,
         error: "Invalid or expired OTP code. Please enter the latest 6-digit code or request a new one."
       };
     }
 
-    const otpRecord = otpRes.rows[0];
-
-    // Mark OTP as verified
-    await client.query(
-      "UPDATE public.auth_otp_logs SET is_verified = true WHERE id = $1;",
-      [otpRecord.id]
-    );
+    if (otpRes.rows.length > 0) {
+      const otpRecord = otpRes.rows[0];
+      await client.query(
+        "UPDATE public.auth_otp_logs SET is_verified = true WHERE id = $1;",
+        [otpRecord.id]
+      );
+    }
 
     // 2. Resolve Personas (Faculty + Parent/Student + Admin)
     let staffProfile: any = null;
