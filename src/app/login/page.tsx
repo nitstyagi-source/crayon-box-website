@@ -216,288 +216,325 @@ export default function UniversalLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-950 flex flex-col justify-center items-center p-4 sm:p-6 text-stone-100 font-sans selection:bg-amber-500 selection:text-stone-950">
+    <div className="min-h-screen bg-[#070709] flex flex-col justify-center items-center p-4 sm:p-6 text-stone-100 font-sans selection:bg-amber-500 selection:text-stone-950 relative overflow-hidden">
       
-      {/* Background Ambience */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-amber-500 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-600 blur-3xl" />
+      {/* Dynamic Ambient Background Glows */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[160px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.03)_0,transparent_70%)]" />
       </div>
 
-      <div className="relative w-full max-w-md space-y-6">
+      {/* Main Luxury Container */}
+      <div className="relative w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10 my-auto">
         
-        {/* Top Trust Branding */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-stone-900 border border-stone-800 shadow-xl shadow-amber-500/10">
+        {/* Left Column: Trust Branding & Multi-Campus Showcase (lg:col-span-5) */}
+        <div className="lg:col-span-5 space-y-6 text-center lg:text-left">
+          
+          <div className="inline-flex items-center justify-center p-3 rounded-3xl bg-stone-900/90 border border-stone-800 shadow-2xl shadow-amber-500/10 backdrop-blur-xl group hover:border-amber-500/40 transition">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/trust-logo.png"
               alt="Vaani Educational Trust"
-              className="w-16 h-16 object-contain"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"
             />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
-              Vaani Educational Trust
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-400">
+              <Sparkles className="w-3 h-3" />
+              <span>Vaani Educational Trust Gateway</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase leading-tight">
+              Universal Multi-Campus Portal
             </h1>
-            <p className="text-xs text-amber-400 font-semibold tracking-wide">
-              Apex Multi-Campus ERP • CBS • CBPS • AS • AVM
+            <p className="text-xs sm:text-sm text-stone-400 font-medium leading-relaxed">
+              Apex Enterprise System for CBS, CBPS, AS, and AVM campuses.
             </p>
           </div>
-        </div>
 
-        {/* Main Card */}
-        <div className="bg-stone-900/90 border border-stone-800 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          
-          {/* 2-Tier Mode Switcher Tabs */}
-          <div className="flex bg-stone-950 p-1 rounded-2xl border border-stone-800 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab("WHATSAPP");
-                setOtpDispatched(false);
-                setError(null);
-              }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition ${
-                authTab !== "PIN"
-                  ? "bg-amber-600 text-white shadow-md"
-                  : "text-stone-400 hover:text-white"
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Instant Verification OTP</span>
-            </button>
+          {/* Feature Badges */}
+          <div className="hidden lg:grid grid-cols-1 gap-2.5 pt-2">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-900/40 border border-stone-800/60 backdrop-blur-md">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-stone-200">256-Bit Hardware Encrypted</p>
+                <p className="text-[10px] text-stone-500">Zero-Trust Cloud Architecture</p>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab("PIN");
-                setOtpDispatched(false);
-                setError(null);
-              }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition ${
-                authTab === "PIN"
-                  ? "bg-amber-600 text-white shadow-md"
-                  : "text-stone-400 hover:text-white"
-              }`}
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Admin PIN</span>
-            </button>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-900/40 border border-stone-800/60 backdrop-blur-md">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-stone-200">Unified Role Resolution</p>
+                <p className="text-[10px] text-stone-500">Super Admin • Faculty • Parent</p>
+              </div>
+            </div>
           </div>
 
-          {/* Feedback Messages */}
-          {error && (
-            <div className="bg-red-950/60 border border-red-800/80 p-3.5 rounded-2xl text-xs text-red-200 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{error}</span>
+        </div>
+
+        {/* Right Column: Interactive Authentication Card (lg:col-span-7) */}
+        <div className="lg:col-span-7 w-full max-w-md mx-auto">
+          
+          <div className="bg-stone-900/80 border border-stone-800/90 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.8)] space-y-6">
+            
+            {/* Mode Switcher Tabs */}
+            <div className="flex bg-stone-950/80 p-1 rounded-2xl border border-stone-800 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab("WHATSAPP");
+                  setOtpDispatched(false);
+                  setError(null);
+                }}
+                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition ${
+                  authTab !== "PIN"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black shadow-md shadow-amber-500/20"
+                    : "text-stone-400 hover:text-white"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Verification Code</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab("PIN");
+                  setOtpDispatched(false);
+                  setError(null);
+                }}
+                className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition ${
+                  authTab === "PIN"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black shadow-md shadow-amber-500/20"
+                    : "text-stone-400 hover:text-white"
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Admin PIN</span>
+              </button>
             </div>
-          )}
 
-          {successMsg && (
-            <div className="bg-emerald-950/60 border border-emerald-800/80 p-3.5 rounded-2xl text-xs text-emerald-200 flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{successMsg}</span>
-            </div>
-          )}
+            {/* Feedback Messages */}
+            {error && (
+              <div className="bg-red-950/60 border border-red-800/80 p-3.5 rounded-2xl text-xs text-red-200 flex items-start gap-2.5 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-medium">{error}</span>
+              </div>
+            )}
 
-          {/* TAB 1: UNIFIED DYNAMIC OTP LOGIN (MOBILE / EMAIL AUTO-DETECT) */}
-          {authTab !== "PIN" && (
-            <div className="space-y-4">
-              
-              {!otpDispatched ? (
-                /* Step 1: Enter Phone or Email */
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const clean = identifier.trim();
-                    const channel = clean.includes("@") ? "EMAIL" : "WHATSAPP";
-                    handleSendOtp(channel);
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-stone-300 block">
-                      Registered Mobile Number or Email Address
-                    </label>
-                    <div className="relative">
-                      {identifier.includes("@") ? (
-                        <Mail className="w-4 h-4 text-amber-400 absolute left-3.5 top-3.5" />
-                      ) : (
-                        <Phone className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3.5" />
-                      )}
-                      <input
-                        type="text"
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder="Enter Mobile Number or Email Address"
-                        className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 transition"
-                        required
-                        autoFocus
-                      />
-                    </div>
-                    <p className="text-[11px] text-stone-500">
-                      {identifier.includes("@")
-                        ? "✉️ Verification code will be sent to your registered email inbox."
-                        : "💬 Instant verification code will be sent to your WhatsApp."}
-                    </p>
-                  </div>
+            {successMsg && (
+              <div className="bg-emerald-950/60 border border-emerald-800/80 p-3.5 rounded-2xl text-xs text-emerald-200 flex items-start gap-2.5 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-medium">{successMsg}</span>
+              </div>
+            )}
 
-                  <button
-                    type="submit"
-                    disabled={isLoading || !identifier.trim()}
-                    className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 shadow-lg shadow-amber-500/20 transition active:scale-98 disabled:opacity-50"
+            {/* TAB 1: UNIFIED DYNAMIC OTP LOGIN */}
+            {authTab !== "PIN" && (
+              <div className="space-y-4">
+                
+                {!otpDispatched ? (
+                  /* Step 1: Enter Phone or Email */
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const clean = identifier.trim();
+                      const channel = clean.includes("@") ? "EMAIL" : "WHATSAPP";
+                      handleSendOtp(channel);
+                    }}
+                    className="space-y-4"
                   >
-                    {isLoading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <span>Get Verification Code</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                /* Step 2: Enter OTP Code */
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-stone-300">Enter Verification Code</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpDispatched(false);
-                          setError(null);
-                        }}
-                        className="text-amber-400 hover:underline font-semibold text-[11px]"
-                      >
-                        {identifier.includes("@") ? "Change Email" : "Change Number"}
-                      </button>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-stone-300 block tracking-wide">
+                        Registered Mobile or Email
+                      </label>
+                      <div className="relative">
+                        {identifier.includes("@") ? (
+                          <Mail className="w-4 h-4 text-amber-400 absolute left-4 top-3.5" />
+                        ) : (
+                          <Phone className="w-4 h-4 text-emerald-400 absolute left-4 top-3.5" />
+                        )}
+                        <input
+                          type="text"
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          placeholder="Enter Mobile Number or Email Address"
+                          className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <p className="text-[11px] text-stone-500 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        {identifier.includes("@")
+                          ? "Verification code will be sent to your registered email inbox."
+                          : "Instant verification code will be sent to your WhatsApp."}
+                      </p>
                     </div>
 
-                    <input
-                      type="text"
-                      maxLength={8}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                      placeholder="• • • • • •"
-                      className="w-full bg-stone-950 border border-stone-800 rounded-2xl py-3 text-center text-2xl font-mono tracking-widest font-black text-amber-400 focus:outline-none focus:border-amber-500 transition"
-                      autoFocus
-                      required
-                    />
-
-                    <div className="flex justify-between items-center text-[11px] text-stone-400 pt-1">
-                      <span>Code valid for 5 minutes</span>
-                      {resendTimer > 0 ? (
-                        <span>Resend in {resendTimer}s</span>
+                    <button
+                      type="submit"
+                      disabled={isLoading || !identifier.trim()}
+                      className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 shadow-lg shadow-amber-500/20 transition active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
+                        <>
+                          <span>Get Verification Code</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  /* Step 2: Enter OTP Code */
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-stone-300">Enter Verification Code</span>
                         <button
                           type="button"
                           onClick={() => {
-                            const channel = identifier.includes("@") ? "EMAIL" : "WHATSAPP";
-                            handleSendOtp(channel);
+                            setOtpDispatched(false);
+                            setError(null);
                           }}
-                          className="text-amber-400 font-bold hover:underline"
+                          className="text-amber-400 hover:underline font-semibold text-[11px]"
                         >
-                          Resend Code
+                          {identifier.includes("@") ? "Change Email" : "Change Number"}
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        maxLength={8}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="• • • • • •"
+                        className="w-full bg-stone-950 border border-stone-800 rounded-2xl py-3.5 text-center text-2xl font-mono tracking-[0.4em] font-black text-amber-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        autoFocus
+                        required
+                      />
+
+                      <div className="flex justify-between items-center text-[11px] text-stone-400 pt-1">
+                        <span>Valid for 5 minutes</span>
+                        {resendTimer > 0 ? (
+                          <span className="font-medium text-stone-500">Resend in {resendTimer}s</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const channel = identifier.includes("@") ? "EMAIL" : "WHATSAPP";
+                              handleSendOtp(channel);
+                            }}
+                            className="text-amber-400 font-bold hover:underline"
+                          >
+                            Resend Code
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading || otpCode.length < 6}
+                      className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify & Access Dashboard"}
+                    </button>
+
+                    {/* Alternate Channel Fallback */}
+                    <div className="pt-2 border-t border-stone-800 text-center">
+                      {activeChannel === "WHATSAPP" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSendOtp("EMAIL")}
+                          className="text-[11px] font-bold text-stone-400 hover:text-indigo-400 flex items-center justify-center gap-1.5 mx-auto transition"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Didn't receive WhatsApp? Send to Email instead</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSendOtp("WHATSAPP")}
+                          className="text-[11px] font-bold text-stone-400 hover:text-emerald-400 flex items-center justify-center gap-1.5 mx-auto transition"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Send to WhatsApp instead</span>
                         </button>
                       )}
                     </div>
-                  </div>
+                  </form>
+                )}
 
-                  <button
-                    type="submit"
-                    disabled={isLoading || otpCode.length < 6}
-                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-98 disabled:opacity-50"
-                  >
-                    {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify & Access Dashboard"}
-                  </button>
-
-                  {/* Smart Alternate Channel Fallback */}
-                  <div className="pt-2 border-t border-stone-800 text-center">
-                    {activeChannel === "WHATSAPP" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleSendOtp("EMAIL")}
-                        className="text-[11px] font-bold text-stone-400 hover:text-indigo-400 flex items-center justify-center gap-1.5 mx-auto transition"
-                      >
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>Didn't receive WhatsApp? Send to Email instead</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleSendOtp("WHATSAPP")}
-                        className="text-[11px] font-bold text-stone-400 hover:text-emerald-400 flex items-center justify-center gap-1.5 mx-auto transition"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Send to WhatsApp instead</span>
-                      </button>
-                    )}
-                  </div>
-                </form>
-              )}
-
-            </div>
-          )}
-
-          {/* TAB 3: EMERGENCY OFFLINE PIN LOGIN */}
-          {authTab === "PIN" && (
-            <form onSubmit={handleVerifyPin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-300 block">
-                  Registered Mobile / Admission Number
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. 9810081008 or ADM-2024-0089"
-                    className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-10 pr-4 py-3 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 transition"
-                    required
-                  />
-                </div>
               </div>
+            )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-300 block">
-                  School Admin Emergency PIN
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="password"
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    placeholder="e.g. CB-9482"
-                    className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-10 pr-4 py-3 text-sm font-mono font-bold text-amber-400 placeholder-stone-600 focus:outline-none focus:border-amber-500 transition uppercase"
-                    required
-                  />
+            {/* TAB 2: EMERGENCY OFFLINE PIN LOGIN */}
+            {authTab === "PIN" && (
+              <form onSubmit={handleVerifyPin} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-300 block tracking-wide">
+                    Registered Mobile / Admission Number
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-stone-400 absolute left-4 top-3.5" />
+                    <input
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="e.g. 9911102027 or ADM-2026-0089"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-white placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      required
+                    />
+                  </div>
                 </div>
-                <p className="text-[11px] text-stone-500">
-                  Temporary 6-digit master PIN issued by School Administration for offline parents.
-                </p>
-              </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-900/30 transition active:scale-98"
-              >
-                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify Emergency PIN"}
-              </button>
-            </form>
-          )}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-300 block tracking-wide">
+                    Security / Master PIN
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-amber-400 absolute left-4 top-3.5" />
+                    <input
+                      type="password"
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                      placeholder="e.g. 100800"
+                      className="w-full bg-stone-950 border border-stone-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-mono font-black text-amber-400 placeholder-stone-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      required
+                    />
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Chairman & Admin Master PIN for instant 0.1-second access.
+                  </p>
+                </div>
 
-        </div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition active:scale-[0.98]"
+                >
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : "Verify Security PIN"}
+                </button>
+              </form>
+            )}
 
-        {/* Footer Help */}
-        <div className="text-center text-xs text-stone-500 space-y-1">
-          <div>Need help logging in? Contact Front Desk: <strong>+91 98100 81008</strong></div>
-          <div className="text-[10px] text-stone-600">Encrypted 256-Bit Authentication • Crayon Box ERP 3.0</div>
+          </div>
+
+          {/* Footer Help */}
+          <div className="text-center text-xs text-stone-500 space-y-1 pt-4">
+            <div>Need assistance? Front Desk: <strong className="text-stone-300">+91 98100 81008</strong></div>
+            <div className="text-[10px] text-stone-600">Encrypted 256-Bit SSL • Vaani Educational Trust 2026</div>
+          </div>
+
         </div>
 
       </div>
