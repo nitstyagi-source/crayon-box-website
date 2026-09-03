@@ -60,13 +60,13 @@ export function DataTable<T extends Record<string, any>>({
   }, [filteredData, currentPage, itemsPerPage]);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden font-sans space-y-0">
+    <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden font-sans space-y-0 backdrop-blur-xs">
       {/* Table Header / Action Bar */}
       {(title || searchKey || actions) && (
-        <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 border-b border-[#E8DFC8] bg-[#FAF7F2]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            {title && <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">{title}</h3>}
-            {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+            {title && <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">{title}</h3>}
+            {subtitle && <p className="text-xs text-stone-500 font-medium mt-0.5">{subtitle}</p>}
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -79,7 +79,7 @@ export function DataTable<T extends Record<string, any>>({
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  leftIcon={<Search className="w-4 h-4 text-slate-400" />}
+                  leftIcon={<Search className="w-4 h-4 text-stone-400" />}
                 />
               </div>
             )}
@@ -90,7 +90,7 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Data Table Content */}
       {paginatedData.length === 0 ? (
-        <div className="p-6">
+        <div className="p-8">
           <EmptyState
             title={emptyTitle}
             description={emptyDescription}
@@ -101,7 +101,7 @@ export function DataTable<T extends Record<string, any>>({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+            <thead className="bg-[#FAF7F2] text-stone-600 font-black uppercase tracking-wider text-[11px] border-b border-[#E8DFC8]">
               <tr>
                 {columns.map((col) => (
                   <th
@@ -119,9 +119,9 @@ export function DataTable<T extends Record<string, any>>({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-[#E8DFC8]/60 text-stone-800">
               {paginatedData.map((row, index) => (
-                <tr key={index} className="hover:bg-slate-50/60 transition duration-100">
+                <tr key={index} className="hover:bg-[#FAF7F2]/70 transition duration-150">
                   {columns.map((col) => (
                     <td
                       key={col.key}
@@ -145,10 +145,10 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Pagination Footer */}
       {filteredData.length > itemsPerPage && (
-        <div className="px-6 py-3.5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-6 py-4 bg-[#FAF7F2]/80 border-t border-[#E8DFC8] flex items-center justify-between text-xs text-stone-600 font-medium">
           <span>
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-            {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+            Showing <strong className="text-stone-900">{(currentPage - 1) * itemsPerPage + 1}</strong> to{' '}
+            <strong className="text-stone-900">{Math.min(currentPage * itemsPerPage, filteredData.length)}</strong> of <strong className="text-stone-900">{filteredData.length}</strong> entries
           </span>
           <div className="flex items-center gap-1.5">
             <Button
@@ -159,7 +159,7 @@ export function DataTable<T extends Record<string, any>>({
             >
               <ChevronLeft className="w-3.5 h-3.5" /> Previous
             </Button>
-            <span className="px-2 font-semibold text-slate-700">
+            <span className="px-2.5 py-1 bg-white rounded-lg border border-[#E8DFC8] font-black text-stone-800 shadow-2xs">
               {currentPage} / {totalPages}
             </span>
             <Button

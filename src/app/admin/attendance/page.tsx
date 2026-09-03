@@ -21,6 +21,7 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
 export default function DailyAttendancePage() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
@@ -149,72 +150,60 @@ export default function DailyAttendancePage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {activeInstObj.name} ({activeInstObj.code})
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {activeInstObj.institutionType === 'PRE_SCHOOL' ? 'Early Childhood Daily Attendance' : 'K-12 Daily Roll Call'}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <GraduationCap className="w-8 h-8 text-emerald-400" />
-            {activeInstObj.name} Daily Attendance
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            1-tap classroom muster roll marking with instant synchronization to PostgreSQL student records and parent notifications.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Link href="/admin/attendance/leaves">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-emerald-950/80 text-emerald-200 border-emerald-700/80 hover:bg-emerald-900 text-xs font-bold"
-              leftIcon={<FileText className="w-3.5 h-3.5 text-emerald-400" />}
+      {/* Option 6 Sattva-Digital Header Banner */}
+      <VastuModuleBanner
+        badgeText={`${activeInstObj.name} (${activeInstObj.code})`}
+        badgeIcon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+        institutionText={activeInstObj.institutionType === 'PRE_SCHOOL' ? 'Early Childhood Daily Attendance' : 'K-12 Daily Roll Call'}
+        title={`${activeInstObj.name} Daily Attendance`}
+        titleIcon={<GraduationCap className="w-7 h-7 text-amber-300" />}
+        description="1-tap classroom muster roll marking with instant synchronization to PostgreSQL student records and parent notifications."
+        actions={
+          <>
+            <Link href="/admin/attendance/leaves">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
+                leftIcon={<FileText className="w-3.5 h-3.5 text-amber-300" />}
+              >
+                📝 Leave Approvals
+              </Button>
+            </Link>
+            <Link href="/admin/gate-scanner">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
+                leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />}
+              >
+                🚪 Gate Entry/Exit Scanner
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRoster}
+              isLoading={isLoading}
+              className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
             >
-              📝 Leave Approvals
+              Sync Roster
             </Button>
-          </Link>
-          <Link href="/admin/gate-scanner">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-indigo-950/80 text-indigo-200 border-indigo-700/80 hover:bg-indigo-900 text-xs font-bold"
-              leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />}
+            <Button
+              variant="saffron"
+              size="md"
+              onClick={handleSubmitAttendance}
+              isLoading={isSubmitting}
+              disabled={roster.length === 0}
+              className="text-xs"
+              leftIcon={<Save className="w-4 h-4" />}
             >
-              🚪 Gate Entry/Exit Scanner
+              Save Attendance
             </Button>
-          </Link>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchRoster} 
-            isLoading={isLoading} 
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh Roster
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleSubmitAttendance}
-            isLoading={isSubmitting}
-            disabled={roster.length === 0}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20 text-xs"
-            leftIcon={<Save className="w-4 h-4" />}
-          >
-            Save Attendance
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Save Feedback Banner */}
       {saveFeedback && (
@@ -228,7 +217,7 @@ export default function DailyAttendancePage() {
       )}
 
       {/* Filter Ribbon: School + Dynamic Class Dropdown + Section + Date */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="bg-white/95 p-6 rounded-3xl border border-[#E8DFC8] shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4 backdrop-blur-xs">
         <Select
           label="Operating Institution"
           options={[
@@ -256,14 +245,14 @@ export default function DailyAttendancePage() {
         />
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5">
             Attendance Date
           </label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-2xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+            className="w-full bg-white border border-[#E8DFC8] rounded-xl px-3.5 py-2.5 text-xs font-bold text-stone-800 shadow-2xs focus:ring-2 focus:ring-[#D97706] focus:outline-hidden"
           />
         </div>
       </div>
@@ -271,10 +260,10 @@ export default function DailyAttendancePage() {
       {/* Roster Metric Summary */}
       {roster.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Enrolled</span>
-            <p className="text-2xl font-black text-slate-900">{roster.length}</p>
-            <span className="text-[10px] text-slate-500 font-semibold">{selectedClass} ({selectedSection})</span>
+          <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block">Total Enrolled</span>
+            <p className="text-2xl font-black text-stone-900">{roster.length}</p>
+            <span className="text-[10px] text-stone-500 font-semibold">{selectedClass} ({selectedSection})</span>
           </div>
 
           <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs space-y-1">
@@ -346,8 +335,8 @@ export default function DailyAttendancePage() {
           onAction={() => window.location.href = '/admin/students'}
         />
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden backdrop-blur-xs">
+          <div className="p-5 border-b border-[#E8DFC8] bg-[#FAF7F2]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <span>Daily Roll Call Roster:</span>

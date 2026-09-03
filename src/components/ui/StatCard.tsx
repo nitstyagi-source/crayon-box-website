@@ -19,36 +19,40 @@ export function StatCard({
   subtext,
   trend,
   icon,
-  iconBgColor = 'bg-slate-100 text-slate-700',
+  iconBgColor = 'bg-amber-50 text-amber-700 border border-amber-200/60',
   className = '',
 }: StatCardProps) {
   return (
     <div
-      className={`bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition duration-150 font-sans space-y-3 ${className}`}
+      className={`bg-white/95 p-5 sm:p-6 rounded-3xl border border-[#E8DFC8] shadow-xs hover:border-[#D4AF37]/50 hover:shadow-md transition-all duration-200 font-sans space-y-3 relative overflow-hidden backdrop-blur-xs group ${className}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
+        <span className="text-[11px] font-black uppercase tracking-wider text-stone-500 group-hover:text-stone-700 transition">
+          {label}
+        </span>
         {icon && (
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs ${iconBgColor}`}>
+          <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-xs shadow-2xs ${iconBgColor}`}>
             {icon}
           </div>
         )}
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{value}</h3>
+        <h3 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">{value}</h3>
         {(subtext || trend) && (
           <div className="flex items-center gap-1.5 text-xs">
             {trend && (
               <span
-                className={`font-bold ${
-                  trend.isPositive ? 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded' : 'text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded'
+                className={`font-black px-2 py-0.5 rounded-full text-[10px] ${
+                  trend.isPositive
+                    ? 'text-emerald-800 bg-emerald-100 border border-emerald-200'
+                    : 'text-rose-800 bg-rose-100 border border-rose-200'
                 }`}
               >
                 {trend.isPositive ? '↑' : '↓'} {trend.value}
               </span>
             )}
-            {subtext && <span className="text-slate-500 font-medium truncate">{subtext}</span>}
+            {subtext && <span className="text-stone-500 font-semibold truncate">{subtext}</span>}
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'subtle';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'subtle' | 'saffron' | 'vastu';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -35,17 +35,21 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        'bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-900 shadow-xs hover:shadow-sm',
+        'bg-[#0B1B30] text-white hover:bg-[#153257] focus:ring-[#0B1B30] border border-white/10 shadow-xs hover:shadow-sm font-bold',
       secondary:
-        'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-600 shadow-xs hover:shadow-sm',
+        'bg-[#0369A1] text-white hover:bg-[#0284C7] focus:ring-[#0369A1] shadow-xs hover:shadow-sm font-bold',
+      saffron:
+        'bg-[#D97706] hover:bg-[#B45309] text-white font-black shadow-md shadow-amber-600/20 focus:ring-amber-500',
+      vastu:
+        'bg-[#0B1B30] hover:bg-[#153257] text-amber-300 font-black border border-[#D4AF37]/30 shadow-md focus:ring-amber-400',
       outline:
-        'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 focus:ring-slate-400',
+        'border border-[#E8DFC8] bg-white/90 text-stone-700 hover:bg-[#FAF7F2] hover:text-stone-950 hover:border-[#D4AF37]/60 focus:ring-amber-300 font-bold',
       subtle:
-        'bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-300',
+        'bg-[#FAF7F2] text-stone-700 hover:bg-[#EFE7D8] focus:ring-amber-300 font-semibold',
       danger:
-        'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-600 shadow-xs',
+        'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-600 shadow-xs font-bold',
       ghost:
-        'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-300',
+        'bg-transparent text-stone-600 hover:bg-[#FAF7F2] hover:text-stone-900 focus:ring-amber-300 font-semibold',
     };
 
     return (

@@ -13,6 +13,7 @@ import {
   Award
 } from "lucide-react";
 import { runGeneticTimetableGeneratorAction } from "@/app/actions/timetable-generator-actions";
+import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 
 export const AlgorithmicTimetableDesk: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -33,32 +34,28 @@ export const AlgorithmicTimetableDesk: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xl p-6 sm:p-8 space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-wider bg-purple-50 text-purple-950 px-2.5 py-1 rounded-full border border-purple-200">
-              Genetic Algorithm (GA) Evolutionary Engine
-            </span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-stone-900 mt-1">
-            Algorithmic Master Timetable Generator
-          </h2>
-          <p className="text-xs text-stone-500">
-            Multi-constraint evolutionary optimization eliminating teacher clashes and balancing cognitive morning loads
-          </p>
-        </div>
+    <div className="space-y-6 font-sans">
+      {/* Option 6 Sattva-Digital Header Banner */}
+      <VastuModuleBanner
+        badgeText="Genetic Algorithm (GA) Evolutionary Engine"
+        badgeIcon={<Zap className="w-3.5 h-3.5" />}
+        institutionText="Academic Session 2026–2027"
+        title="Algorithmic Master Timetable Studio"
+        titleIcon={<Calendar className="w-7 h-7 text-amber-300" />}
+        description="Multi-constraint evolutionary optimization eliminating teacher clashes, room bottlenecks, and balancing cognitive morning loads."
+        actions={
+          <button
+            onClick={handleRunGeneticAlgorithm}
+            disabled={isGenerating}
+            className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-black transition flex items-center gap-2 shadow-lg cursor-pointer disabled:opacity-50 active:scale-95"
+          >
+            <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
+            <span>{isGenerating ? "Simulating 60 Generations..." : "Run Genetic Scheduler"}</span>
+          </button>
+        }
+      />
 
-        <button
-          onClick={handleRunGeneticAlgorithm}
-          disabled={isGenerating}
-          className="px-5 py-2.5 rounded-xl bg-purple-950 hover:bg-purple-900 text-white text-xs font-black transition flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
-        >
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span>{isGenerating ? "Simulating 60 Generations..." : "Run Genetic Scheduler"}</span>
-        </button>
-      </div>
+      <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs p-6 sm:p-8 space-y-6 backdrop-blur-xs">
 
       {generationResult && (
         <div className="space-y-6 animate-in fade-in duration-200">
@@ -129,6 +126,7 @@ export const AlgorithmicTimetableDesk: React.FC = () => {
           <p>Click &quot;Run Genetic Scheduler&quot; to execute the evolutionary optimization cycle.</p>
         </div>
       )}
+      </div>
     </div>
   );
 };

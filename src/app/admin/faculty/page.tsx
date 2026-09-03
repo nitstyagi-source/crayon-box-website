@@ -22,6 +22,7 @@ import {
 import { getManagementExecutiveDashboard } from "@/app/actions/faculty-enterprise";
 import { getClasses } from "@/app/actions/classes";
 import FileUpload from "@/components/admin/FileUpload";
+import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 import { 
   DESIGNATION_GROUPS, 
   DEPARTMENTS_LIST, 
@@ -425,35 +426,31 @@ export default function FacultyAdminDashboard() {
   return (
     <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto font-sans">
       
-      {/* Top Banner & Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-blue-100 text-blue-800 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
-              Faculty & Employee LifeCycle
-            </span>
-            <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
-          </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Faculty & Staff Command Hub</h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-1">Central profile and workflow system for teachers, coordinators, admin, and support employees.</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <Link
-            href="/admin/faculty/substitutions"
-            className="bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold px-4 py-2.5 rounded-2xl text-xs border border-purple-200 flex items-center gap-1.5 transition-all"
-          >
-            <Sparkles className="w-4 h-4 text-purple-600" /> Smart Substitution Hub
-          </Link>
-          <button 
-            onClick={handleOpenAdd}
-            className="bg-stone-900 hover:bg-stone-800 text-white font-bold px-5 py-2.5 rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
-          >
-            <Plus className="w-4 h-4 text-amber-400" /> Onboard Employee
-          </button>
-        </div>
-      </div>
+      {/* Option 6 Sattva-Digital Header Banner */}
+      <VastuModuleBanner
+        badgeText="Faculty & Staff LifeCycle"
+        badgeIcon={<Users className="w-3.5 h-3.5" />}
+        institutionText="Academic Session 2026-2027"
+        title="Faculty & Staff Command Hub"
+        titleIcon={<GraduationCap className="w-7 h-7 text-amber-300" />}
+        description="Central profile, biometric, and workflow system for teachers, coordinators, administrators, and support staff."
+        actions={
+          <>
+            <Link
+              href="/admin/faculty/substitutions"
+              className="bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border border-[#E8DFC8]/40 flex items-center gap-1.5 transition"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" /> Smart Substitution Hub
+            </Link>
+            <button
+              onClick={handleOpenAdd}
+              className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black px-5 py-2.5 rounded-2xl text-xs shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-stone-950" /> Onboard Employee
+            </button>
+          </>
+        }
+      />
 
       {/* 21. PRINCIPAL / MANAGEMENT EXECUTIVE DASHBOARD TABLE */}
       {execKpis && (

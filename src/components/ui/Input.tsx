@@ -33,7 +33,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             } ${rightIcon ? 'pr-10' : 'pr-3.5'} py-2.5 ${
               error
                 ? 'border-rose-400 bg-rose-50/30 text-rose-900 focus:border-rose-500 focus:ring-rose-200'
-                : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-indigo-100'
+                : 'border-[#E8DFC8] bg-white/95 text-stone-900 placeholder:text-stone-400 focus:border-[#D97706] focus:ring-amber-200/50'
             } ${className}`}
             {...props}
           />

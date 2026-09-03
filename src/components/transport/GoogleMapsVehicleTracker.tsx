@@ -69,8 +69,8 @@ export default function GoogleMapsVehicleTracker({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Default Delhi Coordinates (Burari / Sant Nagar)
-  const centerLat = bus.current_lat || 28.7214;
-  const centerLng = bus.current_lng || 77.2012;
+  const centerLat = Number(bus?.current_lat) || 28.7214;
+  const centerLng = Number(bus?.current_lng) || 77.2012;
 
   // Build default stops if not provided
   const activeStops: BusStop[] = stops.length > 0 ? stops : [
@@ -347,7 +347,7 @@ export default function GoogleMapsVehicleTracker({
         <div className="hidden md:flex items-center gap-4 text-[10px] font-mono text-slate-400">
           <div>
             <span className="text-slate-500 block">GPS Position</span>
-            <span className="text-slate-200">{centerLat.toFixed(4)}°N, {centerLng.toFixed(4)}°E</span>
+            <span className="text-slate-200">{Number(centerLat).toFixed(4)}°N, {Number(centerLng).toFixed(4)}°E</span>
           </div>
           <div>
             <span className="text-slate-500 block">Passenger Load</span>

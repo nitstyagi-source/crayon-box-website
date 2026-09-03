@@ -16,12 +16,12 @@ export function Card({ children, header, footer, padding = 'md', className = '',
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition duration-150 font-sans ${className}`}
+      className={`bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs hover:border-[#D4AF37]/50 hover:shadow-md transition duration-200 font-sans backdrop-blur-xs ${className}`}
       {...props}
     >
-      {header && <div className="border-b border-slate-100 px-6 py-4">{header}</div>}
+      {header && <div className="border-b border-[#E8DFC8] px-6 py-4 bg-[#FAF7F2]/60 rounded-t-3xl">{header}</div>}
       <div className={paddingStyles[padding]}>{children}</div>
-      {footer && <div className="border-t border-slate-100 px-6 py-4 bg-slate-50/50 rounded-b-2xl">{footer}</div>}
+      {footer && <div className="border-t border-[#E8DFC8] px-6 py-4 bg-[#FAF7F2]/80 rounded-b-3xl">{footer}</div>}
     </div>
   );
 }

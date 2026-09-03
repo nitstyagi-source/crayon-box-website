@@ -20,6 +20,7 @@ import {
   getDailyTransportJourneyMusterAction
 } from '@/app/actions/transport-telematics-actions';
 import GoogleMapsVehicleTracker from '@/components/transport/GoogleMapsVehicleTracker';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
 export default function TransportFleetRadarPage() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
@@ -102,52 +103,37 @@ export default function TransportFleetRadarPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              Live Fleet GPS Telematics
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Bus className="w-8 h-8 text-amber-400" />
-            Transport Fleet Radar & Boarding QR Scanner
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Live GPS telemetry tracking, speed monitors, and student bus boarding verification with automated parent SMS alerts.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Option 6 Sattva-Digital Header Banner */}
+      <VastuModuleBanner
+        badgeText="Live Fleet GPS Telematics"
+        badgeIcon={<Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />}
+        institutionText={isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
+        title="Transport Fleet Radar & Boarding QR Scanner"
+        titleIcon={<Bus className="w-8 h-8 text-amber-300" />}
+        description="Live GPS telemetry tracking, speed monitors, and student bus boarding verification with automated parent notifications."
+        actions={
           <Button
             size="sm"
-            variant="outline"
+            variant="saffron"
             onClick={fetchTelemetry}
             isLoading={isLoading}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
             leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
             Refresh Radar
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 🌟 TELEMATICS COUNTERS */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Fleet</span>
-          <span className="text-3xl font-black text-slate-900 mt-1 block">{counts.totalFleet}</span>
-          <span className="text-[11px] text-slate-500 font-semibold">GPS Registered</span>
+        <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+          <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block">Total Fleet</span>
+          <span className="text-3xl font-black text-stone-900 mt-1 block">{counts.totalFleet}</span>
+          <span className="text-[11px] text-stone-500 font-semibold">GPS Registered</span>
         </div>
 
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Active In-Transit</span>
+        <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+          <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block">Active In-Transit</span>
           <span className="text-3xl font-black text-emerald-600 mt-1 block flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping inline-block" />
             {counts.activeInTransit}
@@ -155,55 +141,61 @@ export default function TransportFleetRadarPage() {
           <span className="text-[11px] text-emerald-700 font-bold">On Active Routes</span>
         </div>
 
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Parked in Campus</span>
+        <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+          <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block">Parked in Campus</span>
           <span className="text-3xl font-black text-amber-600 mt-1 block">{counts.parkedInCampus}</span>
           <span className="text-[11px] text-amber-700 font-bold">Standby Fleet</span>
         </div>
 
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">In Workshop</span>
+        <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+          <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block">In Workshop</span>
           <span className="text-3xl font-black text-rose-600 mt-1 block">{counts.inMaintenance}</span>
           <span className="text-[11px] text-rose-700 font-bold">Scheduled Service</span>
         </div>
 
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Students Transported</span>
-          <span className="text-3xl font-black text-indigo-600 mt-1 block">{counts.totalStudentsTransported}</span>
-          <span className="text-[11px] text-indigo-700 font-bold">Daily Commuters</span>
+        <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+          <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block">Students Transported</span>
+          <span className="text-3xl font-black text-sky-700 mt-1 block">{counts.totalStudentsTransported}</span>
+          <span className="text-[11px] text-sky-800 font-bold">Daily Commuters</span>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit flex-wrap">
+      <div className="flex items-center gap-2 border-b border-[#E8DFC8] pb-2 text-xs font-bold overflow-x-auto">
         <button
           onClick={() => setActiveTab('radar')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 ${
-            activeTab === 'radar' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'radar'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
           }`}
         >
-          <Radio className="w-3.5 h-3.5 text-emerald-500" />
+          <Radio className="w-3.5 h-3.5 text-emerald-400" />
           Live GPS Fleet Radar ({buses.length})
         </button>
 
         <button
           onClick={() => setActiveTab('scanner')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 ${
-            activeTab === 'scanner' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'scanner'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
           }`}
         >
-          <ScanLine className="w-3.5 h-3.5 text-amber-500" />
-          Conductor Bus Boarding QR Scanner
+          <ScanLine className="w-3.5 h-3.5 text-amber-400" />
+          Bus Boarding QR Scanner
         </button>
 
         <button
           onClick={() => setActiveTab('muster')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 ${
-            activeTab === 'muster' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'muster'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
           }`}
         >
-          <Users className="w-3.5 h-3.5 text-indigo-500" />
-          Passenger Journey Muster ({musterLogs.length})
+          <Clock className="w-3.5 h-3.5 text-sky-400" />
+          Transport Journey Muster Roll ({musterLogs.length})
         </button>
       </div>
 

@@ -11,6 +11,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { StatCard } from '@/components/ui/StatCard';
 import { Button } from '@/components/ui/Button';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
 export default function ExecutiveFinancePage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -109,30 +110,26 @@ export default function ExecutiveFinancePage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live PostgreSQL Table (`student_invoices`)
-            </span>
-            <span className="text-slate-300 text-xs">•</span>
-            <span className="text-slate-500 text-xs font-semibold">{invoices.length} Invoices in Database</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Executive Finance & Fee Ledgers
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Real-time financial telemetry calculated from live database invoice records.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Button variant="outline" size="sm" onClick={fetchInvoices} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+      {/* Option 6 Sattva-Digital Header Banner */}
+      <VastuModuleBanner
+        badgeText="Live PostgreSQL Fee Ledgers (`student_invoices`)"
+        badgeIcon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+        institutionText={`${invoices.length} Invoices in Database`}
+        title="Executive Finance & Fee Ledgers"
+        titleIcon={<IndianRupee className="w-7 h-7 text-amber-300" />}
+        description="Real-time financial telemetry calculated from live database invoice records with Vastu Dhan/Lakshmi balance."
+        actions={
+          <Button
+            variant="saffron"
+            size="sm"
+            onClick={fetchInvoices}
+            isLoading={isLoading}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+          >
             Refresh Live DB
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Live Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
