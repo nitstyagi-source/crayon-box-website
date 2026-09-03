@@ -19,6 +19,7 @@ import { getLiveDashboardMetrics } from '@/app/actions/live-metrics';
 import {
   getTrustDetailsAction,
   updateTrustDetailsAction,
+  getInstitutionsListAction,
   getComplianceCertificatesAction,
   upsertComplianceCertificateAction,
   deleteComplianceCertificateAction,
@@ -99,6 +100,9 @@ export default function TrustCommandCenterPage() {
     documentUrl: '',
   });
 
+  // Operating Institutions List State
+  const [institutionsList, setInstitutionsList] = useState<any[]>([]);
+
   const fetchCertificates = async () => {
     const res = await getComplianceCertificatesAction({ institutionCode: selectedCertCampus });
     if (res.success && res.certificates) {
@@ -116,11 +120,12 @@ export default function TrustCommandCenterPage() {
   const fetchMetricsAndTrust = async () => {
     setIsLoading(true);
     try {
-      const [mRes, tRes, cRes, rRes] = await Promise.all([
+      const [mRes, tRes, cRes, rRes, iRes] = await Promise.all([
         getLiveDashboardMetrics(),
         getTrustDetailsAction(),
         getComplianceCertificatesAction({ institutionCode: selectedCertCampus }),
-        getBoardResolutionsAction()
+        getBoardResolutionsAction(),
+        getInstitutionsListAction()
       ]);
       if (mRes.success && mRes.data) {
         setMetrics(mRes.data);
@@ -134,6 +139,9 @@ export default function TrustCommandCenterPage() {
       }
       if (rRes.success && rRes.resolutions) {
         setResolutions(rRes.resolutions);
+      }
+      if (iRes.success && iRes.institutions) {
+        setInstitutionsList(iRes.institutions);
       }
     } catch (e) {
       console.error(e);
@@ -312,7 +320,7 @@ export default function TrustCommandCenterPage() {
       render: (row: any) => (
         <div>
           <span className="font-bold text-slate-900 block">{row.name}</span>
-          <span className="text-slate-400 text-[11px] font-medium">{row.campus}</span>
+          <span className="text-slate-400 text-[11px] font-medium">{row.address || row.code || row.campus}</span>
         </div>
       ),
     },
@@ -321,7 +329,7 @@ export default function TrustCommandCenterPage() {
       header: 'Academic Framework',
       render: (row: any) => (
         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold uppercase border border-slate-200">
-          {row.academicFramework}
+          {row.academicFramework || row.boardAffiliation || 'CBSE'}
         </span>
       ),
     },
@@ -329,7 +337,7 @@ export default function TrustCommandCenterPage() {
       key: 'students',
       header: 'Live Students',
       align: 'right' as const,
-      render: (row: any) => <span className="font-bold text-slate-900">0</span>,
+      render: (row: any) => <span className="font-bold text-slate-900">{metrics.totalStudents || 0}</span>,
     },
     {
       key: 'status',
@@ -337,7 +345,7 @@ export default function TrustCommandCenterPage() {
       align: 'right' as const,
       render: (row: any) => (
         <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase border border-emerald-200">
-          ONLINE
+          {row.status || 'ONLINE'}
         </span>
       ),
     },
@@ -503,8 +511,8 @@ export default function TrustCommandCenterPage() {
             />
             <StatCard
               label="Operating Institutions"
-              value={VANI_TRUST_INSTITUTIONS.length.toString()}
-              subtext="CBS, AVM, AS, CBPS"
+              value={isLoading ? '...' : institutionsList.length.toString()}
+              subtext={institutionsList.map(i => i.code).join(', ') || 'CBS, AVM, AS, CBPS'}
               icon={<Building2 className="w-4 h-4" />}
               iconBgColor="bg-purple-50 text-purple-600"
             />
@@ -513,9 +521,9 @@ export default function TrustCommandCenterPage() {
           {/* Institutional Benchmarking Table */}
           <DataTable
             title="Member Institutional Registry (Live Database)"
-            subtitle="Operational status across all 4 VET schools"
+            subtitle="Operational status across live VET schools"
             columns={columns}
-            data={VANI_TRUST_INSTITUTIONS}
+            data={institutionsList.length > 0 ? institutionsList : VANI_TRUST_INSTITUTIONS}
           />
         </div>
       )}
