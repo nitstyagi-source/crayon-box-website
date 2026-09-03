@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Users, Plus, Search, Filter, Mail, Phone, GraduationCap, 
   Award, ShieldCheck, Edit3, Trash2, X, Check, LayoutGrid, 
   Table as TableIcon, Sparkles, BookOpen, Star, UserCheck, 
   ExternalLink, Building2, Briefcase, FileText, ChevronRight,
   Clock, AlertCircle, ArrowRight, ShieldAlert, Heart, Activity,
-  Archive, RotateCcw, CheckCheck, UserMinus, ArrowRightLeft
+  Archive, RotateCcw, CheckCheck, UserMinus, ArrowRightLeft, Calendar
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
 import { 
@@ -23,6 +24,7 @@ import { getManagementExecutiveDashboard } from "@/app/actions/faculty-enterpris
 import { getClasses } from "@/app/actions/classes";
 import FileUpload from "@/components/admin/FileUpload";
 import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
+import { SchoolCalendarDesk } from "../calendar/page";
 import { 
   DESIGNATION_GROUPS, 
   DEPARTMENTS_LIST, 
@@ -54,8 +56,23 @@ const WINGS = [
   "Administration"
 ];
 
-export default function FacultyAdminDashboard() {
+function FacultyAdminContent() {
   const { activeCampusId } = useCampusContext();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = (searchParams.get('tab') || 'directory').toLowerCase();
+  const [pageTab, setPageTab] = useState<'DIRECTORY' | 'CALENDAR' | 'WORKLOAD'>(
+    tabParam === 'calendar' ? 'CALENDAR' :
+    tabParam === 'workload' ? 'WORKLOAD' : 'DIRECTORY'
+  );
+
+  const handlePageTabChange = (tab: 'DIRECTORY' | 'CALENDAR' | 'WORKLOAD') => {
+    setPageTab(tab);
+    const paramMap = { DIRECTORY: 'directory', CALENDAR: 'calendar', WORKLOAD: 'workload' };
+    router.replace(`/admin/faculty?tab=${paramMap[tab]}`, { scroll: false });
+  };
+
   const [faculty, setFaculty] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [execKpis, setExecKpis] = useState<any>(null);
@@ -429,31 +446,37 @@ export default function FacultyAdminDashboard() {
       {/* Option 6 Sattva-Digital Header Banner */}
       <VastuModuleBanner
         badgeText="Faculty & Staff LifeCycle"
-        badgeIcon={<Users className="w-3.5 h-3.5" />}
-        institutionText="Academic Session 2026-2027"
-        title="Faculty & Staff Command Hub"
-        titleIcon={<GraduationCap className="w-7 h-7 text-amber-300" />}
-        description="Central profile, biometric, and workflow system for teachers, coordinators, administrators, and support staff."
+        badgeIcon={<Users className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText="Academic Session 2026–2027"
+        title="Faculty Directory & Academic Calendar"
+        titleIcon={<GraduationCap className="w-7 h-7 text-[#D97706]" />}
+        description="Unified faculty command center uniting Faculty & Staff Master Directory, Police Verification, CBSE Academic Calendar, Automated WhatsApp Birthday Wishes, and Workload Distribution."
         actions={
           <>
-            <Link
-              href="/admin/faculty/substitutions"
-              className="bg-white hover:bg-[#FAF7F2] text-stone-700 font-bold px-4 py-2.5 rounded-2xl text-xs border border-[#E8DFC8] flex items-center gap-1.5 shadow-2xs transition"
-            >
-              <Sparkles className="w-4 h-4 text-[#D97706]" /> Smart Substitution Hub
-            </Link>
             <button
               onClick={handleOpenAdd}
-              className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black px-5 py-2.5 rounded-2xl text-xs shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              className="bg-[#D97706] hover:bg-[#B45309] text-white font-black px-5 py-2.5 rounded-2xl text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
             >
-              <Plus className="w-4 h-4 text-stone-950" /> Onboard Employee
+              <Plus className="w-4 h-4 text-white" /> Onboard Employee
             </button>
           </>
         }
+        tabs={[
+          { id: 'DIRECTORY', label: '1. Faculty Staff Directory', icon: <Users className="w-4 h-4 text-blue-600" />, count: faculty.length },
+          { id: 'CALENDAR', label: '2. Academic & Exam Calendar', icon: <Calendar className="w-4 h-4 text-amber-600" /> },
+          { id: 'WORKLOAD', label: '3. Teaching Workload & KPIs', icon: <Building2 className="w-4 h-4 text-emerald-600" /> },
+        ]}
+        activeTab={pageTab}
+        onTabChange={(id) => handlePageTabChange(id as any)}
       />
 
-      {/* 21. PRINCIPAL / MANAGEMENT EXECUTIVE DASHBOARD TABLE */}
-      {execKpis && (
+      {pageTab === 'CALENDAR' && (
+        <div className="animate-in fade-in duration-200">
+          <SchoolCalendarDesk />
+        </div>
+      )}
+
+      {pageTab === 'WORKLOAD' && execKpis && (
         <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden p-6 space-y-4">
           <div className="flex justify-between items-center border-b border-stone-100 pb-3">
             <h3 className="font-black text-stone-900 text-base flex items-center gap-2">
@@ -516,6 +539,9 @@ export default function FacultyAdminDashboard() {
           </button>
         </div>
       )}
+
+      {pageTab === 'DIRECTORY' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
 
       {/* Top Status Switcher */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold no-scrollbar">
@@ -874,6 +900,10 @@ export default function FacultyAdminDashboard() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Close pageTab === DIRECTORY */}
+      </div>
       )}
 
       {/* Comprehensive Multi-Tab Staff Editor / Onboarding Modal */}
@@ -1576,5 +1606,13 @@ export default function FacultyAdminDashboard() {
       )}
 
     </div>
+  );
+}
+
+export default function FacultyAdminDashboard() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500 font-bold">Loading Faculty &amp; Academic Calendar Hub...</div>}>
+      <FacultyAdminContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   Shuffle, Users, UserCheck, AlertTriangle, Clock,
   ArrowRight, ArrowLeft, RefreshCw, Sparkles, CheckCircle2,
@@ -20,7 +21,7 @@ import {
   autoAssignAllSubstitutionsAction
 } from '@/app/actions/faculty-substitution-actions';
 
-export default function FacultySubstitutionEnginePage() {
+export function FacultySubstitutionEngineDesk() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -458,4 +459,8 @@ export default function FacultySubstitutionEnginePage() {
 
     </div>
   );
+}
+
+export default function FacultySubstitutionEnginePage() {
+  redirect('/admin/timetable?tab=substitutions');
 }

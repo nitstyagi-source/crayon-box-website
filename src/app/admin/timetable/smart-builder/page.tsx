@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { redirect } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -23,8 +24,13 @@ import {
   sendTimetableToParentsWhatsAppAction,
   TimetablePeriodSlot
 } from "@/app/actions/smart-timetable-actions";
+import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
 
-export default function SmartTimetableBuilderPage() {
+export function SmartTimetableBuilderDesk() {
+  const [availableClasses, setAvailableClasses] = useState<string[]>([
+    "Nursery", "LKG", "UKG", "Class 1", "Class 2", "Class 3",
+    "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
+  ]);
   const [selectedClass, setSelectedClass] = useState("Class 1");
   const [academicSession, setAcademicSession] = useState("2026–2027");
   const [slots, setSlots] = useState<TimetablePeriodSlot[]>([]);
@@ -36,10 +42,22 @@ export default function SmartTimetableBuilderPage() {
   const [selectedSlot, setSelectedSlot] = useState<TimetablePeriodSlot | null>(null);
   const [substituteTeacher, setSubstituteTeacher] = useState("Mr. Amit Kumar (Computer Science)");
 
-  const availableClasses = [
-    "Nursery", "LKG", "UKG", "Class 1", "Class 2", "Class 3",
-    "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
-  ];
+  useEffect(() => {
+    async function loadDynamicClasses() {
+      try {
+        const res = await getInstitutionClassesAction('CBS');
+        if (res.success && res.classes && res.classes.length > 0) {
+          setAvailableClasses(res.classes as string[]);
+          if (!res.classes.includes(selectedClass)) {
+            setSelectedClass((res.classes as string[])[0]);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching dynamic classes for timetable solver:', e);
+      }
+    }
+    loadDynamicClasses();
+  }, []);
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const periods = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -322,4 +340,8 @@ export default function SmartTimetableBuilderPage() {
 
     </div>
   );
+}
+
+export default function SmartTimetableBuilderPage() {
+  redirect('/admin/timetable?tab=solver');
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   BookOpen, Layers, CheckCircle2, AlertTriangle, TrendingUp,
   Sparkles, Download, ArrowRight, ExternalLink, Filter, BarChart3,
   RefreshCw, Search, Eye, Plus, Check, Clock, ShieldAlert,
   GraduationCap, UserCheck, X, FileText, ChevronRight, Settings,
-  Calendar, Award, Target, HelpCircle, ArrowUpRight
+  Calendar, Award, Target, HelpCircle, ArrowUpRight, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -15,6 +16,11 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
+import { TeacherLessonDiaryDesk } from '../lesson-diary/page';
+import { InteractiveHomeworkLMSDesk } from '../academic/homework/page';
+import { HomeworkAnnotationDesk } from '@/components/innovations/HomeworkAnnotationDesk';
 import {
   getCurriculumRadarAction,
   getSubjectChaptersAction,
@@ -30,13 +36,6 @@ import {
   CurriculumTerm
 } from '@/app/actions/curriculum-radar-actions';
 
-const ALL_CLASSES = [
-  'All',
-  'Pre-Nursery', 'Nursery', 'LKG', 'UKG',
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-  'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-];
-
 const ASSESSMENT_MILESTONES = [
   'ALL',
   'FA-1 (Periodic Test 1)',
@@ -47,9 +46,45 @@ const ASSESSMENT_MILESTONES = [
   'SA-2 (Annual Final Exam)'
 ];
 
-export default function CurriculumRadarPage() {
+function CurriculumRadarContent() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const activeInst = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = (searchParams.get('tab') || 'radar').toLowerCase();
+  const [activeTab, setActiveTab] = useState<'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING'>(
+    tabParam === 'diary' ? 'DIARY' :
+    tabParam === 'homework' ? 'HOMEWORK' :
+    tabParam === 'grading' ? 'GRADING' : 'RADAR'
+  );
+
+  const [dynamicClasses, setDynamicClasses] = useState<string[]>([
+    'All', 'Pre-Nursery', 'Nursery', 'LKG', 'UKG',
+    'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+    'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'
+  ]);
+
+  // Load dynamic classes
+  useEffect(() => {
+    async function loadClasses() {
+      try {
+        const res = await getInstitutionClassesAction(activeInst);
+        if (res.success && res.classes && res.classes.length > 0) {
+          setDynamicClasses(['All', ...(res.classes as string[])]);
+        }
+      } catch (e) {
+        console.error('Error fetching classes for curriculum:', e);
+      }
+    }
+    loadClasses();
+  }, [activeInst]);
+
+  const handleTabChange = (tab: 'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING') => {
+    setActiveTab(tab);
+    const paramMap = { RADAR: 'radar', DIARY: 'diary', HOMEWORK: 'homework', GRADING: 'grading' };
+    router.replace(`/admin/curriculum?tab=${paramMap[tab]}`, { scroll: false });
+  };
 
   const [subjects, setSubjects] = useState<CurriculumSubjectRadarItem[]>([]);
   const [metrics, setMetrics] = useState<CurriculumRadarMetrics | null>(null);
@@ -360,62 +395,69 @@ export default function CurriculumRadarPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-20">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-purple-500/30 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              Holistic &amp; NEP 2020 Competency Radar
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-emerald-300 text-xs font-semibold">
-              {activeInst} • Formative (FA 1–4) & Summative (SA 1–2) Terms
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-purple-400" />
-            Curriculum Delivery & Syllabus Completion Radar
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Term-wise syllabus breakdown, formative/summative milestone monitoring, interconnected with Teacher Lesson Diary and Academic Planning.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsTermModalOpen(true)}
-            className="bg-slate-800 text-purple-200 border-slate-700 hover:bg-slate-700 text-xs font-bold"
-            leftIcon={<Settings className="w-3.5 h-3.5 text-purple-400" />}
-          >
-            ⚙️ Terms & Assessment Milestones
-          </Button>
-
-          <Link href="/admin/lesson-diary">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-slate-800 text-indigo-200 border-slate-700 hover:bg-slate-700 text-xs font-bold"
-              leftIcon={<FileText className="w-3.5 h-3.5 text-indigo-400" />}
+      {/* Option 6 Sattva-Digital Vastu Header Banner */}
+      <VastuModuleBanner
+        badgeText="Academic Session 2026–2027"
+        badgeIcon={<BookOpen className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • Curriculum, Lesson Diary & Homework LMS`}
+        title="Curriculum, Lesson Diary & Homework LMS"
+        titleIcon={<BookOpen className="w-7 h-7 text-[#D97706]" />}
+        description="Unified academic teaching cockpit uniting Curriculum Pacing Radar, Teacher Lesson Planning Diary, Homework LMS Assignments, and Digital Ink Notebook Annotation."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRadar}
+              isLoading={isLoading}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
             >
-              Teacher Lesson Diary &rarr;
+              Sync Live DB
             </Button>
-          </Link>
+            {activeTab === 'RADAR' && (
+              <Button
+                variant="saffron"
+                size="sm"
+                onClick={() => setIsTermModalOpen(true)}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-md"
+                leftIcon={<Settings className="w-3.5 h-3.5" />}
+              >
+                Terms &amp; Milestones
+              </Button>
+            )}
+          </>
+        }
+        tabs={[
+          { id: 'RADAR', label: '1. Curriculum Pacing Radar', icon: <BookOpen className="w-4 h-4 text-purple-600" /> },
+          { id: 'DIARY', label: '2. Teacher Lesson Diary', icon: <FileText className="w-4 h-4 text-emerald-600" /> },
+          { id: 'HOMEWORK', label: '3. Homework & Assignments LMS', icon: <Send className="w-4 h-4 text-blue-600" /> },
+          { id: 'GRADING', label: '4. Digital Ink Annotation Desk', icon: <Award className="w-4 h-4 text-amber-600" /> },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(id) => handleTabChange(id as any)}
+      />
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchRadar}
-            isLoading={isLoading}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh Radar
-          </Button>
+      {activeTab === 'DIARY' && (
+        <div className="animate-in fade-in duration-200">
+          <TeacherLessonDiaryDesk />
         </div>
-      </div>
+      )}
+
+      {activeTab === 'HOMEWORK' && (
+        <div className="animate-in fade-in duration-200">
+          <InteractiveHomeworkLMSDesk />
+        </div>
+      )}
+
+      {activeTab === 'GRADING' && (
+        <div className="animate-in fade-in duration-200 bg-white/95 rounded-3xl border border-[#E8DFC8] p-6 shadow-xs">
+          <HomeworkAnnotationDesk />
+        </div>
+      )}
+
+      {activeTab === 'RADAR' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
 
       {/* Toast Feedback */}
       {toastMessage && (
@@ -634,7 +676,7 @@ export default function CurriculumRadarPage() {
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800"
           >
             <option value="All">All Grades (Specific)</option>
-            {ALL_CLASSES.filter(c => c !== 'All').map(c => (
+            {dynamicClasses.filter(c => c !== 'All').map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -1216,7 +1258,7 @@ export default function CurriculumRadarPage() {
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white"
                   >
                     <option value="All">🌐 All Classes (Global Session Setting)</option>
-                    {ALL_CLASSES.filter(c => c !== 'All').map(c => (
+                    {dynamicClasses.filter(c => c !== 'All').map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -1818,6 +1860,18 @@ export default function CurriculumRadarPage() {
         </div>
       )}
 
+      {/* Close RADAR tab wrapper */}
+      </div>
+      )}
+
     </div>
+  );
+}
+
+export default function CurriculumRadarPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500 font-bold">Loading Curriculum &amp; LMS Hub...</div>}>
+      <CurriculumRadarContent />
+    </Suspense>
   );
 }

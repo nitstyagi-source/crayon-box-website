@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Calendar, Clock, BookOpen, Users, UserCheck,
   RefreshCw, Filter, Sparkles, Building2, CheckCircle2,
   Settings, AlertTriangle, ShieldCheck, Plus, Edit2,
   Trash2, X, ArrowRight, Heart, Sparkle, Layers, Check,
   ArrowUp, ArrowDown, MoveVertical, Coffee, UtensilsCrossed,
-  Sun, Bell, Zap, Sliders
+  Sun, Bell, Zap, Sliders, Shuffle, Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -16,6 +17,10 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
+import { SmartTimetableBuilderDesk } from './smart-builder/page';
+import { FacultySubstitutionEngineDesk } from '../faculty/substitutions/page';
 import {
   getTimetableSettingsAction,
   saveTimetableSettingsAction,
@@ -58,9 +63,40 @@ const STANDARD_SUBJECTS_EARLY = [
   'General Knowledge (GK)'
 ];
 
-export default function MasterTimetablePage() {
+function MasterTimetableContent() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const activeInst = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = (searchParams.get('tab') || 'grid').toLowerCase();
+  const [activeTab, setActiveTab] = useState<'GRID' | 'SOLVER' | 'PROXIES' | 'SETTINGS'>(
+    tabParam === 'solver' ? 'SOLVER' :
+    tabParam === 'substitutions' || tabParam === 'proxies' ? 'PROXIES' :
+    tabParam === 'settings' ? 'SETTINGS' : 'GRID'
+  );
+
+  const [dynamicGrades, setDynamicGrades] = useState<string[]>(ALL_GRADES);
+
+  useEffect(() => {
+    async function loadClasses() {
+      try {
+        const res = await getInstitutionClassesAction(activeInst);
+        if (res.success && res.classes && res.classes.length > 0) {
+          setDynamicGrades(res.classes as string[]);
+        }
+      } catch (e) {
+        console.error('Error loading timetable classes:', e);
+      }
+    }
+    loadClasses();
+  }, [activeInst]);
+
+  const handleTabChange = (tab: 'GRID' | 'SOLVER' | 'PROXIES' | 'SETTINGS') => {
+    setActiveTab(tab);
+    const paramMap = { GRID: 'grid', SOLVER: 'solver', PROXIES: 'substitutions', SETTINGS: 'settings' };
+    router.replace(`/admin/timetable?tab=${paramMap[tab]}`, { scroll: false });
+  };
 
   const [selectedGrade, setSelectedGrade] = useState('Class 1');
   const [selectedSection, setSelectedSection] = useState('A');
@@ -507,85 +543,61 @@ export default function MasterTimetablePage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans pb-20">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-              Master Academic Timetable & Schedule Engine
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-emerald-300 text-xs font-semibold">
-              {activeInst} • {workingDays.length}-Day Week ({workingDays.join(', ')})
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Clock className="w-8 h-8 text-indigo-400" />
-            Class Timetable & Conflict-Free Period Manager
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Customize individual period timings, configure breaks & assembly, assign Mother Teachers, and auto-generate clash-free schedules.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          
-          {/* 🌟 CUSTOMIZE PERIOD TIMINGS BUTTON */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleOpenPeriodCustomizer()}
-            className="bg-indigo-950/80 text-indigo-200 border-indigo-700/70 hover:bg-indigo-900 text-xs font-black shadow-xs"
-            leftIcon={<Sliders className="w-3.5 h-3.5 text-indigo-400" />}
-          >
-            ⏰ Customize Period Timings ({regularPeriodCount}P • {breakCount}B)
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsSettingsOpen(true)}
-            className="bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 text-xs font-bold"
-            leftIcon={<Settings className="w-3.5 h-3.5 text-slate-300" />}
-          >
-            ⚙️ Timetable Settings
-          </Button>
-
-          {isCurrentEarlyGrade && (
+      {/* Option 6 Sattva-Digital Vastu Header Banner */}
+      <VastuModuleBanner
+        badgeText="Statutory Institutional Schedule"
+        badgeIcon={<Clock className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • ${workingDays.length}-Day Week • Session 2026–2027`}
+        title="Timetable, Smart Solver & Substitutions Hub"
+        titleIcon={<Clock className="w-7 h-7 text-[#D97706]" />}
+        description="Master timetable command center uniting Class & Room Schedule Grids, AI Conflict-Free Solver, Morning Absent Teacher Proxy Substitutions, and Bell Timings."
+        actions={
+          <>
             <Button
-              size="sm"
               variant="outline"
-              onClick={() => setIsMotherTeacherOpen(true)}
-              className="bg-rose-950/80 text-rose-200 border-rose-800 hover:bg-rose-900 text-xs font-bold"
-              leftIcon={<Heart className="w-3.5 h-3.5 text-rose-400" />}
+              size="sm"
+              onClick={fetchTimetable}
+              isLoading={isLoading}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
             >
-              👩‍🏫 Mother Teacher Setup
+              Sync Live DB
             </Button>
-          )}
+            <Button
+              variant="saffron"
+              size="sm"
+              onClick={() => handleOpenPeriodCustomizer()}
+              className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-md"
+              leftIcon={<Sliders className="w-3.5 h-3.5" />}
+            >
+              Period Timings ({regularPeriodCount}P)
+            </Button>
+          </>
+        }
+        tabs={[
+          { id: 'GRID', label: '1. Master Class & Room Grid', icon: <Calendar className="w-4 h-4 text-blue-600" /> },
+          { id: 'SOLVER', label: '2. AI Smart Conflict-Free Solver', icon: <Sparkles className="w-4 h-4 text-amber-600" /> },
+          { id: 'PROXIES', label: '3. Daily Teacher Substitutions', icon: <Shuffle className="w-4 h-4 text-emerald-600" /> },
+          { id: 'SETTINGS', label: '4. Bell Timings & Config', icon: <Settings className="w-4 h-4 text-stone-600" /> },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(id) => handleTabChange(id as any)}
+      />
 
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => setIsAutoGenerateOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/20"
-            leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-300" />}
-          >
-            ⚡ Auto-Generate
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={fetchTimetable}
-            isLoading={isLoading}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh
-          </Button>
+      {activeTab === 'SOLVER' && (
+        <div className="animate-in fade-in duration-200">
+          <SmartTimetableBuilderDesk />
         </div>
-      </div>
+      )}
+
+      {activeTab === 'PROXIES' && (
+        <div className="animate-in fade-in duration-200">
+          <FacultySubstitutionEngineDesk />
+        </div>
+      )}
+
+      {(activeTab === 'GRID' || activeTab === 'SETTINGS') && (
+        <div className="space-y-6 animate-in fade-in duration-200">
 
       {/* Toast Feedback */}
       {feedback && (
@@ -609,7 +621,7 @@ export default function MasterTimetablePage() {
               onChange={(e) => setSelectedGrade(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             >
-              {ALL_GRADES.map(g => (
+              {dynamicGrades.map(g => (
                 <option key={g} value={g}>{g}</option>
               ))}
             </select>
@@ -1460,6 +1472,18 @@ export default function MasterTimetablePage() {
         </div>
       )}
 
+      {/* Close GRID & SETTINGS tab wrapper */}
+      </div>
+      )}
+
     </div>
+  );
+}
+
+export default function MasterTimetablePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500 font-bold">Loading Master Timetable Hub...</div>}>
+      <MasterTimetableContent />
+    </Suspense>
   );
 }

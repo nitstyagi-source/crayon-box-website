@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { redirect } from "next/navigation";
 import { 
   Calendar as CalendarIcon, Clock, MapPin, Users, 
   BookOpen, Trophy, Sparkles, Award, Bell, Plus, 
@@ -39,7 +40,7 @@ const EVENT_TYPES = [
 
 const ALL_CLASSES = ["All", "Grade 5", "Grade 4", "Grade 3", "Grade 2", "Grade 1", "UKG", "Nursery"];
 
-export default function SchoolCalendarPage() {
+export function SchoolCalendarDesk() {
   const { activeCampusId } = useCampusContext();
 
   // Simple ERP Menu Sub-tabs
@@ -2159,4 +2160,8 @@ export default function SchoolCalendarPage() {
 
     </div>
   );
+}
+
+export default function SchoolCalendarPage() {
+  redirect('/admin/faculty?tab=calendar');
 }

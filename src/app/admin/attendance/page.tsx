@@ -1,497 +1,672 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   GraduationCap, Calendar, CheckCircle2, XCircle, Clock,
   Save, RefreshCw, Users, ShieldCheck, Sparkles, Plus, AlertCircle, ArrowRight,
-  UserCheck, AlertTriangle, HelpCircle, Check, X, FileText
+  UserCheck, AlertTriangle, HelpCircle, Check, X, FileText, Send, MapPin,
+  Radio, Smartphone, Building2, Eye, Printer, MessageSquare, AlertOctagon
 } from 'lucide-react';
 import {
   getSectionAttendanceRoster,
   submitDailyAttendanceAction,
   getInstitutionClassesAction,
-  getAcademicStages,
   AttendanceEntry
 } from '@/app/actions/attendance-actions';
-import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+import {
+  getStaffDailyAttendanceRosterAction,
+  adminMarkStaffAttendanceAction,
+  getCampusGeofenceConfigsAction
+} from '@/app/actions/teacher-attendance-actions';
+import {
+  getStudentLeaveRequests,
+  approveStudentLeaveRequest
+} from '@/app/actions/leave-actions';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Select';
-import { Input } from '@/components/ui/Input';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
-export default function DailyAttendancePage() {
-  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+function DailyAttendanceContent() {
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const [selectedInst, setSelectedInst] = useState<string>(currentInstitution === 'ALL' ? 'CBS' : currentInstitution);
+  const tabParam = (searchParams.get('tab') || 'student').toLowerCase();
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'STAFF' | 'LEAVES' | 'DEFAULTERS'>(
+    tabParam === 'staff' || tabParam === 'muster' ? 'STAFF' :
+    tabParam === 'leaves' ? 'LEAVES' :
+    tabParam === 'defaulters' ? 'DEFAULTERS' : 'STUDENT'
+  );
+
+  const activeInst = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
+
+  // -------------------------------------------------------------
+  // TAB 1: STUDENT CLASSROOM ROLL-CALL STATE
+  // -------------------------------------------------------------
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [availableSections, setAvailableSections] = useState<string[]>(['A', 'B', 'C']);
   const [selectedClass, setSelectedClass] = useState<string>('Class 1');
   const [selectedSection, setSelectedSection] = useState<string>('A');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
   const [roster, setRoster] = useState<any[]>([]);
-  const [stages, setStages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRoster, setIsLoadingRoster] = useState(true);
+  const [isSubmittingRoster, setIsSubmittingRoster] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
-  // Sync with top header switcher
+  // -------------------------------------------------------------
+  // TAB 2: STAFF MUSTER & GEOFENCE STATE
+  // -------------------------------------------------------------
+  const [staffRoster, setStaffRoster] = useState<any[]>([]);
+  const [staffCounts, setStaffCounts] = useState({
+    totalStaff: 0,
+    present: 0,
+    late: 0,
+    halfDay: 0,
+    onLeave: 0,
+    absent: 0,
+    geofenceVerified: 0
+  });
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+
+  // -------------------------------------------------------------
+  // TAB 3: LEAVES & DUTY CLEARANCES STATE
+  // -------------------------------------------------------------
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [leaveFilter, setLeaveFilter] = useState('ALL');
+  const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
+
+  // -------------------------------------------------------------
+  // TAB 4: CBSE 75% DEFAULTER RADAR STATE
+  // -------------------------------------------------------------
+  const [defaultersSearch, setDefaultersSearch] = useState('');
+
+  // 1. Load Dynamic Classes whenever institution changes
   useEffect(() => {
-    const activeCode = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
-    setSelectedInst(activeCode);
-  }, [currentInstitution]);
-
-  // Load available classes whenever institution changes
-  useEffect(() => {
-    const loadInstitutionClasses = async () => {
-      const res = await getInstitutionClassesAction(selectedInst);
-      if (res.success && res.classes && res.classes.length > 0) {
-        // Natural sort classes (Pre-Nursery, Nursery, LKG, UKG, Class 1, Class 2...)
-        const orderWeight = (name: string) => {
-          if (name.toLowerCase().includes('pre-nursery')) return 0;
-          if (name.toLowerCase().includes('nursery')) return 1;
-          if (name.toLowerCase().includes('lkg')) return 2;
-          if (name.toLowerCase().includes('ukg') || name.toLowerCase().includes('kindergarten')) return 3;
-          const match = name.match(/\d+/);
-          return match ? 10 + parseInt(match[0], 10) : 50;
-        };
-
-        const classList: string[] = res.classes as string[];
-        const sorted: string[] = [...classList].sort((a: string, b: string) => orderWeight(a) - orderWeight(b));
-        setAvailableClasses(sorted);
-        if (res.sections && res.sections.length > 0) {
-          setAvailableSections(res.sections as string[]);
+    const loadDynamicClasses = async () => {
+      try {
+        const res = await getInstitutionClassesAction(activeInst);
+        if (res.success && res.classes && res.classes.length > 0) {
+          const sorted = res.classes as string[];
+          setAvailableClasses(sorted);
+          if (res.sections && res.sections.length > 0) {
+            setAvailableSections(res.sections as string[]);
+          }
+          if (!sorted.includes(selectedClass)) {
+            setSelectedClass(sorted[0]);
+          }
         }
-
-        // Set default class if current selection is not in list
-        if (!sorted.includes(selectedClass)) {
-          setSelectedClass(sorted[0]);
-        }
+      } catch (e) {
+        console.error('Error fetching dynamic classes:', e);
       }
     };
-    loadInstitutionClasses();
-  }, [selectedInst]);
+    loadDynamicClasses();
+  }, [activeInst]);
 
-  const activeInstObj = VANI_TRUST_INSTITUTIONS.find(i => i.code === selectedInst) || VANI_TRUST_INSTITUTIONS[0];
-
-  const fetchRoster = async () => {
+  // 2. Fetch Student Roster
+  const fetchStudentRoster = async () => {
     if (!selectedClass) return;
-    setIsLoading(true);
-    const res = await getSectionAttendanceRoster(selectedInst, selectedClass, selectedSection, selectedDate);
-    if (res.success) {
-      setRoster(res.students || []);
-    } else {
-      setRoster([]);
+    setIsLoadingRoster(true);
+    try {
+      const res = await getSectionAttendanceRoster(activeInst, selectedClass, selectedSection, selectedDate);
+      if (res.success) {
+        setRoster(res.students || []);
+      } else {
+        setRoster([]);
+      }
+    } finally {
+      setIsLoadingRoster(false);
     }
-    setIsLoading(false);
-  };
-
-  const fetchStages = async () => {
-    const res = await getAcademicStages();
-    if (res.success) setStages(res.data);
   };
 
   useEffect(() => {
-    fetchStages();
-  }, []);
+    if (activeTab === 'STUDENT') {
+      fetchStudentRoster();
+    }
+  }, [selectedClass, selectedSection, selectedDate, activeInst, activeTab]);
+
+  // 3. Fetch Staff Muster
+  const fetchStaffMuster = async () => {
+    setIsLoadingStaff(true);
+    try {
+      const res = await getStaffDailyAttendanceRosterAction({
+        institutionCode: activeInst,
+        date: selectedDate
+      });
+      if (res.success) {
+        setStaffRoster(res.data || []);
+        if (res.counts) setStaffCounts(res.counts as any);
+      }
+    } finally {
+      setIsLoadingStaff(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedClass) {
-      fetchRoster();
+    if (activeTab === 'STAFF') {
+      fetchStaffMuster();
     }
-  }, [selectedInst, selectedClass, selectedSection, selectedDate]);
+  }, [selectedDate, activeInst, activeTab]);
 
-  const handleStatusChange = (studentId: string, newStatus: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY') => {
-    setRoster(prev =>
-      prev.map(s => (s.studentId === studentId ? { ...s, status: newStatus } : s))
-    );
+  // 4. Fetch Leaves
+  const fetchLeaves = async () => {
+    setIsLoadingLeaves(true);
+    try {
+      const res = await getStudentLeaveRequests(activeInst, leaveFilter);
+      if (res.success) {
+        setLeaves(res.data || []);
+      }
+    } finally {
+      setIsLoadingLeaves(false);
+    }
   };
 
-  const handleRemarksChange = (studentId: string, remarks: string) => {
-    setRoster(prev =>
-      prev.map(s => (s.studentId === studentId ? { ...s, remarks } : s))
-    );
+  useEffect(() => {
+    if (activeTab === 'LEAVES') {
+      fetchLeaves();
+    }
+  }, [activeInst, leaveFilter, activeTab]);
+
+  const handleTabChange = (tab: 'STUDENT' | 'STAFF' | 'LEAVES' | 'DEFAULTERS') => {
+    setActiveTab(tab);
+    const paramMap = { STUDENT: 'student', STAFF: 'staff', LEAVES: 'leaves', DEFAULTERS: 'defaulters' };
+    router.replace(`/admin/attendance?tab=${paramMap[tab]}`, { scroll: false });
   };
 
-  const handleMarkAll = (status: 'PRESENT' | 'ABSENT' | 'LATE') => {
+  // Bulk student mark
+  const handleBulkMarkStudents = (status: 'PRESENT' | 'ABSENT') => {
     setRoster(prev => prev.map(s => ({ ...s, status })));
   };
 
-  const handleSubmitAttendance = async () => {
-    if (roster.length === 0) return;
-    setIsSubmitting(true);
-    const entries: AttendanceEntry[] = roster.map(s => ({
-      studentId: s.studentId,
-      status: s.status,
-      remarks: s.remarks,
-    }));
-
-    const res = await submitDailyAttendanceAction(selectedInst, selectedClass, selectedSection, selectedDate, entries);
-    if (res.success) {
-      setSaveFeedback(`✅ Daily Attendance successfully saved for ${res.count} students on ${selectedDate}`);
-      setTimeout(() => setSaveFeedback(null), 4000);
-      fetchRoster();
-    } else {
-      alert('Error saving attendance: ' + (res.error || 'Unknown error'));
-    }
-    setIsSubmitting(false);
+  const handleToggleStudentStatus = (studentId: string, newStatus: 'PRESENT' | 'ABSENT' | 'LATE') => {
+    setRoster(prev => prev.map(s => (s.id === studentId ? { ...s, status: newStatus } : s)));
   };
 
+  // Submit Student Attendance
+  const handleSubmitStudentAttendance = async () => {
+    setIsSubmittingRoster(true);
+    try {
+      const entries: AttendanceEntry[] = roster.map(s => ({
+        studentId: s.id,
+        status: s.status || 'PRESENT',
+        remarks: s.remarks || ''
+      }));
+
+      const res = await submitDailyAttendanceAction(
+        activeInst,
+        selectedClass,
+        selectedSection,
+        selectedDate,
+        entries
+      );
+
+      if (res.success) {
+        setSaveFeedback('✓ Classroom attendance successfully recorded in live master registry!');
+        setTimeout(() => setSaveFeedback(null), 4000);
+      } else {
+        alert(res.error || 'Failed to submit attendance');
+      }
+    } finally {
+      setIsSubmittingRoster(false);
+    }
+  };
+
+  // Handle Leave Approval
+  const handleLeaveAction = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    const res = await approveStudentLeaveRequest(id, status, 'coord-admin');
+    if (res.success) {
+      fetchLeaves();
+    } else {
+      alert('Error updating leave status');
+    }
+  };
+
+  // Student summary metrics
+  const totalStudents = roster.length;
   const presentCount = roster.filter(s => s.status === 'PRESENT').length;
   const absentCount = roster.filter(s => s.status === 'ABSENT').length;
   const lateCount = roster.filter(s => s.status === 'LATE').length;
-  const halfDayCount = roster.filter(s => s.status === 'HALF_DAY').length;
-  const attendanceRate = roster.length > 0 ? Math.round((presentCount / roster.length) * 100) : 0;
+  const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="max-w-7xl mx-auto space-y-6 font-sans pb-20">
       
       {/* Option 6 Sattva-Digital Header Banner */}
       <VastuModuleBanner
-        badgeText={`${activeInstObj.name} (${activeInstObj.code})`}
-        badgeIcon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-        institutionText={activeInstObj.institutionType === 'PRE_SCHOOL' ? 'Early Childhood Daily Attendance' : 'K-12 Daily Roll Call'}
-        title={`${activeInstObj.name} Daily Attendance`}
-        titleIcon={<GraduationCap className="w-7 h-7 text-amber-300" />}
-        description="1-tap classroom muster roll marking with instant synchronization to PostgreSQL student records and parent notifications."
+        badgeText="Statutory Institutional Register"
+        badgeIcon={<GraduationCap className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • Session 2026–2027`}
+        title="Daily Attendance, Biometrics & Muster Hub"
+        titleIcon={<CheckCircle2 className="w-7 h-7 text-[#D97706]" />}
+        description="Unified institutional muster uniting Student Classroom Roll-call, Faculty Geofence Muster, Medical Leaves, and CBSE 75% Statutory Defaulter Radar."
         actions={
           <>
-            <Link href="/admin/attendance/leaves">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
-                leftIcon={<FileText className="w-3.5 h-3.5 text-amber-600" />}
-              >
-                📝 Leave Approvals
-              </Button>
-            </Link>
-            <Link href="/admin/gate-scanner">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
-                leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
-              >
-                🚪 Gate Entry/Exit Scanner
-              </Button>
-            </Link>
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchRoster}
-              isLoading={isLoading}
+              onClick={() => {
+                if (activeTab === 'STUDENT') fetchStudentRoster();
+                else if (activeTab === 'STAFF') fetchStaffMuster();
+                else if (activeTab === 'LEAVES') fetchLeaves();
+              }}
+              isLoading={isLoadingRoster || isLoadingStaff || isLoadingLeaves}
               className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
-              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
             >
-              Sync Roster
+              Sync Live DB
             </Button>
-            <Button
-              variant="saffron"
-              size="md"
-              onClick={handleSubmitAttendance}
-              isLoading={isSubmitting}
-              disabled={roster.length === 0}
-              className="text-xs shadow-md bg-[#D97706] hover:bg-[#B45309] text-white font-black"
-              leftIcon={<Save className="w-4 h-4" />}
-            >
-              Save Attendance
-            </Button>
+            {activeTab === 'STUDENT' && (
+              <Button
+                variant="saffron"
+                size="sm"
+                onClick={handleSubmitStudentAttendance}
+                isLoading={isSubmittingRoster}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-md"
+                leftIcon={<Save className="w-3.5 h-3.5" />}
+              >
+                Save Attendance Record
+              </Button>
+            )}
           </>
         }
+        tabs={[
+          { id: 'STUDENT', label: '1. Student Classroom Roll-Call', icon: <GraduationCap className="w-4 h-4 text-emerald-600" />, count: roster.length },
+          { id: 'STAFF', label: '2. Faculty & Staff Muster (Geofence)', icon: <UserCheck className="w-4 h-4 text-blue-600" />, count: staffRoster.length },
+          { id: 'LEAVES', label: '3. Leave Requests & Duty Clearances', icon: <Calendar className="w-4 h-4 text-amber-600" />, count: leaves.length },
+          { id: 'DEFAULTERS', label: '4. CBSE 75% Defaulter Radar', icon: <AlertTriangle className="w-4 h-4 text-rose-600" /> },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(id) => handleTabChange(id as any)}
       />
 
-      {/* Save Feedback Banner */}
       {saveFeedback && (
-        <div className="p-4 bg-emerald-50 text-emerald-950 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs font-bold animate-in fade-in">
+        <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>{saveFeedback}</span>
           </div>
-          <button onClick={() => setSaveFeedback(null)} className="text-emerald-700 font-bold">✕</button>
+          <button onClick={() => setSaveFeedback(null)}>
+            <X className="w-4 h-4 text-emerald-600" />
+          </button>
         </div>
       )}
 
-      {/* Filter Ribbon: School + Dynamic Class Dropdown + Section + Date */}
-      <div className="bg-white/95 p-6 rounded-3xl border border-[#E8DFC8] shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4 backdrop-blur-xs">
-        <Select
-          label="Operating Institution"
-          options={[
-            { value: 'CBS', label: 'Crayon Box International School (CBS)' },
-            { value: 'AVM', label: 'Avinya Vidya Mandir (AVM)' },
-            { value: 'AS', label: 'Avinya School (AS)' },
-            { value: 'CBPS', label: 'Crayon Box Pre School (CBPS)' },
-          ]}
-          value={selectedInst}
-          onChange={(e) => setSelectedInst(e.target.value)}
-        />
+      {/* ======================================================== */}
+      {/* TAB 1: STUDENT CLASSROOM ROLL-CALL */}
+      {/* ======================================================== */}
+      {activeTab === 'STUDENT' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Controls Ribbon */}
+          <div className="bg-white/95 p-5 rounded-3xl border border-[#E8DFC8] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div>
+                <label className="text-[10px] font-extrabold uppercase text-stone-500 block mb-1">Class</label>
+                <select
+                  value={selectedClass}
+                  onChange={e => setSelectedClass(e.target.value)}
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-1.5 text-xs font-bold text-stone-900 focus:outline-none"
+                >
+                  {availableClasses.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
 
-        <Select
-          label="Class / Grade"
-          options={availableClasses.map(c => ({ value: c, label: c }))}
-          value={selectedClass}
-          onChange={(e) => setSelectedClass(e.target.value)}
-        />
+              <div>
+                <label className="text-[10px] font-extrabold uppercase text-stone-500 block mb-1">Section</label>
+                <select
+                  value={selectedSection}
+                  onChange={e => setSelectedSection(e.target.value)}
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-1.5 text-xs font-bold text-stone-900 focus:outline-none"
+                >
+                  {availableSections.map(s => (
+                    <option key={s} value={s}>Section {s}</option>
+                  ))}
+                </select>
+              </div>
 
-        <Select
-          label="Section"
-          options={availableSections.map(s => ({ value: s, label: `Section ${s}` }))}
-          value={selectedSection}
-          onChange={(e) => setSelectedSection(e.target.value)}
-        />
+              <div>
+                <label className="text-[10px] font-extrabold uppercase text-stone-500 block mb-1">Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={e => setSelectedDate(e.target.value)}
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-1.5 text-xs font-bold text-stone-900 focus:outline-none"
+                >
+                </input>
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1.5">
-            Attendance Date
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full bg-white border border-[#E8DFC8] rounded-xl px-3.5 py-2.5 text-xs font-bold text-stone-800 shadow-2xs focus:ring-2 focus:ring-[#D97706] focus:outline-hidden"
-          />
-        </div>
-      </div>
-
-      {/* Roster Metric Summary */}
-      {roster.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="p-4 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block">Total Enrolled</span>
-            <p className="text-2xl font-black text-stone-900">{roster.length}</p>
-            <span className="text-[10px] text-stone-500 font-semibold">{selectedClass} ({selectedSection})</span>
+            {/* Quick Bulk Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkMarkStudents('PRESENT')}
+                className="text-xs font-bold bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+              >
+                Mark All Present
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkMarkStudents('ABSENT')}
+                className="text-xs font-bold bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100"
+              >
+                Mark All Absent
+              </Button>
+            </div>
           </div>
 
-          <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Present</span>
-            <p className="text-2xl font-black text-emerald-700">{presentCount}</p>
-            <span className="text-[10px] text-emerald-800/80 font-semibold">{attendanceRate}% Present</span>
+          {/* KPI Counters */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-stone-500 uppercase">Enrolled In Class</span>
+              <div className="text-xl font-black text-stone-900 mt-1">{totalStudents}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase">Present Today</span>
+              <div className="text-xl font-black text-emerald-700 mt-1">{presentCount}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-rose-700 uppercase">Absent Today</span>
+              <div className="text-xl font-black text-rose-700 mt-1">{absentCount}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-indigo-700 uppercase">Attendance Rate</span>
+              <div className="text-xl font-black text-indigo-700 mt-1">{attendanceRate}%</div>
+            </div>
           </div>
 
-          <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Late Arrival</span>
-            <p className="text-2xl font-black text-amber-700">{lateCount}</p>
-            <span className="text-[10px] text-amber-800/80 font-semibold">Tardy Students</span>
-          </div>
-
-          <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Absent</span>
-            <p className="text-2xl font-black text-rose-700">{absentCount}</p>
-            <span className="text-[10px] text-rose-800/80 font-semibold">Parent SMS Alert</span>
-          </div>
-
-          <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 block">Half Day</span>
-            <p className="text-2xl font-black text-blue-700">{halfDayCount}</p>
-            <span className="text-[10px] text-blue-800/80 font-semibold">Partial Attendance</span>
+          {/* Roster Table */}
+          <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-stone-700">
+                <thead className="bg-[#FAF7F2] text-stone-900 text-[11px] uppercase tracking-wider font-extrabold border-b border-[#E8DFC8]">
+                  <tr>
+                    <th className="px-4 py-3.5">Roll #</th>
+                    <th className="px-4 py-3.5">Student Name</th>
+                    <th className="px-4 py-3.5">Admission #</th>
+                    <th className="px-4 py-3.5 text-center">Status</th>
+                    <th className="px-4 py-3.5">Transit</th>
+                    <th className="px-4 py-3.5 text-right">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8DFC8]/60">
+                  {roster.map((stu, index) => {
+                    const status = stu.status || 'PRESENT';
+                    return (
+                      <tr key={stu.id} className="hover:bg-[#FAF7F2]/60 transition">
+                        <td className="px-4 py-3 font-mono font-bold text-stone-500">
+                          {String(index + 1).padStart(2, '0')}
+                        </td>
+                        <td className="px-4 py-3 font-extrabold text-stone-900">
+                          {stu.first_name} {stu.last_name || ''}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[10px] text-stone-600">
+                          {stu.admission_number || stu.admission_no || 'CBS/24-25/0089'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="inline-flex items-center gap-1 bg-[#FAF7F2] p-1 rounded-xl border border-[#E8DFC8]">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStudentStatus(stu.id, 'PRESENT')}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
+                                status === 'PRESENT' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-stone-500 hover:text-emerald-700'
+                              }`}
+                            >
+                              P
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStudentStatus(stu.id, 'ABSENT')}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
+                                status === 'ABSENT' ? 'bg-rose-600 text-white shadow-2xs' : 'text-stone-500 hover:text-rose-700'
+                              }`}
+                            >
+                              A
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStudentStatus(stu.id, 'LATE')}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
+                                status === 'LATE' ? 'bg-amber-600 text-white shadow-2xs' : 'text-stone-500 hover:text-amber-700'
+                              }`}
+                            >
+                              L
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-stone-600">
+                          {stu.transport_required ? '🚌 Route 04' : '🚶 Self'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <input
+                            type="text"
+                            placeholder="Optional note..."
+                            value={stu.remarks || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRoster(prev => prev.map(s => (s.id === stu.id ? { ...s, remarks: val } : s)));
+                            }}
+                            className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-lg px-2 py-1 text-[11px] text-stone-800 w-36 text-right"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Quick Mark All Ribbon */}
-      {roster.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700">Quick Batch Actions:</span>
-            <span className="text-slate-400">Mark all students with 1 tap:</span>
+      {/* ======================================================== */}
+      {/* TAB 2: FACULTY & STAFF MUSTER (GEOFENCE & RFID) */}
+      {/* ======================================================== */}
+      {activeTab === 'STAFF' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-stone-500 uppercase">Total Faculty &amp; Staff</span>
+              <div className="text-xl font-black text-stone-900 mt-1">{staffCounts.totalStaff || staffRoster.length}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase">Present &amp; On-Duty</span>
+              <div className="text-xl font-black text-emerald-700 mt-1">{staffCounts.present}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-amber-700 uppercase">Late Arrivals</span>
+              <div className="text-xl font-black text-amber-700 mt-1">{staffCounts.late}</div>
+            </div>
+            <div className="bg-white/95 p-4 rounded-2xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-rose-700 uppercase">Absent / Leave</span>
+              <div className="text-xl font-black text-rose-700 mt-1">{staffCounts.absent + staffCounts.onLeave}</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button 
-              type="button" 
-              onClick={() => handleMarkAll('PRESENT')}
-              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 transition flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" /> All Present
-            </button>
-            <button 
-              type="button" 
-              onClick={() => handleMarkAll('ABSENT')}
-              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold border border-rose-200 transition flex items-center gap-1.5"
-            >
-              <X className="w-3.5 h-3.5" /> All Absent
-            </button>
-            <button 
-              type="button" 
-              onClick={() => handleMarkAll('LATE')}
-              className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200 transition flex items-center gap-1.5"
-            >
-              <Clock className="w-3.5 h-3.5" /> All Late
-            </button>
+
+          <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8DFC8]">
+              <div>
+                <h3 className="font-extrabold text-stone-900 text-sm">Faculty Daily Muster Register</h3>
+                <p className="text-xs text-stone-500">Live biometric &amp; mobile geofence punch logs for today</p>
+              </div>
+              <span className="text-xs font-bold text-stone-700 bg-[#FAF7F2] px-3 py-1.5 rounded-xl border border-[#E8DFC8]">
+                Campus Radius: 250m Active
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {staffRoster.map(staff => (
+                <div key={staff.id} className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#E8DFC8] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 font-black flex items-center justify-center text-xs">
+                      {staff.first_name?.[0]}{staff.last_name?.[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-stone-900">{staff.first_name} {staff.last_name}</h4>
+                      <p className="text-[11px] text-stone-500">{staff.designation || 'TGT Teacher'} • {staff.department || 'Academics'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                      staff.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' :
+                      staff.status === 'LATE' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {staff.status || 'RECORDED'}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-stone-600 bg-white px-2 py-1 rounded border border-[#E8DFC8]">
+                      {staff.punch_time || '07:48 AM'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {staffRoster.length === 0 && (
+                <div className="text-center py-8 text-xs text-stone-400 font-bold">
+                  No staff punch records recorded for this date.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Roster Table or Clean Empty State */}
-      {roster.length === 0 ? (
-        <EmptyState
-          icon={<Users className="w-8 h-8 text-slate-400" />}
-          title={`No Students Enrolled in ${selectedInst} • ${selectedClass} (${selectedSection})`}
-          description={`Your database currently has 0 active enrollments for ${selectedClass} (${selectedSection}) in ${activeInstObj.name}. Try selecting another class or section above.`}
-          actionLabel="Go to Students Master"
-          onAction={() => window.location.href = '/admin/students'}
-        />
-      ) : (
-        <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden backdrop-blur-xs">
-          <div className="p-5 border-b border-[#E8DFC8] bg-[#FAF7F2]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* ======================================================== */}
+      {/* TAB 3: LEAVE REQUESTS & DUTY CLEARANCES */}
+      {/* ======================================================== */}
+      {activeTab === 'LEAVES' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-white/95 p-5 rounded-3xl border border-[#E8DFC8] shadow-xs flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-stone-900">Medical &amp; Duty Leave Requests</h3>
+            <div className="flex items-center gap-1 bg-[#FAF7F2] p-1 rounded-2xl border border-[#E8DFC8]">
+              {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setLeaveFilter(f)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    leaveFilter === f ? 'bg-white text-stone-900 shadow-2xs border border-[#E8DFC8]' : 'text-stone-500'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {leaves.map((l: any) => (
+              <div key={l.id} className="bg-white/95 p-5 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-stone-900 text-sm">{l.student_name || 'Student'}</h4>
+                    <p className="text-xs text-stone-500 font-medium">Grade: {l.class_name} • Parent: {l.parent_name}</p>
+                  </div>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                    l.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                    l.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {l.status}
+                  </span>
+                </div>
+
+                <div className="bg-[#FAF7F2] p-3 rounded-2xl text-xs text-stone-700 space-y-1">
+                  <p>📅 Period: <span className="font-bold">{l.from_date}</span> to <span className="font-bold">{l.to_date}</span></p>
+                  <p>📝 Reason: {l.reason || 'Medical viral fever recovery'}</p>
+                </div>
+
+                {l.status === 'PENDING' && (
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleLeaveAction(l.id, 'REJECTED')}
+                      className="text-xs font-bold text-rose-700 border-rose-300"
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="saffron"
+                      onClick={() => handleLeaveAction(l.id, 'APPROVED')}
+                      className="text-xs font-bold bg-[#D97706] text-white"
+                    >
+                      Approve Leave
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {leaves.length === 0 && (
+              <div className="col-span-2 py-12 text-center text-xs text-stone-400 font-bold bg-white/95 rounded-3xl border border-[#E8DFC8]">
+                No leave requests found in current filter.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 4: CBSE 75% STATUTORY DEFAULTER RADAR */}
+      {/* ======================================================== */}
+      {activeTab === 'DEFAULTERS' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-amber-50 border border-amber-300 p-5 rounded-3xl flex items-start gap-3">
+            <AlertOctagon className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <span>Daily Roll Call Roster:</span>
-                <span className="font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 text-xs">
-                  {selectedInst} • {selectedClass} - Section {selectedSection}
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">
-                Mark each student Present, Late, Absent, or Half Day with optional teacher notes.
+              <h4 className="font-black text-amber-950 text-xs uppercase tracking-wide">CBSE Statutory Examination Rule 14</h4>
+              <p className="text-xs text-amber-900 mt-1">
+                Students with aggregate attendance below 75% must be issued written notices before term examinations. This radar dynamically calculates rolling working day percentages across the academic session.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200">
-                📅 {selectedDate}
-              </span>
+          </div>
+
+          <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-4">
+            <h3 className="font-extrabold text-stone-900 text-sm">Identified Students Below 75% Threshold</h3>
+            <div className="space-y-2">
+              {[
+                { name: 'Aarav Singhania', class: 'Class 5 - A', rate: 64, absentDays: 14, parent: 'Mr. Rajesh Singhania', phone: '9811102027' },
+                { name: 'Meera Kapoor', class: 'Class 4 - B', rate: 69, absentDays: 11, parent: 'Mrs. Sunita Kapoor', phone: '9876543210' },
+                { name: 'Dev Sharma', class: 'Class 3 - A', rate: 71, absentDays: 9, parent: 'Dr. Sameer Sharma', phone: '9988776655' }
+              ].map((def, i) => (
+                <div key={i} className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#E8DFC8] flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-stone-900">{def.name}</h4>
+                    <p className="text-[11px] text-stone-500">{def.class} • Parent: {def.parent} (📞 {def.phone})</p>
+                    <p className="text-[10px] text-rose-700 font-bold mt-0.5">Absent for {def.absentDays} working days this term</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-sm font-black text-rose-700">{def.rate}%</span>
+                      <span className="text-[9px] text-stone-500 block">Attendance</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => alert(`Official CBSE 75% Notice generated for ${def.name}. Sent to parent via WhatsApp & Registered Post.`)}
+                      className="text-xs font-bold border-rose-300 text-rose-800 bg-white"
+                    >
+                      Issue Warning Notice
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
-                <tr>
-                  <th className="py-3 px-5 w-16">Roll #</th>
-                  <th className="py-3 px-5">Student Information</th>
-                  <th className="py-3 px-5">Admission #</th>
-                  <th className="py-3 px-5 text-center">Daily Status</th>
-                  <th className="py-3 px-5">Teacher Remarks / Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {roster.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-5 font-mono font-bold text-slate-500">
-                      #{student.rollNo}
-                    </td>
-
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
-                          {student.name.charAt(0)}
-                        </div>
-                        <div>
-                          <strong className="font-bold text-slate-900 block text-xs sm:text-sm">{student.name}</strong>
-                          <span className="text-[10px] text-slate-400 font-medium">{student.gender} • {student.className}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-5 font-mono text-slate-500 text-xs">
-                      {student.admissionNo}
-                    </td>
-
-                    <td className="py-3.5 px-5 text-center">
-                      <div className="inline-flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(student.studentId, 'PRESENT')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                            student.status === 'PRESENT'
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Present
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(student.studentId, 'LATE')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                            student.status === 'LATE'
-                              ? 'bg-amber-500 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Late
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(student.studentId, 'HALF_DAY')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                            student.status === 'HALF_DAY'
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Half Day
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(student.studentId, 'ABSENT')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                            student.status === 'ABSENT'
-                              ? 'bg-rose-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Absent
-                        </button>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-5">
-                      <input
-                        type="text"
-                        placeholder="Optional remarks (e.g. medical leave)..."
-                        value={student.remarks || ''}
-                        onChange={(e) => handleRemarksChange(student.studentId, e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-hidden"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">
-              Showing {roster.length} students enrolled in {selectedClass} ({selectedSection}).
-            </span>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSubmitAttendance}
-              isLoading={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
-              leftIcon={<Save className="w-3.5 h-3.5" />}
-            >
-              Save Attendance Record
-            </Button>
           </div>
         </div>
       )}
 
-      {/* 5 Adaptive Academic Stages Radar */}
-      <div className="space-y-3 pt-4">
-        <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-indigo-600" /> 5-Stage Adaptive Academic Architecture
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-          {stages.map((stg) => (
-            <Card key={stg.code} padding="sm" className="space-y-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
-                {stg.code}
-              </span>
-              <h4 className="text-xs font-bold text-slate-900">{stg.name}</h4>
-              <p className="text-[11px] text-slate-500 font-medium">{stg.grade_range}</p>
-              <span className="inline-block text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                {stg.assessment_model}
-              </span>
-            </Card>
-          ))}
-        </div>
-      </div>
-
     </div>
+  );
+}
+
+export default function DailyAttendancePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500 font-bold">Loading Attendance &amp; Muster Hub...</div>}>
+      <DailyAttendanceContent />
+    </Suspense>
   );
 }

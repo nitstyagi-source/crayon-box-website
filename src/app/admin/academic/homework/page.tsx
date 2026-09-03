@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { redirect } from "next/navigation";
 import {
   BookOpen,
   Send,
@@ -22,12 +23,49 @@ import {
   HomeworkItem
 } from "@/app/actions/homework-lms-actions";
 
-export default function InteractiveHomeworkLMSPage() {
+import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
+import { getDistinctSubjectsAndChaptersAction } from "@/app/actions/curriculum-radar-actions";
+
+export function InteractiveHomeworkLMSDesk() {
+  const [availableClasses, setAvailableClasses] = useState<string[]>([
+    "Class 1", "Class 2", "Class 3", "Class 4", "Class 5",
+    "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
+  ]);
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([
+    "Mathematics", "English Literature", "Environmental Science (EVS)",
+    "Hindi Core", "Computer Applications", "General Science", "Social Studies"
+  ]);
   const [selectedClass, setSelectedClass] = useState("Class 1");
   const [homeworkList, setHomeworkList] = useState<HomeworkItem[]>([]);
   const [activeTab, setActiveTab] = useState<"assign" | "submissions" | "student_view">("assign");
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Load dynamic classes and subjects
+  useEffect(() => {
+    async function loadDynamicDropdowns() {
+      try {
+        const [classRes, subjRes] = await Promise.all([
+          getInstitutionClassesAction('CBS'),
+          getDistinctSubjectsAndChaptersAction('CBS')
+        ]);
+        if (classRes.success && classRes.classes && classRes.classes.length > 0) {
+          setAvailableClasses(classRes.classes as string[]);
+          if (!classRes.classes.includes(selectedClass)) {
+            setSelectedClass((classRes.classes as string[])[0]);
+          }
+        }
+        if (subjRes.success && subjRes.subjects && subjRes.subjects.length > 0) {
+          const names = subjRes.subjects.map((s: any) => s.name);
+          setAvailableSubjects(names);
+          if (names.length > 0) setSubjectName(names[0]);
+        }
+      } catch (e) {
+        console.error('Error loading dynamic dropdowns:', e);
+      }
+    }
+    loadDynamicDropdowns();
+  }, []);
 
   // Form State
   const [subjectName, setSubjectName] = useState("Mathematics");
@@ -44,15 +82,6 @@ export default function InteractiveHomeworkLMSPage() {
     { id: "SUB-03", studentName: "Kabir Mehta", class: "Class 1-A", status: "NOT_SUBMITTED", grade: "—", feedback: "Awaiting submission", date: "Due in 2 days" }
   ]);
 
-  const availableClasses = [
-    "Class 1", "Class 2", "Class 3", "Class 4", "Class 5",
-    "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
-  ];
-
-  const availableSubjects = [
-    "Mathematics", "English Literature", "Environmental Science (EVS)",
-    "Hindi Core", "Computer Applications", "General Science", "Social Studies"
-  ];
 
   useEffect(() => {
     loadHomework();
@@ -413,4 +442,8 @@ export default function InteractiveHomeworkLMSPage() {
 
     </div>
   );
+}
+
+export default function InteractiveHomeworkLMSPage() {
+  redirect('/admin/curriculum?tab=homework');
 }

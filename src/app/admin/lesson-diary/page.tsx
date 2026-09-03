@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import {
   BookOpen, CheckSquare, Plus, Calendar, Clock,
   User, CheckCircle2, AlertCircle, Sparkles, Download, ArrowRight,
@@ -22,17 +23,33 @@ import {
   getDistinctTeachersAction,
   TeacherLessonDiaryEntry
 } from '@/app/actions/curriculum-radar-actions';
+import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
+import { createHomeworkAssignmentAction } from '@/app/actions/homework-lms-actions';
 
-const ALL_CLASSES = [
-  'All',
-  'Pre-Nursery', 'Nursery', 'LKG', 'UKG',
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-  'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
-];
-
-export default function TeacherLessonDiaryPage() {
+export function TeacherLessonDiaryDesk() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const activeInst = currentInstitution === 'ALL' ? 'CBS' : currentInstitution;
+
+  const [dynamicClasses, setDynamicClasses] = useState<string[]>([
+    'All', 'Pre-Nursery', 'Nursery', 'LKG', 'UKG',
+    'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+    'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'
+  ]);
+
+  // Load dynamic classes
+  useEffect(() => {
+    async function loadClasses() {
+      try {
+        const res = await getInstitutionClassesAction(activeInst);
+        if (res.success && res.classes && res.classes.length > 0) {
+          setDynamicClasses(['All', ...(res.classes as string[])]);
+        }
+      } catch (e) {
+        console.error('Error fetching dynamic classes for diary:', e);
+      }
+    }
+    loadClasses();
+  }, [activeInst]);
 
   const [entries, setEntries] = useState<TeacherLessonDiaryEntry[]>([]);
   const [teachers, setTeachers] = useState<{ name: string; title: string; department: string }[]>([]);
@@ -62,6 +79,7 @@ export default function TeacherLessonDiaryPage() {
   const [formAids, setFormAids] = useState('Smartboard, Workbook, Manipulatives');
   const [formClasswork, setFormClasswork] = useState('');
   const [formHomework, setFormHomework] = useState('');
+  const [formPublishToHomeworkLms, setFormPublishToHomeworkLms] = useState(true);
   const [formRealWorld, setFormRealWorld] = useState('');
   const [formPeriodsDelivered, setFormPeriodsDelivered] = useState(1);
   
@@ -251,6 +269,22 @@ export default function TeacherLessonDiaryPage() {
       });
 
       if (res.success) {
+        if (formPublishToHomeworkLms && formHomework.trim()) {
+          try {
+            await createHomeworkAssignmentAction({
+              className: formClass,
+              sectionName: formSection,
+              subjectName: activeSubjectObj?.name || 'Classroom Subject',
+              teacherName: formTeacherName,
+              title: formAssignmentTitle || formTopicTitle || `Daily Practice: ${formClass}`,
+              instructions: formHomework,
+              dueDate: formAssignmentDueDate || new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+              estimatedMinutes: 30
+            });
+          } catch (hwErr) {
+            console.warn('Auto-bridge to homework LMS warning:', hwErr);
+          }
+        }
         showToast(res.message || 'Lesson logged & Curriculum Radar synced!');
         setIsNewEntryOpen(false);
         fetchDiary();
@@ -478,7 +512,7 @@ export default function TeacherLessonDiaryPage() {
               onChange={(e) => setSelectedClass(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800"
             >
-              {ALL_CLASSES.map(c => (
+              {dynamicClasses.map(c => (
                 <option key={c} value={c}>{c === 'All' ? 'All Classes' : c}</option>
               ))}
             </select>
@@ -988,7 +1022,7 @@ export default function TeacherLessonDiaryPage() {
                     onChange={e => setFormClass(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                   >
-                    {ALL_CLASSES.filter(c => c !== 'All').map(c => (
+                    {dynamicClasses.filter(c => c !== 'All').map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -1194,6 +1228,28 @@ export default function TeacherLessonDiaryPage() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Homework Instructions / Problem Set</label>
+                  <textarea
+                    rows={2}
+                    value={formHomework}
+                    onChange={e => setFormHomework(e.target.value)}
+                    placeholder="e.g. Complete Exercise 4.2 questions 1 to 8 in mathematics notebook. Draw diagrams neatly."
+                    className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900"
+                  />
+                  <label className="flex items-center gap-2 mt-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formPublishToHomeworkLms}
+                      onChange={e => setFormPublishToHomeworkLms(e.target.checked)}
+                      className="rounded text-indigo-600 focus:ring-0"
+                    />
+                    <span className="text-[11px] font-bold text-indigo-900">
+                      ⚡ Automatically push to Student Homework LMS &amp; WhatsApp Parent Notification
+                    </span>
+                  </label>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">Submission Mode</label>
@@ -1316,4 +1372,8 @@ export default function TeacherLessonDiaryPage() {
 
     </div>
   );
+}
+
+export default function TeacherLessonDiaryPage() {
+  redirect('/admin/curriculum?tab=diary');
 }
