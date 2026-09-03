@@ -14,6 +14,9 @@ import { createClient } from '@/lib/supabase/client';
 import { clearServerAuthSession } from '@/app/actions/auth';
 import { getTrustDetailsAction, updateTrustDetailsAction } from '@/app/actions/governance-analytics-actions';
 
+import { VaniCommandPalette } from '@/components/vani/VaniCommandPalette';
+import { VaniGlobalDrawer } from '@/components/vani/VaniGlobalDrawer';
+
 interface HeaderShellProps {
   onOpenSearch?: () => void;
   onToggleMobileMenu?: () => void;
@@ -39,6 +42,10 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+
+  // VANI Copilot State
+  const [isVaniPaletteOpen, setIsVaniPaletteOpen] = useState(false);
+  const [isVaniDrawerOpen, setIsVaniDrawerOpen] = useState(false);
 
   // Profile Form State
   const [userName, setUserName] = useState('Nitin Tyagi');
@@ -169,8 +176,19 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             </div>
           </div>
 
-          {/* Right: Actions (Search, Notifications, Profile, Direct Logout) */}
+          {/* Right: Actions (VANI Copilot, Search, Notifications, Profile, Direct Logout) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+             {/* Global Ask VANI Command Button */}
+             <button
+               onClick={() => setIsVaniPaletteOpen(true)}
+               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-blue-950/10 border border-amber-500/30 text-[#0B1B30] hover:bg-amber-500/20 transition shadow-2xs font-extrabold text-xs cursor-pointer"
+               title="Ask VANI (⌘K)"
+             >
+               <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+               <span className="hidden sm:inline font-black">Ask VANI</span>
+               <span className="text-[10px] text-stone-400 bg-white/80 border border-stone-200 px-1 py-0.2 rounded font-mono hidden md:inline">⌘K</span>
+             </button>
+
              {/* Global Command Search */}
              {onOpenSearch && (
                <button 
@@ -432,6 +450,24 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
           </div>
         </div>
       )}
+
+      {/* Global VANI Command Palette (⌘K) */}
+      <VaniCommandPalette
+        isOpen={isVaniPaletteOpen}
+        onClose={() => setIsVaniPaletteOpen(false)}
+        userRole={currentRole === 'SUPER_ADMIN' ? 'Super Admin' : currentRole === 'TEACHER' ? 'Faculty' : currentRole === 'PARENT' ? 'Parent' : 'Admin'}
+        userName={userName}
+        isSuperAdmin={currentRole === 'SUPER_ADMIN'}
+      />
+
+      {/* Persistent VANI Drawer */}
+      <VaniGlobalDrawer
+        isOpen={isVaniDrawerOpen}
+        onClose={() => setIsVaniDrawerOpen(false)}
+        userRole={currentRole === 'SUPER_ADMIN' ? 'Super Admin' : currentRole === 'TEACHER' ? 'Faculty' : currentRole === 'PARENT' ? 'Parent' : 'Admin'}
+        userName={userName}
+        isSuperAdmin={currentRole === 'SUPER_ADMIN'}
+      />
     </>
   );
 }
