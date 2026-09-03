@@ -204,23 +204,23 @@ export default function TransportFleetRadarPage() {
         <div className="space-y-6">
           
           {/* DRIVER MOBILE GPS BROADCASTER & LAUNCHER BANNER */}
-          <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 rounded-3xl border border-indigo-800/80 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="bg-gradient-to-r from-[#FFFDF9] via-[#FAF6EE] to-[#F5EEDB] text-stone-900 p-5 sm:p-6 rounded-3xl border border-[#E8DFC8] shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shadow-md shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-900 border border-amber-300 flex items-center justify-center font-black text-xl shadow-xs shrink-0">
                 📱
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-emerald-500/20 text-emerald-300 font-mono font-bold text-[10px] uppercase px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Driver Mobile GPS Online
+                  <span className="bg-emerald-100 text-emerald-900 font-mono font-bold text-[10px] uppercase px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Driver Mobile GPS Online
                   </span>
-                  <span className="text-slate-500 text-xs">•</span>
-                  <span className="text-amber-400 font-bold text-xs">HTML5 Geolocation Broadcaster</span>
+                  <span className="text-stone-400 text-xs">•</span>
+                  <span className="text-amber-800 font-bold text-xs">HTML5 Geolocation Broadcaster</span>
                 </div>
-                <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                <h3 className="text-base sm:text-lg font-black text-stone-900 mt-0.5">
                   Driver Smartphone Vehicle Tracking Cockpit
                 </h3>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-stone-600">
                   Drivers can open this cockpit on their phones to broadcast real-time GPS locations directly to Google Maps and parent portals.
                 </p>
               </div>
@@ -230,7 +230,7 @@ export default function TransportFleetRadarPage() {
               <Link
                 href="/staff/driver"
                 target="_blank"
-                className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-lg transition active:scale-95"
+                className="px-5 py-2.5 bg-[#D97706] hover:bg-[#B45309] text-white font-black rounded-2xl text-xs flex items-center gap-1.5 shadow-md transition active:scale-95 cursor-pointer"
               >
                 <Smartphone className="w-3.5 h-3.5" /> Launch Driver Mobile App ↗
               </Link>

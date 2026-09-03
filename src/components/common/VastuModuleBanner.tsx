@@ -39,42 +39,42 @@ export function VastuModuleBanner({
 }: VastuModuleBannerProps) {
   return (
     <div className={`space-y-4 print:hidden ${className}`}>
-      {/* Ishan Directional Sattva-Digital Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white p-6 sm:p-8 rounded-3xl border-b-2 border-[#D4AF37]/40 shadow-xl relative overflow-hidden">
-        {/* Hairline Vastu Mandala Watermark at 6% Opacity */}
+      {/* Light Pastel Sandalwood & Pearl Cream Sattva Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#FFFDF9] via-[#FAF6EE] to-[#F5EEDB] text-stone-900 p-6 sm:p-8 rounded-3xl border border-[#E8DFC8] border-b-2 border-b-[#D4AF37]/60 shadow-xs relative overflow-hidden">
+        {/* Subtle Hairline Vastu Mandala Watermark at 6% Opacity */}
         <VastuMandalaWatermark
-          className="top-1/2 right-10 -translate-y-1/2 pointer-events-none"
-          size={320}
-          opacity={0.06}
+          className="top-1/2 right-8 -translate-y-1/2 pointer-events-none text-[#D4AF37]"
+          size={340}
+          opacity={0.07}
         />
 
         <div className="z-10 space-y-1 max-w-3xl">
           {(badgeText || institutionText) && (
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               {badgeText && (
-                <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1.5 shadow-xs">
+                <span className="bg-amber-500/10 text-amber-900 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-amber-300/70 flex items-center gap-1.5 shadow-2xs">
                   {badgeIcon}
                   {badgeText}
                 </span>
               )}
               {badgeText && institutionText && (
-                <span className="text-amber-200/40 text-xs">•</span>
+                <span className="text-stone-300 text-xs">•</span>
               )}
               {institutionText && (
-                <span className="text-amber-100 text-xs font-semibold">
+                <span className="text-stone-600 text-xs font-semibold">
                   {institutionText}
                 </span>
               )}
             </div>
           )}
 
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            {titleIcon && <span className="text-amber-400">{titleIcon}</span>}
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
+            {titleIcon && <span className="text-[#D97706]">{titleIcon}</span>}
             <span>{title}</span>
           </h1>
 
           {description && (
-            <p className="text-xs sm:text-sm text-stone-300 font-medium leading-relaxed">
+            <p className="text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
               {description}
             </p>
           )}
@@ -87,7 +87,7 @@ export function VastuModuleBanner({
         )}
       </div>
 
-      {/* Optional Integrated Navigation Tabs Bar */}
+      {/* Light Pastel Sub-Navigation Tabs Bar */}
       {tabs && tabs.length > 0 && (
         <div className="flex items-center gap-2 border-b border-[#E8DFC8] pb-2 overflow-x-auto scrollbar-none text-xs font-bold">
           {tabs.map((tab) => {
@@ -99,7 +99,7 @@ export function VastuModuleBanner({
                 onClick={() => onTabChange && onTabChange(tab.id)}
                 className={`px-4 sm:px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs border border-[#D4AF37]/30'
+                    ? 'bg-amber-500/15 text-amber-950 font-black shadow-xs border-2 border-[#D97706]/70 ring-1 ring-amber-400/20'
                     : 'bg-white/80 text-stone-600 hover:text-stone-950 hover:bg-white border border-[#E8DFC8]'
                 }`}
               >
@@ -109,7 +109,7 @@ export function VastuModuleBanner({
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                       isActive
-                        ? 'bg-amber-400 text-stone-950'
+                        ? 'bg-[#D97706] text-white'
                         : 'bg-stone-100 text-stone-600'
                     }`}
                   >

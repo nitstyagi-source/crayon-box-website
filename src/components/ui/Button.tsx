@@ -35,13 +35,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        'bg-[#0B1B30] text-white hover:bg-[#153257] focus:ring-[#0B1B30] border border-white/10 shadow-xs hover:shadow-sm font-bold',
+        'bg-[#D97706] text-white hover:bg-[#B45309] focus:ring-amber-500 shadow-xs font-bold',
       secondary:
-        'bg-[#0369A1] text-white hover:bg-[#0284C7] focus:ring-[#0369A1] shadow-xs hover:shadow-sm font-bold',
+        'bg-[#0284C7] text-white hover:bg-[#0369A1] focus:ring-[#0284C7] shadow-xs font-bold',
       saffron:
         'bg-[#D97706] hover:bg-[#B45309] text-white font-black shadow-md shadow-amber-600/20 focus:ring-amber-500',
       vastu:
-        'bg-[#0B1B30] hover:bg-[#153257] text-amber-300 font-black border border-[#D4AF37]/30 shadow-md focus:ring-amber-400',
+        'bg-[#FAF7F2] hover:bg-[#EFE7D8] text-amber-950 font-black border border-[#D4AF37]/60 shadow-xs focus:ring-amber-400',
       outline:
         'border border-[#E8DFC8] bg-white/90 text-stone-700 hover:bg-[#FAF7F2] hover:text-stone-950 hover:border-[#D4AF37]/60 focus:ring-amber-300 font-bold',
       subtle:

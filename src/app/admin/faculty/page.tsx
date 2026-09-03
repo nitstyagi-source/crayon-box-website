@@ -438,9 +438,9 @@ export default function FacultyAdminDashboard() {
           <>
             <Link
               href="/admin/faculty/substitutions"
-              className="bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-2.5 rounded-2xl text-xs border border-[#E8DFC8]/40 flex items-center gap-1.5 transition"
+              className="bg-white hover:bg-[#FAF7F2] text-stone-700 font-bold px-4 py-2.5 rounded-2xl text-xs border border-[#E8DFC8] flex items-center gap-1.5 shadow-2xs transition"
             >
-              <Sparkles className="w-4 h-4 text-amber-300" /> Smart Substitution Hub
+              <Sparkles className="w-4 h-4 text-[#D97706]" /> Smart Substitution Hub
             </Link>
             <button
               onClick={handleOpenAdd}

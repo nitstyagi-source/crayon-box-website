@@ -164,8 +164,8 @@ export default function DailyAttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
-                leftIcon={<FileText className="w-3.5 h-3.5 text-amber-300" />}
+                className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+                leftIcon={<FileText className="w-3.5 h-3.5 text-amber-600" />}
               >
                 📝 Leave Approvals
               </Button>
@@ -174,8 +174,8 @@ export default function DailyAttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
-                leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />}
+                className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+                leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
               >
                 🚪 Gate Entry/Exit Scanner
               </Button>
@@ -185,7 +185,7 @@ export default function DailyAttendancePage() {
               size="sm"
               onClick={fetchRoster}
               isLoading={isLoading}
-              className="border-[#E8DFC8] bg-white/10 text-white hover:bg-white/20 text-xs font-bold"
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
               leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
             >
               Sync Roster
@@ -196,7 +196,7 @@ export default function DailyAttendancePage() {
               onClick={handleSubmitAttendance}
               isLoading={isSubmitting}
               disabled={roster.length === 0}
-              className="text-xs"
+              className="text-xs shadow-md bg-[#D97706] hover:bg-[#B45309] text-white font-black"
               leftIcon={<Save className="w-4 h-4" />}
             >
               Save Attendance
