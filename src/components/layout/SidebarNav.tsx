@@ -257,23 +257,23 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
     >
       
       {/* ========================================================================= */}
-      {/* TIER 1: PRIMARY ICON RAIL WITH CLASSIFICATION NAMES (ALWAYS VISIBLE, 80px) */}
+      {/* TIER 1: PRIMARY ICON RAIL (OPTION 6: WARM SANDALWOOD SATTVA-DIGITAL)      */}
       {/* ========================================================================= */}
-      <aside className="w-20 bg-[#0B1B30] text-white flex flex-col justify-between items-center py-4 px-1 shrink-0 z-50 shadow-2xl border-r border-[#1E3A5F]">
+      <aside className="w-20 bg-[#F7F2E9] text-[#2D2319] flex flex-col justify-between items-center py-4 px-1 shrink-0 z-50 shadow-sm border-r border-[#E8DFC8]">
         
         {/* Top Trust Emblem */}
         <div className="flex flex-col items-center gap-1">
           <Link href="/admin/dashboard" className="group" onClick={() => setIsTier2Open(false)}>
-            <div className="w-10 h-10 rounded-2xl bg-white/10 p-1.5 border border-[#D4AF37]/30 flex items-center justify-center shadow-md group-hover:scale-105 transition">
+            <div className="w-11 h-11 rounded-2xl bg-white p-1.5 border border-[#D4AF37]/50 flex items-center justify-center shadow-xs group-hover:scale-105 transition">
               <img 
                 src="/trust-logo.png" 
                 alt="Vaani Educational Trust" 
                 className="w-full h-full object-contain" 
-                onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+                onError={(e) => { e.currentTarget.src = '/logo.png'; }} 
               />
             </div>
           </Link>
-          <span className="text-[8px] font-black text-[#D4AF37] tracking-wider uppercase">
+          <span className="text-[8px] font-black text-[#A16207] tracking-wider uppercase">
             {activeCampusCode}
           </span>
         </div>
@@ -297,10 +297,10 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
                 title={`${hub.title} — ${hub.subtitle}`}
                 className={`relative w-[72px] py-1.5 px-1 rounded-xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer ${
                   isSelected && isTier2Open
-                    ? 'bg-[#C85A32] text-white shadow-lg shadow-[#C85A32]/30 scale-105'
+                    ? 'bg-[#E5D7BE] text-[#2D2319] shadow-sm border border-[#D5C4A3] scale-105 font-bold'
                     : isSelected
-                    ? 'bg-[#183454] text-[#D4AF37] border border-[#2A4D75]'
-                    : 'text-stone-300 hover:text-white hover:bg-white/10'
+                    ? 'bg-[#EFE7D8] text-[#2D2319] border border-[#DDD0B7]'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-[#EFE7D8]/70'
                 }`}
               >
                 <Icon className="w-4 h-4 mb-1 shrink-0" />
@@ -308,7 +308,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
                   {hub.shortName}
                 </span>
                 {isSelected && (
-                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-3.5 rounded-l-full bg-[#C85A32]" />
+                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-3.5 rounded-l-full bg-[#D97706]" />
                 )}
               </button>
             );
@@ -325,7 +325,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
               window.location.href = nextRole === 'PARENT' ? '/parent/live-stream' : '/admin/dashboard';
             }}
             title={`Switch to ${currentRole === 'PARENT' ? 'Faculty Mode' : 'Parent Mode'}`}
-            className="w-9 h-9 rounded-xl bg-[#183454] hover:bg-[#21436C] border border-[#2A4D75] text-[#D4AF37] flex items-center justify-center transition cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-[#EFE7D8] hover:bg-[#E5D7BE] border border-[#DDD0B7] text-[#A16207] flex items-center justify-center transition cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
           </button>
@@ -335,7 +335,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
             onClick={handleLogout}
             disabled={isLoggingOut}
             title="Sign Out"
-            className="w-9 h-9 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 flex items-center justify-center transition cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>

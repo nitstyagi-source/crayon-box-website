@@ -115,7 +115,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
   return (
     <>
-      <div className="flex flex-col bg-white border-b border-slate-200/80 px-3 sm:px-5 py-2 sm:py-2.5 font-sans shrink-0 relative z-30 shadow-xs">
+      <div className="flex flex-col bg-[#FDFBF7] border-b border-[#E8DFC8]/70 px-3 sm:px-5 py-2 sm:py-2.5 font-sans shrink-0 relative z-30 shadow-xs">
         
         {/* Top Row: Mobile Menu Button + User Greeting & Active School Profile */}
         <div className="flex items-center justify-between mb-2 w-full max-w-7xl mx-auto gap-2.5">
@@ -126,7 +126,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             {onToggleMobileMenu && (
               <button
                 onClick={onToggleMobileMenu}
-                className="lg:hidden p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                className="lg:hidden p-1.5 rounded-lg bg-[#EFE7D8] hover:bg-[#E5D7BE] text-stone-800 transition cursor-pointer"
                 title="Open Navigation Menu"
               >
                 <Menu className="w-4 h-4" />
@@ -134,8 +134,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             )}
 
             {/* Active School Emblem */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white border shadow-xs flex items-center justify-center overflow-hidden p-0.5 shrink-0"
-                 style={{ borderColor: activeBrandColor }}>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white border border-[#D4AF37]/50 shadow-xs flex items-center justify-center overflow-hidden p-1 shrink-0">
                <img 
                  src={activeLogo} 
                  alt={activeName} 
@@ -146,20 +145,20 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
             <div className="flex flex-col min-w-0">
                <div className="flex items-center gap-1.5 flex-wrap">
-                 <h1 className="text-xs sm:text-sm text-[#0B1B30] font-extrabold leading-tight truncate">
+                 <h1 className="text-xs sm:text-sm text-stone-900 font-extrabold leading-tight truncate">
                    {activeName}
                  </h1>
                  <span 
-                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#0B1B30]/5 text-[#0B1B30] border border-[#0B1B30]/10"
+                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-900 border border-amber-500/20"
                  >
-                   <span className="w-1.5 h-1.5 rounded-full bg-[#C85A32] animate-pulse" />
+                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                    {isAllInstitutions ? 'TRUST HQ' : activeAffiliation}
                  </span>
                </div>
                
                {/* Role-Tailored Dynamic Greeting */}
                <p className="text-stone-500 text-[11px] font-medium truncate flex items-center gap-1.5 mt-0.5">
-                 <span className="font-bold text-[#0B1B30]">
+                 <span className="font-bold text-stone-800">
                    {currentRole === 'SUPER_ADMIN' && `Good morning, ${userName}.`}
                    {currentRole === 'PRINCIPAL' && `See. Understand. Act.`}
                    {currentRole === 'TEACHER' && `Welcome, ${userName}.`}
@@ -176,23 +175,23 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             </div>
           </div>
 
-          {/* Center / North-East: Vastu Wisdom Omnibar with Gemini AI Sparkles (Google M3 Pill) */}
+          {/* Center / North-East: Vastu Wisdom Omnibar with Golden Halo (Option 6 Sattva-Digital) */}
           <div className="hidden md:flex flex-1 max-w-xl mx-4 items-center justify-center">
             <button
               onClick={() => setIsVaniPaletteOpen(true)}
-              className="w-full flex items-center justify-between px-4 py-2 rounded-full bg-white/95 hover:bg-white border border-stone-200/80 hover:border-amber-400/80 text-stone-600 hover:text-stone-900 transition shadow-xs group cursor-pointer"
+              className="w-full flex items-center justify-between px-5 py-2.5 rounded-full bg-[#EBF3FC] hover:bg-[#E2EEFC] border border-sky-200/90 text-sky-950 transition shadow-[0_0_35px_rgba(245,158,11,0.22)] hover:shadow-[0_0_45px_rgba(245,158,11,0.30)] group cursor-pointer"
               title="Search or ask VANI AI (⌘K)"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-400 to-amber-400 p-0.5 flex items-center justify-center shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-500 via-indigo-500 to-amber-400 p-0.5 flex items-center justify-center shadow-xs">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </span>
-                <span className="text-xs font-medium text-stone-500 group-hover:text-stone-700 truncate">
-                  Ask VANI AI or search students, fees, admissions...
+                <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 truncate">
+                  Search for students, grades, or ask Gemini AI...
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0 pl-2">
-                <kbd className="px-2 py-0.5 text-[10px] font-mono font-semibold text-stone-500 bg-stone-100 rounded-md border border-stone-200 shadow-2xs">
+                <kbd className="px-2 py-0.5 text-[10px] font-mono font-bold text-slate-500 bg-white rounded-full border border-sky-200 shadow-2xs">
                   ⌘K
                 </kbd>
               </div>

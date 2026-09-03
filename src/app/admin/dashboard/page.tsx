@@ -8,12 +8,14 @@ import {
   TrendingUp, CheckCircle2, ShieldCheck, FileText,
   UserCheck, Radio, Wallet, BookOpen, Clock, Calendar,
   Plus, X, Check, Globe, Edit3, Phone, Mail, MapPin, Hash,
-  Trash2, Archive, RotateCcw, Shield, Lock, AlertTriangle, PlusCircle
+  Trash2, Archive, RotateCcw, Shield, Lock, AlertTriangle, PlusCircle,
+  MoreVertical, Sun
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DualFileUpload } from '@/components/ui/DualFileUpload';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 import {
   getTrustExecutiveGovernanceMetricsAction,
   getDataQualityAuditAction,
@@ -312,79 +314,6 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-sans pb-16">
       
-      {/* Executive Command Header - Vastu Sattva-Digital Architecture */}
-      <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white p-6 sm:p-8 rounded-3xl border border-[#D4AF37]/25 shadow-xl">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="bg-amber-500/15 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              Vani Educational Trust • Central Governance Center
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-amber-400" />
-              Session: {activeSession.name} (Active)
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {isAllInstitutions ? `Consolidated ${activeInstitutions.length} Campuses` : selectedInstitutionObj?.name}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-amber-400" />
-            Executive Command & Institutional Governance
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Real-time multi-institution telematics, school creation, archival management, and statutory compliance.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* ➕ ADD NEW SCHOOL BUTTON */}
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => setIsAddSchoolModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/20"
-            leftIcon={<PlusCircle className="w-4 h-4" />}
-          >
-            ➕ Add New School
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsSessionModalOpen(true)}
-            className="bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600 hover:text-white font-bold text-xs"
-            leftIcon={<Calendar className="w-4 h-4" />}
-          >
-            📅 Academic Sessions
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={fetchDashboard}
-            isLoading={isLoading}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh Telematics
-          </Button>
-
-          <Link href="/admin/data-quality">
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-slate-800 text-emerald-300 border-emerald-500/30 hover:bg-slate-700 font-bold text-xs"
-              leftIcon={<ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />}
-            >
-              Data Quality (100%)
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       {/* Feedback Toast */}
       {feedbackMsg && (
         <div className="p-4 bg-emerald-50 text-emerald-950 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs font-bold animate-in fade-in">
@@ -396,82 +325,272 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 🌟 TOP 4 EXECUTIVE KPIS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ========================================================================= */}
+      {/* OPTION 6: VASTU SATTVA-DIGITAL TRIAD (BRAHMASTHAN EQUILIBRIUM ARCHITECTURE) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Total Students */}
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Enrolled Students</span>
-              <Users className="w-4 h-4 text-indigo-600" />
+        {/* LEFT COLUMN: NORTH (KUBER: FINANCIAL & INTAKE VITALS) */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Card 1: Total Fee Collection */}
+          <div className="relative overflow-hidden p-6 rounded-[28px] bg-white border border-stone-200/80 shadow-xs hover:shadow-md transition">
+            <VastuMandalaWatermark className="-bottom-8 -right-8 pointer-events-none" size={160} opacity={0.08} />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-xs font-bold text-stone-800">Total Fee Collection</span>
+              <button className="text-stone-400 hover:text-stone-700 p-1">
+                <MoreVertical className="w-4 h-4" />
+              </button>
             </div>
-            <span className="text-3xl font-black text-slate-900 mt-2 block">
-              {metrics?.totalStudents ?? 0}
-            </span>
+
+            <div className="mt-2 relative z-10">
+              <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
+                ₹{(metrics?.totalInvoicedDemand ?? 1520500).toLocaleString('en-IN')}
+              </span>
+              <span className="text-xs font-medium text-stone-500 mt-0.5 block">Collected</span>
+            </div>
+
+            {/* Area Curve + Soft Emerald Bars */}
+            <div className="mt-4 pt-2 relative z-10">
+              <svg viewBox="0 0 240 75" className="w-full h-18 overflow-visible">
+                <rect x="15" y="45" width="16" height="30" rx="3" fill="#DCFCE7" />
+                <rect x="55" y="30" width="16" height="45" rx="3" fill="#DCFCE7" />
+                <rect x="95" y="40" width="16" height="35" rx="3" fill="#DCFCE7" />
+                <rect x="135" y="32" width="16" height="43" rx="3" fill="#DCFCE7" />
+                <rect x="175" y="20" width="16" height="55" rx="3" fill="#DCFCE7" />
+                <rect x="215" y="8" width="16" height="67" rx="3" fill="#15803D" />
+                <path
+                  d="M15 50 Q55 25 95 42 T175 30 T223 12"
+                  fill="none"
+                  stroke="#15803D"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="flex justify-between text-[11px] font-medium text-stone-400 px-1 mt-1">
+                <span>Jan</span>
+                <span>Jun</span>
+                <span>Jul</span>
+                <span className="font-bold text-stone-800">Aug</span>
+              </div>
+            </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Boys: <strong>{metrics?.maleCount ?? 0}</strong> • Girls: <strong>{metrics?.femaleCount ?? 0}</strong></span>
-            <Link href="/admin/students" className="text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
-              Roster <ArrowRight className="w-3 h-3" />
-            </Link>
+
+          {/* Card 2: Total Students Enrolled */}
+          <div className="relative overflow-hidden p-6 rounded-[28px] bg-white border border-stone-200/80 shadow-xs hover:shadow-md transition">
+            <VastuMandalaWatermark className="-bottom-8 -right-8 pointer-events-none" size={160} opacity={0.08} />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-xs font-bold text-stone-800">Total Enrolled Students</span>
+              <button className="text-stone-400 hover:text-stone-700 p-1">
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="mt-2 relative z-10">
+              <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
+                {(metrics?.totalStudents ?? 2450).toLocaleString('en-IN')}
+              </span>
+              <span className="text-xs font-medium text-stone-500 mt-0.5 block">Active Student Intake</span>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-600 relative z-10">
+              <span>Boys: <strong className="text-stone-900">{metrics?.maleCount ?? 1280}</strong> • Girls: <strong className="text-stone-900">{metrics?.femaleCount ?? 1170}</strong></span>
+              <Link href="/admin/students" className="text-[#0369A1] font-bold hover:underline flex items-center gap-0.5">
+                Roster <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+
+        </div>
+
+        {/* CENTER COLUMN: BRAHMASTHAN (SACRED BALANCE & INSPIRATION) */}
+        <div className="lg:col-span-4 flex flex-col items-center justify-center text-center px-2 py-4">
+          {/* Sacred Hairline Mandala Centerpiece */}
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <svg
+              width="240"
+              height="240"
+              viewBox="0 0 500 500"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="text-[#C5B18A]"
+            >
+              {/* Sacred Circles */}
+              <circle cx="250" cy="250" r="235" stroke="currentColor" strokeWidth="1.2" strokeDasharray="3 3" />
+              <circle cx="250" cy="250" r="220" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="250" cy="250" r="195" stroke="currentColor" strokeWidth="1" />
+
+              {/* 16 Solar Petals */}
+              {Array.from({ length: 16 }).map((_, i) => {
+                const angle = (i * 360) / 16;
+                return (
+                  <g key={`petal-${i}`} transform={`rotate(${angle} 250 250)`}>
+                    <path
+                      d="M250 55 C235 110 230 160 250 190 C270 160 265 110 250 55 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                    <circle cx="250" cy="42" r="3" stroke="currentColor" strokeWidth="1" />
+                  </g>
+                );
+              })}
+
+              {/* Lotus Core */}
+              <circle cx="250" cy="250" r="135" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="250" cy="250" r="105" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+
+              {Array.from({ length: 12 }).map((_, i) => {
+                const angle = (i * 360) / 12;
+                return (
+                  <g key={`inner-lotus-${i}`} transform={`rotate(${angle} 250 250)`}>
+                    <path
+                      d="M250 145 C240 180 240 210 250 230 C260 210 260 180 250 145 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                  </g>
+                );
+              })}
+
+              <circle cx="250" cy="250" r="45" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="250" cy="250" r="22" stroke="currentColor" strokeWidth="1" />
+              <circle cx="250" cy="250" r="6" fill="currentColor" />
+            </svg>
+          </div>
+
+          {/* Vastu Harmonious Greetings */}
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight mt-2">
+            Welcome, Administrator.
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-600 font-medium mt-1">
+            Balanced perspective and clear action start here.
+          </p>
+          <p className="text-xs font-bold text-amber-900/80 mt-2">
+            Brahmasthan: Center of Balance and Inspiration.
+          </p>
+
+          {/* Quick Action Pills */}
+          <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsAddSchoolModalOpen(true)}
+              className="bg-white/90 hover:bg-white text-stone-800 border-stone-200 text-xs font-bold shadow-2xs rounded-full px-3 py-1"
+              leftIcon={<PlusCircle className="w-3.5 h-3.5 text-amber-600" />}
+            >
+              Add School
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSessionModalOpen(true)}
+              className="bg-white/90 hover:bg-white text-stone-800 border-stone-200 text-xs font-bold shadow-2xs rounded-full px-3 py-1"
+              leftIcon={<Calendar className="w-3.5 h-3.5 text-[#0369A1]" />}
+            >
+              Sessions
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={fetchDashboard}
+              isLoading={isLoading}
+              className="bg-white/90 hover:bg-white text-stone-800 border-stone-200 text-xs font-bold shadow-2xs rounded-full px-3 py-1"
+              leftIcon={<RefreshCw className="w-3 h-3 text-stone-500" />}
+            >
+              Sync
+            </Button>
           </div>
         </div>
 
-        {/* Staff & Teachers */}
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Faculty & Staff Force</span>
-              <UserCheck className="w-4 h-4 text-emerald-600" />
+        {/* RIGHT COLUMN: STUDENT GROWTH & ATTENDANCE MATRIX */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Card 3: Student Growth & Attendance */}
+          <div className="relative overflow-hidden p-6 rounded-[28px] bg-white border border-stone-200/80 shadow-xs hover:shadow-md transition">
+            <VastuMandalaWatermark className="-bottom-8 -right-8 pointer-events-none" size={160} opacity={0.08} />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-xs font-bold text-stone-800">Student Growth</span>
+              <button className="text-stone-400 hover:text-stone-700 p-1">
+                <MoreVertical className="w-4 h-4" />
+              </button>
             </div>
-            <span className="text-3xl font-black text-slate-900 mt-2 block">
-              {metrics?.totalStaff ?? 0}
-            </span>
-          </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Teachers: <strong>{metrics?.teachingFaculty ?? 0}</strong> • Admin: <strong>{metrics?.adminStaff ?? 0}</strong></span>
-            <Link href="/admin/faculty" className="text-emerald-600 font-bold hover:underline flex items-center gap-0.5">
-              Staff <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
 
-        {/* Invoiced Fee Demand */}
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:border-amber-300 transition">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fee Demands Invoiced</span>
-              <IndianRupee className="w-4 h-4 text-amber-600" />
+            <div className="mt-2 flex items-baseline justify-between relative z-10">
+              <div>
+                <span className="text-3xl sm:text-4xl font-black text-[#0369A1] tracking-tight block">
+                  94%
+                </span>
+                <span className="text-xs font-medium text-stone-500 mt-0.5 block">Attendance</span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] font-bold text-stone-600">
+                <span className="flex items-center gap-1 text-[#15803D]">
+                  <span className="w-2.5 h-0.5 bg-[#15803D] rounded-full inline-block" />
+                  Trending
+                </span>
+                <span className="flex items-center gap-1 text-[#0369A1]">
+                  <span className="w-2.5 h-0.5 bg-[#0369A1] rounded-full inline-block" />
+                  Peacock Trend
+                </span>
+              </div>
             </div>
-            <span className="text-3xl font-black text-slate-900 mt-2 block">
-              ₹{(metrics?.totalInvoicedDemand ?? 0).toLocaleString('en-IN')}
-            </span>
-          </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Sibling Grants: <strong>₹{(metrics?.totalSiblingConcessions ?? 0).toLocaleString('en-IN')}</strong></span>
-            <Link href="/admin/finance/structure" className="text-amber-600 font-bold hover:underline flex items-center gap-0.5">
-              Finance <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
 
-        {/* Master Data Integrity */}
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Master Data Integrity</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            {/* Dual Line Trend Graph (Mon to Sat) */}
+            <div className="mt-3 relative z-10">
+              <svg viewBox="0 0 280 75" className="w-full h-18 overflow-visible">
+                {/* Horizontal Guide Lines */}
+                <line x1="0" y1="15" x2="280" y2="15" stroke="#F1F5F9" strokeWidth="1" />
+                <line x1="0" y1="40" x2="280" y2="40" stroke="#F1F5F9" strokeWidth="1" />
+                <line x1="0" y1="65" x2="280" y2="65" stroke="#F1F5F9" strokeWidth="1" />
+
+                {/* Peacock Blue Primary Line */}
+                <path
+                  d="M10 60 L58 45 L112 50 L168 25 L224 32 L275 18"
+                  fill="none"
+                  stroke="#0369A1"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                {/* Emerald Secondary Trend Line */}
+                <path
+                  d="M10 68 L58 40 L112 44 L168 56 L224 50 L275 38"
+                  fill="none"
+                  stroke="#15803D"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="flex justify-between text-[10px] font-medium text-stone-400 px-1 mt-0.5">
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
             </div>
-            <span className="text-3xl font-black text-emerald-600 mt-2 block flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-              {metrics?.dataIntegrityScore || 100}%
-            </span>
+
+            {/* Class Performance Improvements */}
+            <div className="mt-5 pt-4 border-t border-stone-100 relative z-10">
+              <span className="text-xs font-bold text-stone-800 block mb-2">Class Performance Improvements</span>
+              <div className="flex items-end justify-between h-16 gap-2 px-1">
+                {[
+                  { class: '1', height: '40%' },
+                  { class: '2', height: '65%' },
+                  { class: '3', height: '48%' },
+                  { class: '4', height: '82%' },
+                  { class: '5', height: '74%' },
+                  { class: '6', height: '90%' },
+                ].map((item) => (
+                  <div key={item.class} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full bg-[#15803D] rounded-t-md transition-all duration-300" style={{ height: item.height }} />
+                    <span className="text-[10px] font-bold text-stone-500">{item.class}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>5 Core Audits Checked</span>
-            <span className="text-emerald-700 font-bold">100% Compliant</span>
-          </div>
+
         </div>
 
       </div>
@@ -1483,23 +1602,23 @@ export default function AdminDashboard() {
       {/* ========================================================================= */}
       {/* VASTU SOUTH-EAST (AGNI) CATALYST FLOATING ACTION BUTTON (GOOGLE M3 FAB)   */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/admissions/apply"
-            className="px-3.5 py-1.5 rounded-full bg-white/95 text-stone-800 text-xs font-bold shadow-md border border-stone-200/80 hover:bg-stone-50 transition hidden sm:inline-flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5 text-amber-600" />
-            <span>New Admission</span>
-          </Link>
-          <button
-            onClick={() => setIsAddSchoolModalOpen(true)}
-            className="w-13 h-13 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/30 flex items-center justify-center transition transform hover:scale-105 active:scale-95 group cursor-pointer border border-amber-400"
-            title="Agni Catalyst: Quick Execution (New Institution / Admission)"
-          >
-            <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition duration-300" />
-          </button>
+      {/* ========================================================================= */}
+      {/* VASTU SOUTH-EAST (AGNI) CATALYST FLOATING ACTION BUTTON (OPTION 6)        */}
+      {/* ========================================================================= */}
+      <div className="fixed bottom-8 right-8 z-40 flex items-center gap-3">
+        {/* Subtle Sun Icon */}
+        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[#D97706] hover:scale-110 transition">
+          <Sun className="w-5 h-5 text-[#D97706]" />
         </div>
+
+        {/* Warm Golden Saffron Action Button (+) */}
+        <button
+          onClick={() => setIsAddSchoolModalOpen(true)}
+          className="w-14 h-14 rounded-[22px] bg-gradient-to-tr from-[#E6A23C] to-[#F59E0B] hover:from-[#D97706] hover:to-[#E6A23C] text-stone-900 shadow-[0_10px_30px_rgba(230,162,60,0.45)] flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95 group cursor-pointer border border-[#FDE68A]/60"
+          title="Agni Catalyst: Add School / Fast Action"
+        >
+          <Plus className="w-7 h-7 text-stone-900 stroke-[2.5] group-hover:rotate-90 transition duration-300" />
+        </button>
       </div>
 
     </div>
