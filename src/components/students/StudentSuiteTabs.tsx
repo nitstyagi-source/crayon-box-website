@@ -73,18 +73,18 @@ export function StudentSuiteTabs({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer shadow-xs ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer shadow-2xs ${
                 isActive
-                  ? 'bg-[#0B1B30] text-white ring-2 ring-slate-900/10'
-                  : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-[#D97706] text-white shadow-xs ring-1 ring-amber-400/50 font-black'
+                  : 'bg-white text-stone-700 hover:text-stone-900 hover:bg-[#FAF7F2] border border-[#E8DFC8]'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? tab.iconColor : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-100' : 'text-stone-400'}`} />
               <span>{tab.label}</span>
               {typeof tab.count === 'number' && tab.count > 0 && (
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    isActive ? tab.badgeColor : 'bg-slate-100 text-slate-600'
+                    isActive ? 'bg-amber-800 text-amber-100' : 'bg-[#FAF7F2] text-stone-600 border border-[#E8DFC8]'
                   }`}
                 >
                   {tab.count}
@@ -98,18 +98,18 @@ export function StudentSuiteTabs({
           <Link
             key={tab.id}
             href={tab.href}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap shadow-xs ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap shadow-2xs ${
               isActive
-                ? 'bg-[#0B1B30] text-white ring-2 ring-slate-900/10'
-                : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-[#D97706] text-white shadow-xs ring-1 ring-amber-400/50 font-black'
+                : 'bg-white text-stone-700 hover:text-stone-900 hover:bg-[#FAF7F2] border border-[#E8DFC8]'
             }`}
           >
-            <Icon className={`w-4 h-4 shrink-0 ${isActive ? tab.iconColor : 'text-slate-400'}`} />
+            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-100' : 'text-stone-400'}`} />
             <span>{tab.label}</span>
             {typeof tab.count === 'number' && tab.count > 0 && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  isActive ? tab.badgeColor : 'bg-slate-100 text-slate-600'
+                  isActive ? 'bg-amber-800 text-amber-100' : 'bg-[#FAF7F2] text-stone-600 border border-[#E8DFC8]'
                 }`}
               >
                 {tab.count}

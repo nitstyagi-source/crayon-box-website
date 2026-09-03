@@ -9,7 +9,8 @@ import {
   ArrowUpRight, Phone, Bot,
   Plus, Search, RefreshCw, MessageSquare,
   UserPlus, X, Check, Send, PhoneCall,
-  FileText, GraduationCap
+  FileText, GraduationCap, Filter, LayoutGrid, List,
+  Calendar, MapPin, Eye, ArrowRight, ShieldCheck, Flame, Zap, Award
 } from 'lucide-react';
 import { getAdmissionsPerformanceAnalyticsAction } from '@/app/actions/admissions-analytics';
 import {
@@ -21,28 +22,45 @@ import {
   getAdmissionsAiInquiriesAction,
   AiInquiryRecord
 } from '@/app/actions/ai-admissions-bot-actions';
-import { getEnquiries } from '@/app/actions/enquiry';
+import {
+  getEnquiries,
+  convertEnquiryToApplicationAction,
+  updateEnquiryStatusAction
+} from '@/app/actions/enquiry';
 import { AdmissionsFunnelChart } from '@/components/admissions/analytics/AdmissionsFunnelChart';
 import { ManagementInsightsCard } from '@/components/admissions/analytics/ManagementInsightsCard';
 import { Enquiry360DossierModal } from '@/components/enquiry/Enquiry360DossierModal';
 import { AdminNewEnquiryModal } from '@/components/enquiry/AdminNewEnquiryModal';
+import { AdminNewEnquiryForm } from '@/components/enquiry/AdminNewEnquiryForm';
 import { Button } from '@/components/ui/Button';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
 function AdmissionsCommandCenterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialTab = (searchParams.get('tab') || 'analytics').toUpperCase();
 
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'PIPELINE' | 'ENQUIRIES' | 'AI_BOT'>(
-    initialTab === 'PIPELINE' ? 'PIPELINE' :
-    initialTab === 'ENQUIRIES' || initialTab === 'CRM' ? 'ENQUIRIES' :
-    initialTab === 'AI_BOT' || initialTab === 'AI-BOT' ? 'AI_BOT' : 'ANALYTICS'
+  const tabParam = (searchParams.get('tab') || 'pipeline').toUpperCase();
+  const actionParam = searchParams.get('action');
+
+  const [activeTab, setActiveTab] = useState<'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT'>(
+    tabParam === 'ANALYTICS' ? 'ANALYTICS' :
+    tabParam === 'WALKIN' || tabParam === 'INTAKE' ? 'WALKIN' :
+    tabParam === 'AI_BOT' || tabParam === 'AI-BOT' ? 'AI_BOT' : 'PIPELINE'
   );
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Tab 1 Analytics State
+  // CRM State (Pipeline / Enquiries)
+  const [enquiriesList, setEnquiriesList] = useState<any[]>([]);
+  const [pipelineApps, setPipelineApps] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'HOT' | 'WARM' | 'COLD'>('ALL');
+  const [enquirySearch, setEnquirySearch] = useState('');
+  const [selectedEnquiryIdFor360, setSelectedEnquiryIdFor360] = useState<string | null>(null);
+  const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(actionParam === 'new');
+  const [isConvertingId, setIsConvertingId] = useState<string | null>(null);
+
+  // Analytics State
   const [analytics, setAnalytics] = useState<any>(null);
   const [kpis, setKpis] = useState({
     totalEnquiries: 0,
@@ -55,28 +73,7 @@ function AdmissionsCommandCenterContent() {
   });
   const [funnelStages, setFunnelStages] = useState<any[]>([]);
 
-  // Tab 2 Pipeline State
-  const [pipelineApps, setPipelineApps] = useState<any[]>([]);
-  const [pipelineFilter, setPipelineFilter] = useState('ALL');
-
-  // Tab 3 Enquiries & Walk-ins State
-  const [enquiriesList, setEnquiriesList] = useState<any[]>([]);
-  const [enquirySearch, setEnquirySearch] = useState('');
-  const [selectedEnquiryIdFor360, setSelectedEnquiryIdFor360] = useState<string | null>(null);
-  const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
-  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
-  const [leadForm, setLeadForm] = useState({
-    student_name: '',
-    parent_name: '',
-    phone: '',
-    email: '',
-    grade_applying: 'Grade 1',
-    previous_school: '',
-    source: 'Walk-in',
-    notes: '',
-  });
-
-  // Tab 4 AI Bot State
+  // AI Bot State
   const [aiInquiries, setAiInquiries] = useState<AiInquiryRecord[]>([]);
   const [chatQuery, setChatQuery] = useState('');
   const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -92,8 +89,8 @@ function AdmissionsCommandCenterContent() {
     setIsLoading(true);
     try {
       const [aRes, pRes, eRes, aiRes] = await Promise.all([
-        getAdmissionsPerformanceAnalyticsAction(),
-        getAdmissionsPipelineApplicationsAction(),
+        getAdmissionsPerformanceAnalyticsAction().catch(() => null),
+        getAdmissionsPipelineApplicationsAction().catch(() => null),
         getEnquiries('all').catch(() => ({ success: false, data: [] })),
         getAdmissionsAiInquiriesAction().catch(() => ({ success: false, inquiries: [] }))
       ]);
@@ -126,55 +123,26 @@ function AdmissionsCommandCenterContent() {
     loadAllData();
   }, []);
 
-  const handleTabChange = (tab: 'ANALYTICS' | 'PIPELINE' | 'ENQUIRIES' | 'AI_BOT') => {
+  const handleTabChange = (tab: 'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT') => {
     setActiveTab(tab);
     const param = tab === 'AI_BOT' ? 'ai-bot' : tab.toLowerCase();
     router.replace(`/admin/admissions?tab=${param}`, { scroll: false });
   };
 
-  const handleCreateLead = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!leadForm.student_name || !leadForm.phone) {
-      alert('Please provide student name and parent phone number.');
-      return;
-    }
-    setIsSubmittingLead(true);
+  const handle1ClickConvert = async (enquiryId: string) => {
+    setIsConvertingId(enquiryId);
     try {
-      const parts = leadForm.student_name.trim().split(' ');
-      const studentFirstName = parts[0] || 'Student';
-      const studentLastName = parts.slice(1).join(' ') || '';
-
-      const res = await createAdminEnquiryAction({
-        studentFirstName,
-        studentLastName,
-        parentName: leadForm.parent_name || 'Parent',
-        parentPhone: leadForm.phone,
-        parentEmail: leadForm.email || 'admissions@crayonboxschool.com',
-        gradeApplied: leadForm.grade_applying,
-        previousSchool: leadForm.previous_school,
-        notes: leadForm.notes,
-      });
+      const res = await convertEnquiryToApplicationAction(enquiryId);
       if (res.success) {
-        alert('Walk-in enquiry logged successfully!');
-        setIsNewLeadModalOpen(false);
-        setLeadForm({
-          student_name: '',
-          parent_name: '',
-          phone: '',
-          email: '',
-          grade_applying: 'Grade 1',
-          previous_school: '',
-          source: 'Walk-in',
-          notes: '',
-        });
+        alert(res.message || 'Enquiry successfully converted to Official Admission Application!');
         await loadAllData();
       } else {
-        alert(res.error || 'Failed to create lead');
+        alert(res.error || 'Conversion could not be processed.');
       }
     } catch (e: any) {
       alert(e.message);
     } finally {
-      setIsSubmittingLead(false);
+      setIsConvertingId(null);
     }
   };
 
@@ -208,16 +176,70 @@ function AdmissionsCommandCenterContent() {
     }
   };
 
+  // Filtered Enquiries
+  const filteredEnquiries = enquiriesList.filter(enq => {
+    const term = enquirySearch.toLowerCase();
+    const sName = (enq.child_name || enq.student_name || enq.studentName || '').toLowerCase();
+    const pName = (enq.primary_guardian_name || enq.parent_name || enq.parentName || '').toLowerCase();
+    const ph = (enq.primary_guardian_phone || enq.parent_phone || enq.phone || '').toLowerCase();
+    const matchesSearch = sName.includes(term) || pName.includes(term) || ph.includes(term);
+
+    const priority = (enq.lead_priority || enq.priority || '').toUpperCase();
+    const matchesPriority = priorityFilter === 'ALL' || priority === priorityFilter;
+
+    return matchesSearch && matchesPriority;
+  });
+
+  // Kanban Stage Grouping
+  const kanbanStages = [
+    {
+      id: 'NEW',
+      title: '1. Ingestion & New Leads',
+      color: 'border-blue-300 bg-blue-50/40 text-blue-950',
+      badgeColor: 'bg-blue-100 text-blue-800',
+      items: filteredEnquiries.filter(e => ['NEW', 'UNASSIGNED', 'RAW'].includes((e.status || 'NEW').toUpperCase())),
+    },
+    {
+      id: 'CONTACTED',
+      title: '2. Contacted & Follow-up',
+      color: 'border-amber-300 bg-amber-50/40 text-amber-950',
+      badgeColor: 'bg-amber-100 text-amber-800',
+      items: filteredEnquiries.filter(e => ['CONTACTED', 'IN_PROGRESS', 'FOLLOW_UP_SCHEDULED'].includes((e.status || '').toUpperCase())),
+    },
+    {
+      id: 'COUNSELLING',
+      title: '3. Campus Tour & Counselling',
+      color: 'border-purple-300 bg-purple-50/40 text-purple-950',
+      badgeColor: 'bg-purple-100 text-purple-800',
+      items: filteredEnquiries.filter(e => ['COUNSELLING_SCHEDULED', 'CAMPUS_TOUR', 'VISIT_SCHEDULED'].includes((e.status || '').toUpperCase())),
+    },
+    {
+      id: 'CONVERTED',
+      title: '4. Converted / Application Paid',
+      color: 'border-emerald-300 bg-emerald-50/40 text-emerald-950',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      items: filteredEnquiries.filter(e => ['CONVERTED', 'APPLICATION_SUBMITTED', 'ENROLLED', 'OFFER_MADE'].includes((e.status || '').toUpperCase())),
+    },
+    {
+      id: 'LOST',
+      title: '5. Lost / Inactive',
+      color: 'border-stone-300 bg-stone-50/50 text-stone-700',
+      badgeColor: 'bg-stone-200 text-stone-700',
+      items: filteredEnquiries.filter(e => ['LOST', 'DROPPED', 'INACTIVE'].includes((e.status || '').toUpperCase())),
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 font-sans pb-20">
       
       {/* Option 6 Sattva-Digital Module Banner & Tabs */}
       <VastuModuleBanner
         badgeText="Unified Admissions Command Suite"
-        badgeIcon={<Sparkles className="w-3 h-3" />}
+        badgeIcon={<Sparkles className="w-3 h-3 text-[#D97706]" />}
         institutionText="Academic Session 2026–2027"
-        title="Admissions, Enquiries & Enrollment Hub"
-        description="Unified intake cockpit consolidating Funnel Analytics, Kanban Pipeline, Walk-ins CRM, and 24/7 AI Bot."
+        title="Admissions Command Suite & CRM"
+        titleIcon={<GraduationCap className="w-7 h-7 text-[#D97706]" />}
+        description="Consolidated pre-admission cockpit uniting Kanban Pipeline CRM, Rapid Walk-ins Intake, Funnel Analytics, and 24/7 AI Copilot."
         actions={
           <>
             <Button
@@ -225,7 +247,8 @@ function AdmissionsCommandCenterContent() {
               size="sm"
               onClick={loadAllData}
               isLoading={isLoading}
-              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
             >
               Sync Live DB
             </Button>
@@ -233,6 +256,7 @@ function AdmissionsCommandCenterContent() {
               variant="saffron"
               size="sm"
               onClick={() => setIsNewLeadModalOpen(true)}
+              className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-md"
               leftIcon={<Plus className="w-3.5 h-3.5" />}
             >
               + Quick Walk-in Lead
@@ -240,328 +264,413 @@ function AdmissionsCommandCenterContent() {
           </>
         }
         tabs={[
-          { id: 'ANALYTICS', label: '1. Funnel & Intelligence Analytics', icon: <BarChart3 className="w-4 h-4 text-blue-400" /> },
-          { id: 'PIPELINE', label: '2. Kanban Pipeline & Stage Review', icon: <Layers className="w-4 h-4 text-indigo-400" />, count: pipelineApps.length },
-          { id: 'ENQUIRIES', label: '3. Walk-ins & Enquiries CRM', icon: <PhoneCall className="w-4 h-4 text-emerald-400" />, count: enquiriesList.length },
-          { id: 'AI_BOT', label: '4. AI WhatsApp Assistant', icon: <Bot className="w-4 h-4 text-purple-400" /> },
+          { id: 'PIPELINE', label: '1. Pipeline & Enquiries CRM', icon: <Layers className="w-4 h-4 text-amber-600" />, count: enquiriesList.length },
+          { id: 'ANALYTICS', label: '2. Funnel & Intelligence Analytics', icon: <BarChart3 className="w-4 h-4 text-emerald-600" /> },
+          { id: 'WALKIN', label: '3. Rapid Walk-ins & Intake', icon: <UserPlus className="w-4 h-4 text-blue-600" /> },
+          { id: 'AI_BOT', label: '4. 24/7 AI Admissions Assistant', icon: <Bot className="w-4 h-4 text-purple-600" /> },
         ]}
         activeTab={activeTab}
         onTabChange={(id) => handleTabChange(id as any)}
       />
 
       {/* ======================================================== */}
-      {/* TAB 1: FUNNEL & INTELLIGENCE ANALYTICS */}
+      {/* TAB 1: PIPELINE & ENQUIRIES CRM (CONSOLIDATED KANBAN & TABLE) */}
+      {/* ======================================================== */}
+      {activeTab === 'PIPELINE' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Controls Ribbon */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/95 p-5 rounded-3xl border border-[#E8DFC8] shadow-xs backdrop-blur-xs">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search prospective student, parent, phone, locality..."
+                value={enquirySearch}
+                onChange={e => setEnquirySearch(e.target.value)}
+                className="w-full text-xs pl-10 pr-4 py-2.5 rounded-2xl bg-[#FAF7F2] border border-[#E8DFC8] text-stone-900 font-medium focus:border-[#D97706] focus:ring-1 focus:ring-amber-200 outline-none"
+              />
+            </div>
+
+            {/* Filter Pills & View Switcher */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {/* Priority Filter */}
+              <div className="flex items-center gap-1 bg-[#FAF7F2] p-1 rounded-2xl border border-[#E8DFC8]">
+                {(['ALL', 'HOT', 'WARM', 'COLD'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriorityFilter(p)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      priorityFilter === p
+                        ? 'bg-white text-stone-900 shadow-2xs border border-[#E8DFC8]'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    {p === 'ALL' ? 'All' : p === 'HOT' ? '🔥 Hot' : p === 'WARM' ? '⚡ Warm' : '❄️ Cold'}
+                  </button>
+                ))}
+              </div>
+
+              {/* View Switcher */}
+              <div className="flex items-center gap-1 bg-[#FAF7F2] p-1 rounded-2xl border border-[#E8DFC8]">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('kanban')}
+                  className={`p-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    viewMode === 'kanban'
+                      ? 'bg-white text-[#D97706] shadow-2xs border border-[#E8DFC8]'
+                      : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                  title="Kanban Board View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    viewMode === 'table'
+                      ? 'bg-white text-[#D97706] shadow-2xs border border-[#E8DFC8]'
+                      : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                  title="Table List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
+              <Button
+                size="sm"
+                variant="saffron"
+                onClick={() => setIsNewLeadModalOpen(true)}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-xs"
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                + New Intake
+              </Button>
+            </div>
+          </div>
+
+          {/* 1A. KANBAN VIEW */}
+          {viewMode === 'kanban' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
+              {kanbanStages.map((stage) => (
+                <div
+                  key={stage.id}
+                  className="bg-[#FAF7F2]/80 rounded-3xl border border-[#E8DFC8] p-4 flex flex-col space-y-3 min-w-[240px]"
+                >
+                  {/* Column Header */}
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E8DFC8]">
+                    <h3 className="text-xs font-black text-stone-900 uppercase tracking-tight truncate">
+                      {stage.title}
+                    </h3>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${stage.badgeColor}`}>
+                      {stage.items.length}
+                    </span>
+                  </div>
+
+                  {/* Stage Cards */}
+                  <div className="space-y-3 flex-1 overflow-y-auto max-h-[650px] pr-0.5">
+                    {stage.items.map((enq) => {
+                      const priority = (enq.lead_priority || enq.priority || '').toUpperCase();
+                      const childName = enq.child_name || enq.student_name || 'Prospective Student';
+                      const parentName = enq.primary_guardian_name || enq.parent_name || 'Parent';
+                      const phone = enq.primary_guardian_phone || enq.parent_phone || enq.phone;
+                      const grade = enq.admission_class || enq.grade_interested || 'Class 1';
+
+                      return (
+                        <div
+                          key={enq.id}
+                          className="bg-white rounded-2xl border border-[#E8DFC8] p-3.5 shadow-2xs hover:border-[#D4AF37] transition space-y-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-1.5">
+                            <span className="text-[9px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-200 px-1.5 py-0.5 rounded">
+                              {enq.enquiry_number || enq.enquiry_no || 'ENQ-LIVE'}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              priority === 'HOT'
+                                ? 'bg-rose-100 text-rose-800'
+                                : priority === 'WARM'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {priority || 'NORMAL'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <h4 className="font-extrabold text-stone-900 text-xs">
+                              {childName}
+                            </h4>
+                            <p className="text-[11px] text-stone-500 font-medium">
+                              Grade: <span className="font-bold text-stone-700">{grade}</span>
+                            </p>
+                          </div>
+
+                          <div className="text-[10px] text-stone-600 bg-[#FAF7F2] p-2 rounded-xl space-y-0.5">
+                            <p className="truncate">👤 {parentName}</p>
+                            <p className="font-mono">📞 {phone}</p>
+                            {enq.locality_area && <p className="truncate">📍 {enq.locality_area}</p>}
+                            {enq.transport_required && (
+                              <p className="text-amber-800 font-bold text-[9.5px]">🚌 Bus Requested</p>
+                            )}
+                          </div>
+
+                          {/* Card Action Buttons */}
+                          <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEnquiryIdFor360(enq.id)}
+                              className="px-2 py-1 rounded-xl bg-white hover:bg-[#FAF7F2] text-stone-800 text-[10px] font-bold border border-[#E8DFC8] flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                            >
+                              <Eye className="w-3 h-3 text-[#D97706]" /> 360°
+                            </button>
+
+                            {/* 1-Click Convert Button */}
+                            {stage.id !== 'CONVERTED' ? (
+                              <button
+                                type="button"
+                                disabled={isConvertingId === enq.id}
+                                onClick={() => handle1ClickConvert(enq.id)}
+                                className="px-2 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300 flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                                title="1-Click Convert to Official Admission Application"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>{isConvertingId === enq.id ? '...' : 'Convert'}</span>
+                              </button>
+                            ) : (
+                              <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                Enrolled ✓
+                              </span>
+                            )}
+
+                            {/* WhatsApp shortcut */}
+                            <a
+                              href={`https://wa.me/${(phone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(parentName)},%20regarding%20${encodeURIComponent(childName)}%20admission%20at%20Crayon%20Box%20School...`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition"
+                              title="Message on WhatsApp"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {stage.items.length === 0 && (
+                      <div className="py-8 text-center text-stone-400 text-[11px] font-medium border border-dashed border-[#E8DFC8] rounded-2xl">
+                        No leads in this stage
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 1B. TABLE VIEW */}
+          {viewMode === 'table' && (
+            <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-stone-700">
+                  <thead className="bg-[#FAF7F2] text-stone-900 text-[11px] uppercase tracking-wider font-extrabold border-b border-[#E8DFC8]">
+                    <tr>
+                      <th className="px-4 py-3.5">Enquiry #</th>
+                      <th className="px-4 py-3.5">Prospective Student</th>
+                      <th className="px-4 py-3.5">Grade</th>
+                      <th className="px-4 py-3.5">Parent & Contact</th>
+                      <th className="px-4 py-3.5">Stage / Status</th>
+                      <th className="px-4 py-3.5">Priority</th>
+                      <th className="px-4 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8DFC8]/60">
+                    {filteredEnquiries.map((enq) => {
+                      const childName = enq.child_name || enq.student_name || 'Student';
+                      const parentName = enq.primary_guardian_name || enq.parent_name || 'Parent';
+                      const phone = enq.primary_guardian_phone || enq.parent_phone || enq.phone;
+                      const grade = enq.admission_class || enq.grade_interested || 'Class 1';
+                      const priority = (enq.lead_priority || enq.priority || '').toUpperCase();
+                      const status = (enq.status || 'NEW').toUpperCase();
+
+                      return (
+                        <tr key={enq.id} className="hover:bg-[#FAF7F2]/60 transition">
+                          <td className="px-4 py-3 font-mono font-bold text-amber-950">
+                            {enq.enquiry_number || enq.enquiry_no || 'ENQ-LIVE'}
+                          </td>
+                          <td className="px-4 py-3 font-extrabold text-stone-900">
+                            {childName}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-stone-600">
+                            {grade}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-bold text-stone-900">{parentName}</div>
+                            <div className="font-mono text-[10px] text-stone-500">{phone}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
+                              {status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              priority === 'HOT'
+                                ? 'bg-rose-100 text-rose-800'
+                                : priority === 'WARM'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {priority || 'NORMAL'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedEnquiryIdFor360(enq.id)}
+                                className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-[#FAF7F2] text-stone-800 text-xs font-bold border border-[#E8DFC8] flex items-center gap-1 shadow-2xs"
+                              >
+                                <Eye className="w-3 h-3 text-[#D97706]" /> Dossier
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isConvertingId === enq.id}
+                                onClick={() => handle1ClickConvert(enq.id)}
+                                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 flex items-center gap-1"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>{isConvertingId === enq.id ? 'Converting...' : 'Convert'}</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {filteredEnquiries.length === 0 && (
+            <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-12 text-center space-y-3">
+              <PhoneCall className="w-10 h-10 text-stone-300 mx-auto" />
+              <h3 className="font-bold text-stone-700">No Admission Enquiries Found</h3>
+              <p className="text-xs text-stone-400">Click &ldquo;+ Quick Walk-in Lead&rdquo; above to log parent calls and campus walk-ins.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 2: FUNNEL & INTELLIGENCE ANALYTICS */}
       {/* ======================================================== */}
       {activeTab === 'ANALYTICS' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* KPI Hero Matrix */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Enquiries</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">{kpis.totalEnquiries}</span>
-                <span className="text-[11px] font-black text-emerald-600 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-0.5" /> Live
-                </span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total Enquiries</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-stone-900">{kpis.totalEnquiries}</span>
+                <span className="text-[10px] text-emerald-700 font-bold">↗ Live</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Registered inquiries</span>
+              <p className="text-[10px] text-stone-500">Registered inquiries</p>
             </div>
 
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Applications</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-blue-600 font-mono">{kpis.totalApplications}</span>
-                <span className="text-[11px] font-bold text-slate-500">{kpis.applicationRate}% rate</span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Applications</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-blue-600">{kpis.totalApplications}</span>
+                <span className="text-[10px] text-blue-700 font-bold">{kpis.applicationRate}% rate</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Online forms filed</span>
+              <p className="text-[10px] text-stone-500">Online forms filed</p>
             </div>
 
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Confirmed Admissions</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600 font-mono">{kpis.totalAdmissions}</span>
-                <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Enrolled</span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Confirmed Admissions</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-emerald-600">{kpis.totalAdmissions}</span>
+                <span className="text-[10px] text-emerald-700 font-bold">Enrolled</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Fee received &amp; class allotted</span>
+              <p className="text-[10px] text-stone-500">Fee received & class allotted</p>
             </div>
 
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Conversion Yield</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-indigo-600 font-mono">{kpis.conversionRate}%</span>
-                <span className="text-[11px] font-bold text-indigo-600">Benchmark: 20%</span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Conversion Yield</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-indigo-600">{kpis.conversionRate}%</span>
+                <span className="text-[10px] text-indigo-700 font-bold">Benchmark: 20%</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Inquiry to enrolled ratio</span>
+              <p className="text-[10px] text-stone-500">Inquiry to enrolled ratio</p>
             </div>
 
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sibling Priority</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-purple-600 font-mono">100%</span>
-                <span className="text-[11px] font-bold text-purple-600">Family 360</span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Sibling Priority</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-purple-600">100%</span>
+                <span className="text-[10px] text-purple-700 font-bold">Family 360</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Automated sibling discounts</span>
+              <p className="text-[10px] text-stone-500">Automated sibling discounts</p>
             </div>
 
-            <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Lost Leads</span>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl sm:text-3xl font-black text-slate-400 font-mono">{kpis.lostEnquiries}</span>
-                <span className="text-[11px] font-bold text-slate-400">Archived</span>
+            <div className="p-5 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Lost Leads</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-stone-400">{kpis.lostEnquiries}</span>
+                <span className="text-[10px] text-stone-500 font-bold">Archived</span>
               </div>
-              <span className="text-[10px] text-slate-400 block">Unresponsive or relocated</span>
+              <p className="text-[10px] text-stone-500">Unresponsive or relocated</p>
             </div>
           </div>
 
-          {/* Funnel Stack & Management Insights */}
+          {/* Funnel & AI Executive Intelligence Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <AdmissionsFunnelChart stages={funnelStages} />
             </div>
             <div>
-              <ManagementInsightsCard
-                insights={analytics?.managementInsights || {
-                  topPerformer: 'Nursery & KG',
-                  criticalBottleneck: 'Document Verification',
-                  topLeadSource: 'Walk-in & Google Maps',
-                  forecastedYield: '88% of target capacity'
-                }}
-              />
+              <ManagementInsightsCard />
             </div>
           </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: KANBAN PIPELINE & STAGE REVIEW */}
+      {/* TAB 3: RAPID WALK-INS & INTAKE (DIRECT 2-MIN MASTER FORM) */}
       {/* ======================================================== */}
-      {activeTab === 'PIPELINE' && (
+      {activeTab === 'WALKIN' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Pipeline Header Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-            <div>
-              <h3 className="font-extrabold text-slate-900 text-lg">Admissions Review Pipeline</h3>
-              <p className="text-xs text-slate-500">Track and advance applicants from initial submission to final classroom enrollment</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {['ALL', 'SUBMITTED', 'UNDER_REVIEW', 'INTERVIEW_SCHEDULED', 'OFFER_MADE', 'ENROLLED'].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setPipelineFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    pipelineFilter === st
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {st.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Pipeline Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pipelineApps
-              .filter(app => pipelineFilter === 'ALL' || (app.status || 'SUBMITTED').toUpperCase().includes(pipelineFilter))
-              .map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition space-y-3"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                        {app.token || `APP-${app.id.slice(0, 6)}`}
-                      </span>
-                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                        app.status?.includes('ENROLL') || app.status?.includes('ADMIT')
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : app.status?.includes('OFFER')
-                          ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {app.status || 'SUBMITTED'}
-                      </span>
-                    </div>
-
-                    <h4 className="font-extrabold text-slate-900 text-base">
-                      {app.studentFirstName} {app.studentLastName || ''}
-                    </h4>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Applied Grade: <span className="font-bold text-slate-700">{app.gradeApplied}</span> • Age: {app.age || '4 yrs'}
-                    </p>
-
-                    <div className="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="text-slate-400">Parent:</span>
-                        <span className="font-bold text-slate-800">{app.parentName || `${app.parentFirstName || ''} ${app.parentLastName || ''}`}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="text-slate-400">Phone:</span>
-                        <span className="font-mono text-slate-800">{app.parentPhone}</span>
-                      </div>
-                      {app.transportRequired && (
-                        <div className="flex items-center gap-1 text-[11px] text-amber-700 font-bold mt-1">
-                          <span>🚌 Bus Transport Requested</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <a
-                      href={`https://wa.me/${app.parentPhone?.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(app.parentName || 'Parent')},%20regarding%20${encodeURIComponent(app.studentFirstName)}%20admission%20at%20Crayon%20Box%20School...`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition flex items-center gap-1"
-                    >
-                      <MessageSquare className="w-3 h-3" /> WhatsApp
-                    </a>
-
-                    <Link
-                      href={`/admin/admissions/${app.id}/verify`}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#0B1B30] hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs"
-                    >
-                      <span>Review Details</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-          </div>
-
-          {pipelineApps.length === 0 && (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-3">
-              <Layers className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="font-bold text-slate-700">No Applications in Current Pipeline Filter</h3>
-              <p className="text-xs text-slate-400">Click &ldquo;+ Quick Walk-in Lead&rdquo; above to register new applicants.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* TAB 3: WALK-INS & ENQUIRIES CRM */}
-      {/* ======================================================== */}
-      {activeTab === 'ENQUIRIES' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search walk-in parent name, phone, student..."
-                value={enquirySearch}
-                onChange={e => setEnquirySearch(e.target.value)}
-                className="w-full text-xs pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-medium"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/admin/admissions/applications"
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition"
-              >
-                <FileText className="w-3.5 h-3.5 text-blue-950" />
-                <span>Master Applications Ledger</span>
-              </Link>
+          <div className="bg-white/95 p-6 sm:p-8 rounded-3xl border border-[#E8DFC8] shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E8DFC8] gap-2">
+              <div>
+                <h3 className="text-lg font-black text-stone-900">Rapid Admission Enquiry Intake Master</h3>
+                <p className="text-xs text-stone-600">Complete 360-degree enquiry registration for counsellors and campus front desk.</p>
+              </div>
               <Button
+                variant="outline"
                 size="sm"
-                variant="primary"
-                onClick={() => setIsNewLeadModalOpen(true)}
-                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() => handleTabChange('PIPELINE')}
+                className="text-xs font-bold"
               >
-                + Rapid 2-Min Lead Entry
+                Back to Pipeline CRM
               </Button>
             </div>
+
+            <AdminNewEnquiryForm
+              isModal={false}
+              onCancel={() => handleTabChange('PIPELINE')}
+              onSuccess={() => {
+                alert('New Admission Enquiry successfully recorded in CRM!');
+                loadAllData();
+                handleTabChange('PIPELINE');
+              }}
+            />
           </div>
-
-          {/* Enquiries Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {enquiriesList
-              .filter(enq => {
-                const term = enquirySearch.toLowerCase();
-                const sName = (enq.student_name || enq.studentName || '').toLowerCase();
-                const pName = (enq.parent_name || enq.parentName || '').toLowerCase();
-                const ph = (enq.phone || enq.parentPhone || '').toLowerCase();
-                return sName.includes(term) || pName.includes(term) || ph.includes(term);
-              })
-              .map(enq => (
-                <div
-                  key={enq.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition space-y-3"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                        {enq.enquiry_no || enq.enquiryNo || 'ENQ-2026-LIVE'}
-                      </span>
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        enq.priority === 'HIGH' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
-                        {enq.priority || 'NORMAL'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-extrabold text-slate-900 text-sm">{enq.student_name || enq.studentName || 'Prospective Student'}</h4>
-                      <p className="text-xs text-slate-500 font-medium">Grade: {enq.grade_interested || enq.grade || 'Nursery'} • Parent: {enq.parent_name || enq.parentName}</p>
-                    </div>
-
-                    <div className="text-xs text-slate-600 space-y-0.5">
-                      <p>📞 {enq.phone || enq.parentPhone}</p>
-                      {enq.locality && <p>📍 {enq.locality}</p>}
-                      {enq.transport_required && <p className="text-blue-600 font-semibold">🚌 School Transport Requested</p>}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setSelectedEnquiryIdFor360(enq.id)}
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-300" /> Dossier
-                      </button>
-                      <Link
-                        href={`/admissions/apply?enquiry_no=${enq.enquiry_no || enq.id}`}
-                        target="_blank"
-                        className="px-2.5 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold transition flex items-center gap-1 shadow-2xs"
-                        title="Pre-fill and open Master Admission Application"
-                      >
-                        <GraduationCap className="w-3 h-3 text-amber-400" /> Apply
-                      </Link>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <a
-                        href={`tel:${enq.phone || enq.parentPhone}`}
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 transition"
-                      >
-                        <Phone className="w-3 h-3 text-slate-500" /> Call
-                      </a>
-                      <a
-                        href={`https://wa.me/${(enq.phone || enq.parentPhone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(enq.parent_name || 'Parent')},%20greetings%20from%20Crayon%20Box%20School%20Admissions%20Office.`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition flex items-center gap-1"
-                      >
-                        <MessageSquare className="w-3 h-3 text-emerald-600" /> WA
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-
-          {enquiriesList.length === 0 && (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-3">
-              <PhoneCall className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="font-bold text-slate-700">No Walk-in Enquiries Logged Yet</h3>
-              <p className="text-xs text-slate-400">Click &ldquo;+ Rapid 2-Min Lead Entry&rdquo; above to record parent inquiries.</p>
-            </div>
-          )}
         </div>
       )}
 
@@ -569,154 +678,116 @@ function AdmissionsCommandCenterContent() {
       {/* TAB 4: AI WHATSAPP ASSISTANT */}
       {/* ======================================================== */}
       {activeTab === 'AI_BOT' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Interactive Bot Chat Simulator */}
-            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-xs">
-                    <Bot className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">VANI • 24/7 AI Admissions Receptionist Simulator</h3>
-                    <p className="text-xs text-slate-500">Zero-hardcoding live DB responses, Q&amp;A manager, and evaluations</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
+          {/* Interactive Chat Console */}
+          <div className="lg:col-span-2 bg-white/95 rounded-3xl border border-[#E8DFC8] shadow-xs flex flex-col h-[650px] overflow-hidden">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-[#FFFDF9] via-[#FAF6EE] to-[#F5EEDB] border-b border-[#E8DFC8] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 shadow-2xs font-bold text-lg">
+                  🤖
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-stone-900 text-sm">Admissions AI WhatsApp & Prospectus Bot</h3>
+                  <div className="flex items-center gap-2 text-[10px] text-stone-600 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span>Trained on Official CBSE 2026-27 Prospectus & Fee Structure</span>
                   </div>
                 </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                Gemini 2.5 Flash
+              </span>
+            </div>
 
-                <Link
-                  href="/admin/admissions/ai-bot"
-                  className="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition shrink-0"
+            {/* Chat History Area */}
+            <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-[#FDFBF7]/50">
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Open Full VANI Control Centre</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-blue-300" />
-                </Link>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active Agent
-                </span>
-              </div>
-
-              {/* Chat Message Window */}
-              <div className="space-y-3 min-h-[300px] max-h-[400px] overflow-y-auto p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${
-                        msg.sender === 'user'
-                          ? 'bg-[#0B1B30] text-white rounded-br-none shadow-xs font-medium'
-                          : 'bg-white text-slate-800 rounded-bl-none border border-slate-200/80 shadow-2xs font-normal'
-                      }`}
-                    >
-                      {msg.text}
+                  {msg.sender === 'bot' && (
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center shrink-0 font-bold text-xs">
+                      AI
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.time}</span>
-                  </div>
-                ))}
-                {isAiProcessing && (
-                  <div className="flex items-center gap-2 text-xs text-purple-600 font-bold p-2 bg-purple-50 rounded-xl w-fit">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> AI Admissions Agent is typing...
-                  </div>
-                )}
-              </div>
-
-              {/* Prompt Suggestions */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {[
-                  'What is the fee for Nursery?',
-                  'Age criteria for Class 1?',
-                  'Burari bus transport available?',
-                  'Required admission documents?'
-                ].map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSendAiQuery(undefined, p)}
-                    className="text-[11px] font-medium px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-100 whitespace-nowrap transition cursor-pointer"
+                  )}
+                  <div
+                    className={`max-w-lg p-4 rounded-3xl text-xs sm:text-sm font-medium leading-relaxed ${
+                      msg.sender === 'user'
+                        ? 'bg-[#D97706] text-white rounded-tr-xs shadow-xs'
+                        : 'bg-white text-stone-800 border border-[#E8DFC8] rounded-tl-xs shadow-2xs'
+                    }`}
                   >
-                    💡 {p}
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isAiProcessing && (
+                <div className="flex items-center gap-2 text-xs text-stone-400 p-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" />
+                  <span>AI Copilot formulating admissions answer...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Message Input Box */}
+            <form onSubmit={handleSendAiQuery} className="p-3 sm:p-4 bg-white border-t border-[#E8DFC8] flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Ask fee breakdown, age criteria, bus routes, or syllabus..."
+                value={chatQuery}
+                onChange={e => setChatQuery(e.target.value)}
+                className="flex-1 text-xs px-4 py-3 rounded-2xl bg-[#FAF7F2] border border-[#E8DFC8] text-stone-900 focus:outline-none focus:border-[#D97706]"
+              />
+              <Button
+                type="submit"
+                variant="saffron"
+                size="md"
+                isLoading={isAiProcessing}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white font-black"
+                rightIcon={<Send className="w-3.5 h-3.5" />}
+              >
+                Ask
+              </Button>
+            </form>
+          </div>
+
+          {/* AI Knowledge Base & Quick Questions */}
+          <div className="space-y-4">
+            <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-3">
+              <h4 className="font-extrabold text-stone-900 text-sm">Quick Test Prompts</h4>
+              <div className="space-y-2">
+                {[
+                  "What is the annual tuition fee for Class 5?",
+                  "Are sibling discounts applicable across all campuses?",
+                  "What is the minimum age for Nursery admissions 2026-27?",
+                  "Is school transport bus route available for Burari / Sant Nagar?",
+                ].map((q, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSendAiQuery(undefined, q)}
+                    className="w-full text-left p-2.5 rounded-2xl bg-[#FAF7F2] hover:bg-amber-50/60 border border-[#E8DFC8] text-xs font-semibold text-stone-700 transition cursor-pointer"
+                  >
+                    💬 {q}
                   </button>
                 ))}
               </div>
-
-              {/* Chat Input */}
-              <form onSubmit={handleSendAiQuery} className="flex items-center gap-2 pt-2">
-                <input
-                  type="text"
-                  placeholder="Ask any admissions question to test bot knowledge..."
-                  value={chatQuery}
-                  onChange={e => setChatQuery(e.target.value)}
-                  className="flex-1 text-xs px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-medium focus:outline-purple-600"
-                />
-                <button
-                  type="submit"
-                  disabled={isAiProcessing || !chatQuery.trim()}
-                  className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
-                </button>
-              </form>
             </div>
 
-            {/* Inbound Parent WhatsApp Inquiries */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                  <h3 className="font-extrabold text-slate-900 text-sm">Recent Inbound Bot Logs</h3>
-                  <span className="text-[10px] font-bold text-slate-400">{aiInquiries.length} Inquiries</span>
-                </div>
-
-                <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                  {aiInquiries.map((inq, idx) => (
-                    <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1 text-xs">
-                      <div className="flex items-center justify-between font-bold text-slate-800">
-                        <span>{inq.parent_name || 'WhatsApp Parent'}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{inq.target_grade}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 font-medium">Q: &ldquo;{inq.user_query}&rdquo;</p>
-                      <p className="text-[10px] text-slate-400">Answered by AI • {inq.created_at ? new Date(inq.created_at).toLocaleDateString('en-GB') : 'Today'}</p>
-                    </div>
-                  ))}
-
-                  {aiInquiries.length === 0 && (
-                    <div className="text-center py-8 text-slate-400 space-y-2">
-                      <Bot className="w-8 h-8 mx-auto text-slate-300" />
-                      <p className="text-xs">No WhatsApp conversations recorded today.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" /> WhatsApp Cloud Webhook Active
-                </div>
-                <p className="text-[11px] text-purple-700 leading-relaxed">
-                  Incoming parent WhatsApp messages to +91 9811102008 are automatically handled by this agent with zero latency.
-                </p>
+            <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-2">
+              <h4 className="font-extrabold text-stone-900 text-sm">Live WhatsApp Bot Telemetry</h4>
+              <p className="text-xs text-stone-600">
+                Connected to school WhatsApp Business webhook (+91 9811102008). Automatically converts WhatsApp conversations into Lead cards in Tab 1.
+              </p>
+              <div className="pt-2 flex items-center justify-between text-xs font-bold text-emerald-700">
+                <span>Webhook Health: Normal</span>
+                <span>Response Time: 1.2s</span>
               </div>
             </div>
-
           </div>
         </div>
       )}
-
-      {/* ======================================================== */}
-      {/* 360° NEW ADMISSION ENQUIRY INTAKE MODAL */}
-      {/* ======================================================== */}
-      <AdminNewEnquiryModal
-        isOpen={isNewLeadModalOpen}
-        onClose={() => setIsNewLeadModalOpen(false)}
-        onSuccess={() => {
-          setIsNewLeadModalOpen(false);
-          loadAllData();
-        }}
-      />
 
       {/* 360° Lead Dossier Modal */}
       {selectedEnquiryIdFor360 && (
@@ -728,18 +799,23 @@ function AdmissionsCommandCenterContent() {
         />
       )}
 
+      {/* Rapid Intake Modal */}
+      <AdminNewEnquiryModal
+        isOpen={isNewLeadModalOpen}
+        onClose={() => setIsNewLeadModalOpen(false)}
+        onSuccess={() => {
+          setIsNewLeadModalOpen(false);
+          loadAllData();
+        }}
+      />
+
     </div>
   );
 }
 
 export default function AdmissionsCommandCenterPage() {
   return (
-    <Suspense fallback={
-      <div className="p-12 text-center text-slate-400 font-medium">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-        Loading Unified Admissions Command Suite...
-      </div>
-    }>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500 font-bold">Loading Admissions Command Center...</div>}>
       <AdmissionsCommandCenterContent />
     </Suspense>
   );

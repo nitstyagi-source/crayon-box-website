@@ -708,24 +708,24 @@ function UniversalStudentsDirectoryContent() {
       )}
 
       {/* Executive Command Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FAF7F2] p-6 sm:p-8 rounded-3xl border border-[#E8DFC8] shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Student &amp; Family 360 Lifecycle Master
+            <span className="bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" /> Student &amp; Family 360 Lifecycle Master
             </span>
-            <span className="text-slate-300 text-xs">•</span>
-            <span className="text-slate-500 text-xs font-semibold">
+            <span className="text-stone-300 text-xs">•</span>
+            <span className="text-stone-600 text-xs font-semibold">
               {activeTab === "ROSTER" ? `${students.length} Enrolled in Scope` :
                activeTab === "FAMILIES" ? `${families.length} Household Units` :
                activeTab === "ID_CARDS" ? `${students.length} Smart Badges Ready` :
                `${tcCertificates.length} Official TCs Issued`}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
             Universal Student &amp; Family Directory
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+          <p className="text-xs sm:text-sm text-stone-600 font-medium">
             Permanent universal student identities, household relations, ID smart-badges, and official transfer certificates.
           </p>
         </div>
@@ -740,14 +740,16 @@ function UniversalStudentsDirectoryContent() {
               else if (activeTab === "TC") fetchTcList();
             }}
             isLoading={isLoading || familiesLoading || tcLoading}
+            className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
             leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
             Refresh Live DB
           </Button>
           <Button
-            variant="secondary"
+            variant="saffron"
             size="md"
             onClick={() => { setWizardStep(1); setIsEnrollModalOpen(true); }}
+            className="bg-[#D97706] hover:bg-[#B45309] text-white font-black shadow-xs"
             leftIcon={<Plus className="w-4 h-4" />}
           >
             Enroll New Student

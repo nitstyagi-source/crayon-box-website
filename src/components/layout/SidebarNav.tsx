@@ -98,10 +98,8 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       accentColor: '#38BDF8',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS', 'PARENT'],
       items: [
-        { name: 'Admissions Command Suite', href: '/admin/admissions', icon: GraduationCap, badge: 'Unified', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Admission Enquiries & CRM', href: '/admin/enquiries', icon: PhoneCall, badge: 'CRM', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'New Admission Enquiry', href: '/admin/enquiries/new', icon: FileText, badge: 'Intake', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
-        { name: 'Student & Family 360 Master', href: '/admin/students', icon: Users, badge: 'Master', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
+        { name: 'Admissions Command Suite', href: '/admin/admissions', icon: GraduationCap, badge: 'Pipeline & CRM', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'] },
+        { name: 'Student & Family 360 Master', href: '/admin/students', icon: Users, badge: 'Enrolled & TC', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'ACCOUNTS'] },
       ],
     },
     {
