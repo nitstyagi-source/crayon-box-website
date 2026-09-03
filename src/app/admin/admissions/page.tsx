@@ -624,10 +624,19 @@ function AdmissionsCommandCenterContent() {
                     <Bot className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">24/7 AI Admissions Receptionist Simulator</h3>
-                    <p className="text-xs text-slate-500">Test live AI responses for fees, age eligibility, and curriculum</p>
+                    <h3 className="font-extrabold text-slate-900 text-base">VANI • 24/7 AI Admissions Receptionist Simulator</h3>
+                    <p className="text-xs text-slate-500">Zero-hardcoding live DB responses, Q&amp;A manager, and evaluations</p>
                   </div>
                 </div>
+
+                <Link
+                  href="/admin/admissions/ai-bot"
+                  className="px-4 py-2 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Open Full VANI Control Centre</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-blue-300" />
+                </Link>
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active Agent
                 </span>
