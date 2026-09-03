@@ -32,6 +32,7 @@ import {
   getAdmissionsMasterDataAction,
   saveMasterAdmissionApplicationAction
 } from "@/app/actions/admissions-application-actions";
+import { AadhaarOcrValidator } from "./AadhaarOcrValidator";
 
 interface Props {
   initialEnquiryNo?: string;
@@ -372,6 +373,13 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
         </div>
 
         <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={`/admin/admissions/assessments?appNo=${successAppNo}`}
+            className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs text-white transition shadow-md flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4 text-amber-300" />
+            <span>Select Interview &amp; Assessment Slot</span>
+          </a>
           <button
             onClick={() => window.print()}
             className="px-6 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 font-bold text-xs text-stone-800 transition"
@@ -1442,11 +1450,18 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
         {currentStep === 11 && (
           <div className="space-y-4 animate-in fade-in duration-150">
             <div className="border-b border-stone-200 pb-3">
-              <h3 className="text-base font-black text-stone-900">Step 11: Statutory Document Checklist</h3>
-              <p className="text-xs text-stone-500">Checklist of documents submitted for verification</p>
+              <h3 className="text-base font-black text-stone-900">Step 11: Statutory Document Checklist &amp; Neural OCR</h3>
+              <p className="text-xs text-stone-500">Auto-verify demographic accuracy against uploaded IDs</p>
             </div>
 
-            <div className="space-y-2">
+            {/* Neural Document OCR Validator */}
+            <AadhaarOcrValidator
+              expectedStudentName={`${form.first_name} ${form.last_name}`.trim()}
+              expectedDob={form.dob}
+              expectedParentName={form.father_name || form.mother_name}
+            />
+
+            <div className="space-y-2 pt-2">
               {form.documents_checklist.map((doc, idx) => (
                 <div
                   key={idx}
