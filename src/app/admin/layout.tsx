@@ -7,6 +7,7 @@ import GlobalSearchModal from '@/components/layout/GlobalSearchModal';
 import { GlobalCommandPalette } from '@/components/common/GlobalCommandPalette';
 import { InstitutionProvider, useInstitution } from '@/components/providers/InstitutionContext';
 import { CampusProvider } from '@/components/providers/CampusProvider';
+import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { currentRole } = useInstitution();
@@ -14,7 +15,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-100/90 overflow-hidden font-sans text-slate-800 antialiased">
+    <div className="relative flex h-screen bg-[#FDFBF7] overflow-hidden font-sans text-stone-900 antialiased">
+      {/* Subtle Hairline Vastu Mandala Watermark in Center (4% Opacity) */}
+      <VastuMandalaWatermark className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" size={680} opacity={0.04} />
+
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <GlobalCommandPalette />
 

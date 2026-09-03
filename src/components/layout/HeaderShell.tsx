@@ -176,29 +176,39 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             </div>
           </div>
 
-          {/* Right: Actions (VANI Copilot, Search, Notifications, Profile, Direct Logout) */}
+          {/* Center / North-East: Vastu Wisdom Omnibar with Gemini AI Sparkles (Google M3 Pill) */}
+          <div className="hidden md:flex flex-1 max-w-xl mx-4 items-center justify-center">
+            <button
+              onClick={() => setIsVaniPaletteOpen(true)}
+              className="w-full flex items-center justify-between px-4 py-2 rounded-full bg-white/95 hover:bg-white border border-stone-200/80 hover:border-amber-400/80 text-stone-600 hover:text-stone-900 transition shadow-xs group cursor-pointer"
+              title="Search or ask VANI AI (⌘K)"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-400 to-amber-400 p-0.5 flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                </span>
+                <span className="text-xs font-medium text-stone-500 group-hover:text-stone-700 truncate">
+                  Ask VANI AI or search students, fees, admissions...
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 pl-2">
+                <kbd className="px-2 py-0.5 text-[10px] font-mono font-semibold text-stone-500 bg-stone-100 rounded-md border border-stone-200 shadow-2xs">
+                  ⌘K
+                </kbd>
+              </div>
+            </button>
+          </div>
+
+          {/* Right: Actions (Notifications, Profile, Direct Logout) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-             {/* Global Ask VANI Command Button */}
+             {/* Mobile-only Ask VANI button */}
              <button
                onClick={() => setIsVaniPaletteOpen(true)}
-               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-blue-950/10 border border-amber-500/30 text-[#0B1B30] hover:bg-amber-500/20 transition shadow-2xs font-extrabold text-xs cursor-pointer"
-               title="Ask VANI (⌘K)"
+               className="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 font-bold text-xs"
              >
-               <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-               <span className="hidden sm:inline font-black">Ask VANI</span>
-               <span className="text-[10px] text-stone-400 bg-white/80 border border-stone-200 px-1 py-0.2 rounded font-mono hidden md:inline">⌘K</span>
+               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+               <span>VANI</span>
              </button>
-
-             {/* Global Command Search */}
-             {onOpenSearch && (
-               <button 
-                 onClick={onOpenSearch} 
-                 className="relative w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
-                 title="Search (⌘K)"
-               >
-                 <Search className="w-3.5 h-3.5" />
-               </button>
-             )}
 
              {/* User Profile Dropdown */}
              <div className="relative">

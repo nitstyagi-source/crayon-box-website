@@ -312,12 +312,12 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-sans pb-16">
       
-      {/* Executive Command Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
+      {/* Executive Command Header - Vastu Sattva-Digital Architecture */}
+      <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white p-6 sm:p-8 rounded-3xl border border-[#D4AF37]/25 shadow-xl">
+        <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="bg-amber-500/15 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
               Vani Educational Trust • Central Governance Center
             </span>
             <span className="text-slate-600 text-xs">•</span>
@@ -1479,6 +1479,28 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* VASTU SOUTH-EAST (AGNI) CATALYST FLOATING ACTION BUTTON (GOOGLE M3 FAB)   */}
+      {/* ========================================================================= */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/admissions/apply"
+            className="px-3.5 py-1.5 rounded-full bg-white/95 text-stone-800 text-xs font-bold shadow-md border border-stone-200/80 hover:bg-stone-50 transition hidden sm:inline-flex items-center gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5 text-amber-600" />
+            <span>New Admission</span>
+          </Link>
+          <button
+            onClick={() => setIsAddSchoolModalOpen(true)}
+            className="w-13 h-13 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/30 flex items-center justify-center transition transform hover:scale-105 active:scale-95 group cursor-pointer border border-amber-400"
+            title="Agni Catalyst: Quick Execution (New Institution / Admission)"
+          >
+            <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition duration-300" />
+          </button>
+        </div>
+      </div>
 
     </div>
   );
