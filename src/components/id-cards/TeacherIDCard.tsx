@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { User, Briefcase, Globe, Calendar, Droplet, Phone, MapPin, ChevronRight, BookOpen, Fingerprint } from 'lucide-react';
+import { User, Briefcase, Globe, Calendar, Droplet, Phone, MapPin, ChevronRight, BookOpen, Fingerprint, QrCode, ShieldCheck } from 'lucide-react';
 import { StudentQRCode } from './StudentQRCode';
+import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 
 export interface TeacherIDCardProps {
   teacher?: any;
@@ -15,268 +16,162 @@ export interface TeacherIDCardProps {
 export function TeacherIDCard({ teacher, faculty, schoolInfo = {}, isBack = false }: TeacherIDCardProps) {
   const t = teacher || faculty || {};
   const name = `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Anita Sharma';
-  const designation = t.designation || 'TGT - English';
-  const staffId = t.employee_id || t.universal_id || 'CBS/24-25/078';
+  const designation = t.designation || 'TGT - Mathematics';
+  const department = t.department || 'Science & Mathematics';
+  const staffId = t.employee_id || t.universal_id || 'FAC-CBS-2026-078';
   const joiningDate = t.joining_date ? new Date(t.joining_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '01 Apr 2023';
   const bloodGroup = t.blood_group || 'B+';
   const phone = t.phone || t.mobile || '9811102008';
-  const address = t.address || '6/20 D-Block Shastri Park Extn. Burari Delhi 110084';
+  const emergencyPhone = t.emergency_contact || '9810081008';
+  const address = t.address || 'Sant Nagar, Burari, Delhi - 110084';
   
-  const schName = schoolInfo.name || 'Crayon Box School';
+  const schName = schoolInfo.name || 'CRAYON BOX SCHOOL';
+  const schAffiliation = schoolInfo.boardAffiliation || 'CBSE AFFILIATED (REG. 2730588)';
   const schWebsite = schoolInfo.website || 'www.crayonboxschool.edu.in';
   const schPhone = schoolInfo.phone || '011-45678901';
 
-  // Helper for top header which is same on front and back
-  const renderHeader = () => (
-    <div className="relative pt-6 pb-2 z-10 flex flex-col items-center">
-      {/* Logo Placeholder */}
-      <div className="w-[88px] h-[88px] rounded-full bg-white border-[3px] border-yellow-500 shadow-sm flex items-center justify-center mb-2 overflow-hidden relative">
-         <div className="absolute inset-1 rounded-full border-[2px] border-[#0A1A44]" />
-         <img src="/tree-logo.png" alt="Logo" className="w-[60px] h-[60px] object-contain z-10" 
-              onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} />
-         <div className="hidden w-12 h-12 rounded-full bg-[#0A1A44] flex items-center justify-center z-10">
-           <BookOpen className="text-yellow-400 w-6 h-6" />
-         </div>
-      </div>
-      
-      <div className="text-center w-full">
-        <h1 className="font-serif text-[26px] leading-none font-bold text-[#0A1A44] tracking-wider uppercase">Crayon Box</h1>
-        <div className="flex items-center justify-center gap-2 mt-1">
-          <div className="h-[1px] w-12 bg-yellow-500"></div>
-          <h2 className="font-serif text-[18px] leading-none text-[#C8102E] tracking-[0.2em] font-semibold uppercase">School</h2>
-          <div className="h-[1px] w-12 bg-yellow-500"></div>
-        </div>
-        <p className="font-sans text-[10px] font-bold text-[#0A1A44] tracking-[0.2em] mt-2 uppercase">
-          Learn <span className="text-yellow-500 mx-1">•</span> Grow <span className="text-[#00B050] mx-1">•</span> Shine
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderBackground = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <svg className="absolute top-0 w-full" viewBox="0 0 400 160" fill="none" preserveAspectRatio="none">
-        <path d="M0,0 L400,0 L400,100 C300,150 100,50 0,130 Z" fill="#EAB308" />
-        <path d="M0,0 L400,0 L400,85 C300,135 100,35 0,115 Z" fill="#0A1A44" />
-        <path d="M-20,-20 Q50,-10 60,30 Q40,60 -10,50 Z" fill="rgba(255,255,255,0.05)" />
-      </svg>
-      
-      <svg className="absolute bottom-0 w-full h-[120px]" viewBox="0 0 400 120" fill="none" preserveAspectRatio="none">
-        <path d="M0,30 C150,90 250,-20 400,30 L400,120 L0,120 Z" fill="#EAB308" />
-        <path d="M0,45 C150,105 250,-5 400,45 L400,120 L0,120 Z" fill="#0A1A44" />
-      </svg>
-
-      {/* Center faint leaf pattern */}
-      <div className="absolute top-[35%] left-0 w-full h-40 opacity-5 flex justify-between px-2">
-        <svg viewBox="0 0 100 200" className="h-full fill-current text-gray-900">
-           <path d="M50,0 Q100,50 50,100 Q0,50 50,0 Z M50,100 Q100,150 50,200 Q0,150 50,100 Z" />
-        </svg>
-        <svg viewBox="0 0 100 200" className="h-full fill-current text-gray-900" style={{ transform: 'scaleX(-1)' }}>
-           <path d="M50,0 Q100,50 50,100 Q0,50 50,0 Z M50,100 Q100,150 50,200 Q0,150 50,100 Z" />
-        </svg>
-      </div>
-    </div>
-  );
-
+  // BACK FACE
   if (isBack) {
     return (
-      <div className="w-[330px] h-[520px] bg-white rounded-xl shadow-lg relative overflow-hidden flex flex-col font-sans border border-gray-200 print:shadow-none print:border-gray-100 print:rounded-none">
-        {renderBackground()}
-        {renderHeader()}
-        
-        <div className="flex-1 px-8 pt-4 pb-20 z-10 flex flex-col">
-          {/* Details List */}
-          <div className="space-y-3 mb-5">
-            <DetailRow icon={<User size={14}/>} label="Name" value={name} color="bg-[#0A1A44]" />
-            <DetailRow icon={<Briefcase size={14}/>} label="Designation" value={designation} color="bg-[#0A1A44]" />
-            <DetailRow icon={<Fingerprint size={14}/>} label="Staff ID" value={staffId} color="bg-[#0A1A44]" />
-            <DetailRow icon={<Calendar size={14}/>} label="Date of Joining" value={joiningDate} color="bg-[#0A1A44]" />
+      <div className="w-[330px] h-[520px] bg-[#FDFBF7] rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-[#E8DFC8] print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none">
+        <VastuMandalaWatermark className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" size={320} opacity={0.06} />
+
+        {/* Top Header */}
+        <div className="bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white py-3 px-4 text-center relative z-10 border-b-2 border-[#D4AF37]/50">
+          <h2 className="font-extrabold text-sm uppercase tracking-wider text-amber-300">{schName}</h2>
+          <p className="text-[9px] text-amber-100/90 font-medium tracking-wide mt-0.5">STAFF CREDENTIAL &amp; CODE OF CONDUCT</p>
+        </div>
+
+        {/* Details List */}
+        <div className="flex-1 px-5 pt-4 pb-2 z-10 space-y-2.5">
+          <div className="bg-white/90 rounded-2xl p-3.5 border border-[#E8DFC8] shadow-2xs space-y-2">
+            <DetailRow icon={<Fingerprint size={13} />} label="Staff Code" value={staffId} />
+            <DetailRow icon={<Calendar size={13} />} label="Joined Date" value={joiningDate} />
+            <DetailRow icon={<Droplet size={13} />} label="Blood Group" value={bloodGroup} />
+            <DetailRow icon={<Phone size={13} />} label="Contact Ph" value={phone} />
+            <DetailRow icon={<Phone size={13} />} label="Emergency Ph" value={emergencyPhone} />
+            <DetailRow icon={<MapPin size={13} />} label="Address" value={address} isMultiline />
           </div>
 
-          {/* Instructions Box */}
-          <div className="border border-[#0A1A44]/30 rounded-lg p-3 pt-4 relative mt-2 bg-white/50">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0A1A44] text-white text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-wider flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full bg-yellow-400" />
-              Instructions
-              <div className="w-1 h-1 rounded-full bg-yellow-400" />
+          {/* Institutional Regulations */}
+          <div className="bg-[#FAF7F2] border border-amber-300/40 rounded-xl p-2.5 text-[9px] text-stone-700 leading-tight space-y-1">
+            <div className="font-bold text-[#A16207] uppercase tracking-wide flex items-center gap-1">
+              <ShieldCheck size={11} /> Faculty ID Regulations
             </div>
-            <ul className="text-[9px] text-[#0A1A44] space-y-1.5 leading-tight font-medium">
-              <li className="flex items-start gap-1.5">
-                <ChevronRight size={12} className="text-[#D41B44] shrink-0 mt-[1px]" />
-                This card is the property of Crayon Box School.
-              </li>
-              <li className="flex items-start gap-1.5">
-                <ChevronRight size={12} className="text-[#D41B44] shrink-0 mt-[1px]" />
-                This card must be worn during school hours.
-              </li>
-              <li className="flex items-start gap-1.5">
-                <ChevronRight size={12} className="text-[#D41B44] shrink-0 mt-[1px]" />
-                In case of loss, inform the school immediately.
-              </li>
-              <li className="flex items-start gap-1.5">
-                <ChevronRight size={12} className="text-[#D41B44] shrink-0 mt-[1px]" />
-                If found, please return to the school office.
-              </li>
-            </ul>
+            <p>1. Card must be displayed at all times on campus premises and during academic field tours.</p>
+            <p>2. Property of {schName}. Return immediately upon superannuation or separation.</p>
           </div>
-          
-          {/* Signature */}
-          <div className="mt-auto self-center flex flex-col items-center">
-            <img src="/signatures/principal.png" className="h-8 object-contain opacity-80" alt="Signature" onError={(e) => e.currentTarget.style.display='none'} />
-            <div className="h-[1px] w-24 bg-[#0A1A44] mb-1" />
-            <span className="text-[10px] font-bold text-[#0A1A44]">Principal</span>
+
+          {/* Principal Seal & Authorized Signature */}
+          <div className="pt-2 flex items-center justify-between">
+            <div className="text-left">
+              <span className="text-[8px] font-mono text-stone-500 font-bold block">STATUS</span>
+              <span className="text-[10px] font-extrabold text-emerald-800">PERMANENT FACULTY</span>
+            </div>
+            <div className="text-center">
+              <div className="h-7 w-24 border-b border-stone-800 mx-auto font-serif italic text-[11px] font-bold text-stone-900">
+                Dr. S. K. Sharma
+              </div>
+              <span className="text-[8.5px] font-black uppercase text-stone-700 tracking-wider">Principal (Seal & Sign)</span>
+            </div>
           </div>
         </div>
 
         {/* Back Footer */}
-        <div className="absolute bottom-0 w-full h-[85px] z-10 flex flex-row items-center justify-between px-6 pt-6 pb-2">
-           <div className="flex flex-col gap-2 w-[180px]">
-             <div className="flex items-start gap-1.5">
-               <MapPin size={12} className="text-yellow-500 shrink-0 mt-[2px]" />
-               <span className="text-white text-[8px] font-medium leading-tight">{address}</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-               <Phone size={12} className="text-yellow-500 shrink-0" />
-               <span className="text-white text-[8px] font-medium leading-tight">{phone}</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-               <Globe size={12} className="text-yellow-500 shrink-0" />
-               <span className="text-white text-[8px] font-medium leading-tight">{schWebsite}</span>
-             </div>
-           </div>
-           
-           <div className="h-12 w-[1px] bg-white/20 mx-2" />
-           
-           <div className="flex flex-col items-center justify-center text-center flex-1">
-             <div className="w-5 h-6 border border-yellow-500 flex items-center justify-center rounded-b-md relative mb-1">
-               <BookOpen size={10} className="text-yellow-500" />
-               <div className="absolute -top-1 w-1 h-1 bg-yellow-500 rounded-full" />
-             </div>
-             <span className="text-white text-[7px] leading-tight">Excellence in Education.<br/>Values for Life.</span>
-           </div>
+        <div className="bg-[#0B1B30] text-white py-2 px-4 z-10 flex items-center justify-between text-[8px] font-medium border-t border-[#D4AF37]/30">
+          <span>{schWebsite}</span>
+          <span>{schPhone}</span>
         </div>
       </div>
     );
   }
 
-  // FRONT
+  // FRONT FACE (OPTION 6: VASTU SATTVA-DIGITAL WITH FRONT-FACING QR CODE)
   return (
-    <div className="w-[330px] h-[520px] bg-white rounded-xl shadow-lg relative overflow-hidden flex flex-col font-sans border border-gray-200 print:shadow-none print:border-gray-100 print:rounded-none">
-      {renderBackground()}
-      {renderHeader()}
+    <div className="w-[330px] h-[520px] bg-[#FDFBF7] rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-[#E8DFC8] print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none">
+      <VastuMandalaWatermark className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" size={320} opacity={0.06} />
 
-      <div className="flex-1 flex flex-col items-center pt-2 z-10">
-        {/* Photo */}
-        <div className="relative w-[110px] h-[110px] rounded-full p-1 bg-white border-2 border-[#0A1A44] shadow-md mb-4 overflow-hidden">
+      {/* Top Regal Header */}
+      <div className="bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white pt-3.5 pb-3 px-4 text-center relative z-10 border-b-2 border-[#D4AF37]/50 shadow-xs">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-xl bg-white p-1 border border-amber-400 flex items-center justify-center shrink-0">
+            <img 
+              src="/trust-logo.png" 
+              alt="Crest" 
+              className="w-full h-full object-contain" 
+              onError={(e) => { e.currentTarget.src = '/logo.png'; }} 
+            />
+          </div>
+          <div className="text-left">
+            <h1 className="font-extrabold text-xs uppercase tracking-wider text-amber-300 leading-tight">{schName}</h1>
+            <span className="text-[8px] text-amber-100/80 font-medium block">FACULTY &amp; STAFF CREDENTIAL</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Center Body: Faculty Photo in Solar Halo + Details */}
+      <div className="flex-1 flex flex-col items-center pt-3 px-4 z-10">
+        
+        {/* Photo with Auspicious Golden Solar Halo Ring */}
+        <div className="relative w-24 h-24 rounded-full p-1 bg-white border-3 border-[#D4AF37] shadow-md mb-2 overflow-hidden">
           {t.photo_url ? (
-            <img src={t.photo_url} alt={name} className="w-full h-full object-cover rounded-full bg-gray-100" />
+            <img src={t.photo_url} alt={name} className="w-full h-full object-cover rounded-full bg-stone-100" />
           ) : (
-            <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-[#0A1A44]">
-              <User size={40} />
+            <div className="w-full h-full bg-amber-50 rounded-full flex items-center justify-center text-amber-900 font-extrabold text-xl">
+              {name.split(' ')[0][0]}{name.split(' ')[1]?.[0] || ''}
             </div>
           )}
         </div>
 
-        {/* Name Ribbon */}
-        <div className="relative w-[240px] h-10 bg-[#0A1A44] flex items-center justify-center shadow-sm mb-1">
-           <div className="absolute -left-3 top-0 w-0 h-0 border-t-[20px] border-b-[20px] border-r-[12px] border-transparent border-r-[#0A1A44]" />
-           <div className="absolute -right-3 top-0 w-0 h-0 border-t-[20px] border-b-[20px] border-l-[12px] border-transparent border-l-[#0A1A44]" />
-           <h2 className="text-white font-bold text-lg uppercase tracking-wider">{name}</h2>
+        {/* Staff Name */}
+        <h2 className="text-stone-950 font-black text-base uppercase tracking-wide text-center leading-tight">
+          {name}
+        </h2>
+
+        {/* Designation & Department */}
+        <div className="flex flex-col items-center gap-1 mt-1 mb-2">
+          <span className="px-3 py-0.5 rounded-full bg-[#0369A1] text-white text-xs font-bold shadow-2xs">
+            {designation}
+          </span>
+          <span className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+            {department}
+          </span>
         </div>
 
-        {/* Designation Trapezoid */}
-        <div className="relative mb-3">
-           <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-3 h-5 bg-[#D41B44] skew-x-[-20deg]" />
-           <div className="absolute -right-5 top-1/2 -translate-y-1/2 w-3 h-5 bg-[#D41B44] skew-x-[20deg]" />
-           <div className="bg-yellow-500 px-6 py-1 transform skew-x-[-10deg]">
-             <span className="block transform skew-x-[10deg] text-[#0A1A44] font-bold text-[13px] uppercase">
-               {designation}
-             </span>
-           </div>
+        {/* Front-Facing Turnstile & Staff Attendance QR Code */}
+        <div className="bg-white p-2 rounded-2xl border border-[#E8DFC8] shadow-sm flex flex-col items-center my-auto">
+          <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-[#15803D] mb-1">
+            <QrCode size={10} /> Faculty Turnstile &amp; Bio QR
+          </div>
+          <StudentQRCode payload={staffId} size={78} />
+          <span className="text-[9px] font-mono font-bold text-stone-600 mt-1">{staffId}</span>
         </div>
 
-        {/* Staff ID */}
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-[#0A1A44] font-bold text-[14px]">STAFF ID : <span className="text-[#D41B44]">{staffId}</span></span>
-        </div>
-
-        {/* Bottom Metrics Grid */}
-        <div className="w-full px-6 flex items-start justify-between">
-           {/* Employee ID */}
-           <div className="flex flex-col items-center">
-             <div className="w-8 h-8 rounded-full bg-[#0A1A44] flex items-center justify-center mb-1">
-               <Fingerprint size={16} className="text-white" />
-             </div>
-             <span className="text-[8px] font-bold text-[#0A1A44]">EMPLOYEE ID</span>
-             <span className="text-[9px] font-bold text-[#D41B44]">{staffId}</span>
-           </div>
-           
-           <div className="w-[1px] h-10 bg-gray-300 mt-1" />
-           
-           {/* Joining Date */}
-           <div className="flex flex-col items-center">
-             <div className="w-8 h-8 rounded-full border-2 border-[#0A1A44] bg-white flex items-center justify-center mb-1">
-               <Calendar size={16} className="text-[#0A1A44]" />
-             </div>
-             <span className="text-[8px] font-bold text-[#0A1A44]">JOINING DATE</span>
-             <span className="text-[9px] font-bold text-[#D41B44]">{joiningDate.toUpperCase()}</span>
-           </div>
-
-           <div className="w-[1px] h-10 bg-gray-300 mt-1" />
-
-           {/* Signature */}
-           <div className="flex flex-col items-center">
-             <div className="w-8 h-8 rounded-full border-2 border-[#0A1A44] bg-white flex items-center justify-center mb-1 overflow-hidden">
-               <img src="/signatures/principal.png" className="w-full h-full object-contain p-1" alt="Sig" onError={(e) => e.currentTarget.style.display='none'} />
-             </div>
-             <span className="text-[8px] font-bold text-[#0A1A44]">AUTHORIZED SIGNATURE</span>
-             <span className="text-[9px] font-bold text-[#0A1A44] uppercase tracking-wider">Principal</span>
-           </div>
+        {/* Bottom Metrics Strip */}
+        <div className="w-full grid grid-cols-2 gap-2 mt-auto mb-2 text-center text-[9px] font-bold">
+          <div className="bg-[#DCFCE7] text-[#15803D] border border-emerald-300/60 rounded-lg py-1">
+            Blood: {bloodGroup}
+          </div>
+          <div className="bg-[#FEF3C7] text-[#B45309] border border-amber-300/60 rounded-lg py-1">
+            Emp ID: {staffId.split('-').pop() || staffId}
+          </div>
         </div>
       </div>
 
       {/* Front Footer */}
-      <div className="absolute bottom-0 w-full h-[85px] z-10 flex flex-row items-center justify-between px-6 pt-6 pb-2">
-         <div className="flex flex-col gap-2 w-[180px]">
-           <div className="flex items-start gap-1.5">
-             <MapPin size={12} className="text-white shrink-0 mt-[2px]" />
-             <span className="text-white text-[8px] font-medium leading-tight">{address}</span>
-           </div>
-           <div className="flex items-center gap-1.5">
-             <Phone size={12} className="text-white shrink-0" />
-             <span className="text-white text-[8px] font-medium leading-tight">{schPhone} | 9999999999</span>
-           </div>
-           <div className="flex items-center gap-1.5">
-             <Globe size={12} className="text-white shrink-0" />
-             <span className="text-white text-[8px] font-medium leading-tight">{schWebsite}</span>
-           </div>
-         </div>
-         
-         <div className="h-12 w-[1px] bg-yellow-500/50 mx-2" />
-         
-         <div className="flex flex-col items-center justify-center text-center flex-1">
-           <div className="w-5 h-6 border border-yellow-500 flex items-center justify-center rounded-b-md relative mb-1">
-             <BookOpen size={10} className="text-yellow-500" />
-             <div className="absolute -top-1 w-1 h-1 bg-yellow-500 rounded-full" />
-           </div>
-           <span className="text-white text-[7px] leading-tight">Excellence in Education.<br/>Values for Life.</span>
-         </div>
+      <div className="bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-amber-200 text-[8px] font-bold py-1.5 px-4 text-center z-10 border-t border-[#D4AF37]/30">
+        ACADEMIC YEAR: 2026–2027 • OFFICIAL FACULTY CREDENTIAL
       </div>
     </div>
   );
 }
 
-const DetailRow = ({ icon, label, value, color, isMultiline }: { icon: React.ReactNode, label: string, value: string, color: string, isMultiline?: boolean }) => (
-  <div className={`flex ${isMultiline ? 'items-start' : 'items-center'} gap-3 text-[11px]`}>
-    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 ${color}`}>
+const DetailRow = ({ icon, label, value, isMultiline }: { icon: React.ReactNode, label: string, value: string, isMultiline?: boolean }) => (
+  <div className={`flex ${isMultiline ? 'items-start' : 'items-center'} gap-2 text-xs text-stone-800`}>
+    <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
       {icon}
     </div>
-    <div className="flex w-[90px] shrink-0 items-center justify-between font-bold text-[#0A1A44]">
-      <span>{label}</span>
-      <span>:</span>
-    </div>
-    <div className="font-medium text-[#1E293B] leading-tight flex-1">
-      {value}
-    </div>
+    <span className="font-bold text-stone-600 w-24 shrink-0 text-[10px] uppercase">{label}:</span>
+    <span className="font-extrabold text-stone-950 flex-1 leading-tight text-[11px]">{value}</span>
   </div>
 );

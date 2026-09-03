@@ -353,13 +353,13 @@ export async function getFilteredUniversalStudentsAction(filters: StudentFilterQ
 
     // Filter by Class
     if (filters.className && filters.className !== 'ALL') {
-      query += ` AND (se.class_name = $${paramIndex++} OR se.class_name ILIKE $${paramIndex - 1})`;
+      query += ` AND (TRIM(se.class_name) = TRIM($${paramIndex++}) OR se.class_name ILIKE '%' || TRIM($${paramIndex - 1}) || '%')`;
       params.push(filters.className);
     }
 
     // Filter by Section
     if (filters.sectionName && filters.sectionName !== 'ALL') {
-      query += ` AND se.section_name = $${paramIndex++}`;
+      query += ` AND TRIM(se.section_name) = TRIM($${paramIndex++})`;
       params.push(filters.sectionName);
     }
 
