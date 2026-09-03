@@ -8,7 +8,8 @@ import {
   CheckCircle2, BarChart3, ChevronRight,
   ArrowUpRight, Phone, Bot,
   Plus, Search, RefreshCw, MessageSquare,
-  UserPlus, X, Check, Send, PhoneCall
+  UserPlus, X, Check, Send, PhoneCall,
+  FileText, GraduationCap
 } from 'lucide-react';
 import { getAdmissionsPerformanceAnalyticsAction } from '@/app/actions/admissions-analytics';
 import {
@@ -511,6 +512,13 @@ function AdmissionsCommandCenterContent() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                href="/admin/admissions/applications"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-950" />
+                <span>Master Applications Ledger</span>
+              </Link>
               <Button
                 size="sm"
                 variant="primary"
@@ -538,46 +546,46 @@ function AdmissionsCommandCenterContent() {
                   className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition space-y-3"
                 >
                   <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {enq.source || 'Walk-in'}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        {enq.enquiry_no || enq.enquiryNo || 'ENQ-2026-LIVE'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {enq.created_at ? new Date(enq.created_at).toLocaleDateString('en-GB') : 'Recent'}
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        enq.priority === 'HIGH' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {enq.priority || 'NORMAL'}
                       </span>
                     </div>
 
-                    <h4 className="font-extrabold text-slate-900 text-base">
-                      {enq.student_name || enq.studentName || 'Prospective Student'}
-                    </h4>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Applying For: <span className="font-bold text-slate-800">{enq.grade_applying || enq.gradeApplied || 'Nursery'}</span>
-                    </p>
+                    <div>
+                      <h4 className="font-extrabold text-slate-900 text-sm">{enq.student_name || enq.studentName || 'Prospective Student'}</h4>
+                      <p className="text-xs text-slate-500 font-medium">Grade: {enq.grade_interested || enq.grade || 'Nursery'} • Parent: {enq.parent_name || enq.parentName}</p>
+                    </div>
 
-                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="text-slate-400">Guardian:</span>
-                        <span className="font-bold text-slate-800">{enq.parent_name || enq.parentName || 'Parent'}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-600">
-                        <span className="text-slate-400">Phone:</span>
-                        <span className="font-mono text-slate-800">{enq.phone || enq.parentPhone}</span>
-                      </div>
-                      {enq.notes && (
-                        <p className="text-[11px] text-slate-500 italic mt-1 pt-1 border-t border-slate-200/60">
-                          &ldquo;{enq.notes}&rdquo;
-                        </p>
-                      )}
+                    <div className="text-xs text-slate-600 space-y-0.5">
+                      <p>📞 {enq.phone || enq.parentPhone}</p>
+                      {enq.locality && <p>📍 {enq.locality}</p>}
+                      {enq.transport_required && <p className="text-blue-600 font-semibold">🚌 School Transport Requested</p>}
                     </div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => setSelectedEnquiryIdFor360(enq.id)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-300" /> Dossier
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedEnquiryIdFor360(enq.id)}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-300" /> Dossier
+                      </button>
+                      <Link
+                        href={`/admissions/apply?enquiry_no=${enq.enquiry_no || enq.id}`}
+                        target="_blank"
+                        className="px-2.5 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-white text-xs font-bold transition flex items-center gap-1 shadow-2xs"
+                        title="Pre-fill and open Master Admission Application"
+                      >
+                        <GraduationCap className="w-3 h-3 text-amber-400" /> Apply
+                      </Link>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <a
                         href={`tel:${enq.phone || enq.parentPhone}`}
