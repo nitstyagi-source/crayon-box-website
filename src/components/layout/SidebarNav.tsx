@@ -126,9 +126,7 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       accentColor: '#EAB308',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
       items: [
-        { name: 'Exams & Gradebook', href: '/admin/exams', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'AI Question Paper Studio', href: '/admin/exams/question-paper-generator', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Report Cards & HPC', href: '/admin/exams/report-cards', icon: Award, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Examination Command Center & Gradebook', href: '/admin/exams', icon: Award, badge: 'HPC & AI Studio', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
       ],
     },
     {

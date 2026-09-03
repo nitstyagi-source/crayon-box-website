@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
-import { TeacherLessonDiaryDesk } from '../lesson-diary/page';
+import { TeacherLessonDiaryDesk } from '@/components/academics/TeacherLessonDiaryDesk';
 import { InteractiveHomeworkLMSDesk } from '../academic/homework/page';
 import { HomeworkAnnotationDesk } from '@/components/innovations/HomeworkAnnotationDesk';
 import {

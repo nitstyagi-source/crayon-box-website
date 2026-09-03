@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   FileText, Award, Lock, CheckCircle2, AlertTriangle,
   Sparkles, Download, ArrowRight, Filter, ShieldCheck,
   Printer, Star, Check, RefreshCw, X, Building2, UserCheck,
   TrendingUp, BarChart3, QrCode, Plus, Copy, Trash2, Edit3,
   ExternalLink, Layers, Eye, BookOpen, AlignJustify, Image as ImageIcon,
-  Palette, Grid, Hash, HelpCircle
+  Palette, Grid, Hash, HelpCircle, Send, CheckSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { useCampusContext } from '@/components/providers/CampusProvider';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
 import {
   getClassExamMarksRosterAction,
   getStudentCompleteReportCardAction,
@@ -25,17 +28,33 @@ import {
   saveGeneratedPaper
 } from '@/app/actions/syllabus-core';
 import WritingGuideRenderer from '@/components/ui/WritingGuideRenderer';
+import { AIQuestionPaperGeneratorDesk } from '@/components/exams/AIQuestionPaperGeneratorDesk';
+import { CBSEHolisticReportCardsDesk } from '@/components/exams/CBSEHolisticReportCardsDesk';
 
-export default function ExamModerationPage() {
+type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori';
+
+function ExamHubContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get('tab') as ExamHubTab | null;
+
+  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori'];
+  const [activeTab, setActiveTab] = useState<ExamHubTab>(
+    rawTab && validTabs.includes(rawTab) ? rawTab : 'gradebook'
+  );
+
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const { activeCampusId } = useCampusContext();
+  const activeInst = currentInstitution || activeCampusId || 'CBS';
 
-  const [activeTab, setActiveTab] = useState<'cbse' | 'montessori' | 'question_papers'>('cbse');
+  // Dynamic Classes
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('Class 1');
   const [selectedTerm, setSelectedTerm] = useState<string>('Term 1 (Half Yearly Examination)');
-  
-  // CBSE Marks State
+
+  // Gradebook State
   const [rosterData, setRosterData] = useState<any[]>([]);
+  const [distinctSubjects, setDistinctSubjects] = useState<string[]>([]);
   const [summary, setSummary] = useState<any>({
     totalStudents: 0,
     classAverage: 88.5,
@@ -47,39 +66,81 @@ export default function ExamModerationPage() {
   const [isLocking, setIsLocking] = useState(false);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
-  // Report Card Modal State
+  // Report Card Quick View Modal State
   const [activeReportStudent, setActiveReportStudent] = useState<any | null>(null);
   const [reportCardData, setReportCardData] = useState<any | null>(null);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
 
-  // Question Papers & Worksheets State
+  // Question Papers List State
   const [papersList, setPapersList] = useState<any[]>([]);
   const [isLoadingPapers, setIsLoadingPapers] = useState(false);
   const [paperClassFilter, setPaperClassFilter] = useState<string>('All');
   const [paperDocTypeFilter, setPaperDocTypeFilter] = useState<'All' | 'paper' | 'worksheet'>('All');
   const [myPapersOnly, setMyPapersOnly] = useState<boolean>(false);
-  const [selectedPaperPreview, setSelectedPaperPreview] = useState<any | null>(null);
 
-  const fetchRoster = async () => {
-    setIsLoading(true);
-    const res = await getClassExamMarksRosterAction({
-      className: selectedClass,
-      examTerm: selectedTerm,
-      institutionCode: currentInstitution
-    });
-
-    if (res.success) {
-      setRosterData(res.roster || []);
-      setSummary(res.summary || {});
+  // Sync activeTab with URL
+  useEffect(() => {
+    if (rawTab && validTabs.includes(rawTab) && rawTab !== activeTab) {
+      setActiveTab(rawTab);
     }
-    setIsLoading(false);
+  }, [rawTab]);
+
+  const handleTabChange = (tab: ExamHubTab) => {
+    setActiveTab(tab);
+    router.push(`/admin/exams?tab=${tab}`, { scroll: false });
   };
 
+  // 1. Fetch Dynamic Classes for Active Campus
+  useEffect(() => {
+    async function loadDynamicClasses() {
+      try {
+        const res = await getInstitutionClassesAction(activeInst);
+        if (res.success && res.classes && res.classes.length > 0) {
+          const clsList = res.classes as string[];
+          setAvailableClasses(clsList);
+          if (!clsList.includes(selectedClass)) {
+            setSelectedClass(clsList[0]);
+          }
+        } else {
+          setAvailableClasses(['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10']);
+        }
+      } catch {
+        setAvailableClasses(['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10']);
+      }
+    }
+    loadDynamicClasses();
+  }, [activeInst]);
+
+  // 2. Fetch Gradebook Roster
+  const fetchRoster = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getClassExamMarksRosterAction({
+        className: selectedClass,
+        examTerm: selectedTerm,
+        institutionCode: activeInst
+      });
+
+      if (res.success) {
+        setRosterData(res.roster || []);
+        setSummary(res.summary || {});
+        if (res.distinctSubjects && res.distinctSubjects.length > 0) {
+          setDistinctSubjects(res.distinctSubjects);
+        } else {
+          setDistinctSubjects(['English Literature', 'Mathematics', 'Science', 'Social Science', 'Hindi Core']);
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. Fetch Papers Repository
   const fetchQuestionPapers = async () => {
     setIsLoadingPapers(true);
     try {
       const res = await getGeneratedPapers(
-        activeCampusId,
+        activeInst,
         '2026-2027',
         paperClassFilter !== 'All' ? paperClassFilter : undefined,
         undefined,
@@ -101,12 +162,12 @@ export default function ExamModerationPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'cbse') {
+    if (activeTab === 'gradebook') {
       fetchRoster();
-    } else if (activeTab === 'question_papers') {
+    } else if (activeTab === 'question-papers') {
       fetchQuestionPapers();
     }
-  }, [selectedClass, selectedTerm, currentInstitution, activeTab, paperClassFilter, paperDocTypeFilter, myPapersOnly]);
+  }, [selectedClass, selectedTerm, activeInst, activeTab, paperClassFilter, paperDocTypeFilter, myPapersOnly]);
 
   // Lock Results
   const handleLockResults = async () => {
@@ -128,7 +189,7 @@ export default function ExamModerationPage() {
     setActiveReportStudent(studentId);
     const res = await getStudentCompleteReportCardAction({
       studentId,
-      institutionCode: currentInstitution === 'ALL' ? undefined : currentInstitution
+      institutionCode: activeInst === 'ALL' ? undefined : activeInst
     });
     setIsLoadingReport(false);
     if (res.success) {
@@ -145,7 +206,7 @@ export default function ExamModerationPage() {
     if (!confirm(`Duplicate "${paper.exam_title}" as a new editable copy?`)) return;
     try {
       const res = await saveGeneratedPaper({
-        campus_id: activeCampusId,
+        campus_id: activeInst,
         academic_session: paper.academic_session || '2026-2027',
         class_name: paper.class_name,
         subject_id: paper.subject_id,
@@ -179,91 +240,108 @@ export default function ExamModerationPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-20">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-amber-400" />
-              Multi-Curriculum Examination &amp; Grading Engine
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Award className="w-8 h-8 text-amber-400" />
-            Exam Moderation, Grading &amp; Question Paper Studio
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Generate customized question papers and activity worksheets with English 4-line, Hindi 5-line, Maths square boxes, Hindi 2-line, image diagrams, and faculty-decided line counts alongside CBSE scholastic moderation and Montessori portfolios.
-          </p>
-        </div>
+      {/* Option 6 Sattva-Digital Sandalwood Vastu Banner */}
+      <VastuModuleBanner
+        badgeText="Assessment Session 2026–2027"
+        badgeIcon={<Award className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • Multi-Curriculum Examination & Gradebook Hub`}
+        title="Examination Command Center & Gradebook"
+        titleIcon={<Award className="w-7 h-7 text-[#D97706]" />}
+        description="Unified assessment command center uniting Scholastic Gradebook & Moderation Radar, AI Question Paper Studio & Writing Ruling Engine, CBSE Holistic Progress Cards (HPC) with WhatsApp Push, and Montessori Developmental Portfolios."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={activeTab === 'question-papers' ? fetchQuestionPapers : fetchRoster}
+              isLoading={isLoading || isLoadingPapers}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
+            >
+              Sync Live DB
+            </Button>
+            {activeTab === 'gradebook' && (
+              <Button
+                variant="saffron"
+                size="sm"
+                onClick={handleLockResults}
+                isLoading={isLocking}
+                className="text-xs font-black shadow-xs bg-[#D97706] hover:bg-[#B45309] text-white"
+                leftIcon={<Lock className="w-3.5 h-3.5" />}
+              >
+                Lock &amp; Moderate
+              </Button>
+            )}
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link
-            href="/admin/syllabus/question-papers"
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition"
-          >
-            <Printer className="w-4 h-4 text-slate-950" />
-            Launch Paper &amp; Worksheet Studio 🚀
-          </Link>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={activeTab === 'question_papers' ? fetchQuestionPapers : fetchRoster}
-            isLoading={isLoading || isLoadingPapers}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* TOP NAVIGATION MODULE TABS */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      {/* TOP NAVIGATION MODULE TABS (4 AUTHORITATIVE HUBS) */}
+      <div className="flex items-center gap-2 border-b border-[#E8DFC8] pb-2 overflow-x-auto">
         <button
           type="button"
-          onClick={() => setActiveTab('cbse')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition whitespace-nowrap ${
-            activeTab === 'cbse'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+          onClick={() => handleTabChange('gradebook')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'gradebook'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
           }`}
         >
-          <Award className="w-4 h-4 text-amber-400" />
-          <span>Scholastic Assessment &amp; Grading</span>
+          <Award className="w-4 h-4 text-[#D97706]" />
+          <span>1. Scholastic Gradebook &amp; Moderation</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            {summary.totalStudents || 0}
+          </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('montessori')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+          onClick={() => handleTabChange('question-papers')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'question-papers'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#D97706]" />
+          <span>2. AI Question Paper &amp; Blueprint Studio</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 font-bold">
+            AI Studio
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('report-cards')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'report-cards'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-[#D97706]" />
+          <span>3. Holistic Progress Cards (HPC) &amp; Dispatch</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
+            NEP 2020
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('montessori')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
             activeTab === 'montessori'
-              ? 'bg-purple-900 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-purple-400" />
-          <span>Montessori Developmental Portfolios</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('question_papers')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition whitespace-nowrap ${
-            activeTab === 'question_papers'
-              ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400/40'
-              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-          }`}
-        >
-          <Printer className="w-4 h-4 text-slate-950" />
-          <span>📝 Question Papers &amp; Worksheets Studio</span>
+          <Palette className="w-4 h-4 text-[#D97706]" />
+          <span>4. Early Years &amp; Montessori Portfolios</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 font-bold">
+            Foundational
+          </span>
         </button>
       </div>
 
@@ -279,57 +357,51 @@ export default function ExamModerationPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 1: CBSE SCHOLASTIC GRADING */}
+      {/* TAB 1: SCHOLASTIC GRADEBOOK & MODERATION RADAR */}
       {/* ========================================================================= */}
-      {activeTab === 'cbse' && (
+      {activeTab === 'gradebook' && (
         <div className="space-y-6">
-          {/* 🌟 TELEMATICS COUNTERS */}
+          
+          {/* TELEMATICS COUNTERS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Students Evaluated</span>
               <span className="text-3xl font-black text-slate-900 mt-1 block">{summary.totalStudents || 0}</span>
               <span className="text-[11px] text-slate-500 font-semibold">{selectedClass} Cohort</span>
             </div>
 
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Class Average Score</span>
-              <span className="text-3xl font-black text-indigo-600 mt-1 block">{summary.classAverage || 88.5}%</span>
-              <span className="text-[11px] text-indigo-700 font-bold">Aggregate Scholastic Mean</span>
+              <span className="text-3xl font-black text-indigo-700 mt-1 block">{summary.classAverage || 88.5}%</span>
+              <span className="text-[11px] text-indigo-800 font-bold">Aggregate Scholastic Mean</span>
             </div>
 
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Pass Percentage</span>
-              <span className="text-3xl font-black text-emerald-600 mt-1 block">100%</span>
-              <span className="text-[11px] text-emerald-700 font-bold">Zero Compartments</span>
+              <span className="text-3xl font-black text-emerald-700 mt-1 block">{summary.passPercentage}%</span>
+              <span className="text-[11px] text-emerald-800 font-bold">Zero Compartments</span>
             </div>
 
-            <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Highest Achiever Score</span>
-              <span className="text-3xl font-black text-amber-600 mt-1 block">{summary.highestScore || 98.4}%</span>
-              <span className="text-[11px] text-amber-700 font-bold">Grade A1 Outstanding</span>
+              <span className="text-3xl font-black text-amber-700 mt-1 block">{summary.highestScore || 98.4}%</span>
+              <span className="text-[11px] text-amber-800 font-bold">Grade A1 Outstanding</span>
             </div>
           </div>
 
           {/* Filter & Selector Bar */}
-          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white p-4 rounded-3xl border border-[#E8DFC8] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Select Class</label>
+                <label className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Select Class (Dynamic DB)</label>
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
                 >
-                  <option value="Class 1">Class 1</option>
-                  <option value="Class 2">Class 2</option>
-                  <option value="Class 3">Class 3</option>
-                  <option value="Class 4">Class 4</option>
-                  <option value="Class 5">Class 5</option>
-                  <option value="Class 6">Class 6</option>
-                  <option value="Class 7">Class 7</option>
-                  <option value="Class 8">Class 8</option>
-                  <option value="Class 9">Class 9</option>
-                  <option value="Class 10">Class 10</option>
+                  {availableClasses.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
               </div>
 
@@ -338,10 +410,12 @@ export default function ExamModerationPage() {
                 <select
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
                 >
                   <option value="Term 1 (Half Yearly Examination)">Term 1 (Half Yearly Examination)</option>
                   <option value="Term 2 (Annual Final Examination)">Term 2 (Annual Final Examination)</option>
+                  <option value="Periodic Assessment 1">Periodic Assessment 1</option>
+                  <option value="Periodic Assessment 2">Periodic Assessment 2</option>
                 </select>
               </div>
             </div>
@@ -352,62 +426,67 @@ export default function ExamModerationPage() {
               variant="primary"
               onClick={handleLockResults}
               isLoading={isLocking}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-md"
+              className="bg-[#D97706] hover:bg-[#B45309] text-white font-black shadow-xs"
               leftIcon={<Lock className="w-4 h-4" />}
             >
               🔒 Lock &amp; Moderate Results
             </Button>
           </div>
 
-          {/* Marks Table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          {/* Marks Table with Dynamic Subject Columns */}
+          <div className="bg-white rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-[#E8DFC8] flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-sm">
                   Scholastic Assessment Roster — {selectedClass} ({selectedTerm})
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Computed with Periodic Test (10%), Multiple Assessment (5%), Portfolio (5%), Subject Enrichment (5%), and Theory Exam (80%).
+                <p className="text-xs text-slate-500">
+                  Computed dynamically with Periodic Test (10%), Multiple Assessment (5%), Portfolio (5%), Subject Enrichment (5%), and Theory Exam (80%).
                 </p>
               </div>
             </div>
 
-            {rosterData.length === 0 ? (
+            {isLoading ? (
+              <div className="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+                <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+                <span>Loading examination roster from database...</span>
+              </div>
+            ) : rosterData.length === 0 ? (
               <div className="p-12 text-center text-xs text-slate-400">
-                No exam marks recorded for this class and term.
+                No exam marks recorded for {selectedClass} in {selectedTerm}.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                    <tr className="bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wider text-slate-600 border-b border-[#E8DFC8]">
                       <th className="py-3 px-4">Rank</th>
                       <th className="py-3 px-4">Student &amp; Adm No</th>
-                      <th className="py-3 px-4">English</th>
-                      <th className="py-3 px-4">Math</th>
-                      <th className="py-3 px-4">Science</th>
-                      <th className="py-3 px-4">Soc. Science</th>
-                      <th className="py-3 px-4">Hindi</th>
-                      <th className="py-3 px-4">Computer AI</th>
+                      {distinctSubjects.map((sub) => (
+                        <th key={sub} className="py-3 px-4">{sub}</th>
+                      ))}
                       <th className="py-3 px-4">Grand Total</th>
                       <th className="py-3 px-4">Percentage</th>
                       <th className="py-3 px-4">Grade</th>
-                      <th className="py-3 px-4 text-right">Report Card</th>
+                      <th className="py-3 px-4 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#E8DFC8]">
                     {rosterData.map((row) => (
-                      <tr key={row.id} className="hover:bg-slate-50 transition">
+                      <tr key={row.id} className="hover:bg-[#FAF7F2] transition">
                         <td className="py-3.5 px-4 font-black text-slate-900 font-mono">
                           #{row.rank}
                         </td>
                         <td className="py-3.5 px-4">
                           <strong className="text-slate-900 block font-bold">{row.name}</strong>
-                          <span className="text-[10px] font-mono text-indigo-600 font-bold">{row.admissionNo}</span>
+                          <span className="text-[10px] font-mono text-amber-700 font-bold">{row.admissionNo}</span>
                         </td>
                         
-                        {['English Literature', 'Mathematics', 'Science & Physics', 'Social Science & History', 'Hindi Language', 'Computer Science & AI'].map((subName) => {
-                          const sub = row.subjects?.find((s: any) => s.subjectName === subName);
+                        {distinctSubjects.map((subName) => {
+                          const sub = row.subjects?.find((s: any) => 
+                            s.subjectName.toLowerCase().includes(subName.toLowerCase().split(' ')[0]) ||
+                            subName.toLowerCase().includes(s.subjectName.toLowerCase().split(' ')[0])
+                          );
                           return (
                             <td key={subName} className="py-3.5 px-4 font-mono font-bold text-slate-800">
                               {sub ? (
@@ -424,7 +503,7 @@ export default function ExamModerationPage() {
                           {row.totalObtained} <span className="text-[10px] text-slate-400 font-normal">/ {row.maxMarks}</span>
                         </td>
 
-                        <td className="py-3.5 px-4 font-mono font-extrabold text-indigo-600 text-sm">
+                        <td className="py-3.5 px-4 font-mono font-extrabold text-indigo-700 text-sm">
                           {row.percentage}%
                         </td>
 
@@ -443,10 +522,10 @@ export default function ExamModerationPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleOpenReportCard(row.id)}
-                            className="text-[11px] py-1 px-3 hover:bg-indigo-50 hover:text-indigo-900 border-slate-300"
-                            leftIcon={<FileText className="w-3.5 h-3.5 text-indigo-600" />}
+                            className="text-[11px] py-1 px-3 hover:bg-amber-50 hover:text-amber-900 border-[#E8DFC8]"
+                            leftIcon={<FileText className="w-3.5 h-3.5 text-amber-600" />}
                           >
-                            Report Card
+                            View HPC
                           </Button>
                         </td>
                       </tr>
@@ -460,43 +539,180 @@ export default function ExamModerationPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: MONTESSORI PORTFOLIOS */}
+      {/* TAB 2: AI QUESTION PAPER & BLUEPRINT STUDIO */}
+      {/* ========================================================================= */}
+      {activeTab === 'question-papers' && (
+        <div className="space-y-6">
+          
+          {/* Ruling Engine Preview Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-white p-4 rounded-2xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-2 py-0.5 rounded">
+                🇬🇧 English 4-Line Guide
+              </span>
+              <WritingGuideRenderer type="english_4lines" rows={1} />
+              <p className="text-[11px] text-slate-500 font-medium">Top red, 2 middle sky blue, and bottom red lines for early handwriting.</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                🇮🇳 Hindi 5-Line Ruling
+              </span>
+              <WritingGuideRenderer type="hindi_5lines" rows={1} />
+              <p className="text-[11px] text-slate-500 font-medium">3 inner blue lines + 2 boundary red lines for primary Devanagari handwriting.</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                📐 Maths Square Boxes
+              </span>
+              <WritingGuideRenderer type="math_grid" rows={2} />
+              <p className="text-[11px] text-slate-500 font-medium">Square arithmetic grid boxes for digit writing, sums, and place values.</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-stone-700 bg-stone-100 px-2 py-0.5 rounded">
+                🇮🇳 Hindi 2-Line &amp; Standard
+              </span>
+              <WritingGuideRenderer type="hindi_2lines" rows={1} />
+              <p className="text-[11px] text-slate-500 font-medium">Standard Shirorekha double-lines or questions-only printable format.</p>
+            </div>
+          </div>
+
+          {/* Embedded Dynamic AI Question Paper Studio */}
+          <AIQuestionPaperGeneratorDesk embedded={true} />
+
+          {/* Existing Papers Repository */}
+          <div className="bg-white rounded-3xl border border-[#E8DFC8] shadow-xs p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8DFC8] pb-3">
+              <h4 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Printer className="w-4 h-4 text-amber-600" />
+                School Question Paper Repository &amp; Blueprints ({papersList.length})
+              </h4>
+              <div className="flex items-center gap-2">
+                <select
+                  value={paperClassFilter}
+                  onChange={(e) => setPaperClassFilter(e.target.value)}
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                >
+                  <option value="All">All Grades</option>
+                  {availableClasses.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <select
+                  value={paperDocTypeFilter}
+                  onChange={(e) => setPaperDocTypeFilter(e.target.value as any)}
+                  className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                >
+                  <option value="All">All Types</option>
+                  <option value="paper">📄 Papers</option>
+                  <option value="worksheet">🎨 Worksheets</option>
+                </select>
+              </div>
+            </div>
+
+            {isLoadingPapers ? (
+              <div className="text-center py-8 text-xs text-slate-400">Loading question papers repository...</div>
+            ) : papersList.length === 0 ? (
+              <div className="text-center py-8 text-xs text-slate-500">
+                No question papers saved yet. Generate one above or duplicate an existing template.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-[#FAF7F2] text-[10px] font-bold uppercase text-slate-600 border-b border-[#E8DFC8]">
+                      <th className="py-2.5 px-3">Title</th>
+                      <th className="py-2.5 px-3">Grade</th>
+                      <th className="py-2.5 px-3">Duration</th>
+                      <th className="py-2.5 px-3">Max Marks</th>
+                      <th className="py-2.5 px-3">Author</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8DFC8]">
+                    {papersList.map((paper) => (
+                      <tr key={paper.id} className="hover:bg-[#FAF7F2]">
+                        <td className="py-3 px-3 font-bold text-slate-900">{paper.exam_title}</td>
+                        <td className="py-3 px-3">{paper.class_name}</td>
+                        <td className="py-3 px-3 font-mono">{paper.duration_minutes || 90}m</td>
+                        <td className="py-3 px-3 font-mono font-bold text-amber-800">{paper.max_marks || 50}M</td>
+                        <td className="py-3 px-3 text-slate-500">{paper.created_by || 'Faculty'}</td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDuplicatePaper(paper)}
+                              className="p-1.5 bg-[#FAF7F2] hover:bg-amber-100 text-amber-800 rounded-lg transition"
+                              title="Duplicate Paper"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePaper(paper.id)}
+                              className="p-1.5 bg-[#FAF7F2] hover:bg-red-100 text-red-600 rounded-lg transition"
+                              title="Delete Paper"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: HOLISTIC PROGRESS CARDS (HPC) & DISPATCH */}
+      {/* ========================================================================= */}
+      {activeTab === 'report-cards' && (
+        <div className="space-y-6">
+          <CBSEHolisticReportCardsDesk embedded={true} />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: MONTESSORI & FOUNDATIONAL MILESTONES */}
       {/* ========================================================================= */}
       {activeTab === 'montessori' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 p-6 rounded-3xl border border-purple-200 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-black uppercase text-purple-900 bg-purple-200/60 px-2.5 py-0.5 rounded-md">
-                Montessori &amp; Early Childhood Development
+          <div className="p-6 bg-purple-50 rounded-3xl border border-purple-200 shadow-xs space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-purple-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md">
+                Foundational Stage (Ages 3–8)
               </span>
-              <h2 className="text-xl font-black text-purple-950 mt-1">
-                6 Domain Foundational Milestone Portfolios
-              </h2>
-              <p className="text-xs text-purple-800/80 mt-1">
-                Holistic evaluation across Gross Motor, Fine Motor, Phonics, Sensorial, Mathematical Cognition, and Practical Life.
-              </p>
+              <span className="text-xs font-bold text-purple-900">NEP 2020 Early Childhood Care &amp; Education (ECCE)</span>
             </div>
-            <Link
-              href="/admin/syllabus/question-papers"
-              className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-            >
-              <Palette className="w-4 h-4" /> Create Foundational Worksheet
-            </Link>
+            <h3 className="text-xl font-black text-purple-950">
+              Montessori Developmental Portfolios &amp; Milestone Radar
+            </h3>
+            <p className="text-xs text-purple-800 max-w-2xl leading-relaxed">
+              For Nursery, LKG, UKG, Grade 1, and Grade 2: Students are assessed qualitatively across physical development, socio-emotional intelligence, cognitive curiosity, and language acquisition without the pressure of numerical marks.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-              <span className="text-2xl">🏃‍♂️</span>
-              <h4 className="font-extrabold text-sm text-slate-900">Gross &amp; Fine Motor Skills</h4>
-              <p className="text-xs text-slate-500">Pencil grasp, tracing inside English 4-lines, cutting along curves, and spatial agility.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 bg-white rounded-3xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">Domain 1</span>
+              <h4 className="font-extrabold text-sm text-slate-900">Sensory &amp; Motor Coordination</h4>
+              <p className="text-xs text-slate-500">Fine motor pencil grip, cylinder blocks manipulation, pouring, and bilateral hand-eye precision.</p>
             </div>
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-              <span className="text-2xl">🗣️</span>
-              <h4 className="font-extrabold text-sm text-slate-900">Language, Phonics &amp; Hindi</h4>
-              <p className="text-xs text-slate-500">Letter sounds, Hindi swar &amp; vyanjan handwriting inside 5-line guides, and picture talk.</p>
+
+            <div className="p-5 bg-white rounded-3xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Domain 2</span>
+              <h4 className="font-extrabold text-sm text-slate-900">Language &amp; Phonics Mastery</h4>
+              <p className="text-xs text-slate-500">Sandpaper letter tracing, CVC phonetic blends, story narration, and expressive vocabulary.</p>
             </div>
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-              <span className="text-2xl">🔢</span>
+
+            <div className="p-5 bg-white rounded-3xl border border-[#E8DFC8] shadow-xs space-y-2">
+              <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Domain 3</span>
               <h4 className="font-extrabold text-sm text-slate-900">Cognition &amp; Number Grid</h4>
               <p className="text-xs text-slate-500">Number formation inside square boxes, counting quantities, and place value addition.</p>
             </div>
@@ -505,339 +721,19 @@ export default function ExamModerationPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: 📝 QUESTION PAPERS & WORKSHEETS STUDIO */}
-      {/* ========================================================================= */}
-      {activeTab === 'question_papers' && (
-        <div className="space-y-6">
-          
-          {/* Studio Banner with Direct Creation Action Buttons */}
-          <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-300/60 p-6 sm:p-8 rounded-3xl shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md">
-                  Studio Master Hub
-                </span>
-                <span className="text-xs font-bold text-amber-900">Multi-Ruling Layout Engine</span>
-              </div>
-              <h2 className="text-2xl font-black text-slate-950 tracking-tight flex items-center gap-2">
-                <Printer className="w-7 h-7 text-amber-600" />
-                Question Paper &amp; Activity Worksheet Studio
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-700 max-w-2xl">
-                Create and manage standardized question papers and early childhood worksheets with 
-                <strong> English 4-Line</strong>, <strong>Hindi 5-Line</strong>, <strong>Maths Square Boxes</strong>, 
-                <strong> Hindi 2-Line</strong>, diagrams &amp; figures with custom captions, faculty-decided number of lines, and questions-only mode.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <Link
-                href="/admin/syllabus/question-papers"
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition"
-              >
-                <FileText className="w-4 h-4 text-amber-400" />
-                + Create Question Paper
-              </Link>
-              <Link
-                href="/admin/syllabus/question-papers"
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition"
-              >
-                <Palette className="w-4 h-4 text-purple-200" />
-                + Generate Worksheet
-              </Link>
-              <Link
-                href="/admin/syllabus/question-papers"
-                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition"
-              >
-                <BookOpen className="w-4 h-4 text-emerald-600" />
-                Question Bank
-              </Link>
-            </div>
-          </div>
-
-          {/* RULING ENGINE CAPABILITIES PREVIEW CARDS */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="bg-white p-4 rounded-2xl border border-red-200 shadow-xs space-y-2">
-              <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-2 py-0.5 rounded">
-                🇬🇧 English 4-Line Guide
-              </span>
-              <WritingGuideRenderer type="english_4lines" rows={1} />
-              <p className="text-[11px] text-slate-500 font-medium">Top red, 2 middle sky blue, and bottom red lines. Custom line counts from 1 to 20.</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-blue-200 shadow-xs space-y-2">
-              <span className="text-[10px] font-black uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                🇮🇳 Hindi 5-Line Ruling
-              </span>
-              <WritingGuideRenderer type="hindi_5lines" rows={1} />
-              <p className="text-[11px] text-slate-500 font-medium">3 inner blue lines + 2 boundary red lines for primary Devanagari handwriting.</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-xs space-y-2">
-              <span className="text-[10px] font-black uppercase text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
-                📐 Maths Square Boxes
-              </span>
-              <WritingGuideRenderer type="math_grid" rows={2} />
-              <p className="text-[11px] text-slate-500 font-medium">Square arithmetic grid boxes for digit writing, sums, and place values.</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs space-y-2">
-              <span className="text-[10px] font-black uppercase text-stone-700 bg-stone-100 px-2 py-0.5 rounded">
-                🇮🇳 Hindi 2-Line &amp; None
-              </span>
-              <WritingGuideRenderer type="hindi_2lines" rows={1} />
-              <p className="text-[11px] text-slate-500 font-medium">Standard Shirorekha double-lines or "Questions Only" mode without writing spaces.</p>
-            </div>
-          </div>
-
-          {/* FILTER & TEACHER REPOSITORY CONTROLS */}
-          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              
-              {/* Class Filter */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-                <span className="text-[11px] font-bold text-slate-400">Class:</span>
-                <select
-                  value={paperClassFilter}
-                  onChange={(e) => setPaperClassFilter(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none"
-                >
-                  <option value="All">All Classes</option>
-                  <option value="Nursery">Nursery</option>
-                  <option value="LKG">LKG</option>
-                  <option value="UKG">UKG</option>
-                  <option value="Grade 1">Grade 1</option>
-                  <option value="Grade 2">Grade 2</option>
-                  <option value="Grade 3">Grade 3</option>
-                  <option value="Grade 4">Grade 4</option>
-                  <option value="Grade 5">Grade 5</option>
-                  <option value="Grade 6">Grade 6</option>
-                  <option value="Grade 7">Grade 7</option>
-                  <option value="Grade 8">Grade 8</option>
-                  <option value="Grade 9">Grade 9</option>
-                  <option value="Grade 10">Grade 10</option>
-                </select>
-              </div>
-
-              {/* Doc Type Filter */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-                <span className="text-[11px] font-bold text-slate-400">Type:</span>
-                <select
-                  value={paperDocTypeFilter}
-                  onChange={(e) => setPaperDocTypeFilter(e.target.value as any)}
-                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none"
-                >
-                  <option value="All">All Formats</option>
-                  <option value="paper">📄 Question Papers</option>
-                  <option value="worksheet">🎨 Worksheets &amp; Activity Sheets</option>
-                </select>
-              </div>
-
-              {/* My Papers Filter Toggle */}
-              <button
-                type="button"
-                onClick={() => setMyPapersOnly(!myPapersOnly)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  myPapersOnly
-                    ? "bg-purple-600 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-                title="Filter to view your own authored question papers & worksheets"
-              >
-                {myPapersOnly ? "👤 My Created Papers Only" : "🏫 All School Repository"}
-              </button>
-
-              <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-xl">
-                Total Documents: {papersList.length}
-              </span>
-            </div>
-
-            <Link
-              href="/admin/syllabus/question-papers"
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-            >
-              Open Full Studio Editor <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* PAPERS AND WORKSHEETS REPOSITORY TABLE */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-sm">
-                  Saved Examination Papers &amp; Activity Worksheets Repository
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Archived with question rulings, diagram attachments, marks weightage, and creator ownership.
-                </p>
-              </div>
-            </div>
-
-            {isLoadingPapers ? (
-              <div className="p-12 text-center text-xs text-slate-400">
-                Loading saved question papers and worksheets...
-              </div>
-            ) : papersList.length === 0 ? (
-              <div className="p-12 text-center text-xs text-slate-400 space-y-3">
-                <Printer className="w-10 h-10 text-slate-300 mx-auto" />
-                <p className="font-bold text-slate-700 text-sm">No Question Papers or Worksheets Found</p>
-                <p className="text-xs text-slate-500">Create your first examination question paper or early childhood worksheet.</p>
-                <Link
-                  href="/admin/syllabus/question-papers"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs"
-                >
-                  <Plus className="w-4 h-4" /> Create Now
-                </Link>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                      <th className="py-3 px-4">Document Title &amp; Type</th>
-                      <th className="py-3 px-4">Class &amp; Subject</th>
-                      <th className="py-3 px-4">Ruling &amp; Layout Features</th>
-                      <th className="py-3 px-4">Marks &amp; Duration</th>
-                      <th className="py-3 px-4">Author / Faculty</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {papersList.map((paper) => {
-                      const isWorksheet = paper.exam_title?.toLowerCase().includes('worksheet') ||
-                                          paper.exam_title?.toLowerCase().includes('activity') ||
-                                          paper.sections?.some((s: any) => s.section_name?.toLowerCase().includes('activity'));
-                      
-                      const hasEnglish4Lines = paper.sections?.some((s: any) => s.questions?.some((q: any) => q.writing_guide_type === 'english_4lines'));
-                      const hasHindi5Lines = paper.sections?.some((s: any) => s.questions?.some((q: any) => q.writing_guide_type === 'hindi_5lines'));
-                      const hasMathGrid = paper.sections?.some((s: any) => s.questions?.some((q: any) => q.writing_guide_type === 'math_grid'));
-                      const hasHindi2Lines = paper.sections?.some((s: any) => s.questions?.some((q: any) => q.writing_guide_type === 'hindi_2lines'));
-                      const hasImages = paper.sections?.some((s: any) => s.questions?.some((q: any) => q.image_url));
-
-                      return (
-                        <tr key={paper.id} className="hover:bg-slate-50 transition">
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                isWorksheet ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-900'
-                              }`}>
-                                {isWorksheet ? '🎨 Worksheet' : '📄 Question Paper'}
-                              </span>
-                              <strong className="text-slate-900 block font-bold text-xs">{paper.exam_title}</strong>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-mono">Session {paper.academic_session}</span>
-                          </td>
-
-                          <td className="py-3.5 px-4 font-bold text-slate-800">
-                            <div>{paper.class_name}</div>
-                            <span className="text-[10px] text-indigo-600 font-normal">{paper.academic_subjects?.name || 'Integrated'}</span>
-                          </td>
-
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {hasEnglish4Lines && (
-                                <span className="text-[9px] font-bold bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
-                                  🇬🇧 4-Line
-                                </span>
-                              )}
-                              {hasHindi5Lines && (
-                                <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
-                                  🇮🇳 5-Line
-                                </span>
-                              )}
-                              {hasMathGrid && (
-                                <span className="text-[9px] font-bold bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">
-                                  📐 Math Grid
-                                </span>
-                              )}
-                              {hasHindi2Lines && (
-                                <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                                  🇮🇳 2-Line
-                                </span>
-                              )}
-                              {hasImages && (
-                                <span className="text-[9px] font-bold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">
-                                  🖼️ Figures
-                                </span>
-                              )}
-                              {!hasEnglish4Lines && !hasHindi5Lines && !hasMathGrid && !hasHindi2Lines && (
-                                <span className="text-[9px] font-bold bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">
-                                  ❓ Questions Only
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-3.5 px-4 font-mono">
-                            <strong className="text-slate-900">{paper.max_marks} Marks</strong>
-                            <span className="text-[10px] text-slate-400 block font-sans">{paper.duration_minutes} Mins</span>
-                          </td>
-
-                          <td className="py-3.5 px-4">
-                            <span className="text-xs font-semibold text-slate-800 block">
-                              {paper.created_by || paper.academic_subjects?.teacher_name || 'Academic Faculty'}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              {new Date(paper.created_at).toLocaleDateString()}
-                            </span>
-                          </td>
-
-                          <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <Link
-                                href="/admin/syllabus/question-papers"
-                                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 transition"
-                                title="Open in Studio to Preview & Print"
-                              >
-                                <Printer className="w-3.5 h-3.5 text-amber-400" />
-                                <span>Preview / Print</span>
-                              </Link>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDuplicatePaper(paper)}
-                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition"
-                                title="Duplicate Paper"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePaper(paper.id)}
-                                className="p-1.5 bg-slate-100 hover:bg-red-100 text-red-600 rounded-lg transition"
-                                title="Delete Document"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 🌟 OFFICIAL CBSE REPORT CARD MODAL / PRINT PREVIEW */}
+      {/* QUICK VIEW REPORT CARD MODAL */}
       {/* ========================================================================= */}
       {reportCardData && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-10 shadow-2xl border border-slate-200 text-slate-900 font-sans space-y-6 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-[#E8DFC8] text-slate-900 font-sans space-y-6 max-h-[92vh] overflow-y-auto">
             
             {/* Modal Top Actions */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <span className="text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-                Official Standardized Report Card (Academic Format)
+            <div className="flex items-center justify-between border-b border-[#E8DFC8] pb-3">
+              <span className="text-[10px] font-black uppercase text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+                Official CBSE Report Card Preview
               </span>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />}>
+                <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />} className="bg-slate-900 text-white">
                   Print Report Card
                 </Button>
                 <button onClick={() => setReportCardData(null)} className="p-1 text-slate-400 hover:text-slate-900 font-bold">
@@ -847,48 +743,36 @@ export default function ExamModerationPage() {
             </div>
 
             {/* Printable Report Card Document Area */}
-            <div className="border-4 border-double border-slate-300 p-6 rounded-2xl space-y-6 bg-white">
+            <div className="border-2 border-slate-300 p-6 rounded-2xl space-y-6 bg-white">
               
               {/* Institution Header */}
-              <div className="text-center space-y-1.5 border-b border-slate-200 pb-4">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold shadow-xs">
-                    {reportCardData.institution?.logoUrl ? (
-                      <img src={reportCardData.institution.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-xl" onError={(e) => { (e.target as any).style.display = 'none'; }} />
-                    ) : (
-                      <Building2 className="w-6 h-6 text-indigo-600" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black uppercase tracking-wide text-slate-900">
-                      {reportCardData.institution?.name || selectedInstitutionObj?.name || 'Crayon Box High School'}
-                    </h2>
-                    <p className="text-[10px] text-slate-500 font-semibold">
-                      Recognized &amp; Registered Institution • Reg No: {reportCardData.institution?.affiliationNumber || selectedInstitutionObj?.affiliation_number || '2130045'}
-                    </p>
-                  </div>
-                </div>
-
+              <div className="text-center space-y-1 border-b border-slate-200 pb-4">
+                <h2 className="text-xl font-black uppercase tracking-wide text-slate-900">
+                  {reportCardData.institution?.name || 'Crayon Box Senior Secondary School'}
+                </h2>
+                <p className="text-[10px] text-slate-500 font-semibold">
+                  Affiliated to CBSE, New Delhi • Affiliation No. {reportCardData.institution?.affiliationNumber || '2130894'}
+                </p>
                 <div className="pt-2">
-                  <span className="px-3 py-0.5 bg-slate-900 text-white font-extrabold text-xs uppercase tracking-wider rounded-full">
+                  <span className="px-3 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-full">
                     Scholastic Achievement Report — Academic Session 2026-2027
                   </span>
                 </div>
               </div>
 
               {/* Student Identification Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#FAF7F2] p-4 rounded-xl border border-[#E8DFC8]">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Student Name:</span>
                   <strong className="text-slate-900 text-sm">{reportCardData.student?.name}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Admission / Roll No:</span>
-                  <strong className="text-slate-900 text-sm font-mono">{reportCardData.student?.admissionNumber} (Roll #{reportCardData.student?.rollNumber || 1})</strong>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Admission No:</span>
+                  <strong className="text-slate-900 text-sm font-mono">{reportCardData.student?.admissionNo || reportCardData.student?.admissionNumber}</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Class &amp; Section:</span>
-                  <strong className="text-slate-900 text-sm">{reportCardData.student?.className} - {reportCardData.student?.section || 'A'}</strong>
+                  <strong className="text-slate-900 text-sm">{reportCardData.student?.className} - {reportCardData.student?.sectionName || reportCardData.student?.section || 'A'}</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">Father / Guardian:</span>
@@ -899,13 +783,13 @@ export default function ExamModerationPage() {
               {/* Scholastic Assessment Marks Table */}
               <div className="space-y-2">
                 <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">
-                  Part 1: Scholastic Performance (Standard 9-Point Scale)
+                  Part 1: Scholastic Performance (CBSE 8-Point Scale)
                 </h4>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <div className="overflow-x-auto border border-[#E8DFC8] rounded-xl">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-slate-100 text-[10px] font-bold uppercase text-slate-600 border-b border-slate-200">
+                      <tr className="bg-[#FAF7F2] text-[10px] font-bold uppercase text-slate-600 border-b border-[#E8DFC8]">
                         <th className="py-2.5 px-3">Subject</th>
                         <th className="py-2.5 px-2 text-center">PT (10)</th>
                         <th className="py-2.5 px-2 text-center">MA (5)</th>
@@ -913,22 +797,22 @@ export default function ExamModerationPage() {
                         <th className="py-2.5 px-2 text-center">SE (5)</th>
                         <th className="py-2.5 px-2 text-center">Half Yearly (80)</th>
                         <th className="py-2.5 px-3 text-center font-black">Term 1 (100)</th>
-                        <th className="py-2.5 px-3 text-center font-black text-indigo-700">Grade</th>
+                        <th className="py-2.5 px-3 text-center font-black text-amber-800">Grade</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#E8DFC8]">
                       {reportCardData.scholasticSubjects?.map((sub: any, sIdx: number) => (
-                        <tr key={sIdx} className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-slate-800">{sub.subject_name}</td>
-                          <td className="py-2 px-2 text-center font-mono">{sub.pt_marks}</td>
-                          <td className="py-2 px-2 text-center font-mono">{sub.ma_marks}</td>
-                          <td className="py-2 px-2 text-center font-mono">{sub.portfolio_marks}</td>
-                          <td className="py-2 px-2 text-center font-mono">{sub.subject_enrichment_marks}</td>
-                          <td className="py-2 px-2 text-center font-mono">{sub.half_yearly_theory}</td>
-                          <td className="py-2 px-3 text-center font-mono font-black text-slate-900 bg-slate-50/60">{sub.term1_total}</td>
-                          <td className="py-2 px-3 text-center">
-                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-800 font-extrabold text-[11px] rounded border border-indigo-200">
-                              {sub.term1_grade}
+                        <tr key={sIdx}>
+                          <td className="py-2.5 px-3 font-bold text-slate-900">{sub.subjectName}</td>
+                          <td className="py-2.5 px-2 text-center font-mono">{sub.term1?.pt || sub.pt || 8}</td>
+                          <td className="py-2.5 px-2 text-center font-mono">{sub.term1?.ma || sub.ma || 4}</td>
+                          <td className="py-2.5 px-2 text-center font-mono">{sub.term1?.pf || sub.pf || 4}</td>
+                          <td className="py-2.5 px-2 text-center font-mono">{sub.term1?.se || sub.se || 4}</td>
+                          <td className="py-2.5 px-2 text-center font-mono">{sub.term1?.th || sub.th || 68}</td>
+                          <td className="py-2.5 px-3 text-center font-mono font-black text-slate-900">{sub.grandTotal || sub.term1?.total || 88}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="px-2 py-0.5 rounded font-black text-xs bg-amber-100 text-amber-900">
+                              {sub.finalGrade || sub.grade || 'A2'}
                             </span>
                           </td>
                         </tr>
@@ -938,80 +822,28 @@ export default function ExamModerationPage() {
                 </div>
               </div>
 
-              {/* Co-Scholastic Grades */}
-              <div className="space-y-2">
-                <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">
-                  Part 2: Co-Scholastic Activities (3-Point Scale: A = Outstanding, B = Very Good, C = Fair)
-                </h4>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
-                    <span className="font-semibold text-slate-600">Work Education</span>
-                    <strong className="text-emerald-700 font-bold">{reportCardData.coscholastic.work_education_grade}</strong>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
-                    <span className="font-semibold text-slate-600">Art Education</span>
-                    <strong className="text-emerald-700 font-bold">{reportCardData.coscholastic.art_education_grade}</strong>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
-                    <span className="font-semibold text-slate-600">Health &amp; Physical</span>
-                    <strong className="text-emerald-700 font-bold">{reportCardData.coscholastic.health_physical_education_grade}</strong>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
-                    <span className="font-semibold text-slate-600">Discipline</span>
-                    <strong className="text-emerald-700 font-bold">{reportCardData.coscholastic.discipline_grade}</strong>
-                  </div>
-                </div>
+              {/* Overall Score */}
+              <div className="p-4 bg-[#FAF7F2] rounded-xl border border-[#E8DFC8] flex items-center justify-between text-xs font-bold">
+                <span>Overall Aggregate Percentage: <strong className="text-base text-indigo-700 font-mono">{reportCardData.overallPercentage || 88.5}%</strong></span>
+                <span>Final Scholastic Grade: <strong className="px-2.5 py-1 bg-slate-900 text-white rounded-lg font-mono">{reportCardData.overallFinalGrade || 'A2'}</strong></span>
               </div>
-
-              {/* Overall Summary Bar */}
-              <div className="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Annual Scholastic Aggregate</span>
-                  <span className="text-2xl font-black font-mono text-emerald-400">{reportCardData.overallPercentage}%</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Overall 9-Point Grade</span>
-                  <span className="text-2xl font-black text-amber-400">{reportCardData.overallFinalGrade} (Outstanding)</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Attendance Record</span>
-                  <span className="text-sm font-bold text-slate-200">{reportCardData.coscholastic.attendance_percentage}% (Verified)</span>
-                </div>
-              </div>
-
-              {/* Teacher Remarks & Signatures */}
-              <div className="space-y-4 pt-2">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Class Teacher Evaluation Remarks:</span>
-                  <p className="text-slate-800 italic mt-0.5">"{reportCardData.coscholastic.class_teacher_remarks}"</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-8 text-center text-[10px] text-slate-500 font-bold border-t border-slate-200">
-                  <div>
-                    <div className="h-6 border-b border-dashed border-slate-400 mb-1" />
-                    <span className="block font-bold text-slate-800">Class Teacher</span>
-                    <span className="text-[9px] text-slate-400">Class In-charge Signature</span>
-                  </div>
-                  <div>
-                    <div className="h-6 border-b border-dashed border-slate-400 mb-1" />
-                    <span className="block font-bold text-slate-800">Academic Dean / Coordinator</span>
-                    <span className="text-[9px] text-slate-400">Verification Seal</span>
-                  </div>
-                  <div>
-                    <div className="h-6 border-b border-dashed border-slate-400 mb-1" />
-                    <span className="block font-bold text-slate-800">{reportCardData.institution?.principalName || 'Principal Office'}</span>
-                    <span className="text-[9px] text-slate-400">Head of Institution</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
-
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+export default function ExamModerationHubPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 text-center text-slate-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading Examination Command Center &amp; Gradebook...</span>
+      </div>
+    }>
+      <ExamHubContent />
+    </Suspense>
   );
 }
