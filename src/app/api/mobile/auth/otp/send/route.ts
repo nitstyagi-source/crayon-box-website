@@ -55,10 +55,12 @@ export async function POST(request: Request) {
     // B. Check Staff / Faculty
     if (!identifiedUser) {
       const staffRes = await client.query(`
-        SELECT id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as "fullName", email, phone as "phoneNumber", 
+        SELECT id, CONCAT(first_name, ' ', COALESCE(last_name, '')) as "fullName", 
+               COALESCE(official_email, email, personal_email) as email, 
+               COALESCE(phone_number, personal_mobile, whatsapp_no) as "phoneNumber", 
                COALESCE(role, 'Faculty') as role
         FROM public.staff
-        WHERE phone LIKE $1 OR email ILIKE $2
+        WHERE phone_number LIKE $1 OR personal_mobile LIKE $1 OR whatsapp_no LIKE $1 OR email ILIKE $2 OR official_email ILIKE $2
         LIMIT 1;
       `, [`%${cleanNumber}%`, email || '']);
       if (staffRes.rows.length > 0) {
@@ -79,17 +81,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // D. Check Parents
+    // D. Check Parents & Students
     if (!identifiedUser) {
       const parentRes = await client.query(`
         SELECT p.id, CONCAT(p.first_name, ' ', COALESCE(p.last_name, '')) as "fullName", 
                p.phone_number as "phoneNumber", 'Parent' as role
         FROM public.parents p
-        WHERE p.phone_number LIKE $1
+        WHERE p.phone_number LIKE $1 OR p.email ILIKE $2
         LIMIT 1;
-      `, [`%${cleanNumber}%`]);
+      `, [`%${cleanNumber}%`, email || '']);
       if (parentRes.rows.length > 0) {
         identifiedUser = parentRes.rows[0];
+      }
+    }
+
+    if (!identifiedUser) {
+      const studentRes = await client.query(`
+        SELECT id, COALESCE(father_name, mother_name, CONCAT(first_name, ' Parent')) as "fullName",
+               parent_phone as "phoneNumber", 'Parent' as role
+        FROM public.students
+        WHERE parent_phone LIKE $1 OR emergency_contact LIKE $1 OR parent_email ILIKE $2
+        LIMIT 1;
+      `, [`%${cleanNumber}%`, email || '']);
+      if (studentRes.rows.length > 0) {
+        identifiedUser = studentRes.rows[0];
       }
     }
 
