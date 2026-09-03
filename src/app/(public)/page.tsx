@@ -7,6 +7,7 @@ import { ArrowRight, GraduationCap, ShieldCheck, Smartphone, CheckCircle2, Chevr
 import { motion } from "framer-motion";
 import { submitPublicEnquiry } from "@/app/actions/enquiry";
 import { PublicEnquiryForm } from "@/components/enquiry/PublicEnquiryForm";
+import { HomepageVaniSection } from "@/components/vani-public/HomepageVaniSection";
 import { getPageContent } from "@/app/actions/cms";
 import { useLivePreview } from "@/hooks/useLivePreview";
 
@@ -286,6 +287,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* Section 4.5: VANI 24/7 AI Admissions Receptionist */}
+      <HomepageVaniSection />
 
       {/* Section 5: Admissions & Digital Onboarding (The Funnel) */}
       <section className="py-24 bg-primary text-white relative overflow-hidden">
