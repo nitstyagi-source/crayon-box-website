@@ -13,6 +13,7 @@ import {
   getLiveRbacMatrix,
   updateLiveRolePermission,
   toggleErpModuleStatusAction,
+  toggleErpModuleMobileAction,
   addNewDynamicModuleAction,
   deleteDynamicModuleAction,
   DynamicModuleStatus
@@ -133,6 +134,28 @@ export default function IdentityAccessManagementPage() {
     } else {
       alert("Error: " + res.error);
       fetchMatrix(); // rollback
+    }
+  };
+
+  const handleToggleMobileStatus = async (moduleCode: string, currentMobileEnabled: boolean) => {
+    const newStatus = !currentMobileEnabled;
+    setModules(prev => prev.map(m => m.code === moduleCode ? { ...m, mobile_enabled: newStatus } : m));
+    const res = await toggleErpModuleMobileAction(moduleCode, newStatus);
+    if (res.success) {
+      setStatusFeedback(`📱 ${moduleCode} mobile app visibility set to ${newStatus ? 'ACTIVE' : 'OFF'}`);
+      setTimeout(() => setStatusFeedback(null), 3000);
+    } else {
+      alert("Error updating mobile status: " + res.error);
+      fetchMatrix();
+    }
+  };
+
+  const handleMobilePersonaChange = async (moduleCode: string, newPersona: string) => {
+    setModules(prev => prev.map(m => m.code === moduleCode ? { ...m, mobile_persona: newPersona } : m));
+    const res = await toggleErpModuleMobileAction(moduleCode, true, newPersona);
+    if (res.success) {
+      setStatusFeedback(`📱 ${moduleCode} persona assigned to ${newPersona}`);
+      setTimeout(() => setStatusFeedback(null), 3000);
     }
   };
 
@@ -393,12 +416,13 @@ export default function IdentityAccessManagementPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-black">
                     <th className="p-4 w-72">ERP Module &amp; Category</th>
-                    <th className="p-4 w-40 text-center">Global Switch</th>
-                    <th className="p-4 text-center w-24">View</th>
-                    <th className="p-4 text-center w-24">Create</th>
-                    <th className="p-4 text-center w-24">Edit</th>
-                    <th className="p-4 text-center w-24">Delete</th>
-                    <th className="p-4 text-center w-24">Export</th>
+                    <th className="p-4 w-36 text-center">Web Global</th>
+                    <th className="p-4 w-44 text-center">📱 Mobile App Config</th>
+                    <th className="p-4 text-center w-20">View</th>
+                    <th className="p-4 text-center w-20">Create</th>
+                    <th className="p-4 text-center w-20">Edit</th>
+                    <th className="p-4 text-center w-20">Delete</th>
+                    <th className="p-4 text-center w-20">Export</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -448,8 +472,37 @@ export default function IdentityAccessManagementPage() {
                             title={isEnabled ? "Click to Disable Module" : "Click to Enable Module"}
                           >
                             <Power className={`w-3 h-3 ${isEnabled ? 'text-emerald-700' : 'text-red-700'}`} />
-                            {isEnabled ? 'Active (Enabled)' : 'Disabled'}
+                            {isEnabled ? 'Active' : 'Disabled'}
                           </button>
+                        </td>
+
+                        {/* 📱 Mobile App Config Switch & Persona */}
+                        <td className="p-4 text-center">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <button
+                              onClick={() => handleToggleMobileStatus(mod.code, Boolean(mod.mobile_enabled))}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-black transition flex items-center gap-1 cursor-pointer ${
+                                mod.mobile_enabled
+                                  ? 'bg-sky-100 text-sky-900 border border-sky-300 hover:bg-sky-200'
+                                  : 'bg-slate-100 text-slate-500 border border-slate-300 hover:bg-slate-200'
+                              }`}
+                              title="Toggle Mobile Availability"
+                            >
+                              <Smartphone className={`w-3 h-3 ${mod.mobile_enabled ? 'text-sky-600' : 'text-slate-400'}`} />
+                              {mod.mobile_enabled ? '📱 Mobile ON' : '📱 OFF'}
+                            </button>
+                            <select
+                              value={mod.mobile_persona || 'ALL'}
+                              onChange={(e) => handleMobilePersonaChange(mod.code, e.target.value)}
+                              className="text-[10px] font-bold bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700"
+                            >
+                              <option value="FAMILY_STUDENT">Family/Student</option>
+                              <option value="FACULTY">Faculty</option>
+                              <option value="LOGISTICS_SECURITY">Logistics/Security</option>
+                              <option value="ADMIN_ALL">Executive/Admin</option>
+                              <option value="ALL">All Personas</option>
+                            </select>
+                          </div>
                         </td>
 
                         {/* Actions Checkboxes */}

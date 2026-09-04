@@ -30,6 +30,10 @@ export interface DynamicModuleStatus {
   is_enabled: boolean;
   disabled_reason?: string;
   defaultRoles?: string[];
+  mobile_enabled?: boolean;
+  mobile_persona?: string;
+  mobile_icon?: string;
+  mobile_route?: string;
 }
 
 /**
@@ -73,7 +77,11 @@ export async function getLiveRbacMatrix() {
         description: dbEntry?.description || reg.description,
         is_enabled: dbEntry ? Boolean(dbEntry.is_enabled) : true,
         disabled_reason: dbEntry?.disabled_reason || undefined,
-        defaultRoles: reg.defaultRoles
+        defaultRoles: reg.defaultRoles,
+        mobile_enabled: dbEntry ? Boolean(dbEntry.mobile_enabled) : true,
+        mobile_persona: dbEntry?.mobile_persona || 'ALL',
+        mobile_icon: dbEntry?.mobile_icon || 'Layers',
+        mobile_route: dbEntry?.mobile_route || 'Dashboard'
       });
       dbStatusMap.delete(reg.code);
     }
@@ -88,7 +96,11 @@ export async function getLiveRbacMatrix() {
         description: dbEntry.description,
         is_enabled: Boolean(dbEntry.is_enabled),
         disabled_reason: dbEntry.disabled_reason || undefined,
-        defaultRoles: ['SUPER_ADMIN']
+        defaultRoles: ['SUPER_ADMIN'],
+        mobile_enabled: Boolean(dbEntry.mobile_enabled),
+        mobile_persona: dbEntry.mobile_persona || 'ALL',
+        mobile_icon: dbEntry.mobile_icon || 'Layers',
+        mobile_route: dbEntry.mobile_route || 'Dashboard'
       });
     }
 
@@ -277,4 +289,78 @@ export async function getDisabledModuleHrefsAction(): Promise<string[]> {
     client.release();
   }
 }
+
+/**
+ * 7. TOGGLE ERP MODULE MOBILE STATUS & TARGET PERSONA
+ */
+export async function toggleErpModuleMobileAction(
+  moduleCode: string,
+  mobileEnabled: boolean,
+  mobilePersona?: string
+) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    if (mobilePersona) {
+      await client.query(`
+        UPDATE public.erp_module_statuses
+        SET mobile_enabled = $1, mobile_persona = $2, updated_at = NOW()
+        WHERE code = $3;
+      `, [mobileEnabled, mobilePersona, moduleCode]);
+    } else {
+      await client.query(`
+        UPDATE public.erp_module_statuses
+        SET mobile_enabled = $1, updated_at = NOW()
+        WHERE code = $2;
+      `, [mobileEnabled, moduleCode]);
+    }
+
+    safeRevalidate('/admin/iam');
+    return {
+      success: true,
+      message: `Module "${moduleCode}" mobile configuration updated (Active: ${mobileEnabled ? 'Yes' : 'No'}${mobilePersona ? `, Persona: ${mobilePersona}` : ''})`
+    };
+  } catch (error: any) {
+    console.error('toggleErpModuleMobileAction error:', error);
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 8. GET FACULTY AUTHORIZED MOBILE MODULES
+ * Computes intersection of teacher permissions with mobile_enabled = true modules
+ */
+export async function getFacultyAuthorizedMobileModulesAction(facultyRoleCode: string = 'FACULTY') {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    // 1. Fetch authorized module permissions for role
+    const permissionsRes = await client.query(`
+      SELECT rmp.module_code, rmp.can_view, rmp.can_create, rmp.can_edit,
+             ems.name, ems.category, ems.mobile_icon, ems.mobile_route, ems.mobile_persona, ems.description
+      FROM public.role_module_permissions rmp
+      JOIN public.erp_module_statuses ems ON ems.code = rmp.module_code
+      WHERE (rmp.role_code = $1 OR rmp.role_code = 'FACULTY' OR rmp.role_code = 'SUPER_ADMIN')
+        AND rmp.can_view = true
+        AND ems.is_enabled = true
+        AND ems.mobile_enabled = true
+      ORDER BY ems.category ASC, ems.name ASC;
+    `, [facultyRoleCode]);
+
+    return {
+      success: true,
+      modules: permissionsRes.rows
+    };
+  } catch (error: any) {
+    console.error('getFacultyAuthorizedMobileModulesAction error:', error);
+    return { success: false, error: error.message, modules: [] };
+  } finally {
+    client.release();
+  }
+}
+
 
