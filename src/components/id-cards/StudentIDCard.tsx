@@ -1,8 +1,10 @@
 "use client";
 
 import React from 'react';
-import { User, Calendar, Globe, Droplet, Phone, MapPin, ChevronRight, BookOpen, QrCode, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Calendar, Globe, Droplet, Phone, MapPin, ChevronRight, BookOpen, QrCode, ShieldCheck, Sparkles, Barcode } from 'lucide-react';
 import { StudentQRCode } from './StudentQRCode';
+import { AttendanceBarcode } from './AttendanceBarcode';
+import { StandardizedIdPhoto } from './StandardizedIdPhoto';
 import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 
 export type IdCardThemeId = 'rashtriya' | 'digital-bharat' | 'gurukul' | 'neo-swiss' | 'landscape';
@@ -142,33 +144,29 @@ export function StudentIDCard({
           {/* Subtle Ashoka Chakra Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
             <svg className="w-48 h-48 text-[#000080]" viewBox="0 0 100 100" fill="currentColor">
-              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="4"/>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="4"/>
               <circle cx="50" cy="50" r="8" fill="currentColor"/>
-              <path d="M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18 M8 30 L92 70 M8 70 L92 30 M30 8 L70 92 M30 92 L70 8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18 M8 30 L92 70 M8 70 L92 30 M30 8 L70 92 M30 92 L70 8" stroke="currentColor" strokeWidth="1.5"/>
             </svg>
           </div>
 
-          {/* Child Photo with Tricolor Halo */}
-          <div className="relative w-22 h-26 rounded-2xl p-1 bg-gradient-to-b from-[#FF671F] via-white to-[#046A38] shadow-md mb-2 overflow-hidden shrink-0">
-            {student.photo_url ? (
-              <img src={student.photo_url} alt={name} className="w-full h-full object-cover rounded-xl bg-stone-100" />
-            ) : (
-              <div className="w-full h-full bg-orange-50 rounded-xl flex items-center justify-center text-orange-900 font-extrabold text-xl">
-                {name.split(' ')[0][0]}{name.split(' ')[1]?.[0] || ''}
-              </div>
-            )}
-            <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full text-[8px] font-black bg-[#000080] text-white shadow-xs uppercase tracking-wider">
-              STUDENT &bull; 2026-27
-            </span>
-          </div>
+          {/* Child Photo with Universal Institutional Studio Backdrop */}
+          <StandardizedIdPhoto
+            src={student.photo_url}
+            name={name}
+            className="w-22 h-26 rounded-2xl mb-1.5"
+            borderGradient="from-[#FF671F] via-white to-[#046A38]"
+            badgeLabel="STUDENT • 2026-27"
+            badgeBg="#000080"
+          />
 
           {/* Student Name */}
-          <h2 className="text-slate-950 font-black text-base uppercase tracking-tight text-center leading-tight mt-1">
+          <h2 className="text-slate-950 font-black text-base uppercase tracking-tight text-center leading-tight mt-0.5">
             {name}
           </h2>
 
           {/* Class, Section & Roll No Badge */}
-          <div className="flex items-center gap-2 mt-1 mb-2">
+          <div className="flex items-center gap-2 mt-0.5 mb-1.5">
             <span className="px-3 py-0.5 rounded-full bg-orange-700 text-white text-xs font-bold shadow-2xs">
               {className} - {section}
             </span>
@@ -177,16 +175,18 @@ export function StudentIDCard({
             </span>
           </div>
 
-          {/* QR Code */}
-          <div className="bg-white p-2 rounded-2xl border border-orange-200 shadow-2xs flex flex-col items-center my-auto">
-            <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-[#000080] mb-0.5">
-              <QrCode size={10} /> Fast Turnstile &amp; Bus QR
+          {/* Front Attendance Barcode Container */}
+          <div className="w-full bg-slate-50 border border-orange-200/80 rounded-xl p-1.5 shadow-2xs flex flex-col items-center mb-1.5">
+            <div className="flex items-center justify-between w-full px-1 text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">
+              <span className="flex items-center gap-1 text-[#000080]">
+                <Barcode size={10} /> Attendance Barcode
+              </span>
+              <span className="text-emerald-700 font-mono">TURNSTILE READY</span>
             </div>
-            <StudentQRCode payload={idNo} size={70} />
-            <span className="text-[8.5px] font-mono font-bold text-slate-600 mt-0.5">{idNo}</span>
+            <AttendanceBarcode code={idNo} width={220} height={28} showText={true} />
           </div>
 
-          {/* Bottom Vitals Strip */}
+          {/* Bottom Vitals Strip & Gate Clearance */}
           <div className="w-full grid grid-cols-2 gap-2 mt-auto mb-2 text-center text-[9px] font-bold">
             <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-lg py-1">
               Blood: {bloodGroup}
@@ -235,25 +235,22 @@ export function StudentIDCard({
         </div>
 
         {/* Cyber Front Body */}
-        <div className="flex-1 flex flex-col items-center pt-3 px-4 z-10">
-          <div className="relative w-22 h-26 rounded-2xl p-0.5 bg-gradient-to-b from-orange-500 via-slate-800 to-emerald-500 shadow-lg shadow-orange-500/10 mb-2 overflow-hidden shrink-0">
-            {student.photo_url ? (
-              <img src={student.photo_url} alt={name} className="w-full h-full object-cover rounded-xl" />
-            ) : (
-              <div className="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-orange-400 font-extrabold text-xl">
-                {name.split(' ')[0][0]}
-              </div>
-            )}
-            <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2 py-0.5 rounded-full text-[8px] font-black bg-cyan-400 text-slate-950 shadow-xs uppercase font-mono">
-              APAAR: {apaarId.slice(0, 9)}
-            </span>
-          </div>
+        <div className="flex-1 flex flex-col items-center pt-2 px-4 z-10">
+          <StandardizedIdPhoto
+            src={student.photo_url}
+            name={name}
+            className="w-22 h-26 rounded-2xl mb-1.5"
+            borderGradient="from-orange-500 via-cyan-400 to-emerald-500"
+            badgeLabel={`APAAR: ${apaarId.slice(0, 9)}`}
+            badgeBg="#06b6d4"
+            badgeColor="#0f172a"
+          />
 
-          <h2 className="text-white font-black text-base uppercase tracking-tight text-center leading-tight mt-1">
+          <h2 className="text-white font-black text-base uppercase tracking-tight text-center leading-tight mt-0.5">
             {name}
           </h2>
 
-          <div className="flex items-center gap-2 mt-1 mb-2">
+          <div className="flex items-center gap-2 mt-0.5 mb-1.5">
             <span className="px-3 py-0.5 rounded-full bg-slate-900 text-orange-400 border border-orange-500/40 text-xs font-bold font-mono">
               {className}-{section}
             </span>
@@ -262,10 +259,15 @@ export function StudentIDCard({
             </span>
           </div>
 
-          {/* QR with Cyber Frame */}
-          <div className="bg-white p-2 rounded-2xl shadow-sm flex flex-col items-center my-auto">
-            <StudentQRCode payload={idNo} size={70} />
-            <span className="text-[8.5px] font-mono font-bold text-slate-800 mt-0.5">{idNo}</span>
+          {/* Front Attendance Barcode with Cyber Neon Styling */}
+          <div className="w-full bg-slate-900/90 border border-cyan-500/40 rounded-xl p-1.5 shadow-md flex flex-col items-center mb-1.5">
+            <div className="flex items-center justify-between w-full px-1 text-[8px] font-mono font-bold text-cyan-400 uppercase tracking-wider mb-0.5">
+              <span className="flex items-center gap-1 text-cyan-300">
+                <Barcode size={10} /> Fast Attendance Laser
+              </span>
+              <span className="text-emerald-400">13.56 MHz RFID</span>
+            </div>
+            <AttendanceBarcode code={idNo} width={220} height={28} showText={true} />
           </div>
 
           <div className="w-full grid grid-cols-2 gap-2 mt-auto mb-2 text-center text-[9px] font-mono font-bold">
@@ -279,7 +281,7 @@ export function StudentIDCard({
         </div>
 
         <div className="bg-slate-900 text-slate-400 text-[8px] font-mono py-1.5 px-4 flex items-center justify-between border-t border-slate-800">
-          <span className="text-emerald-400">● 13.56 MHz SMART-PASS</span>
+          <span className="text-emerald-400">● GATE ATTENDANCE CLEARANCE</span>
           <span>SESSION 2026-27</span>
         </div>
       </div>
@@ -301,15 +303,12 @@ export function StudentIDCard({
             <span className="text-[9px] font-black tracking-tight uppercase">CRAYON BOX</span>
           </div>
 
-          <div className="w-20 h-24 rounded-xl overflow-hidden ring-2 ring-white/50 shadow-md ml-1">
-            {student.photo_url ? (
-              <img src={student.photo_url} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold text-lg">
-                {name[0]}
-              </div>
-            )}
-          </div>
+          <StandardizedIdPhoto
+            src={student.photo_url}
+            name={name}
+            className="w-20 h-24 rounded-xl ml-1 shadow-md"
+            borderGradient="from-[#FF671F] via-white to-[#046A38]"
+          />
 
           <span className="bg-rose-600 text-white text-[8.5px] font-black px-2.5 py-0.5 rounded-full shadow-2xs ml-1">
             BLOOD: {bloodGroup}
@@ -317,8 +316,8 @@ export function StudentIDCard({
         </div>
 
         {/* Right Details Column */}
-        <div className="flex-1 p-4 flex flex-col justify-between">
-          <div className="flex items-start justify-between border-b border-slate-100 pb-1.5">
+        <div className="flex-1 p-3.5 flex flex-col justify-between">
+          <div className="flex items-start justify-between border-b border-slate-100 pb-1">
             <div>
               <h2 className="font-black text-sm text-slate-900 tracking-tight">{schName}</h2>
               <p className="text-[9px] text-slate-400 font-bold uppercase">{schAffiliation} • SEC 62 NOIDA</p>
@@ -328,14 +327,14 @@ export function StudentIDCard({
             </span>
           </div>
 
-          <div className="space-y-0.5 my-1">
+          <div className="space-y-0.5">
             <h3 className="font-extrabold text-base text-slate-900 leading-tight">{name}</h3>
             <div className="text-xs font-bold text-indigo-700">
               Class {className} - Section {section} (Roll #{rollNo})
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-100">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9.5px] bg-slate-50 p-2 rounded-xl border border-slate-100">
             <div>
               <span className="text-slate-400 text-[8px] font-bold uppercase block">ID Number</span>
               <strong className="font-mono text-slate-800">{idNo}</strong>
@@ -354,14 +353,19 @@ export function StudentIDCard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <StudentQRCode payload={idNo} size={28} />
-              <span className="text-[8px] font-mono text-slate-400">Scan at Campus Gate</span>
+          {/* Front Attendance Barcode */}
+          <div className="bg-white border border-slate-200 rounded-lg p-1 flex items-center justify-between">
+            <div className="flex-1 max-w-[260px]">
+              <AttendanceBarcode code={idNo} width={240} height={22} showText={false} />
             </div>
+            <span className="text-[8px] font-mono font-bold text-slate-500 pr-1">SCAN TURNSTILE</span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[8px]">
+            <span className="font-mono text-slate-400">Govt. Recognized Educational Credential</span>
             <div className="text-right">
-              <div className="h-3 text-[9px] font-serif italic text-slate-900 font-bold">{schPrincipal}</div>
-              <span className="text-[7.5px] font-bold uppercase text-slate-400">Principal Seal &amp; Sign</span>
+              <span className="font-serif italic text-[9px] font-bold text-slate-900">{schPrincipal}</span>
+              <span className="text-[7.5px] font-bold uppercase text-slate-400 block">Principal Seal</span>
             </div>
           </div>
         </div>
@@ -382,22 +386,19 @@ export function StudentIDCard({
         </div>
 
         <div className="flex-1 flex flex-col items-center pt-2 px-4 z-10">
-          <div className="w-20 h-24 rounded-xl overflow-hidden p-0.5 bg-gradient-to-b from-[#D4AF37] to-[#7B181E] shadow-md mb-2 shrink-0">
-            {student.photo_url ? (
-              <img src={student.photo_url} alt={name} className="w-full h-full object-cover rounded-[10px]" />
-            ) : (
-              <div className="w-full h-full bg-amber-50 flex items-center justify-center text-[#5B1015] font-bold text-lg">
-                {name[0]}
-              </div>
-            )}
-          </div>
+          <StandardizedIdPhoto
+            src={student.photo_url}
+            name={name}
+            className="w-20 h-24 rounded-xl mb-1.5 shadow-md"
+            borderGradient="from-[#D4AF37] via-amber-200 to-[#7B181E]"
+          />
 
           <h2 className="font-serif font-black text-sm text-[#5B1015] uppercase">{name}</h2>
           <span className="text-[10px] font-bold text-amber-950 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300 mt-0.5">
             विद्यार्थी • कक्षा {className}-{section}
           </span>
 
-          <div className="w-full mt-2 bg-white/80 rounded-xl p-2.5 border border-[#D4AF37]/40 text-[10px] space-y-1 text-left">
+          <div className="w-full mt-1.5 bg-white/80 rounded-xl p-2.5 border border-[#D4AF37]/40 text-[10px] space-y-1 text-left">
             <div className="flex justify-between border-b border-amber-100 pb-0.5">
               <span className="text-stone-500 font-bold">Kramank:</span>
               <strong className="font-mono text-[#5B1015]">{idNo}</strong>
@@ -412,8 +413,13 @@ export function StudentIDCard({
             </div>
           </div>
 
-          <div className="bg-white p-2 rounded-2xl border border-[#D4AF37]/40 shadow-xs flex flex-col items-center my-auto">
-            <StudentQRCode payload={idNo} size={65} />
+          {/* Front Attendance Barcode with Vedic Accent */}
+          <div className="w-full mt-2 bg-white rounded-xl p-1.5 border border-[#D4AF37]/50 shadow-2xs flex flex-col items-center">
+            <div className="flex items-center justify-between w-full px-1 text-[8px] font-bold text-amber-900 uppercase tracking-wider mb-0.5">
+              <span>उपस्थिति बारकोड (Attendance)</span>
+              <span className="font-mono text-stone-500">{idNo}</span>
+            </div>
+            <AttendanceBarcode code={idNo} width={220} height={26} showText={false} />
           </div>
 
           <div className="w-full flex items-center justify-between pt-1 border-t border-[#D4AF37]/40 text-[8px] mt-auto mb-2">
@@ -457,30 +463,24 @@ export function StudentIDCard({
         </div>
       </div>
 
-      <div className="flex-1 px-4 py-3 flex flex-col items-center text-center justify-between">
-        <div className="relative mt-1">
-          <div className="w-24 h-28 rounded-2xl overflow-hidden ring-4 ring-slate-100 shadow-sm bg-slate-100">
-            {student.photo_url ? (
-              <img src={student.photo_url} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xl">
-                {name[0]}
-              </div>
-            )}
-          </div>
-          <div className="absolute -bottom-2 inset-x-0 mx-auto w-max bg-emerald-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-xs">
-            VERIFIED
-          </div>
-        </div>
+      <div className="flex-1 px-4 py-2.5 flex flex-col items-center text-center justify-between">
+        <StandardizedIdPhoto
+          src={student.photo_url}
+          name={name}
+          className="w-22 h-26 rounded-2xl ring-4 ring-slate-100 shadow-sm"
+          borderGradient="from-slate-200 via-slate-100 to-slate-300"
+          badgeLabel="VERIFIED"
+          badgeBg="#10b981"
+        />
 
-        <div className="mt-2 space-y-0.5">
+        <div className="mt-1 space-y-0.5">
           <h2 className="font-black text-base text-slate-900 leading-tight">{name}</h2>
           <p className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-0.5 rounded-full inline-block">
             {className} - {section}
           </p>
         </div>
 
-        <div className="w-full grid grid-cols-2 gap-2 text-left bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[10px]">
+        <div className="w-full grid grid-cols-2 gap-2 text-left bg-slate-50 p-2 rounded-xl border border-slate-100 text-[10px]">
           <div>
             <span className="text-slate-400 text-[8px] font-bold uppercase block">ID Number</span>
             <strong className="font-mono text-slate-900">{idNo}</strong>
@@ -499,12 +499,17 @@ export function StudentIDCard({
           </div>
         </div>
 
-        <div className="my-auto">
-          <StudentQRCode payload={idNo} size={65} />
+        {/* Front Attendance Barcode */}
+        <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex flex-col items-center">
+          <div className="flex items-center justify-between w-full px-1 text-[8px] font-mono text-slate-400 mb-0.5 uppercase">
+            <span>Attendance Barcode</span>
+            <span>Turnstile Ready</span>
+          </div>
+          <AttendanceBarcode code={idNo} width={220} height={26} showText={true} />
         </div>
       </div>
 
-      <div className="bg-slate-900 text-white p-2.5 flex items-center justify-between text-[8px] font-mono">
+      <div className="bg-slate-900 text-white p-2 flex items-center justify-between text-[8px] font-mono">
         <span>GATE TURNSTILE CLEARANCE</span>
         <span>SESSION 2026-27</span>
       </div>

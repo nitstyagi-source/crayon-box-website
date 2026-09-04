@@ -3,6 +3,7 @@
 import React from 'react';
 import { User, Briefcase, Globe, Calendar, Droplet, Phone, MapPin, ChevronRight, BookOpen, Fingerprint, QrCode, ShieldCheck } from 'lucide-react';
 import { StudentQRCode } from './StudentQRCode';
+import { StandardizedIdPhoto } from './StandardizedIdPhoto';
 import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 import { IdCardThemeId } from './StudentIDCard';
 
@@ -148,19 +149,15 @@ export function TeacherIDCard({
             </svg>
           </div>
 
-          {/* Photo */}
-          <div className="relative w-22 h-26 rounded-2xl p-1 bg-gradient-to-b from-[#FF671F] via-white to-[#046A38] shadow-md mb-2 overflow-hidden shrink-0">
-            {t.photo_url ? (
-              <img src={t.photo_url} alt={name} className="w-full h-full object-cover rounded-xl bg-stone-100" />
-            ) : (
-              <div className="w-full h-full bg-orange-50 rounded-xl flex items-center justify-center text-orange-900 font-extrabold text-xl">
-                {name.split(' ')[0][0]}
-              </div>
-            )}
-            <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2.5 py-0.5 rounded-full text-[8px] font-black bg-[#000080] text-white shadow-xs uppercase tracking-wider">
-              FACULTY &bull; PERMANENT
-            </span>
-          </div>
+          {/* Photo with Universal Institutional Studio Backdrop */}
+          <StandardizedIdPhoto
+            src={t.photo_url}
+            name={name}
+            className="w-22 h-26 rounded-2xl mb-2"
+            borderGradient="from-[#FF671F] via-white to-[#046A38]"
+            badgeLabel="FACULTY • PERMANENT"
+            badgeBg="#000080"
+          />
 
           <h2 className="text-slate-950 font-black text-base uppercase tracking-tight text-center leading-tight mt-1">
             {name}
@@ -223,15 +220,12 @@ export function TeacherIDCard({
             <span className="text-[9px] font-black tracking-tight uppercase">CRAYON BOX</span>
           </div>
 
-          <div className="w-20 h-24 rounded-xl overflow-hidden ring-2 ring-white/50 shadow-md ml-1">
-            {t.photo_url ? (
-              <img src={t.photo_url} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold text-lg">
-                {name[0]}
-              </div>
-            )}
-          </div>
+          <StandardizedIdPhoto
+            src={t.photo_url}
+            name={name}
+            className="w-20 h-24 rounded-xl ml-1 shadow-md"
+            borderGradient="from-[#FF671F] via-white to-[#046A38]"
+          />
 
           <span className="bg-rose-600 text-white text-[8.5px] font-black px-2.5 py-0.5 rounded-full shadow-2xs ml-1">
             BLOOD: {bloodGroup}
@@ -314,20 +308,14 @@ export function TeacherIDCard({
       </div>
 
       <div className="flex-1 px-4 py-3 flex flex-col items-center text-center justify-between">
-        <div className="relative mt-1">
-          <div className="w-24 h-28 rounded-2xl overflow-hidden ring-4 ring-slate-100 shadow-sm bg-slate-100">
-            {t.photo_url ? (
-              <img src={t.photo_url} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xl">
-                {name[0]}
-              </div>
-            )}
-          </div>
-          <div className="absolute -bottom-2 inset-x-0 mx-auto w-max bg-emerald-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-xs">
-            FACULTY ACTIVE
-          </div>
-        </div>
+        <StandardizedIdPhoto
+          src={t.photo_url}
+          name={name}
+          className="w-24 h-28 rounded-2xl ring-4 ring-slate-100 shadow-sm"
+          borderGradient="from-slate-200 via-slate-100 to-slate-300"
+          badgeLabel="FACULTY ACTIVE"
+          badgeBg="#059669"
+        />
 
         <div className="mt-2 space-y-0.5">
           <h2 className="font-black text-base text-slate-900 leading-tight">{name}</h2>
