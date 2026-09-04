@@ -644,10 +644,20 @@ function MasterTimetableContent() {
           <button
             type="button"
             onClick={() => handleOpenPeriodCustomizer()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition cursor-pointer"
           >
             <Clock className="w-3.5 h-3.5 text-purple-600" />
             Custom Period Timings ({regularPeriodCount} Periods)
+          </button>
+
+          {/* Auto-Generate Timetable Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsAutoGenerateOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-2xs cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+            Auto-Generate Timetable
           </button>
         </div>
 
