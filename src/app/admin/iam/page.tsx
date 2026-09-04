@@ -16,11 +16,13 @@ import {
   toggleErpModuleMobileAction,
   addNewDynamicModuleAction,
   deleteDynamicModuleAction,
+  resetInstitutionModulesToDefaultAction,
   DynamicModuleStatus
 } from '@/app/actions/rbac-actions';
 import { getDataQualityAuditAction } from '@/app/actions/governance-analytics-actions';
 import { getAllCategories } from '@/lib/core/security/erp-modules-registry';
 import { Button } from '@/components/ui/Button';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function IdentityAccessManagementPage() {
   const [activeSection, setActiveSection] = useState<'PERMISSIONS' | 'DATA_QUALITY'>('PERMISSIONS');
@@ -33,6 +35,9 @@ export default function IdentityAccessManagementPage() {
     { code: 'PARENT_STUDENT', name: 'Parent & Student (Mobile App Only)' }
   ]);
   
+  const { currentInstitution, institutionsList } = useInstitution();
+  const [targetSchool, setTargetSchool] = useState<string>('CBS');
+  
   const [permissions, setPermissions] = useState<any[]>([]);
   const [modules, setModules] = useState<DynamicModuleStatus[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('TEACHER');
@@ -43,6 +48,13 @@ export default function IdentityAccessManagementPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+
+  // Synchronize target school with context if currentInstitution changes
+  useEffect(() => {
+    if (currentInstitution && currentInstitution !== 'ALL') {
+      setTargetSchool(currentInstitution);
+    }
+  }, [currentInstitution]);
 
   // Add Dynamic Module Modal State
   const [addModuleModalOpen, setAddModuleModalOpen] = useState(false);
@@ -76,9 +88,9 @@ export default function IdentityAccessManagementPage() {
 
   const categories = ['ALL', ...getAllCategories()];
 
-  const fetchMatrix = async () => {
+  const fetchMatrix = async (schoolCode = targetSchool) => {
     setIsLoading(true);
-    const res = await getLiveRbacMatrix();
+    const res = await getLiveRbacMatrix(schoolCode);
     if (res.success) {
       if (res.roles && res.roles.length > 0) {
         const filtered = res.roles.filter((r: any) => r.code !== 'PARENT' && r.code !== 'STUDENT');
@@ -96,8 +108,12 @@ export default function IdentityAccessManagementPage() {
   };
 
   useEffect(() => {
-    fetchMatrix();
-  }, []);
+    fetchMatrix(targetSchool);
+  }, [targetSchool]);
+
+  const handleSelectSchool = (code: string) => {
+    setTargetSchool(code);
+  };
 
   const handleTogglePermission = async (moduleCode: string, field: string, currentValue: boolean) => {
     if (selectedRole === 'PARENT_STUDENT') return;
@@ -121,19 +137,39 @@ export default function IdentityAccessManagementPage() {
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
-  const handleToggleModuleGlobalStatus = async (moduleCode: string, currentEnabled: boolean) => {
+  const handleToggleModuleStatus = async (moduleCode: string, currentEnabled: boolean) => {
     const newStatus = !currentEnabled;
     
     // Optimistic UI update
     setModules(prev => prev.map(m => m.code === moduleCode ? { ...m, is_enabled: newStatus } : m));
     
-    const res = await toggleErpModuleStatusAction(moduleCode, newStatus);
+    const res = await toggleErpModuleStatusAction(moduleCode, newStatus, undefined, targetSchool);
     if (res.success) {
-      setStatusFeedback(`Module ${moduleCode} ${newStatus ? 'ENABLED' : 'DISABLED'}`);
+      setStatusFeedback(`[${targetSchool}] ${moduleCode} ${newStatus ? 'ENABLED' : 'DISABLED'}`);
       setTimeout(() => setStatusFeedback(null), 3000);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('erp_modules_updated', { detail: { institution: targetSchool } }));
+      }
     } else {
       alert("Error: " + res.error);
-      fetchMatrix(); // rollback
+      fetchMatrix(targetSchool); // rollback
+    }
+  };
+
+  const handleResetSchoolDefaults = async () => {
+    if (!confirm(`Reset all module overrides for school "${targetSchool}" back to system baseline?`)) return;
+    setIsLoading(true);
+    const res = await resetInstitutionModulesToDefaultAction(targetSchool);
+    if (res.success) {
+      setStatusFeedback(`Reset all module overrides for ${targetSchool}`);
+      setTimeout(() => setStatusFeedback(null), 3000);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('erp_modules_updated', { detail: { institution: targetSchool } }));
+      }
+      await fetchMatrix(targetSchool);
+    } else {
+      alert("Error resetting: " + res.error);
+      setIsLoading(false);
     }
   };
 
@@ -267,7 +303,7 @@ export default function IdentityAccessManagementPage() {
             <Plus className="w-3.5 h-3.5" /> + Register Custom Module
           </button>
 
-          <Button variant="outline" size="sm" onClick={fetchMatrix} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+          <Button variant="outline" size="sm" onClick={() => fetchMatrix()} isLoading={isLoading} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
             Sync Registry
           </Button>
         </div>
@@ -299,6 +335,57 @@ export default function IdentityAccessManagementPage() {
 
       {activeSection === 'PERMISSIONS' ? (
         <>
+          {/* School Scope Bar */}
+          <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 p-5 rounded-3xl text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-800/40">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-400/30 flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-indigo-400" /> Active School Scope
+                </span>
+                <span className="text-indigo-300 text-xs font-semibold">
+                  Toggling a module enables or suspends it ONLY for the selected school
+                </span>
+              </div>
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                Configuring Modules for: <span className="text-amber-300 font-mono underline underline-offset-4">{targetSchool}</span> ({institutionsList.find((i: any) => i.code === targetSchool)?.name || targetSchool})
+              </h3>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {(institutionsList.length > 0 ? institutionsList : [
+                { code: 'CBS', shortName: 'CBS Main' },
+                { code: 'CBPS', shortName: 'CBPS Pre-School' },
+                { code: 'AS', shortName: 'Avinya School' },
+                { code: 'AVM', shortName: 'Avinya Vidya Mandir' }
+              ]).map((inst: any) => {
+                const isSelected = targetSchool === inst.code;
+                return (
+                  <button
+                    key={inst.code}
+                    onClick={() => handleSelectSchool(inst.code)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-400 text-slate-950 shadow-sm scale-105 ring-2 ring-white/50'
+                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>{inst.shortName || inst.code}</span>
+                    <span className="text-[10px] opacity-70">({inst.code})</span>
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={handleResetSchoolDefaults}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:border-rose-500/60 transition flex items-center gap-1 cursor-pointer ml-1"
+                title={`Reset all module overrides for ${targetSchool} back to system defaults`}
+              >
+                <RefreshCw className="w-3 h-3" /> Reset {targetSchool} Overrides
+              </button>
+            </div>
+          </div>
+
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -416,7 +503,7 @@ export default function IdentityAccessManagementPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-black">
                     <th className="p-4 w-72">ERP Module &amp; Category</th>
-                    <th className="p-4 w-36 text-center">Web Global</th>
+                    <th className="p-4 w-40 text-center">School Status ({targetSchool})</th>
                     <th className="p-4 w-44 text-center">📱 Mobile App Config</th>
                     <th className="p-4 text-center w-20">View</th>
                     <th className="p-4 text-center w-20">Create</th>
@@ -455,24 +542,24 @@ export default function IdentityAccessManagementPage() {
                           <div className="text-[11px] text-slate-500 line-clamp-1">{mod.description}</div>
                           {!isEnabled && (
                             <div className="text-[10px] font-bold text-red-600 mt-1 flex items-center gap-1">
-                              <AlertOctagon className="w-3 h-3" /> Suspended globally (Inaccessible to all users)
+                              <AlertOctagon className="w-3 h-3" /> Suspended for {targetSchool} (Inaccessible in this school)
                             </div>
                           )}
                         </td>
 
-                        {/* Global Enable / Disable Switch */}
+                        {/* School-scoped Enable / Disable Switch */}
                         <td className="p-4 text-center">
                           <button
-                            onClick={() => handleToggleModuleGlobalStatus(mod.code, isEnabled)}
+                            onClick={() => handleToggleModuleStatus(mod.code, isEnabled)}
                             className={`px-3 py-1.5 rounded-full text-xs font-black transition flex items-center gap-1.5 mx-auto shadow-2xs cursor-pointer ${
                               isEnabled
                                 ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 hover:bg-emerald-200'
                                 : 'bg-red-100 text-red-900 border border-red-300 hover:bg-red-200'
                             }`}
-                            title={isEnabled ? "Click to Disable Module" : "Click to Enable Module"}
+                            title={isEnabled ? `Click to Suspend Module for ${targetSchool}` : `Click to Enable Module for ${targetSchool}`}
                           >
                             <Power className={`w-3 h-3 ${isEnabled ? 'text-emerald-700' : 'text-red-700'}`} />
-                            {isEnabled ? 'Active' : 'Disabled'}
+                            {isEnabled ? 'Active' : 'Suspended'}
                           </button>
                         </td>
 

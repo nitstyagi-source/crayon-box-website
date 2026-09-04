@@ -19,20 +19,49 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const persona = searchParams.get('persona'); // e.g. 'FAMILY_STUDENT', 'FACULTY', 'LOGISTICS_SECURITY'
+    const institution = searchParams.get('institution') || searchParams.get('institutionCode') || searchParams.get('school');
 
-    let query = `
-      SELECT code, name, category, mobile_icon, mobile_route, mobile_persona, description
-      FROM public.erp_module_statuses
-      WHERE is_enabled = true AND mobile_enabled = true
-    `;
+    let query: string;
     const params: any[] = [];
 
-    if (persona && persona !== 'ALL') {
-      query += ` AND (mobile_persona = $1 OR mobile_persona = 'ALL' OR mobile_persona = 'ADMIN_ALL')`;
-      params.push(persona);
-    }
+    if (institution && institution !== 'ALL') {
+      params.push(institution);
+      query = `
+        SELECT 
+          ems.code, 
+          ems.name, 
+          ems.category, 
+          ems.mobile_icon, 
+          ems.mobile_route, 
+          ems.mobile_persona, 
+          ems.description
+        FROM public.erp_module_statuses ems
+        LEFT JOIN public.institution_module_statuses ims 
+          ON ims.module_code = ems.code AND ims.institution_code = $1
+        WHERE COALESCE(ims.is_enabled, ems.is_enabled) = true 
+          AND ems.mobile_enabled = true
+      `;
 
-    query += ` ORDER BY category ASC, name ASC`;
+      if (persona && persona !== 'ALL') {
+        params.push(persona);
+        query += ` AND (ems.mobile_persona = $2 OR ems.mobile_persona = 'ALL' OR ems.mobile_persona = 'ADMIN_ALL')`;
+      }
+
+      query += ` ORDER BY ems.category ASC, ems.name ASC`;
+    } else {
+      query = `
+        SELECT code, name, category, mobile_icon, mobile_route, mobile_persona, description
+        FROM public.erp_module_statuses
+        WHERE is_enabled = true AND mobile_enabled = true
+      `;
+
+      if (persona && persona !== 'ALL') {
+        params.push(persona);
+        query += ` AND (mobile_persona = $1 OR mobile_persona = 'ALL' OR mobile_persona = 'ADMIN_ALL')`;
+      }
+
+      query += ` ORDER BY category ASC, name ASC`;
+    }
 
     const res = await client.query(query, params);
 
@@ -40,6 +69,7 @@ export async function GET(request: Request) {
       success: true,
       count: res.rows.length,
       persona: persona || 'ALL',
+      institution: institution || 'GLOBAL',
       modules: res.rows
     });
   } catch (error: any) {

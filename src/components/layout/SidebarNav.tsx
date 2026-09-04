@@ -66,23 +66,32 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const [disabledHrefs, setDisabledHrefs] = useState<string[]>([]);
 
-  // Load user preference for sidebar collapsed state and dynamic module statuses
+  // Load user preference for sidebar collapsed state
   useEffect(() => {
     const saved = localStorage.getItem("cbs_sidebar_collapsed");
     if (saved === "true") setIsCollapsed(true);
+  }, []);
 
+  // Fetch school-scoped active/inactive module status
+  useEffect(() => {
     async function loadDisabled() {
       try {
-        const hrefs = await getDisabledModuleHrefsAction();
+        const instCode = selectedInstitutionObj?.code || (currentInstitution !== "ALL" ? currentInstitution : "CBS");
+        const hrefs = await getDisabledModuleHrefsAction(instCode);
         setDisabledHrefs(hrefs || []);
       } catch (e) {}
     }
     loadDisabled();
-  }, []);
+
+    // Listen for live module changes from IAM
+    const handleLiveModuleUpdate = () => loadDisabled();
+    window.addEventListener("erp_modules_updated", handleLiveModuleUpdate);
+    return () => window.removeEventListener("erp_modules_updated", handleLiveModuleUpdate);
+  }, [currentInstitution, selectedInstitutionObj?.code]);
 
   const toggleCollapse = () => {
     setIsCollapsed(prev => {

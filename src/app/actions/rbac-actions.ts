@@ -38,9 +38,10 @@ export interface DynamicModuleStatus {
 
 /**
  * 1. GET LIVE RBAC MATRIX & MODULE REGISTRY
- * Dynamically reconciles database module statuses with code registry.
+ * Dynamically reconciles database module statuses with code registry,
+ * taking into account school-scoped overrides if institutionCode is provided.
  */
-export async function getLiveRbacMatrix() {
+export async function getLiveRbacMatrix(institutionCode?: string) {
   const p = getPool();
   const client = await p.connect();
 
@@ -55,10 +56,21 @@ export async function getLiveRbacMatrix() {
       SELECT * FROM public.role_module_permissions;
     `);
 
-    // 3. Fetch module statuses from DB
+    // 3. Fetch module statuses from DB (Global master catalog)
     const statusRes = await client.query(`
       SELECT * FROM public.erp_module_statuses ORDER BY category ASC, name ASC;
     `);
+
+    // 4. If institutionCode is provided, fetch institution-specific overrides
+    const instStatusMap = new Map<string, any>();
+    if (institutionCode && institutionCode !== 'ALL') {
+      const instRes = await client.query(`
+        SELECT module_code, is_enabled, disabled_reason
+        FROM public.institution_module_statuses
+        WHERE institution_code = $1;
+      `, [institutionCode]);
+      instRes.rows.forEach((r: any) => instStatusMap.set(r.module_code, r));
+    }
 
     // Build merged dynamic module list
     const dbStatusMap = new Map<string, any>();
@@ -66,17 +78,27 @@ export async function getLiveRbacMatrix() {
 
     const allModules: DynamicModuleStatus[] = [];
 
-    // First, add all canonical registry modules with DB overrides
+    // First, add all canonical registry modules with DB & School overrides
     for (const reg of ERP_MODULES_REGISTRY) {
       const dbEntry = dbStatusMap.get(reg.code);
+      const instEntry = instStatusMap.get(reg.code);
+
+      const isEnabled = instEntry !== undefined
+        ? Boolean(instEntry.is_enabled)
+        : (dbEntry ? Boolean(dbEntry.is_enabled) : true);
+
+      const disabledReason = instEntry !== undefined
+        ? instEntry.disabled_reason
+        : dbEntry?.disabled_reason;
+
       allModules.push({
         code: reg.code,
         name: dbEntry?.name || reg.name,
         category: dbEntry?.category || reg.category,
         href: dbEntry?.href || reg.href,
         description: dbEntry?.description || reg.description,
-        is_enabled: dbEntry ? Boolean(dbEntry.is_enabled) : true,
-        disabled_reason: dbEntry?.disabled_reason || undefined,
+        is_enabled: isEnabled,
+        disabled_reason: disabledReason || undefined,
         defaultRoles: reg.defaultRoles,
         mobile_enabled: dbEntry ? Boolean(dbEntry.mobile_enabled) : true,
         mobile_persona: dbEntry?.mobile_persona || 'ALL',
@@ -88,14 +110,24 @@ export async function getLiveRbacMatrix() {
 
     // Next, add any custom dynamic modules that exist only in DB
     for (const [_, dbEntry] of dbStatusMap) {
+      const instEntry = instStatusMap.get(dbEntry.code);
+
+      const isEnabled = instEntry !== undefined
+        ? Boolean(instEntry.is_enabled)
+        : Boolean(dbEntry.is_enabled);
+
+      const disabledReason = instEntry !== undefined
+        ? instEntry.disabled_reason
+        : dbEntry?.disabled_reason;
+
       allModules.push({
         code: dbEntry.code,
         name: dbEntry.name,
         category: dbEntry.category,
         href: dbEntry.href,
         description: dbEntry.description,
-        is_enabled: Boolean(dbEntry.is_enabled),
-        disabled_reason: dbEntry.disabled_reason || undefined,
+        is_enabled: isEnabled,
+        disabled_reason: disabledReason || undefined,
         defaultRoles: ['SUPER_ADMIN'],
         mobile_enabled: Boolean(dbEntry.mobile_enabled),
         mobile_persona: dbEntry.mobile_persona || 'ALL',
@@ -108,7 +140,8 @@ export async function getLiveRbacMatrix() {
       success: true,
       roles: rolesRes.rows,
       permissions: permsRes.rows,
-      modules: allModules
+      modules: allModules,
+      institutionCode: institutionCode || 'CBS'
     };
   } catch (error: any) {
     console.error('getLiveRbacMatrix error:', error);
@@ -166,35 +199,68 @@ export async function updateLiveRolePermission(
 }
 
 /**
- * 3. TOGGLE ERP MODULE GLOBAL STATUS (ENABLE / DISABLE)
+ * 3. TOGGLE ERP MODULE STATUS (ENABLE / DISABLE)
+ * When institutionCode is provided, status is saved specifically for THAT school.
+ * If institutionCode is 'ALL' or omitted, global master status is updated.
  */
 export async function toggleErpModuleStatusAction(
   moduleCode: string,
   isEnabled: boolean,
-  reason?: string
+  reason?: string,
+  institutionCode?: string
 ) {
   const p = getPool();
   const client = await p.connect();
 
   try {
-    await client.query(`
-      INSERT INTO public.erp_module_statuses (code, name, category, href, description, is_enabled, disabled_reason, updated_at)
-      VALUES (
-        $1, $1, 'General Operations', '/admin', '', $2, $3, NOW()
-      )
-      ON CONFLICT (code) DO UPDATE
-      SET is_enabled = $2,
-          disabled_reason = $3,
-          updated_at = NOW();
-    `, [moduleCode, isEnabled, isEnabled ? null : (reason || 'Disabled by Super Administrator')]);
+    const targetInst = institutionCode && institutionCode !== 'ALL' ? institutionCode : null;
 
-    safeRevalidate('/admin/iam');
-    safeRevalidate('/admin/dashboard');
+    if (targetInst) {
+      // 🏫 SCHOOL-SPECIFIC TOGGLE: Strictly updates ONLY the selected school
+      await client.query(`
+        INSERT INTO public.institution_module_statuses (
+          institution_code, module_code, is_enabled, disabled_reason, updated_at
+        )
+        VALUES ($1, $2, $3, $4, NOW())
+        ON CONFLICT (institution_code, module_code) DO UPDATE
+        SET is_enabled = $3,
+            disabled_reason = $4,
+            updated_at = NOW();
+      `, [
+        targetInst,
+        moduleCode,
+        isEnabled,
+        isEnabled ? null : (reason || `Suspended for ${targetInst} by Administrator`)
+      ]);
 
-    return {
-      success: true,
-      message: `Module "${moduleCode}" has been globally ${isEnabled ? 'ENABLED' : 'DISABLED'}.`
-    };
+      safeRevalidate('/admin/iam');
+      safeRevalidate('/admin/dashboard');
+
+      return {
+        success: true,
+        message: `Module "${moduleCode}" is now ${isEnabled ? 'ACTIVE' : 'SUSPENDED'} for school ${targetInst} only.`
+      };
+    } else {
+      // Global toggle fallback
+      await client.query(`
+        INSERT INTO public.erp_module_statuses (code, name, category, href, description, is_enabled, disabled_reason, updated_at)
+        VALUES (
+          $1, $1, 'General Operations', '/admin', '', $2, $3, NOW()
+        )
+        ON CONFLICT (code) DO UPDATE
+        SET is_enabled = $2,
+            disabled_reason = $3,
+            updated_at = NOW();
+      `, [moduleCode, isEnabled, isEnabled ? null : (reason || 'Disabled by Super Administrator')]);
+
+      safeRevalidate('/admin/iam');
+      safeRevalidate('/admin/dashboard');
+
+      return {
+        success: true,
+        message: `Module "${moduleCode}" has been globally ${isEnabled ? 'ENABLED' : 'DISABLED'}.`
+      };
+    }
   } catch (error: any) {
     console.error('toggleErpModuleStatusAction error:', error);
     return { success: false, error: error.message };
@@ -273,18 +339,56 @@ export async function deleteDynamicModuleAction(moduleCode: string) {
 
 /**
  * 6. GET DISABLED MODULE ROUTES (For dynamic navigation filtering)
+ * When institutionCode is provided, evaluates school-specific overrides.
  */
-export async function getDisabledModuleHrefsAction(): Promise<string[]> {
+export async function getDisabledModuleHrefsAction(institutionCode?: string): Promise<string[]> {
   const p = getPool();
   const client = await p.connect();
 
   try {
-    const res = await client.query(`
-      SELECT href FROM public.erp_module_statuses WHERE is_enabled = false;
-    `);
-    return res.rows.map((r: any) => r.href);
+    if (institutionCode && institutionCode !== 'ALL') {
+      const res = await client.query(`
+        SELECT ems.href
+        FROM public.erp_module_statuses ems
+        LEFT JOIN public.institution_module_statuses ims 
+          ON ims.module_code = ems.code AND ims.institution_code = $1
+        WHERE COALESCE(ims.is_enabled, ems.is_enabled) = false;
+      `, [institutionCode]);
+      return res.rows.map((r: any) => r.href);
+    } else {
+      const res = await client.query(`
+        SELECT href FROM public.erp_module_statuses WHERE is_enabled = false;
+      `);
+      return res.rows.map((r: any) => r.href);
+    }
   } catch (e) {
     return [];
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Reset all school-specific module overrides back to defaults for a given school
+ */
+export async function resetInstitutionModulesToDefaultAction(institutionCode: string) {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    await client.query(`
+      DELETE FROM public.institution_module_statuses WHERE institution_code = $1;
+    `, [institutionCode]);
+
+    safeRevalidate('/admin/iam');
+    safeRevalidate('/admin/dashboard');
+
+    return {
+      success: true,
+      message: `Reset all module statuses for school (${institutionCode}) to system defaults.`
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
   } finally {
     client.release();
   }
