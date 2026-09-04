@@ -36,6 +36,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { clearServerAuthSession } from "@/app/actions/auth";
 import { useInstitution } from "@/components/providers/InstitutionContext";
+import { getDisabledModuleHrefsAction } from "@/app/actions/rbac-actions";
 
 interface SidebarNavProps {
   currentRole?: string;
@@ -67,10 +68,20 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  // Load user preference for sidebar collapsed state
+  const [disabledHrefs, setDisabledHrefs] = useState<string[]>([]);
+
+  // Load user preference for sidebar collapsed state and dynamic module statuses
   useEffect(() => {
     const saved = localStorage.getItem("cbs_sidebar_collapsed");
     if (saved === "true") setIsCollapsed(true);
+
+    async function loadDisabled() {
+      try {
+        const hrefs = await getDisabledModuleHrefsAction();
+        setDisabledHrefs(hrefs || []);
+      } catch (e) {}
+    }
+    loadDisabled();
   }, []);
 
   const toggleCollapse = () => {
@@ -186,8 +197,14 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
     },
   ];
 
-  // Filter accessible domains for active role
-  const accessibleDomains = EXECUTIVE_DOMAINS.filter(domain => domain.allowedRoles.includes(currentRole));
+  // Filter accessible domains for active role and exclude dynamically disabled modules
+  const accessibleDomains = EXECUTIVE_DOMAINS
+    .filter(domain => domain.allowedRoles.includes(currentRole))
+    .map(domain => ({
+      ...domain,
+      items: domain.items.filter(item => !disabledHrefs.includes(item.href))
+    }))
+    .filter(domain => domain.items.length > 0);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

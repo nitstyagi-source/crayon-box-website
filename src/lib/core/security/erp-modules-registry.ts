@@ -13,6 +13,7 @@ export interface ErpModuleDefinition {
   description: string;
   defaultRoles: ('SUPER_ADMIN' | 'PRINCIPAL' | 'TEACHER' | 'ACCOUNTS' | 'STAFF')[];
   supportsActions: ('can_view' | 'can_create' | 'can_edit' | 'can_delete' | 'can_export')[];
+  is_enabled?: boolean;
 }
 
 export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
@@ -53,6 +54,33 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
     supportsActions: ['can_view', 'can_export']
   },
+  {
+    code: 'ONEROSTER_LTI',
+    name: 'OneRoster & LTI 1.3 Gateway',
+    category: 'Governance & Overview',
+    href: '/admin/integrations/oneroster',
+    description: '1EdTech OneRoster v1.2 REST endpoints & LTI 1.3 Advantage interoperability.',
+    defaultRoles: ['SUPER_ADMIN'],
+    supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
+    code: 'AUDIT_LOGS',
+    name: 'Enterprise Audit Vault',
+    category: 'Governance & Overview',
+    href: '/admin/audit-logs',
+    description: 'ISO 27001 & DPDP 2023 tamper-evident immutable forensic audit trails.',
+    defaultRoles: ['SUPER_ADMIN', 'ACCOUNTS'],
+    supportsActions: ['can_view', 'can_export']
+  },
+  {
+    code: 'COMPLIANCE_BOARD',
+    name: 'Statutory Board Exporter',
+    category: 'Governance & Overview',
+    href: '/admin/reports/compliance',
+    description: 'CBSE OASIS, SARAS, and U-DISE+ XML/CSV automated compliance generation.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+    supportsActions: ['can_view', 'can_create', 'can_export']
+  },
 
   // 2. Students & Admissions
   {
@@ -80,6 +108,24 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     href: '/admin/families',
     description: 'Household linking, multi-child parent directories, sibling concession links.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'ACCOUNTS'],
+    supportsActions: ['can_view', 'can_create', 'can_export']
+  },
+  {
+    code: 'RETENTION_RADAR',
+    name: 'Predictive Retention Radar',
+    category: 'Students & Admissions',
+    href: '/admin/students/retention',
+    description: 'AI Early Warning Attrition radar tracking multi-variable withdrawal risks.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+    supportsActions: ['can_view', 'can_create', 'can_export']
+  },
+  {
+    code: 'SEN_IEP',
+    name: 'SEN & Inclusive Education Studio',
+    category: 'Students & Admissions',
+    href: '/admin/students/sen-iep',
+    description: 'Longitudinal IEP accommodation tracking, SMART goals, and specialist logs.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
   },
 
@@ -131,10 +177,10 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
   },
   {
     code: 'TIMETABLE',
-    name: 'Master Timetable',
+    name: 'AI Genetic Timetable & Proxy Hub',
     category: 'Academic Operations',
-    href: '/admin/timetable',
-    description: 'Class schedules, teacher subject mappings, period collision detection.',
+    href: '/admin/timetable/smart-builder',
+    description: 'Evolutionary constraint solver for conflict-free period allocation.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export']
   },
@@ -146,6 +192,33 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     description: 'Scholastic gradebooks, CBSE marks entry, report card generation, and hall tickets.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
+    code: 'CBT_ARENA',
+    name: 'CBT Quiz & Lockdown Arena',
+    category: 'Academic Operations',
+    href: '/admin/academic/quiz-arena',
+    description: 'Secure browser anti-cheat computerized testing studio.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
+    code: 'OMR_GRADER',
+    name: 'WebRTC Camera OMR Auto-Grader',
+    category: 'Academic Operations',
+    href: '/admin/exams?tab=omr-grader',
+    description: 'Fiducial computer vision bubble sheet evaluation.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
+    code: 'RUBRICS_BUILDER',
+    name: 'Assessment Rubrics Studio',
+    category: 'Academic Operations',
+    href: '/admin/academics/rubrics',
+    description: 'NEP 2020 qualitative rubric matrix builder.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit']
   },
   {
     code: 'CALENDAR',
@@ -224,6 +297,15 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
   },
   {
+    code: 'GATE_SCANNER',
+    name: 'Offline-First Gate Scanner',
+    category: 'Campus Logistics & Safety',
+    href: '/admin/gate-scanner',
+    description: 'IndexedDB-queued turnstile and barcode entry scanner.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+    supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
     code: 'INCIDENTS',
     name: 'Child Safeguarding & POCSO',
     category: 'Campus Logistics & Safety',
@@ -289,6 +371,51 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     supportsActions: ['can_view', 'can_create', 'can_export']
   },
   {
+    code: 'PUSH_CENTER',
+    name: 'Native Mobile Push Center',
+    category: 'Parent & Community Services',
+    href: '/admin/communications/push',
+    description: 'Firebase FCM and Web Push multi-channel notification dispatcher.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+    supportsActions: ['can_view', 'can_create', 'can_export']
+  },
+  {
+    code: 'WHATSAPP_BOT',
+    name: '2-Way WhatsApp Bot Simulator',
+    category: 'Parent & Community Services',
+    href: '/admin/communications/whatsapp-bot',
+    description: 'Conversational AI intent parser for student fees and attendance.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
+    supportsActions: ['can_view', 'can_create', 'can_edit']
+  },
+  {
+    code: 'PBIS_HOUSE_CUP',
+    name: 'PBIS House Cup & Pastoral Care',
+    category: 'Parent & Community Services',
+    href: '/admin/pastoral/house-points',
+    description: 'Gamified merit points, house cup trophy standings, and MTSS pastoral support.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
+  },
+  {
+    code: 'PTM',
+    name: 'PTM Slot Booking',
+    category: 'Parent & Community Services',
+    href: '/admin/ptm',
+    description: 'Parent-Teacher meeting scheduling, 15-minute slot selection, and feedback logs.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit']
+  },
+  {
+    code: 'PARENT_CARE',
+    name: 'Parent Care & Grievance SLA Hub',
+    category: 'Parent & Community Services',
+    href: '/admin/parent-care',
+    description: 'Ticketing system for parent concerns, SLA tracking, and resolution history.',
+    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
+    supportsActions: ['can_view', 'can_create', 'can_edit']
+  },
+  {
     code: 'CONSENT',
     name: 'Digital Parent Consent',
     category: 'Parent & Community Services',
@@ -296,24 +423,6 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     description: 'Excursion permissions, medical consent, and e-signatures.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
     supportsActions: ['can_view', 'can_create', 'can_export']
-  },
-  {
-    code: 'PTM',
-    name: 'PTM Slot Booking',
-    category: 'Parent & Community Services',
-    href: '/admin/ptm',
-    description: 'Parent-Teacher meeting scheduling, slot selection, and feedback logs.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
-    supportsActions: ['can_view', 'can_create', 'can_edit']
-  },
-  {
-    code: 'GRIEVANCES',
-    name: 'Parent Grievance Desk',
-    category: 'Parent & Community Services',
-    href: '/admin/grievances',
-    description: 'Ticketing system for parent concerns, SLA tracking, and resolution history.',
-    defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
-    supportsActions: ['can_view', 'can_create', 'can_edit']
   },
   {
     code: 'EARLY_DEPARTURE',
