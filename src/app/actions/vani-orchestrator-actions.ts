@@ -74,13 +74,21 @@ export async function askVaniOrchestratorAction(params: {
     // PERSONA 1: PARENT VANI (STRICT HARDWARE-ISOLATED SANDBOX)
     // =================================================================
     if (isParent) {
-      // Security Guardrail: Explicitly block any queries targeting internal staff, HR, finances, or other children
-      const isBreachAttempt = query.includes('teacher salary') || query.includes('staff attendance') ||
-        query.includes('other student') || query.includes('other parent') || query.includes('total collection') ||
-        query.includes('internal report') || query.includes('management note');
+      // Strict Security Guardrail: Explicitly block any queries targeting internal staff, HR, school finances,
+      // report cards, marks, assessments, exam question papers, or records of other students/families.
+      const prohibitedKeywords = [
+        'teacher salary', 'staff salary', 'payroll', 'staff attendance', 'faculty leave',
+        'other student', 'other child', 'other parent', 'rank', 'topper', 'class rank',
+        'total collection', 'school profit', 'financial statement', 'general ledger', 'revenue',
+        'internal report', 'management note', 'board meeting', 'disciplinary record',
+        'report card', 'marksheet', 'exam marks', 'exam score', 'question paper', 'rubric',
+        'confidential', 'audit log', 'iam', 'rbac', 'security camera', 'cctv recording'
+      ];
+
+      const isBreachAttempt = prohibitedKeywords.some(kw => query.includes(kw));
 
       if (isBreachAttempt) {
-        responseMarkdown = `🔒 **Privacy & Security Protection Active**\n\nAs your school's Parent Assistant, I can only provide information relating directly to your enrolled child, approved school calendar, fee invoices, bus GPS tracking, and official policies. Confidential administrative records cannot be accessed.`;
+        responseMarkdown = `🔒 **Institutional Privacy & Data Governance Active**\n\nAs your family's AI Assistant, I operate within strict privacy boundaries mandated by school policy:\n\n• **Official Report Cards & Exam Marks** are issued exclusively through the secure, verified **Academics & Grades** portal, subject to institutional moderation and principal sign-off.\n• **Internal School Data, Staff Records & Financial Ledgers** are strictly confidential and inaccessible.\n\nI can assist you with your child's daily class homework, bus GPS radar, fee payment receipts, and school event circulars.`;
         toolUsed = 'parent_security_guardrail';
       }
       // A. Query Live Bus GPS Telematics
