@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { StudentIDCard } from '@/components/id-cards/StudentIDCard';
+import { StudentIDCard, IdCardThemeId } from '@/components/id-cards/StudentIDCard';
 import { TeacherIDCard } from '@/components/id-cards/TeacherIDCard';
 import { EscortPickupCard } from '@/components/id-cards/EscortPickupCard';
 import { ClassPassCard } from '@/components/id-cards/ClassPassCard';
@@ -27,6 +27,7 @@ export default function IDCardAndEscortGeneratorHubPage() {
 
   // Mode: SINGLE card preview vs BULK batch generator
   const [viewMode, setViewMode] = useState<'SINGLE' | 'BULK'>('SINGLE');
+  const [selectedTheme, setSelectedTheme] = useState<IdCardThemeId>('rashtriya');
 
   // Category Tab
   const [activeTab, setActiveTab] = useState<'STUDENT' | 'TEACHER' | 'ESCORT' | 'CLASS_PASS'>('STUDENT');
@@ -303,6 +304,49 @@ export default function IDCardAndEscortGeneratorHubPage() {
           </button>
         ))}
       </div>
+
+      {/* 5 Distinct Design Themes Selector for Student & Teacher IDs */}
+      {(activeTab === 'STUDENT' || activeTab === 'TEACHER') && (
+        <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-2 print:hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-stone-500">
+              Card Aesthetic &amp; Architectural Theme:
+            </span>
+            <span className="text-[11px] font-bold text-blue-900">
+              NEP 2020 &amp; APAAR Integrated
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {[
+              { id: 'rashtriya', name: 'Rashtriya Tiranga', tag: 'Patriotic Tricolor & APAAR', icon: '🇮🇳' },
+              { id: 'digital-bharat', name: 'Digital Bharat', tag: 'Cyber Smart RFID & NFC', icon: '⚡' },
+              { id: 'gurukul', name: 'Gurukul Heritage', tag: 'Vedic Sattva & Nalanda Gold', icon: '🏛️' },
+              { id: 'neo-swiss', name: 'Neo-Swiss Clean', tag: 'Minimalist Typographic Grid', icon: '📐' },
+              { id: 'landscape', name: 'Rajbhasha CR80', tag: 'Horizontal Executive Format', icon: '🪪' },
+            ].map((t) => {
+              const isSelected = selectedTheme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedTheme(t.id as IdCardThemeId)}
+                  className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center gap-2.5 ${
+                    isSelected
+                      ? 'border-blue-900 bg-blue-50 text-blue-950 font-bold ring-2 ring-blue-900/20 shadow-2xs'
+                      : 'border-stone-200 bg-white hover:border-stone-300 text-stone-700'
+                  }`}
+                >
+                  <span className="text-base shrink-0">{t.icon}</span>
+                  <div className="truncate">
+                    <span className="block text-xs font-black truncate">{t.name}</span>
+                    <span className="block text-[9px] text-stone-400 font-medium truncate">{t.tag}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ============================================================== */}
       {/* 🌟 CLASS PASS GENERATOR SUITE (ONE-CLICK CLASS ACCESS PASSES) */}
@@ -581,13 +625,13 @@ export default function IDCardAndEscortGeneratorHubPage() {
               <div id="bulk-print-container">
                 {activeTab === 'STUDENT' && selectedStudent && (
                   <div className="card-print-item">
-                    <StudentIDCard student={selectedStudent} schoolInfo={selectedInstitutionObj} />
+                    <StudentIDCard student={selectedStudent} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                   </div>
                 )}
 
                 {activeTab === 'TEACHER' && selectedFaculty && (
                   <div className="card-print-item">
-                    <TeacherIDCard faculty={selectedFaculty} schoolInfo={selectedInstitutionObj} />
+                    <TeacherIDCard faculty={selectedFaculty} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                   </div>
                 )}
 
@@ -821,14 +865,14 @@ export default function IDCardAndEscortGeneratorHubPage() {
                   {/* STUDENTS BULK */}
                   {activeTab === 'STUDENT' && bulkSelectedStudents.map((s) => (
                     <div key={s.id} className="card-print-item flex justify-center w-full">
-                      <StudentIDCard student={s} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} />
+                      <StudentIDCard student={s} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                     </div>
                   ))}
 
                   {/* TEACHERS BULK */}
                   {activeTab === 'TEACHER' && bulkSelectedFaculty.map((f) => (
                     <div key={f.id} className="card-print-item flex justify-center w-full">
-                      <TeacherIDCard faculty={f} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} />
+                      <TeacherIDCard faculty={f} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                     </div>
                   ))}
 
