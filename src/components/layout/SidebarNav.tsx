@@ -129,6 +129,8 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"],
       items: [
         { name: "Examination & Gradebook Center", href: "/admin/exams", icon: Award, badge: "HPC & AI Studio", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "Assessment Rubrics Builder", href: "/admin/academics/rubrics", icon: BookOpen, badge: "NEP 2020", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "360° Holistic Progress Card", href: "/admin/reports/holistic-card", icon: Sparkles, badge: "Printable", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
       ],
     },
     {
