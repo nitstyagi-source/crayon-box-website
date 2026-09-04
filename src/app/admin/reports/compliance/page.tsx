@@ -20,13 +20,15 @@ import { Card } from '@/components/ui/Card';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import {
   generateCbseLocReportAction,
-  generateUdisePlusProfileReportAction
+  generateUdisePlusProfileReportAction,
+  generateCbseOasisSchoolProfileReportAction
 } from '@/app/actions/compliance-actions';
 
 export default function ComplianceExportersPage() {
-  const [activeTab, setActiveTab] = useState<'CBSE_LOC' | 'UDISE'>('CBSE_LOC');
+  const [activeTab, setActiveTab] = useState<'CBSE_LOC' | 'UDISE' | 'CBSE_OASIS'>('CBSE_LOC');
   const [locRecords, setLocRecords] = useState<any[]>([]);
   const [udiseProfile, setUdiseProfile] = useState<any | null>(null);
+  const [oasisProfile, setOasisProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -34,9 +36,12 @@ export default function ComplianceExportersPage() {
     if (activeTab === 'CBSE_LOC') {
       const res = await generateCbseLocReportAction();
       if (res.success) setLocRecords(res.records);
-    } else {
+    } else if (activeTab === 'UDISE') {
       const res = await generateUdisePlusProfileReportAction();
       if (res.success) setUdiseProfile(res.udiseData);
+    } else if (activeTab === 'CBSE_OASIS') {
+      const res = await generateCbseOasisSchoolProfileReportAction();
+      if (res.success) setOasisProfile(res.oasisData);
     }
     setIsLoading(false);
   };
@@ -100,6 +105,16 @@ export default function ComplianceExportersPage() {
             }`}
           >
             🏛️ U-DISE+ Institutional Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('CBSE_OASIS')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'CBSE_OASIS'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🏫 CBSE OASIS Master Return
           </button>
         </div>
 
@@ -227,6 +242,69 @@ export default function ComplianceExportersPage() {
               <div className="flex justify-between py-1 border-b border-stone-100">
                 <span className="text-stone-500">Pupil-Teacher Ratio (PTR)</span>
                 <span className="font-mono font-bold text-emerald-800">{udiseProfile.teacherPupilRatio}</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tab 3: CBSE OASIS Master Return */}
+      {activeTab === 'CBSE_OASIS' && oasisProfile && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-5 border-stone-200 shadow-xs space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-amber-600" /> CBSE Affiliated School Dossier
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">OASIS Affiliation Number</span>
+                <span className="font-mono font-bold text-stone-900">{oasisProfile.affiliationNumber}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">School Name</span>
+                <span className="font-bold text-stone-900">{oasisProfile.schoolName}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Principal</span>
+                <span className="font-bold text-stone-900">{oasisProfile.principalName}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Affiliation Status</span>
+                <span className="font-bold text-emerald-800">{oasisProfile.affiliationStatus}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Campus Area (Sq. Mtr.)</span>
+                <span className="font-mono font-bold text-stone-900">{oasisProfile.campusAreaSqMtr}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-5 border-stone-200 shadow-xs space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Infrastructure & Teaching Norms
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Faculty Distribution</span>
+                <span className="font-mono font-bold text-stone-900">
+                  PGT: {oasisProfile.staffCountPGT} | TGT: {oasisProfile.staffCountTGT} | PRT: {oasisProfile.staffCountPRT}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Composite Science Lab</span>
+                <span className="font-bold text-stone-900">{oasisProfile.compositeScienceLab}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Computer Labs & Terminals</span>
+                <span className="font-bold text-stone-900">{oasisProfile.computerLabCount}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Broadband Leased Line</span>
+                <span className="font-mono font-bold text-stone-900">{oasisProfile.broadbandConnectivitySpeed}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-100">
+                <span className="text-stone-500">Special Educator Appointed</span>
+                <span className="font-bold text-emerald-800">{oasisProfile.specialEducatorAppointed}</span>
               </div>
             </div>
           </Card>
