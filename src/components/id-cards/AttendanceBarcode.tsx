@@ -88,23 +88,22 @@ export function AttendanceBarcode({
     return { bars, totalHeight: curY };
   }, [cleanCode, height]);
 
-  // Mode 2: Vertical Stacked Barcode (Matching Image 2)
+  // Mode 2: Vertical Stacked Barcode (Matching Image 2 - Borderless)
   if (orientation === 'vertical-stacked') {
     const boxHeight = height > 50 ? height : 140;
-    const barWidth = width > 40 ? width - 26 : 48;
+    const barWidth = width > 40 ? width - 26 : 54;
 
     return (
       <div 
-        className={`flex items-center gap-1.5 bg-white border border-stone-300 rounded p-1 shadow-2xs select-none ${className}`}
+        className={`flex items-center gap-1.5 select-none ${className}`}
         style={{ height: `${boxHeight}px` }}
       >
         {/* Horizontal bars stacked along vertical height */}
         <svg
-          viewBox={`0 0 ${barWidth} ${boxHeight - 8}`}
-          style={{ width: `${barWidth}px`, height: `${boxHeight - 8}px` }}
+          viewBox={`0 0 ${barWidth} ${boxHeight}`}
+          style={{ width: `${barWidth}px`, height: `${boxHeight}px` }}
           className="overflow-hidden shrink-0"
         >
-          <rect width={barWidth} height={boxHeight - 8} fill="#ffffff" />
           {verticalBars.bars.map((bar, idx) => (
             <rect
               key={idx}
@@ -120,15 +119,15 @@ export function AttendanceBarcode({
         {/* Side Text oriented vertically (reading bottom-to-top) */}
         {showText && (
           <div
-            className="flex items-center justify-between text-[7px] font-mono font-black text-slate-900 tracking-wider select-none shrink-0"
+            className="flex items-center justify-between text-[8px] font-condensed font-bold text-slate-900 tracking-wider select-none shrink-0"
             style={{
               writingMode: 'vertical-rl',
               transform: 'rotate(180deg)',
-              height: `${boxHeight - 10}px`,
+              height: `${boxHeight}px`,
             }}
           >
             <span className="font-extrabold tracking-tight">*{cleanCode}*</span>
-            <span className="font-black text-slate-800 tracking-wider">ATTENDANCE BARCODE</span>
+            <span className="font-bold text-slate-900 tracking-wider">ATTENDANCE BARCODE</span>
           </div>
         )}
       </div>
