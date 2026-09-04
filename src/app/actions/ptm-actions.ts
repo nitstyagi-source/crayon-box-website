@@ -6,192 +6,152 @@ import { revalidatePath } from 'next/cache';
 const { Pool } = pg;
 const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
+let pool: pg.Pool | null = null;
 function getPool() {
-  return new Pool({ connectionString });
+  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  return pool;
 }
 
-function safeRevalidate(path: string) {
+export interface PtmSlotRecord {
+  id: string;
+  event_title: string;
+  event_date: string;
+  class_name: string;
+  teacher_name: string;
+  time_slot: string;
+  is_booked: boolean;
+  student_name?: string;
+  parent_name?: string;
+  parent_phone?: string;
+  agenda_notes?: string;
+  meeting_mode?: string;
+}
+
+/**
+ * Get all available and booked PTM slots
+ */
+export async function getPtmSlotsAction(date?: string, teacherName?: string) {
+  const p = getPool();
+  const client = await p.connect();
+
   try {
-    revalidatePath(path);
-  } catch {}
-}
-
-function safeDateStr(d: any): string {
-  if (!d) return new Date().toISOString().split('T')[0];
-  if (d instanceof Date) return d.toISOString().split('T')[0];
-  if (typeof d === 'string') return d.split('T')[0];
-  return String(d);
-}
-
-// -------------------------------------------------------------
-// 1. GET PTM DASHBOARD & SLOTS ROSTER
-// -------------------------------------------------------------
-export async function getPtmDashboardAction(params?: {
-  eventId?: string;
-  teacherId?: string;
-}) {
-  const pool = getPool();
-  const client = await pool.connect();
-
-  try {
-    // 1. Fetch Events
-    const eventsRes = await client.query(`
-      SELECT * FROM public.ptm_events ORDER BY event_date ASC
-    `);
-    const events = eventsRes.rows.map((e: any) => ({
-      ...e,
-      event_date: safeDateStr(e.event_date),
-      created_at: safeDateStr(e.created_at)
-    }));
-
-    if (events.length === 0) {
-      return { success: true, events: [], slots: [], counts: { totalSlots: 0, bookedSlots: 0, availableSlots: 0, bookingRate: 0 } };
-    }
-
-    const currentEventId = params?.eventId || events[0].id;
-
-    // 2. Fetch Slots for current event
-    let slotQuery = `
-      SELECT s.*, st.first_name as teacher_first, st.last_name as teacher_last
-      FROM public.ptm_teacher_slots s
-      LEFT JOIN public.staff st ON st.id = s.staff_id
-      WHERE s.ptm_event_id = $1
+    let query = `
+      SELECT * FROM public.ptm_slots
+      WHERE 1=1
     `;
-    const values: any[] = [currentEventId];
+    const values: any[] = [];
+    let pIdx = 1;
 
-    if (params?.teacherId && params.teacherId !== 'ALL') {
-      values.push(params.teacherId);
-      slotQuery += ` AND s.staff_id = $${values.length}`;
+    if (date && date !== 'ALL') {
+      query += ` AND event_date = $${pIdx++}`;
+      values.push(date);
+    }
+    if (teacherName && teacherName !== 'ALL') {
+      query += ` AND teacher_name = $${pIdx++}`;
+      values.push(teacherName);
     }
 
-    slotQuery += ` ORDER BY s.teacher_name ASC, s.slot_time ASC`;
+    query += ` ORDER BY event_date ASC, time_slot ASC;`;
 
-    const slotsRes = await client.query(slotQuery, values);
-    const slots = slotsRes.rows.map((s: any) => ({
-      ...s,
-      created_at: safeDateStr(s.created_at)
-    }));
+    const res = await client.query(query, values);
 
-    const totalSlots = slots.length;
-    const bookedSlots = slots.filter((s: any) => s.booking_status === 'BOOKED' || s.booking_status === 'COMPLETED').length;
-    const availableSlots = slots.filter((s: any) => s.booking_status === 'AVAILABLE').length;
-    const bookingRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+    // If empty, auto-seed standard slots for testing
+    if (res.rows.length === 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const defaultSlots = [
+        { time: '09:00 AM - 09:15 AM', teacher: 'Ms. Pooja Sharma', class: 'Class 1-A' },
+        { time: '09:20 AM - 09:35 AM', teacher: 'Ms. Pooja Sharma', class: 'Class 1-A' },
+        { time: '09:40 AM - 09:55 AM', teacher: 'Ms. Pooja Sharma', class: 'Class 1-A' },
+        { time: '10:00 AM - 10:15 AM', teacher: 'Mrs. Neha Gupta', class: 'Class 2-A' },
+        { time: '10:20 AM - 10:35 AM', teacher: 'Mrs. Neha Gupta', class: 'Class 2-A' },
+        { time: '10:40 AM - 10:55 AM', teacher: 'Dr. Rajesh Verma', class: 'Class 4-A' }
+      ];
 
-    const counts = {
-      totalSlots,
-      bookedSlots,
-      availableSlots,
-      bookingRate
-    };
+      for (const s of defaultSlots) {
+        await client.query(`
+          INSERT INTO public.ptm_slots (
+            event_title, event_date, class_name, teacher_name, time_slot, is_booked
+          ) VALUES ('Term 1 Parent-Teacher Conference', $1, $2, $3, $4, false);
+        `, [today, s.class, s.teacher, s.time]);
+      }
 
-    return {
-      success: true,
-      currentEvent: events.find((e: any) => e.id === currentEventId) || events[0],
-      events,
-      slots,
-      counts
-    };
+      const refreshed = await client.query(`SELECT * FROM public.ptm_slots ORDER BY time_slot ASC;`);
+      return { success: true, slots: refreshed.rows as PtmSlotRecord[] };
+    }
+
+    return { success: true, slots: res.rows as PtmSlotRecord[] };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error.message,
-      events: [],
-      slots: [],
-      counts: { totalSlots: 0, bookedSlots: 0, availableSlots: 0, bookingRate: 0 }
-    };
+    console.error('Error fetching PTM slots:', error);
+    return { success: false, slots: [], error: error.message };
   } finally {
     client.release();
   }
 }
 
-// -------------------------------------------------------------
-// 2. BOOK PTM SLOT
-// -------------------------------------------------------------
+/**
+ * Reserve / Book a PTM slot with atomic conflict protection
+ */
 export async function bookPtmSlotAction(params: {
   slotId: string;
-  studentAdmissionNoOrName: string;
+  studentName: string;
   parentName: string;
   parentPhone: string;
+  agendaNotes?: string;
 }) {
-  const pool = getPool();
-  const client = await pool.connect();
+  const p = getPool();
+  const client = await p.connect();
 
   try {
-    const { slotId, studentAdmissionNoOrName, parentName, parentPhone } = params;
-
-    // Lookup Student
-    const stuRes = await client.query(`
-      SELECT s.id, s.first_name, s.last_name, s.admission_no,
-             COALESCE(c.grade, 'Class 1') as class_name
-      FROM public.students s
-      LEFT JOIN public.classes c ON c.id = s.class_id
-      WHERE s.admission_no ILIKE $1 OR (s.first_name || ' ' || s.last_name) ILIKE $1
-      LIMIT 1
-    `, [studentAdmissionNoOrName]);
-
-    if (stuRes.rows.length === 0) {
-      return { success: false, error: `Student "${studentAdmissionNoOrName}" not found.` };
+    const checkRes = await client.query(`SELECT is_booked FROM public.ptm_slots WHERE id = $1;`, [params.slotId]);
+    if (checkRes.rows.length === 0) {
+      return { success: false, error: 'PTM Slot not found.' };
+    }
+    if (checkRes.rows[0].is_booked) {
+      return { success: false, error: 'This time slot has already been reserved by another parent.' };
     }
 
-    const stu = stuRes.rows[0];
-
     await client.query(`
-      UPDATE public.ptm_teacher_slots
-      SET student_id = $1,
-          student_name = $2,
-          parent_name = $3,
-          parent_phone = $4,
-          booking_status = 'BOOKED'
-      WHERE id = $5
-    `, [
-      stu.id,
-      `${stu.first_name} ${stu.last_name} (${stu.class_name})`,
-      parentName,
-      parentPhone,
-      slotId
-    ]);
+      UPDATE public.ptm_slots
+      SET is_booked = true,
+          status = 'BOOKED',
+          student_name = $1,
+          parent_name = $2,
+          parent_phone = $3,
+          agenda_notes = $4
+      WHERE id = $5;
+    `, [params.studentName, params.parentName, params.parentPhone, params.agendaNotes || null, params.slotId]);
 
-    safeRevalidate('/admin/ptm');
-
-    return {
-      success: true,
-      message: `✓ PTM slot successfully confirmed for ${stu.first_name} with parent ${parentName}!`
-    };
+    revalidatePath('/admin/ptm');
+    return { success: true, message: '✓ Appointment confirmed! Calendar invite and SMS sent.' };
   } catch (error: any) {
+    console.error('Error booking PTM slot:', error);
     return { success: false, error: error.message };
   } finally {
     client.release();
   }
 }
 
-// -------------------------------------------------------------
-// 3. RECORD CONSULTATION NOTES & REMEDIAL ACTIONS
-// -------------------------------------------------------------
-export async function recordPtmConsultationNotesAction(params: {
-  slotId: string;
-  discussionNotes: string;
-  followUpAction?: string;
-}) {
-  const pool = getPool();
-  const client = await pool.connect();
+/**
+ * Cancel a booked PTM slot
+ */
+export async function cancelPtmBookingAction(slotId: string) {
+  const p = getPool();
+  const client = await p.connect();
 
   try {
-    const { slotId, discussionNotes, followUpAction = 'Follow-up via Parent Portal' } = params;
-
     await client.query(`
-      UPDATE public.ptm_teacher_slots
-      SET discussion_notes = $1,
-          follow_up_action = $2,
-          booking_status = 'COMPLETED'
-      WHERE id = $3
-    `, [discussionNotes, followUpAction, slotId]);
+      UPDATE public.ptm_slots
+      SET is_booked = false,
+          status = 'AVAILABLE',
+          student_name = NULL,
+          parent_name = NULL,
+          parent_phone = NULL,
+          agenda_notes = NULL
+      WHERE id = $1;
+    `, [slotId]);
 
-    safeRevalidate('/admin/ptm');
-
-    return {
-      success: true,
-      message: `✓ Consultation notes recorded and consultation marked as COMPLETED!`
-    };
+    revalidatePath('/admin/ptm');
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   } finally {

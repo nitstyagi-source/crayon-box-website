@@ -27,7 +27,10 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  ShieldAlert
+  ShieldAlert,
+  Bot,
+  Bell,
+  Calendar
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { clearServerAuthSession } from "@/app/actions/auth";
@@ -91,6 +94,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
         { name: "Trust Board & MIS Intelligence", href: "/admin/trust", icon: Award, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
         { name: "Enterprise Audit Vault", href: "/admin/audit-logs", icon: ShieldAlert, badge: "ISO & DPDP", roles: ["SUPER_ADMIN", "ACCOUNTS"] },
         { name: "Statutory Board Exporter", href: "/admin/reports/compliance", icon: Award, badge: "CBSE & U-DISE", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
+        { name: "OneRoster & LTI 1.3 Gateway", href: "/admin/integrations/oneroster", icon: Globe, badge: "EdTech API", roles: ["SUPER_ADMIN"] },
         { name: "Security & IAM Data Vault", href: "/admin/iam", icon: KeyRound, roles: ["SUPER_ADMIN"] },
       ],
     },
@@ -104,6 +108,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       items: [
         { name: "Admissions Command Suite", href: "/admin/admissions", icon: GraduationCap, badge: "Pipeline & CRM", roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
         { name: "Student & Family 360 Master", href: "/admin/students", icon: Users, badge: "Enrolled & TC", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTS"] },
+        { name: "Predictive Retention Radar", href: "/admin/students/retention", icon: Sparkles, badge: "AI Early Warning", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
     {
@@ -169,7 +174,10 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"],
       items: [
         { name: "Omnichannel Comms & WhatsApp Hub", href: "/admin/communications", icon: MessageSquare, badge: "AI & WhatsApp", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "Parent Engagement & Grievance Hub", href: "/admin/parent-care", icon: HeartHandshake, badge: "PTM & SLA", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
+        { name: "2-Way WhatsApp Bot Simulator", href: "/admin/communications/whatsapp-bot", icon: Bot, badge: "Interactive", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
+        { name: "Native Mobile Push Center", href: "/admin/communications/push", icon: Bell, badge: "FCM & Web", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
+        { name: "Parent Engagement & Grievance Hub", href: "/admin/parent-care", icon: HeartHandshake, badge: "Grievance", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
+        { name: "PTM Appointment Desk", href: "/admin/ptm", icon: Calendar, badge: "Self-Service", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
         { name: "Public Website CMS & Portal Hub", href: "/admin/cms", icon: Globe, badge: "Newsroom", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },

@@ -19,6 +19,7 @@ import {
   GateScanResult
 } from '@/app/actions/gate-attendance-actions';
 import { getFilteredUniversalStudentsAction } from '@/app/actions/universal-student-actions';
+import { OfflineAttendanceIndicator } from '@/components/attendance/OfflineAttendanceIndicator';
 
 export default function GateAttendanceScannerPage() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
@@ -119,6 +120,7 @@ export default function GateAttendanceScannerPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <OfflineAttendanceIndicator />
           <Link href="/admin/id-cards">
             <Button variant="outline" size="sm" className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700" leftIcon={<Printer className="w-3.5 h-3.5" />}>
               Generate ID Cards
