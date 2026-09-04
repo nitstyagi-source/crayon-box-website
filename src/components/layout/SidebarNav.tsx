@@ -30,7 +30,8 @@ import {
   ShieldAlert,
   Bot,
   Bell,
-  Calendar
+  Calendar,
+  Trophy
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { clearServerAuthSession } from "@/app/actions/auth";
@@ -108,6 +109,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       items: [
         { name: "Admissions Command Suite", href: "/admin/admissions", icon: GraduationCap, badge: "Pipeline & CRM", roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
         { name: "Student & Family 360 Master", href: "/admin/students", icon: Users, badge: "Enrolled & TC", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTS"] },
+        { name: "SEN & Inclusive Education Studio", href: "/admin/students/sen-iep", icon: HeartPulse, badge: "IEP & Needs", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
         { name: "Predictive Retention Radar", href: "/admin/students/retention", icon: Sparkles, badge: "AI Early Warning", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
@@ -121,7 +123,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       items: [
         { name: "Daily Attendance & Muster Hub", href: "/admin/attendance", icon: GraduationCap, badge: "Roll-Call", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
         { name: "Curriculum, Diary & Homework LMS", href: "/admin/curriculum", icon: BookOpen, badge: "LMS", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "Timetable & Substitutions Hub", href: "/admin/timetable", icon: Clock, badge: "AI Solver", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "AI Genetic Timetable & Proxy Hub", href: "/admin/timetable/smart-builder", icon: Clock, badge: "Genetic GA", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
         { name: "Faculty Directory & Academic Calendar", href: "/admin/faculty", icon: Users, badge: "Staff", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
@@ -174,6 +176,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"],
       items: [
         { name: "Omnichannel Comms & WhatsApp Hub", href: "/admin/communications", icon: MessageSquare, badge: "AI & WhatsApp", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "PBIS House Cup & Pastoral Care", href: "/admin/pastoral/house-points", icon: Trophy, badge: "House Cup", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
         { name: "2-Way WhatsApp Bot Simulator", href: "/admin/communications/whatsapp-bot", icon: Bot, badge: "Interactive", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
         { name: "Native Mobile Push Center", href: "/admin/communications/push", icon: Bell, badge: "FCM & Web", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
         { name: "Parent Engagement & Grievance Hub", href: "/admin/parent-care", icon: HeartHandshake, badge: "Grievance", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
