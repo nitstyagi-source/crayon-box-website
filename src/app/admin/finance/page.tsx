@@ -6,7 +6,7 @@ import {
   CreditCard, IndianRupee, ArrowUpRight, TrendingUp,
   Receipt, Download, ShieldCheck, CheckCircle2, AlertCircle,
   Building2, Layers, RefreshCw, BarChart3, Plus, Users,
-  QrCode, Sparkles, Filter, Search, Clock
+  QrCode, Sparkles, Filter, Search, Clock, Landmark
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DataTable } from '@/components/ui/DataTable';
@@ -19,15 +19,16 @@ import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import { FeeCollectionsPOSDesk } from '@/components/finance/FeeCollectionsPOSDesk';
 import { FeeMasterStructureDesk } from '@/components/finance/FeeMasterStructureDesk';
 import { MultiChildFeePaymentDesk } from '@/components/finance/MultiChildFeePaymentDesk';
+import { BankReconciliationDesk } from '@/components/finance/BankReconciliationDesk';
 
-type FeeHubTab = 'pos' | 'slabs' | 'family-cart' | 'ledgers';
+type FeeHubTab = 'pos' | 'slabs' | 'family-cart' | 'ledgers' | 'reconciliation';
 
 function StudentFeesHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') as FeeHubTab | null;
 
-  const validTabs: FeeHubTab[] = ['pos', 'slabs', 'family-cart', 'ledgers'];
+  const validTabs: FeeHubTab[] = ['pos', 'slabs', 'family-cart', 'ledgers', 'reconciliation'];
   const [activeTab, setActiveTab] = useState<FeeHubTab>(
     rawTab && validTabs.includes(rawTab) ? rawTab : 'pos'
   );
@@ -243,6 +244,22 @@ function StudentFeesHubContent() {
             Audit GL
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('reconciliation')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'reconciliation'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Landmark className="w-4 h-4 text-[#D97706]" />
+          <span>5. Bank VAN e-Collect &amp; Auto-Recon</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
+            Auto-Post
+          </span>
+        </button>
       </div>
 
       {/* ========================================================================= */}
@@ -355,6 +372,15 @@ function StudentFeesHubContent() {
               emptyDescription="No fee invoices recorded in this institutional campus."
             />
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: BANK VAN E-COLLECT & AUTO-RECONCILIATION */}
+      {/* ========================================================================= */}
+      {activeTab === 'reconciliation' && (
+        <div className="space-y-6">
+          <BankReconciliationDesk />
         </div>
       )}
     </div>

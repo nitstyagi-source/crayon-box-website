@@ -23,6 +23,7 @@ import {
 } from '@/app/actions/transport-telematics-actions';
 import GoogleMapsVehicleTracker from '@/components/transport/GoogleMapsVehicleTracker';
 import { BusRouteOptimizerDesk } from '@/components/innovations/BusRouteOptimizerDesk';
+import { TransportGeofenceManager } from '@/components/transport/TransportGeofenceManager';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
 function TransportFleetContent() {
@@ -31,12 +32,13 @@ function TransportFleetContent() {
 
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  const [activeTab, setActiveTab] = useState<'radar' | 'roster' | 'scanner' | 'optimizer'>('radar');
+  const [activeTab, setActiveTab] = useState<'radar' | 'roster' | 'scanner' | 'optimizer' | 'geofence-alerts'>('radar');
 
   useEffect(() => {
     if (tabParam === 'roster') setActiveTab('roster');
     else if (tabParam === 'scanner' || tabParam === 'muster') setActiveTab('scanner');
     else if (tabParam === 'optimizer') setActiveTab('optimizer');
+    else if (tabParam === 'geofence-alerts' || tabParam === 'geofence') setActiveTab('geofence-alerts');
     else if (tabParam === 'radar') setActiveTab('radar');
   }, [tabParam]);
   const [selectedTrackingBusIndex, setSelectedTrackingBusIndex] = useState<number>(0);
@@ -221,6 +223,18 @@ function TransportFleetContent() {
         >
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
           4. Route Optimizer &amp; Stop Balancer
+        </button>
+
+        <button
+          onClick={() => setActiveTab('geofence-alerts')}
+          className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'geofence-alerts'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
+          }`}
+        >
+          <Navigation className="w-3.5 h-3.5 text-emerald-400" />
+          5. Geofence Alerts &amp; Parent Push
         </button>
       </div>
 
@@ -781,6 +795,13 @@ function TransportFleetContent() {
       {activeTab === 'optimizer' && (
         <div className="space-y-6">
           <BusRouteOptimizerDesk />
+        </div>
+      )}
+
+      {/* 🌟 TAB 5: GEOFENCE ALERTS & PARENT ARRIVAL RADAR */}
+      {activeTab === 'geofence-alerts' && (
+        <div className="space-y-6">
+          <TransportGeofenceManager />
         </div>
       )}
 

@@ -25,6 +25,7 @@ import { getClasses } from "@/app/actions/classes";
 import FileUpload from "@/components/admin/FileUpload";
 import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 import { SchoolCalendarDesk } from "../calendar/page";
+import { TeacherCpdTrackerDesk } from "@/components/faculty/TeacherCpdTrackerDesk";
 import { 
   DESIGNATION_GROUPS, 
   DEPARTMENTS_LIST, 
@@ -62,14 +63,15 @@ function FacultyAdminContent() {
   const router = useRouter();
 
   const tabParam = (searchParams.get('tab') || 'directory').toLowerCase();
-  const [pageTab, setPageTab] = useState<'DIRECTORY' | 'CALENDAR' | 'WORKLOAD'>(
+  const [pageTab, setPageTab] = useState<'DIRECTORY' | 'CALENDAR' | 'WORKLOAD' | 'CPD'>(
     tabParam === 'calendar' ? 'CALENDAR' :
-    tabParam === 'workload' ? 'WORKLOAD' : 'DIRECTORY'
+    tabParam === 'workload' ? 'WORKLOAD' :
+    tabParam === 'cpd' || tabParam === 'cpd-tracker' ? 'CPD' : 'DIRECTORY'
   );
 
-  const handlePageTabChange = (tab: 'DIRECTORY' | 'CALENDAR' | 'WORKLOAD') => {
+  const handlePageTabChange = (tab: 'DIRECTORY' | 'CALENDAR' | 'WORKLOAD' | 'CPD') => {
     setPageTab(tab);
-    const paramMap = { DIRECTORY: 'directory', CALENDAR: 'calendar', WORKLOAD: 'workload' };
+    const paramMap = { DIRECTORY: 'directory', CALENDAR: 'calendar', WORKLOAD: 'workload', CPD: 'cpd-tracker' };
     router.replace(`/admin/faculty?tab=${paramMap[tab]}`, { scroll: false });
   };
 
@@ -465,10 +467,17 @@ function FacultyAdminContent() {
           { id: 'DIRECTORY', label: '1. Faculty Staff Directory', icon: <Users className="w-4 h-4 text-blue-600" />, count: faculty.length },
           { id: 'CALENDAR', label: '2. Academic & Exam Calendar', icon: <Calendar className="w-4 h-4 text-amber-600" /> },
           { id: 'WORKLOAD', label: '3. Teaching Workload & KPIs', icon: <Building2 className="w-4 h-4 text-emerald-600" /> },
+          { id: 'CPD', label: '4. CBSE 50-Hr CPD Tracker', icon: <Award className="w-4 h-4 text-[#D97706]" /> },
         ]}
         activeTab={pageTab}
         onTabChange={(id) => handlePageTabChange(id as any)}
       />
+
+      {pageTab === 'CPD' && (
+        <div className="animate-in fade-in duration-200">
+          <TeacherCpdTrackerDesk />
+        </div>
+      )}
 
       {pageTab === 'CALENDAR' && (
         <div className="animate-in fade-in duration-200">

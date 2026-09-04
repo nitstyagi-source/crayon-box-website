@@ -9,7 +9,7 @@ import {
   Printer, Star, Check, RefreshCw, X, Building2, UserCheck,
   TrendingUp, BarChart3, QrCode, Plus, Copy, Trash2, Edit3,
   ExternalLink, Layers, Eye, BookOpen, AlignJustify, Image as ImageIcon,
-  Palette, Grid, Hash, HelpCircle, Send, CheckSquare
+  Palette, Grid, Hash, HelpCircle, Send, CheckSquare, Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -30,15 +30,16 @@ import {
 import WritingGuideRenderer from '@/components/ui/WritingGuideRenderer';
 import { AIQuestionPaperGeneratorDesk } from '@/components/exams/AIQuestionPaperGeneratorDesk';
 import { CBSEHolisticReportCardsDesk } from '@/components/exams/CBSEHolisticReportCardsDesk';
+import { CameraOmrGraderDesk } from '@/components/exams/CameraOmrGraderDesk';
 
-type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori';
+type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori' | 'omr-grader';
 
 function ExamHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') as ExamHubTab | null;
 
-  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori'];
+  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori', 'omr-grader'];
   const [activeTab, setActiveTab] = useState<ExamHubTab>(
     rawTab && validTabs.includes(rawTab) ? rawTab : 'gradebook'
   );
@@ -341,6 +342,22 @@ function ExamHubContent() {
           <span>4. Early Years &amp; Montessori Portfolios</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 font-bold">
             Foundational
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('omr-grader')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'omr-grader'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Camera className="w-4 h-4 text-[#D97706]" />
+          <span>5. Camera OMR Bubble Sheet Grader</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            Auto-Grade
           </span>
         </button>
       </div>
@@ -829,6 +846,15 @@ function ExamHubContent() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: CAMERA OMR BUBBLE SHEET GRADER */}
+      {/* ========================================================================= */}
+      {activeTab === 'omr-grader' && (
+        <div className="space-y-6">
+          <CameraOmrGraderDesk />
         </div>
       )}
     </div>
