@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Package, ShoppingCart, Truck, CheckCircle2,
   Clock, Plus, RefreshCw, IndianRupee, Building2, X,
   FileText, Printer, Edit3, Eye, Save, SlidersHorizontal, ArrowRight,
-  Receipt, Check, HelpCircle
+  Receipt, Check, HelpCircle, Layers, QrCode, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { useCampusContext } from '@/components/providers/CampusProvider';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import {
   getProcurementPurchaseOrdersAction,
   createPurchaseOrderAction,
@@ -19,9 +22,23 @@ import {
 } from '@/app/actions/helpdesk-procurement-actions';
 import { numberToWordsINR } from '@/lib/numberUtils';
 import { printIsolatedElement } from '@/lib/printUtils';
+import { FixedAssetInventoryDesk } from '@/components/finance/FixedAssetInventoryDesk';
 
-export default function ProcurementPage() {
+type ProcurementTab = 'pos' | 'vouchers' | 'assets' | 'consumables';
+
+function ProcurementHubContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get('tab') as ProcurementTab | null;
+
+  const validTabs: ProcurementTab[] = ['pos', 'vouchers', 'assets', 'consumables'];
+  const [activeTab, setActiveTab] = useState<ProcurementTab>(
+    rawTab && validTabs.includes(rawTab) ? rawTab : 'pos'
+  );
+
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { activeCampusId } = useCampusContext();
+  const activeInst = currentInstitution || activeCampusId || 'CBS';
 
   const [orders, setOrders] = useState<any[]>([]);
   const [counts, setCounts] = useState({ totalOrders: 0, totalSpend: 0, approvedOrders: 0, deliveredOrders: 0 });
@@ -35,18 +52,18 @@ export default function ProcurementPage() {
   const [itemsSummary, setItemsSummary] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Payment Voucher (A5 Receipt) Modal State
+  // Payment Voucher Modal State
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [voucherEditMode, setVoucherEditMode] = useState<"edit" | "preview">("preview");
   const [voucherData, setVoucherData] = useState<PaymentVoucherData>({
-    voucher_no: "",
+    voucher_no: "VCH-2026-089",
     voucher_date: new Date().toISOString().split('T')[0],
     institution_name: "CRAYON BOX SCHOOL",
     institution_address: "6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari",
     school_id: "1253481",
-    vendor_name: "Standard Vendor",
-    on_account_of: "Purchase of School Supplies & Consumables",
-    payment_mode: "Cash/Cheque",
+    vendor_name: "Standard Stationery & Supplies",
+    on_account_of: "Purchase of Classroom Stationery & Examination Materials",
+    payment_mode: "Cheque / NEFT",
     cheque_or_txn_no: "CHQ-892104",
     cheque_date: new Date().toISOString().split('T')[0],
     debit_lines: [
@@ -65,6 +82,17 @@ export default function ProcurementPage() {
 
   const printVoucherRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (rawTab && validTabs.includes(rawTab) && rawTab !== activeTab) {
+      setActiveTab(rawTab);
+    }
+  }, [rawTab]);
+
+  const handleTabChange = (tab: ProcurementTab) => {
+    setActiveTab(tab);
+    router.push(`/admin/procurement?tab=${tab}`, { scroll: false });
+  };
+
   const fetchOrders = async () => {
     setIsLoading(true);
     const res = await getProcurementPurchaseOrdersAction();
@@ -76,8 +104,10 @@ export default function ProcurementPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (activeTab === 'pos' || activeTab === 'vouchers') {
+      fetchOrders();
+    }
+  }, [activeTab]);
 
   const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,894 +132,420 @@ export default function ProcurementPage() {
     }
   };
 
-  // Open Payment Voucher Generator for a PO
-  const handleOpenVoucherModal = (po?: any) => {
-    const today = new Date().toISOString().split('T')[0];
-    const poNum = po?.po_number || `PO-2026-${Math.floor(100 + Math.random() * 900)}`;
-    const randomVoucherCode = Math.floor(1000 + Math.random() * 9000);
-    const totalAmt = po ? Number(po.total_amount || 0) : 45000;
-    const vendor = po ? po.vendor_name : "Vendor / Supplier";
-    const summary = po ? po.items_summary : "Institutional Supplies & Lab Consumables";
-
-    setVoucherData({
-      voucher_no: "",
-      voucher_date: today,
-      institution_name: selectedInstitutionObj?.name || "CRAYON BOX SCHOOL",
-      institution_address: selectedInstitutionObj?.address || "6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari",
-      school_id: selectedInstitutionObj?.school_id || "1253481",
-      po_id: po?.id,
-      po_number: poNum,
-      vendor_name: vendor,
-      on_account_of: summary,
-      payment_mode: "Cash/Cheque",
-      cheque_or_txn_no: `CHQ-${Math.floor(100000 + Math.random() * 900000)}`,
-      cheque_date: today,
-      debit_lines: [
-        { particulars: summary, amount: totalAmt }
-      ],
-      credit_lines: [
-        { particulars: `By Bank Account / Cheque issued to ${vendor}`, amount: totalAmt }
-      ],
-      total_amount: totalAmt,
-      amount_in_words: numberToWordsINR(totalAmt),
-      receiver_signature_name: vendor,
-      authorised_signatory_name: "Authorised Signatory"
-    });
-
-    setVoucherEditMode("preview");
-    setIsVoucherModalOpen(true);
-  };
-
-  // Debit Line Item Handlers
-  const handleAddDebitLine = () => {
-    setVoucherData(prev => ({
-      ...prev,
-      debit_lines: [...prev.debit_lines, { particulars: "New Debit Particular / Expense Head", amount: 0 }]
-    }));
-  };
-
-  const handleUpdateDebitLine = (index: number, field: "particulars" | "amount", val: any) => {
-    setVoucherData(prev => {
-      const updated = [...prev.debit_lines];
-      updated[index] = { ...updated[index], [field]: field === "amount" ? Number(val || 0) : val };
-      const newTotal = updated.reduce((s, it) => s + (Number(it.amount) || 0), 0);
-      return {
-        ...prev,
-        debit_lines: updated,
-        total_amount: newTotal,
-        amount_in_words: numberToWordsINR(newTotal)
-      };
-    });
-  };
-
-  const handleRemoveDebitLine = (index: number) => {
-    setVoucherData(prev => {
-      const updated = prev.debit_lines.filter((_, i) => i !== index);
-      const newTotal = updated.reduce((s, it) => s + (Number(it.amount) || 0), 0);
-      return {
-        ...prev,
-        debit_lines: updated,
-        total_amount: newTotal,
-        amount_in_words: numberToWordsINR(newTotal)
-      };
-    });
-  };
-
-  // Credit Line Item Handlers
-  const handleAddCreditLine = () => {
-    setVoucherData(prev => ({
-      ...prev,
-      credit_lines: [...prev.credit_lines, { particulars: "By Cash / Bank Account", amount: 0 }]
-    }));
-  };
-
-  const handleUpdateCreditLine = (index: number, field: "particulars" | "amount", val: any) => {
-    setVoucherData(prev => {
-      const updated = [...prev.credit_lines];
-      updated[index] = { ...updated[index], [field]: field === "amount" ? Number(val || 0) : val };
-      return {
-        ...prev,
-        credit_lines: updated
-      };
-    });
-  };
-
-  const handleRemoveCreditLine = (index: number) => {
-    setVoucherData(prev => ({
-      ...prev,
-      credit_lines: prev.credit_lines.filter((_, i) => i !== index)
-    }));
-  };
-
-  // 1-Click Print Voucher on A5
-  const handlePrintVoucher = () => {
-    if (printVoucherRef.current) {
-      printIsolatedElement(printVoucherRef.current, `Payment_Voucher_${voucherData.voucher_no || 'Slip'}`);
-    } else {
-      window.print();
-    }
-  };
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-20">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1.5">
-              <ShoppingCart className="w-3.5 h-3.5 text-indigo-400" />
-              Institutional Procurement &amp; Vendor POs
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <ShoppingCart className="w-8 h-8 text-indigo-400" />
-            Procurement &amp; Purchase Orders (PO)
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Vendor purchase requisitions, A5 Payment Voucher receipt slips, goods receipt notes (GRN), and capital equipment procurement.
-          </p>
-        </div>
+      {/* Option 6 Sattva-Digital Sandalwood Vastu Banner */}
+      <VastuModuleBanner
+        badgeText="Accounts Payable & Capital Assets (CapEx)"
+        badgeIcon={<Package className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • Procurement & Fixed Asset Hub`}
+        title="Procurement, Vouchers & Asset Inventory Hub"
+        titleIcon={<Package className="w-7 h-7 text-[#D97706]" />}
+        description="Unified procurement lifecycle uniting Purchase Orders & Vendor Contracts, Official A5 Double-Entry Payment Vouchers, Fixed Asset Depreciation Registers, and Consumables Stockroom."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchOrders}
+              isLoading={isLoading}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
+            >
+              Sync Live DB
+            </Button>
+            <Button
+              variant="saffron"
+              size="sm"
+              onClick={() => setIsNewModalOpen(true)}
+              className="text-xs font-black shadow-xs bg-[#D97706] hover:bg-[#B45309] text-white"
+              leftIcon={<Plus className="w-3.5 h-3.5" />}
+            >
+              + Create Purchase Order
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={() => handleOpenVoucherModal()}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 px-4 rounded-xl transition flex items-center gap-1.5 shadow-md text-xs"
-          >
-            <Receipt className="w-4 h-4 text-slate-950" />
-            <span>📄 Payment Voucher (A5)</span>
-          </button>
-
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => setIsNewModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-lg shadow-indigo-600/20"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            Create Purchase Order
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={fetchOrders}
-            isLoading={isLoading}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          >
-            Refresh POs
-          </Button>
-        </div>
-      </div>
-
-      {/* TELEMATICS COUNTERS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total PO Spend</span>
-          <span className="text-3xl font-black text-slate-900 mt-1 block font-mono">
-            ₹{counts.totalSpend.toLocaleString('en-IN')}
+      {/* 4 CONSOLIDATED TABS */}
+      <div className="flex items-center gap-2 border-b border-[#E8DFC8] pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => handleTabChange('pos')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'pos'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4 text-[#D97706]" />
+          <span>1. Purchase Orders &amp; Vendors</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            {counts.totalOrders} POs
           </span>
-          <span className="text-[11px] text-slate-500 font-semibold">{counts.totalOrders} Purchase Orders Requisitioned</span>
-        </div>
+        </button>
 
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Delivered &amp; Verified</span>
-          <span className="text-3xl font-black text-emerald-600 mt-1 block font-mono">{counts.deliveredOrders}</span>
-          <span className="text-[11px] text-emerald-700 font-bold">GRN Signed &amp; In Stock</span>
-        </div>
+        <button
+          type="button"
+          onClick={() => handleTabChange('vouchers')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'vouchers'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Receipt className="w-4 h-4 text-[#D97706]" />
+          <span>2. School Payment Vouchers</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 font-bold">
+            A5 Double-Entry
+          </span>
+        </button>
 
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Approved Orders</span>
-          <span className="text-3xl font-black text-indigo-600 mt-1 block font-mono">{counts.approvedOrders}</span>
-          <span className="text-[11px] text-indigo-700 font-bold">Awaiting Vendor Delivery</span>
-        </div>
+        <button
+          type="button"
+          onClick={() => handleTabChange('assets')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'assets'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-[#D97706]" />
+          <span>3. Fixed Asset Register &amp; Dep.</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
+            NBV &amp; QR Tags
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('consumables')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'consumables'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-[#D97706]" />
+          <span>4. Consumables &amp; Lab Stockroom</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 font-bold">
+            Reorder Radar
+          </span>
+        </button>
       </div>
 
-      {/* PO REGISTRY TABLE */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="font-extrabold text-slate-900 text-sm">
-              Purchase Orders Registry ({orders.length})
-            </h3>
-            <p className="text-xs text-slate-400">
-              Institutional PO register with payment voucher generation and category tracking.
-            </p>
+      {/* ========================================================================= */}
+      {/* TAB 1: PURCHASE ORDERS & VENDOR MANAGEMENT */}
+      {/* ========================================================================= */}
+      {activeTab === 'pos' && (
+        <div className="space-y-6">
+          
+          {/* Telematics Counters */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total POs Issued</span>
+              <span className="text-3xl font-black text-slate-900 mt-1 block">{counts.totalOrders}</span>
+              <span className="text-[11px] text-slate-500 font-semibold">Active Financial Year</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Approved Spend</span>
+              <span className="text-3xl font-black text-indigo-700 mt-1 block font-mono">{formatCurrency(counts.totalSpend)}</span>
+              <span className="text-[11px] text-indigo-800 font-bold">Approved Procurements</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Orders Approved</span>
+              <span className="text-3xl font-black text-emerald-700 mt-1 block">{counts.approvedOrders}</span>
+              <span className="text-[11px] text-emerald-800 font-bold">Trustee Authorized</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Delivered &amp; Verified</span>
+              <span className="text-3xl font-black text-amber-700 mt-1 block">{counts.deliveredOrders}</span>
+              <span className="text-[11px] text-amber-800 font-bold">Goods Received (GRN)</span>
+            </div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                <th className="py-3 px-4">PO Number</th>
-                <th className="py-3 px-4">Vendor &amp; Category</th>
-                <th className="py-3 px-4">Order Summary</th>
-                <th className="py-3 px-4">Total Amount</th>
-                <th className="py-3 px-4">Order Date</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-right">Payment Voucher</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {orders.map((po) => (
-                <tr key={po.id} className="hover:bg-slate-50 transition">
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                    {po.po_number}
-                  </td>
-
-                  <td className="py-3.5 px-4">
-                    <strong className="text-slate-900 block font-bold">{po.vendor_name}</strong>
-                    <span className="text-[10px] font-bold uppercase text-indigo-600">{po.category}</span>
-                  </td>
-
-                  <td className="py-3.5 px-4 text-slate-600 max-w-sm truncate">
-                    {po.items_summary}
-                  </td>
-
-                  <td className="py-3.5 px-4 font-mono font-black text-slate-900">
-                    ₹{Number(po.total_amount || 0).toLocaleString('en-IN')}
-                  </td>
-
-                  <td className="py-3.5 px-4 text-slate-500 font-medium">
-                    {po.order_date}
-                  </td>
-
-                  <td className="py-3.5 px-4 text-center">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                      po.status === 'DELIVERED' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                    }`}>
-                      {po.status}
-                    </span>
-                  </td>
-
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenVoucherModal(po)}
-                      className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 transition shadow-2xs"
-                    >
-                      <Receipt className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Voucher (A5)</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 1. PAYMENT VOUCHER (A5 SIZE) RECEIPT GENERATOR, EDITOR & PRINT MODAL */}
-      {/* ========================================================================= */}
-      {isVoucherModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 font-sans">
-            
-            {/* Modal Top Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-slate-900 text-amber-400 rounded-xl">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-950">
-                    Payment Voucher (A5 Size){voucherData.voucher_no ? ` — ${voucherData.voucher_no}` : ''}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Standard procurement payment voucher &amp; acknowledgment receipt with debit/credit ledger layout.
-                  </p>
-                </div>
+          {/* Orders Table */}
+          <div className="bg-white rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-[#E8DFC8] flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  School Purchase Orders Register
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Track vendor requisitions, approval matrices, and delivery confirmations.
+                </p>
               </div>
 
-              {/* View/Edit Toggle & Action Buttons */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setVoucherEditMode("preview")}
-                    className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
-                      voucherEditMode === "preview" ? "bg-white text-slate-950 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" /> A5 Preview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVoucherEditMode("edit")}
-                    className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
-                      voucherEditMode === "edit" ? "bg-slate-900 text-amber-400 shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> Edit Fields
-                  </button>
-                </div>
+              <Button
+                variant="saffron"
+                size="sm"
+                onClick={() => setIsNewModalOpen(true)}
+                className="text-xs font-black shadow-xs bg-[#D97706] hover:bg-[#B45309] text-white"
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                + New Order
+              </Button>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={handlePrintVoucher}
-                  className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-black px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md"
-                >
-                  <Printer className="w-4 h-4" /> Print A5 Slip
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsVoucherModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-200 transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+            {isLoading ? (
+              <div className="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+                <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+                <span>Loading purchase orders...</span>
               </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-100/60">
-              
-              {/* EDIT MODE: Form to adjust all fields */}
-              {voucherEditMode === "edit" && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-6 text-xs shadow-xs">
-                  
-                  {/* Top Meta Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Voucher Number</label>
-                      <input
-                        type="text"
-                        value={voucherData.voucher_no}
-                        onChange={(e) => setVoucherData({ ...voucherData, voucher_no: e.target.value })}
-                        placeholder="Leave blank for manual entry (e.g. PV-001)..."
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Voucher Date</label>
-                      <input
-                        type="date"
-                        value={voucherData.voucher_date}
-                        onChange={(e) => setVoucherData({ ...voucherData, voucher_date: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">School ID</label>
-                      <input
-                        type="text"
-                        value={voucherData.school_id}
-                        onChange={(e) => setVoucherData({ ...voucherData, school_id: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">School Name</label>
-                      <input
-                        type="text"
-                        value={voucherData.institution_name}
-                        onChange={(e) => setVoucherData({ ...voucherData, institution_name: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Campus Address</label>
-                      <input
-                        type="text"
-                        value={voucherData.institution_address}
-                        onChange={(e) => setVoucherData({ ...voucherData, institution_address: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Left Slip (Counterfoil) Particulars */}
-                  <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl space-y-3">
-                    <span className="font-black text-amber-900 uppercase tracking-wider text-[10px] block">
-                      Left Counterfoil / Acknowledgment Details
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Payee / Vendor Name</label>
-                        <input
-                          type="text"
-                          value={voucherData.vendor_name}
-                          onChange={(e) => setVoucherData({ ...voucherData, vendor_name: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2 font-bold text-slate-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">On account of</label>
-                        <input
-                          type="text"
-                          value={voucherData.on_account_of}
-                          onChange={(e) => setVoucherData({ ...voucherData, on_account_of: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2 text-slate-900"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">By Cash / Cheque / UTR No.</label>
-                        <input
-                          type="text"
-                          value={voucherData.cheque_or_txn_no}
-                          onChange={(e) => setVoucherData({ ...voucherData, cheque_or_txn_no: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2 font-mono text-slate-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Dated</label>
-                        <input
-                          type="date"
-                          value={voucherData.cheque_date}
-                          onChange={(e) => setVoucherData({ ...voucherData, cheque_date: e.target.value })}
-                          className="w-full bg-white border border-slate-200 rounded-xl p-2 font-bold text-slate-900"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* DEBIT Line Items */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-black text-slate-900 uppercase tracking-wider text-[11px]">
-                        DEBIT Particulars &amp; Amounts
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleAddDebitLine}
-                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold rounded-lg text-xs flex items-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Debit Line
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {voucherData.debit_lines.map((dLine, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={dLine.particulars}
-                            onChange={(e) => handleUpdateDebitLine(idx, "particulars", e.target.value)}
-                            placeholder="Debit particulars / ledger head..."
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
-                          />
-                          <input
-                            type="number"
-                            value={dLine.amount}
-                            onChange={(e) => handleUpdateDebitLine(idx, "amount", e.target.value)}
-                            placeholder="Amount (INR)"
-                            className="w-32 bg-slate-50 border border-slate-200 rounded-xl p-2 font-mono font-bold text-slate-900 text-right"
-                          />
-                          {voucherData.debit_lines.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDebitLine(idx)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* CREDIT Line Items */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-black text-slate-900 uppercase tracking-wider text-[11px]">
-                        CREDIT Particulars (Payment Accounts)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleAddCreditLine}
-                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold rounded-lg text-xs flex items-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Credit Line
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {voucherData.credit_lines.map((cLine, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={cLine.particulars}
-                            onChange={(e) => handleUpdateCreditLine(idx, "particulars", e.target.value)}
-                            placeholder="Credit account (e.g. By Cash Account / Bank A/c)..."
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-900 font-medium"
-                          />
-                          <input
-                            type="number"
-                            value={cLine.amount}
-                            onChange={(e) => handleUpdateCreditLine(idx, "amount", e.target.value)}
-                            placeholder="Amount (INR)"
-                            className="w-32 bg-slate-50 border border-slate-200 rounded-xl p-2 font-mono font-bold text-slate-900 text-right"
-                          />
-                          {voucherData.credit_lines.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCreditLine(idx)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Total & Words */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Total Amount (INR)</label>
-                      <input
-                        type="number"
-                        value={voucherData.total_amount}
-                        onChange={(e) => {
-                          const n = Number(e.target.value || 0);
-                          setVoucherData({ ...voucherData, total_amount: n, amount_in_words: numberToWordsINR(n) });
-                        }}
-                        className="w-full bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 font-mono text-base font-black text-emerald-950"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Amount in Words (Rupees)</label>
-                      <input
-                        type="text"
-                        value={voucherData.amount_in_words}
-                        onChange={(e) => setVoucherData({ ...voucherData, amount_in_words: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Signatories */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Authorised Signatory Designation / Name</label>
-                      <input
-                        type="text"
-                        value={voucherData.authorised_signatory_name}
-                        onChange={(e) => setVoucherData({ ...voucherData, authorised_signatory_name: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Receiver's Signature / Payee</label>
-                      <input
-                        type="text"
-                        value={voucherData.receiver_signature_name}
-                        onChange={(e) => setVoucherData({ ...voucherData, receiver_signature_name: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setVoucherEditMode("preview")}
-                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md"
-                    >
-                      <Eye className="w-4 h-4" /> View A5 Slip Preview
-                    </button>
-                  </div>
-
-                </div>
-              )}
-
-              {/* PREVIEW MODE: Authentic A5 Payment Voucher Layout matching Reference Image */}
-              {voucherEditMode === "preview" && (
-                <div className="space-y-4">
-                  
-                  {/* Container for Print Isolation */}
-                  <div 
-                    ref={printVoucherRef}
-                    className="bg-white p-6 sm:p-8 rounded-2xl border-2 border-stone-800 shadow-md text-stone-950 font-sans mx-auto max-w-3xl"
-                    style={{
-                      minHeight: "420px",
-                      boxSizing: "border-box"
-                    }}
-                  >
-                    {/* A5 Landscape Print Styles */}
-                    <style>{`
-                      @media print {
-                        @page {
-                          size: A5 landscape;
-                          margin: 4mm;
-                        }
-                        body {
-                          print-color-adjust: exact;
-                          -webkit-print-color-adjust: exact;
-                          background: white !important;
-                        }
-                      }
-                    `}</style>
-
-                    <div className="flex border-2 border-stone-900" style={{ minHeight: "380px" }}>
-                      
-                      {/* LEFT SECTION: Counterfoil / Acknowledgment Slip */}
-                      <div className="w-2/7 border-r-2 border-stone-900 p-3 flex flex-col justify-between text-[10px] leading-tight select-none">
-                        <div className="space-y-3 pt-1">
-                          <p className="font-bold text-stone-900">
-                            Received with thanks from <strong className="font-black">{voucherData.institution_name}</strong>
-                          </p>
-
-                          <div className="space-y-1">
-                            <span className="text-stone-700">the sum of Rupees:</span>
-                            <div className="border-b border-dotted border-stone-800 font-bold text-stone-950 pb-0.5">
-                              {voucherData.amount_in_words}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-stone-700">on account of:</span>
-                            <div className="border-b border-dotted border-stone-800 font-bold text-stone-950 pb-0.5">
-                              {voucherData.on_account_of}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-stone-700">by Cash/Cheque No:</span>
-                            <div className="border-b border-dotted border-stone-800 font-mono font-bold text-stone-950 pb-0.5">
-                              {voucherData.cheque_or_txn_no} <span className="font-normal text-[9px] text-stone-600">on {voucherData.cheque_date}</span>
-                            </div>
-                          </div>
-
-                          <div className="pt-2">
-                            <div className="font-black text-xs font-mono border-b-2 border-stone-900 pb-1">
-                              RS. &nbsp;₹{Number(voucherData.total_amount || 0).toLocaleString('en-IN')}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-8 pb-1 text-center">
-                          <div className="border-t border-dotted border-stone-700 pt-1 font-bold text-[9.5px]">
-                            Receiver's Signature
-                          </div>
-                          <span className="text-[8px] text-stone-500 block truncate">{voucherData.receiver_signature_name}</span>
-                        </div>
-                      </div>
-
-                      {/* RIGHT SECTION: Main Payment Voucher */}
-                      <div className="w-5/7 p-4 flex flex-col justify-between text-[11px] leading-tight">
-                        
-                        {/* Voucher Header */}
-                        <div>
-                          <div className="text-center space-y-0.5">
-                            <h1 className="text-xl sm:text-2xl font-black text-stone-950 tracking-tight uppercase">
-                              {voucherData.institution_name}
-                            </h1>
-                            <p className="text-[10px] font-semibold text-stone-700">
-                              {voucherData.institution_address}
-                            </p>
-                            <p className="text-xs font-black text-stone-900 underline underline-offset-2">
-                              SCHOOL ID - {voucherData.school_id}
-                            </p>
-                            <h2 className="text-sm sm:text-base font-black text-stone-950 underline underline-offset-4 tracking-wider pt-1 uppercase">
-                              PAYMENT VOUCHER
-                            </h2>
-                          </div>
-
-                          {/* Meta Row */}
-                          <div className="flex justify-between items-center pt-3 pb-2 text-xs font-bold text-stone-900">
-                            <div className="flex items-center">
-                              <span>VOUCHER No:- </span>
-                              {voucherData.voucher_no ? (
-                                <strong className="font-mono text-stone-950 ml-1 underline underline-offset-2">{voucherData.voucher_no}</strong>
-                              ) : (
-                                <span className="inline-block border-b border-stone-800 w-36 ml-1.5">&nbsp;</span>
-                              )}
-                            </div>
-                            <div className="flex items-center">
-                              <span>Dated:- </span>
-                              {voucherData.voucher_date ? (
-                                <strong className="font-mono text-stone-950 ml-1 underline underline-offset-2">{voucherData.voucher_date}</strong>
-                              ) : (
-                                <span className="inline-block border-b border-stone-800 w-36 ml-1.5">&nbsp;</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Structured Voucher Table matching Image */}
-                          <div className="border-2 border-stone-900 mt-1">
-                            
-                            {/* DEBIT SECTION */}
-                            <div className="border-b-2 border-stone-900">
-                              <div className="flex justify-between border-b border-stone-400 bg-stone-100/70 p-1.5 font-black text-xs">
-                                <span className="uppercase">DEBIT</span>
-                                <span className="w-24 text-right pr-1">AMOUNT (₹)</span>
-                              </div>
-
-                              {voucherData.debit_lines.map((d, dIdx) => (
-                                <div key={dIdx} className="flex justify-between p-1.5 border-b border-stone-300 font-medium text-xs">
-                                  <span className="flex-1 pr-2 truncate text-stone-900">{d.particulars}</span>
-                                  <span className="w-24 text-right font-mono font-bold text-stone-950 pr-1">
-                                    {Number(d.amount || 0).toLocaleString('en-IN')}
-                                  </span>
-                                </div>
-                              ))}
-
-                              {/* DEBIT Subtotal */}
-                              <div className="flex justify-between p-1.5 font-black text-xs bg-stone-50">
-                                <span className="uppercase text-right flex-1 pr-4">TOTAL</span>
-                                <span className="w-24 text-right font-mono border-l-2 border-stone-900 pr-1">
-                                  {Number(voucherData.total_amount || 0).toLocaleString('en-IN')}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* CREDIT SECTION */}
-                            <div>
-                              <div className="flex justify-between border-b border-stone-400 bg-stone-100/70 p-1.5 font-black text-xs">
-                                <span className="uppercase">CREDIT</span>
-                                <span className="w-24 text-right pr-1">AMOUNT (₹)</span>
-                              </div>
-
-                              {voucherData.credit_lines.map((c, cIdx) => (
-                                <div key={cIdx} className="flex justify-between p-1.5 border-b border-stone-300 font-medium text-xs">
-                                  <span className="flex-1 pr-2 truncate text-stone-900">{c.particulars}</span>
-                                  <span className="w-24 text-right font-mono font-bold text-stone-950 pr-1">
-                                    {Number(c.amount || 0).toLocaleString('en-IN')}
-                                  </span>
-                                </div>
-                              ))}
-
-                              {/* Grand Total Row */}
-                              <div className="flex justify-between items-center p-1.5 font-black text-xs bg-stone-100">
-                                <div className="flex-1 pr-2 flex justify-between items-center">
-                                  <span className="text-[10px] font-bold text-stone-700">
-                                    RUPEES: <strong className="text-stone-950">{voucherData.amount_in_words}</strong>
-                                  </span>
-                                  <span className="uppercase tracking-wider">TOTAL</span>
-                                </div>
-                                <span className="w-24 text-right font-mono border-l-2 border-stone-900 text-sm font-black pr-1">
-                                  {Number(voucherData.total_amount || 0).toLocaleString('en-IN')}
-                                </span>
-                              </div>
-                            </div>
-
-                          </div>
-                        </div>
-
-                        {/* Signatory Stamp on Bottom Right */}
-                        <div className="flex justify-end pt-8 pb-1">
-                          <div className="text-center">
-                            <div className="font-bold text-xs text-stone-900">
-                              {voucherData.authorised_signatory_name || "Athuorised Signatory"}
-                            </div>
-                            <span className="text-[8px] text-stone-500 uppercase block">Crayon Box School Accounts</span>
-                          </div>
-                        </div>
-
-                      </div>
-
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
-              <span className="text-xs font-bold text-slate-500">
-                Format: <strong className="text-slate-900">A5 Landscape Payment Voucher &amp; Counterfoil</strong>
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsVoucherModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrintVoucher}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md transition"
-                >
-                  <Printer className="w-4 h-4" /> Print A5 Slip
-                </button>
+            ) : orders.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-400">
+                No purchase orders recorded. Click "+ New Order" to create one.
               </div>
-            </div>
-
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wider text-slate-600 border-b border-[#E8DFC8]">
+                      <th className="py-3 px-4">PO Number</th>
+                      <th className="py-3 px-4">Vendor &amp; Requisitioner</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Summary of Items</th>
+                      <th className="py-3 px-4 text-right">Total Amount</th>
+                      <th className="py-3 px-4 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8DFC8]">
+                    {orders.map((po) => (
+                      <tr key={po.id} className="hover:bg-[#FAF7F2] transition">
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900">{po.po_number}</td>
+                        <td className="py-3 px-4">
+                          <strong className="text-slate-900 block font-bold">{po.vendor_name}</strong>
+                          <span className="text-[10px] text-slate-400">Req: {po.requested_by || 'Admin'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 text-[10px] font-bold">
+                            {po.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 max-w-xs truncate">{po.items_summary}</td>
+                        <td className="py-3 px-4 text-right font-mono font-black text-slate-900">
+                          {formatCurrency(po.total_amount)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={`px-2.5 py-0.5 rounded-md font-black text-[10px] uppercase border ${
+                            po.status === 'Delivered' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            po.status === 'Approved' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                            'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}>
+                            {po.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* CREATE PO MODAL */}
-      {isNewModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 text-slate-900 font-sans space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900">Create Purchase Order (PO)</h3>
-              <button onClick={() => setIsNewModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-900 font-bold">
-                <X className="w-5 h-5" />
+      {/* ========================================================================= */}
+      {/* TAB 2: SCHOOL PAYMENT VOUCHERS */}
+      {/* ========================================================================= */}
+      {activeTab === 'vouchers' && (
+        <div className="space-y-6">
+          <div className="bg-[#FAF7F2] p-6 rounded-3xl border border-[#E8DFC8] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-900 font-black text-[10px] uppercase rounded-md">
+                Double-Entry Accounting Protocol
+              </span>
+              <h3 className="text-base font-black text-slate-900">
+                Official School Accounts Payment Voucher (A5 Double-Entry Format)
+              </h3>
+              <p className="text-xs text-slate-600 max-w-xl">
+                Statutory audit-ready payment voucher with itemized debit ledger heads, bank credit details, amount in words, and authorized trustee signature stamps.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition"
+              >
+                <Printer className="w-3.5 h-3.5 text-amber-400" />
+                Print A5 Payment Voucher
               </button>
             </div>
+          </div>
 
-            <form onSubmit={handleCreatePO} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Vendor Name</label>
-                  <input
-                    type="text"
-                    value={vendorName}
-                    onChange={(e) => setVendorName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900"
-                    placeholder="e.g. Dell India Pvt Ltd"
-                    required
-                  />
-                </div>
+          {/* Printable A5 Voucher Canvas */}
+          <div className="bg-white p-8 sm:p-10 rounded-3xl border-2 border-slate-300 shadow-md space-y-6 text-slate-900 max-w-3xl mx-auto print:m-0 print:p-0 print:border-none">
+            <div className="text-center border-b-2 border-slate-900 pb-3 space-y-0.5">
+              <h2 className="text-xl font-black uppercase text-slate-900">CRAYON BOX SCHOOL</h2>
+              <p className="text-[10px] uppercase text-slate-600 font-bold">6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari • School ID: 1253481</p>
+              <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 pt-1">PAYMENT VOUCHER</h3>
+            </div>
 
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Procurement Category</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900"
-                  >
-                    <option value="IT Infrastructure">IT Infrastructure</option>
-                    <option value="Science Labs">Science Labs</option>
-                    <option value="Stationery">Stationery &amp; Examination</option>
-                    <option value="Campus Furniture">Campus Furniture</option>
-                    <option value="Sports Equipment">Sports Equipment</option>
-                  </select>
-                </div>
-              </div>
+            <div className="flex justify-between items-center text-xs font-bold bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8]">
+              <div>Voucher No: <span className="font-mono font-black text-slate-950">{voucherData.voucher_no}</span></div>
+              <div>Date: <span className="font-mono">{voucherData.voucher_date}</span></div>
+              <div>Mode: <span className="font-mono text-emerald-800">{voucherData.payment_mode}</span></div>
+            </div>
 
+            <div className="text-xs space-y-1">
+              <div>Paid To (Vendor): <strong className="text-slate-900">{voucherData.vendor_name}</strong></div>
+              <div>On Account Of: <span className="text-slate-700 italic">{voucherData.on_account_of}</span></div>
+            </div>
+
+            <div className="border border-[#E8DFC8] rounded-xl overflow-hidden text-xs">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#FAF7F2] text-[10px] font-black uppercase text-slate-600 border-b border-[#E8DFC8]">
+                    <th className="py-2 px-3">Particulars / Debit Head</th>
+                    <th className="py-2 px-3 text-right">Amount (INR)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8DFC8]">
+                  {voucherData.debit_lines.map((l, idx) => (
+                    <tr key={idx}>
+                      <td className="py-2 px-3 text-slate-800">{l.particulars}</td>
+                      <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(l.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-[#FAF7F2] font-black border-t-2 border-[#E8DFC8]">
+                    <td className="py-2 px-3 uppercase">Total Disbursed:</td>
+                    <td className="py-2 px-3 text-right font-mono text-sm text-indigo-900">{formatCurrency(voucherData.total_amount)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-xs font-bold text-slate-700 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+              Amount in Words: <span className="italic text-slate-950">{voucherData.amount_in_words}</span>
+            </div>
+
+            <div className="pt-8 grid grid-cols-2 text-center text-xs font-black text-slate-700 border-t border-slate-200">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Total Order Value (INR)</label>
+                <div className="h-8"></div>
+                <span>Receiver's Signature</span>
+              </div>
+              <div>
+                <div className="h-8"></div>
+                <span className="text-slate-950 font-black">Authorised Signatory / Trustee</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: FIXED ASSET REGISTER & DEPRECIATION */}
+      {/* ========================================================================= */}
+      {activeTab === 'assets' && (
+        <div className="space-y-6">
+          <FixedAssetInventoryDesk embedded={true} defaultTab="assets" />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: CONSUMABLES & LAB STOCKROOM */}
+      {/* ========================================================================= */}
+      {activeTab === 'consumables' && (
+        <div className="space-y-6">
+          <FixedAssetInventoryDesk embedded={true} defaultTab="consumables" />
+        </div>
+      )}
+
+      {/* Create PO Modal */}
+      {isNewModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-[#E8DFC8] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E8DFC8] pb-3">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-amber-600" />
+                Issue New Purchase Order
+              </h3>
+              <button onClick={() => setIsNewModalOpen(false)} className="text-slate-400 hover:text-slate-900 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleCreatePO} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Vendor / Supplier Name</label>
                 <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold font-mono text-slate-900"
+                  type="text"
                   required
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                  placeholder="e.g. Navneet Education Supplies"
+                  className="w-full bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-slate-900 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Items &amp; Line Description</label>
+                <label className="font-bold text-slate-700 block mb-1">Procurement Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-slate-900 focus:bg-white"
+                >
+                  <option value="IT Infrastructure">IT Infrastructure &amp; Smart Class</option>
+                  <option value="Stationery & Printing">Stationery, Printing &amp; Books</option>
+                  <option value="Science Lab Apparatus">Science Lab Apparatus &amp; Chemicals</option>
+                  <option value="Sports Equipment">Sports Equipment &amp; Fitness</option>
+                  <option value="Campus Maintenance">Campus Maintenance &amp; Electricals</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Estimated Total Amount (INR)</label>
+                <input
+                  type="number"
+                  required
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-slate-900 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Summary of Requisitioned Items</label>
                 <textarea
+                  required
+                  rows={3}
                   value={itemsSummary}
                   onChange={(e) => setItemsSummary(e.target.value)}
-                  rows={3}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 focus:outline-none"
-                  placeholder="Specify items, quantities, and delivery specifications..."
-                  required
+                  placeholder="e.g. 50 Sets of Student Desks, 2 Whiteboards, 500 Notebooks"
+                  className="w-full bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl p-2.5 font-medium text-slate-900 focus:bg-white"
                 />
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
-                <Button size="sm" variant="outline" type="button" onClick={() => setIsNewModalOpen(false)}>
+                <Button variant="outline" size="sm" onClick={() => setIsNewModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button size="sm" variant="primary" type="submit" isLoading={isSubmitting} className="bg-indigo-600 hover:bg-indigo-500 text-white">
-                  Issue Purchase Order
+                <Button variant="saffron" size="sm" type="submit" isLoading={isSubmitting}>
+                  Submit PO
                 </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+export default function ProcurementHubPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 text-center text-slate-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading Procurement, Vouchers &amp; Asset Inventory Hub...</span>
+      </div>
+    }>
+      <ProcurementHubContent />
+    </Suspense>
   );
 }

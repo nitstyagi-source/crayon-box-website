@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Wallet, Calculator, FileText, Download, CheckCircle2, AlertTriangle,
   ArrowRight, ShieldCheck, RefreshCw, Printer, X, Building2,
@@ -10,17 +10,33 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { useCampusContext } from '@/components/providers/CampusProvider';
+import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import {
   getMonthlyPayrollSummaryAction,
   processMonthlyPayrollRunAction,
   getStaffOfficialPayslipAction,
   generateBankNeftCsvAction
 } from '@/app/actions/payroll-engine-actions';
+import { StaffSalarySlipsDesk } from '@/components/finance/StaffSalarySlipsDesk';
 
-export default function PayrollEngine() {
+type PayrollTab = 'run' | 'statutory' | 'slips' | 'neft';
+
+function PayrollHubContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get('tab') as PayrollTab | null;
+
+  const validTabs: PayrollTab[] = ['run', 'statutory', 'slips', 'neft'];
+  const [activeTab, setActiveTab] = useState<PayrollTab>(
+    rawTab && validTabs.includes(rawTab) ? rawTab : 'run'
+  );
+
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { activeCampusId } = useCampusContext();
+  const activeInst = currentInstitution || activeCampusId || 'CBS';
 
-  const [selectedMonth, setSelectedMonth] = useState<string>('August 2026');
+  const [selectedMonth, setSelectedMonth] = useState<string>('September 2026');
   const [payrollData, setPayrollData] = useState<any>({
     isBatchProcessed: false,
     counts: {
@@ -41,7 +57,6 @@ export default function PayrollEngine() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
-  const [activeTab, setActiveTab] = useState<'roster' | 'statutory'>('roster');
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   // Payslip Modal State
@@ -49,11 +64,22 @@ export default function PayrollEngine() {
   const [payslipData, setPayslipData] = useState<any | null>(null);
   const [isLoadingPayslip, setIsLoadingPayslip] = useState(false);
 
+  useEffect(() => {
+    if (rawTab && validTabs.includes(rawTab) && rawTab !== activeTab) {
+      setActiveTab(rawTab);
+    }
+  }, [rawTab]);
+
+  const handleTabChange = (tab: PayrollTab) => {
+    setActiveTab(tab);
+    router.push(`/admin/hr/payroll?tab=${tab}`, { scroll: false });
+  };
+
   const fetchPayroll = async () => {
     setIsLoading(true);
     const res = await getMonthlyPayrollSummaryAction({
       month: selectedMonth,
-      institutionCode: currentInstitution
+      institutionCode: activeInst
     });
     if (res.success) {
       setPayrollData(res);
@@ -63,14 +89,13 @@ export default function PayrollEngine() {
 
   useEffect(() => {
     fetchPayroll();
-  }, [selectedMonth, currentInstitution]);
+  }, [selectedMonth, activeInst]);
 
-  // Execute 1-Click Monthly Payroll Run
   const handleRunPayroll = async () => {
     setIsProcessing(true);
     const res = await processMonthlyPayrollRunAction({
       month: selectedMonth,
-      institutionCode: currentInstitution
+      institutionCode: activeInst
     });
     setIsProcessing(false);
     if (res.success) {
@@ -81,7 +106,6 @@ export default function PayrollEngine() {
     }
   };
 
-  // Download Bank NEFT CSV
   const handleDownloadCsv = async () => {
     setIsExportingCsv(true);
     const res = await generateBankNeftCsvAction({ month: selectedMonth });
@@ -100,104 +124,144 @@ export default function PayrollEngine() {
     }
   };
 
-  // View Payslip Modal
-  const handleViewPayslip = async (staffId: string) => {
+  const handleOpenPayslip = async (staffId: string) => {
     setIsLoadingPayslip(true);
     setActivePayslipStaffId(staffId);
-    const res = await getStaffOfficialPayslipAction({ staffId, month: selectedMonth });
+    const res = await getStaffOfficialPayslipAction({
+      staffId,
+      month: selectedMonth
+    });
     setIsLoadingPayslip(false);
     if (res.success) {
       setPayslipData(res.payslip);
     } else {
-      alert("Payslip error: " + res.error);
+      alert("Error: " + res.error);
       setActivePayslipStaffId(null);
     }
   };
 
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-20">
       
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Indian Statutory Payroll & Form 16 Engine
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="text-indigo-300 text-xs font-semibold">
-              {isAllInstitutions ? 'All Institutions' : selectedInstitutionObj?.name}
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-emerald-400" />
-            Statutory Payroll, EPF/ESIC & Payslip Generator
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            Automated Basic + HRA + Special Allowance breakdown, EPF (12%), ESIC, Professional Tax, TDS deductions, and 1-click Bank NEFT transfers.
-          </p>
-        </div>
+      {/* Option 6 Sattva-Digital Sandalwood Vastu Banner */}
+      <VastuModuleBanner
+        badgeText="Statutory Staff Compensation & EPF"
+        badgeIcon={<IndianRupee className="w-3.5 h-3.5 text-[#D97706]" />}
+        institutionText={`Campus: ${activeInst} • Session 2026–2027`}
+        title="HR, Statutory Payroll & Disbursals Hub"
+        titleIcon={<Users className="w-7 h-7 text-[#D97706]" />}
+        description="Unified payroll lifecycle uniting Attendance-Linked Salary Runs, Indian Statutory Deductions (EPF 12%, ESIC, PT, TDS), Digital Payslips with WhatsApp Dispatch, and 1-Click Bank NEFT CSV."
+        actions={
+          <>
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-[#E8DFC8]">
+              <span className="text-[11px] font-bold text-stone-500">Month:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                <option value="September 2026">September 2026</option>
+                <option value="August 2026">August 2026</option>
+                <option value="July 2026">July 2026</option>
+              </select>
+            </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleRunPayroll}
-            isLoading={isProcessing}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20"
-            leftIcon={<Sparkles className="w-4 h-4" />}
-          >
-            ⚡ Run & Disburse Payroll
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchPayroll}
+              isLoading={isLoading}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5 text-stone-500" />}
+            >
+              Sync DB
+            </Button>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleDownloadCsv}
-            isLoading={isExportingCsv}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
-          >
-            HDFC Bank NEFT CSV
-          </Button>
-        </div>
+            <Button
+              variant="saffron"
+              size="sm"
+              onClick={handleRunPayroll}
+              isLoading={isProcessing}
+              className="text-xs font-black shadow-xs bg-[#D97706] hover:bg-[#B45309] text-white"
+              leftIcon={<Calculator className="w-3.5 h-3.5" />}
+            >
+              1-Click Batch Run
+            </Button>
+          </>
+        }
+      />
+
+      {/* 4 CONSOLIDATED TABS */}
+      <div className="flex items-center gap-2 border-b border-[#E8DFC8] pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => handleTabChange('run')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'run'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Calculator className="w-4 h-4 text-[#D97706]" />
+          <span>1. Monthly Payroll &amp; Biometric LOP</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            {payrollData.counts?.totalStaff || 0} Staff
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('statutory')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'statutory'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-[#D97706]" />
+          <span>2. Statutory Register (EPF/ESI/TDS)</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
+            Govt Compliance
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('slips')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'slips'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-[#D97706]" />
+          <span>3. Digital Salary Slips &amp; WhatsApp</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 font-bold">
+            WhatsApp Push
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('neft')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'neft'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Download className="w-4 h-4 text-[#D97706]" />
+          <span>4. Bank NEFT Batch Transfer</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 font-bold">
+            Bank CSV
+          </span>
+        </button>
       </div>
 
-      {/* 🌟 TELEMATICS COUNTERS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Faculty & Staff Count</span>
-          <span className="text-3xl font-black text-slate-900 mt-1 block">{payrollData.counts.totalStaff}</span>
-          <span className="text-[11px] text-slate-500 font-semibold">Active On Payroll</span>
-        </div>
-
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Gross Monthly Salary Bill</span>
-          <span className="text-3xl font-black text-slate-900 mt-1 block">
-            ₹{payrollData.counts.totalGrossBill.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[11px] text-slate-500 font-semibold">Pre-Deduction Earnings</span>
-        </div>
-
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Statutory Deductions (EPF/PT/TDS)</span>
-          <span className="text-3xl font-black text-rose-600 mt-1 block">
-            ₹{payrollData.counts.totalDeductions.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[11px] text-rose-700 font-bold">EPF: ₹{payrollData.counts.totalEpfSum.toLocaleString('en-IN')} • PT: ₹{payrollData.counts.totalPtSum.toLocaleString('en-IN')}</span>
-        </div>
-
-        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Net Disbursed Take-Home</span>
-          <span className="text-3xl font-black text-emerald-600 mt-1 block">
-            ₹{payrollData.counts.totalNetDisbursed.toLocaleString('en-IN')}
-          </span>
-          <span className="text-[11px] text-emerald-700 font-bold">100% Bank Direct Credit</span>
-        </div>
-      </div>
-
-      {/* Notice Message */}
+      {/* Feedback Notice */}
       {noticeMessage && (
         <div className="p-4 bg-emerald-50 text-emerald-950 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs font-bold animate-in fade-in">
           <div className="flex items-center gap-2">
@@ -208,215 +272,211 @@ export default function PayrollEngine() {
         </div>
       )}
 
-      {/* Filter & Month Selector */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div>
-            <label className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Payroll Billing Month</label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
-            >
-              <option value="August 2026">August 2026</option>
-              <option value="July 2026">July 2026</option>
-              <option value="June 2026">June 2026</option>
-            </select>
+      {/* ========================================================================= */}
+      {/* TAB 1: MONTHLY PAYROLL RUN */}
+      {/* ========================================================================= */}
+      {activeTab === 'run' && (
+        <div className="space-y-6">
+          
+          {/* Telematics Counters */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Staff Headcount</span>
+              <span className="text-3xl font-black text-slate-900 mt-1 block">{payrollData.counts?.totalStaff || 0}</span>
+              <span className="text-[11px] text-slate-500 font-semibold">{selectedMonth}</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Gross Payroll Bill</span>
+              <span className="text-3xl font-black text-indigo-700 mt-1 block font-mono">{formatCurrency(payrollData.counts?.totalGrossBill || 0)}</span>
+              <span className="text-[11px] text-indigo-800 font-bold">Pre-Deductions CTC</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Statutory Deductions</span>
+              <span className="text-3xl font-black text-rose-700 mt-1 block font-mono">{formatCurrency(payrollData.counts?.totalDeductions || 0)}</span>
+              <span className="text-[11px] text-rose-800 font-bold">EPF, ESI, PT, TDS &amp; LOP</span>
+            </div>
+
+            <div className="p-4 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8] shadow-xs">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Net Disbursed to Bank</span>
+              <span className="text-3xl font-black text-emerald-700 mt-1 block font-mono">{formatCurrency(payrollData.counts?.totalNetDisbursed || 0)}</span>
+              <span className="text-[11px] text-emerald-800 font-bold">Ready for Bank NEFT</span>
+            </div>
+          </div>
+
+          {/* Payroll Roster Table */}
+          <div className="bg-white rounded-3xl border border-[#E8DFC8] shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-[#E8DFC8] flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  Staff Monthly Payroll &amp; Biometric Muster Register ({selectedMonth})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Integrated with Staff Attendance Muster: Unpaid leaves automatically reduce gross pay as Loss of Pay (LOP).
+                </p>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+                <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+                <span>Loading payroll calculations from database...</span>
+              </div>
+            ) : payrollData.roster?.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-400">
+                No payroll records found for {selectedMonth}. Click "1-Click Batch Run" above to calculate payroll.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wider text-slate-600 border-b border-[#E8DFC8]">
+                      <th className="py-3 px-4">Employee</th>
+                      <th className="py-3 px-4">Designation &amp; Dept</th>
+                      <th className="py-3 px-4 text-right">Basic Pay</th>
+                      <th className="py-3 px-4 text-right">HRA (40%)</th>
+                      <th className="py-3 px-4 text-right">DA (20%)</th>
+                      <th className="py-3 px-4 text-right">Gross CTC</th>
+                      <th className="py-3 px-4 text-right">EPF (12%)</th>
+                      <th className="py-3 px-4 text-right">TDS / PT</th>
+                      <th className="py-3 px-4 text-right font-black text-slate-900">Net Disbursed</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8DFC8]">
+                    {payrollData.roster.map((row: any) => (
+                      <tr key={row.id} className="hover:bg-[#FAF7F2] transition">
+                        <td className="py-3 px-4">
+                          <strong className="text-slate-900 block font-bold">{row.name}</strong>
+                          <span className="text-[10px] font-mono text-amber-700 font-bold">{row.employeeCode}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-slate-800 block">{row.designation}</span>
+                          <span className="text-[10px] text-slate-400">{row.department}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono">{formatCurrency(row.basicPay || 0)}</td>
+                        <td className="py-3 px-4 text-right font-mono">{formatCurrency(row.hra || 0)}</td>
+                        <td className="py-3 px-4 text-right font-mono">{formatCurrency(row.da || 0)}</td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(row.grossPay || 0)}</td>
+                        <td className="py-3 px-4 text-right font-mono text-rose-700">{formatCurrency(row.epfDeduction || 0)}</td>
+                        <td className="py-3 px-4 text-right font-mono text-rose-700">{formatCurrency((row.tdsDeduction || 0) + (row.ptDeduction || 0))}</td>
+                        <td className="py-3 px-4 text-right font-mono font-black text-emerald-700 text-sm">
+                          {formatCurrency(row.netPay || 0)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenPayslip(row.id)}
+                            className="text-[11px] py-1 px-3 hover:bg-amber-50 hover:text-amber-900 border-[#E8DFC8]"
+                            leftIcon={<FileText className="w-3.5 h-3.5 text-amber-600" />}
+                          >
+                            Payslip
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        {/* Tab Buttons */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-          <button
-            onClick={() => setActiveTab('roster')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
-              activeTab === 'roster' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 text-indigo-500" />
-            Staff Compensation Roster ({payrollData.roster.length})
-          </button>
+      {/* ========================================================================= */}
+      {/* TAB 2: STATUTORY COMPLIANCE REGISTER */}
+      {/* ========================================================================= */}
+      {activeTab === 'statutory' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="p-5 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Total EPF (Employee 12%)</span>
+              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{formatCurrency(payrollData.counts?.totalEpfSum || 0)}</span>
+              <span className="text-[10px] text-slate-500">Provident Fund Act 1952</span>
+            </div>
+            <div className="p-5 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Total ESIC Contribution</span>
+              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{formatCurrency(payrollData.counts?.totalEsicSum || 0)}</span>
+              <span className="text-[10px] text-slate-500">ESI Corporation Portal</span>
+            </div>
+            <div className="p-5 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Professional Tax (PT)</span>
+              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{formatCurrency(payrollData.counts?.totalPtSum || 0)}</span>
+              <span className="text-[10px] text-slate-500">State Statutory Deposit</span>
+            </div>
+            <div className="p-5 bg-[#FAF7F2] rounded-3xl border border-[#E8DFC8]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">TDS Income Tax (Sec 192)</span>
+              <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{formatCurrency(payrollData.counts?.totalTdsSum || 0)}</span>
+              <span className="text-[10px] text-slate-500">Form 24Q Quarterly Return</span>
+            </div>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('statutory')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 ${
-              activeTab === 'statutory' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            Statutory Compliance (EPF/ESIC/PT)
-          </button>
+          <div className="p-6 bg-white rounded-3xl border border-[#E8DFC8] space-y-4">
+            <h4 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Statutory Audit &amp; Remittance Summary
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              All statutory remittances are computed under CBSE Affiliation Bye-Laws Section 3.3.1. Monthly returns must be submitted to the EPFO Unified Portal and TRACES by the 15th of each calendar month.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 🌟 TAB 1: STAFF COMPENSATION ROSTER */}
-      {activeTab === 'roster' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h3 className="font-extrabold text-slate-900 text-sm">
-                Monthly Staff Compensation & Disbursement Roster — {selectedMonth}
+      {/* ========================================================================= */}
+      {/* TAB 3: DIGITAL SALARY SLIPS & WHATSAPP */}
+      {/* ========================================================================= */}
+      {activeTab === 'slips' && (
+        <div className="space-y-6">
+          <StaffSalarySlipsDesk embedded={true} />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: BANK NEFT BATCH TRANSFER */}
+      {/* ========================================================================= */}
+      {activeTab === 'neft' && (
+        <div className="space-y-6">
+          <div className="bg-[#FAF7F2] p-6 rounded-3xl border border-[#E8DFC8] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-900 font-black text-[10px] uppercase rounded-md">
+                Corporate Banking Desk
+              </span>
+              <h3 className="text-base font-black text-slate-900">
+                1-Click Bank NEFT / RTGS Disbursal Batch ({selectedMonth})
               </h3>
-              <p className="text-xs text-slate-400">
-                Form 16 & Rule 26 compliant statutory payroll table with automated deductions and instant payslip links.
+              <p className="text-xs text-slate-600 max-w-xl">
+                Generates pre-formatted CMS Bulk Salary Upload CSV matching HDFC, ICICI, and SBI Corporate Banking protocols. Includes Beneficiary A/c, IFSC, Beneficiary Name, and Net Amount.
               </p>
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                  <th className="py-3 px-4">Staff Member & Role</th>
-                  <th className="py-3 px-4">Bank Details</th>
-                  <th className="py-3 px-4">Basic Pay</th>
-                  <th className="py-3 px-4">HRA (40%)</th>
-                  <th className="py-3 px-4">Special Allow.</th>
-                  <th className="py-3 px-4">Gross Earnings</th>
-                  <th className="py-3 px-4">EPF (12%)</th>
-                  <th className="py-3 px-4">Prof. Tax</th>
-                  <th className="py-3 px-4">TDS</th>
-                  <th className="py-3 px-4">Net Payable</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Official Payslip</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {payrollData.roster.map((row: any) => (
-                  <tr key={row.staffId} className="hover:bg-slate-50 transition">
-                    <td className="py-3.5 px-4">
-                      <strong className="text-slate-900 block font-bold">{row.name}</strong>
-                      <span className="text-[10px] text-slate-400 font-medium">{row.designation}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-[11px]">
-                      <span className="text-slate-900 font-bold block">{row.bankName}</span>
-                      <span className="text-[10px] font-mono text-slate-400">{row.bankAccountNo}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4 font-mono text-slate-700">₹{row.basicSalary.toLocaleString('en-IN')}</td>
-                    <td className="py-3.5 px-4 font-mono text-slate-700">₹{row.hra.toLocaleString('en-IN')}</td>
-                    <td className="py-3.5 px-4 font-mono text-slate-700">₹{row.specialAllowance.toLocaleString('en-IN')}</td>
-
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                      ₹{row.grossEarnings.toLocaleString('en-IN')}
-                    </td>
-
-                    <td className="py-3.5 px-4 font-mono text-rose-600 font-medium">-₹{row.epfDeduction}</td>
-                    <td className="py-3.5 px-4 font-mono text-rose-600 font-medium">-₹{row.ptDeduction}</td>
-                    <td className="py-3.5 px-4 font-mono text-rose-600 font-medium">-₹{row.tdsDeduction}</td>
-
-                    <td className="py-3.5 px-4 font-mono font-black text-emerald-700 text-sm">
-                      ₹{row.netPayable.toLocaleString('en-IN')}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        row.isProcessed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {row.isProcessed ? '✓ Disbursed' : 'Pending'}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewPayslip(row.staffId)}
-                        className="text-[11px] py-1 px-3 hover:bg-emerald-50 hover:text-emerald-900 border-slate-300"
-                        leftIcon={<FileText className="w-3.5 h-3.5 text-emerald-600" />}
-                      >
-                        Payslip
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 🌟 TAB 2: STATUTORY COMPLIANCE LEDGER */}
-      {activeTab === 'statutory' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-            <span className="text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-200">
-              EPF Scheme 1952 (12%)
-            </span>
-            <h3 className="text-xl font-extrabold text-slate-900">Employee Provident Fund</h3>
-            <div className="space-y-2 text-xs pt-2 border-t border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Employee Contribution (12%):</span>
-                <strong className="text-slate-900">₹{payrollData.counts.totalEpfSum.toLocaleString('en-IN')}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Employer Contribution (12%):</span>
-                <strong className="text-slate-900">₹{payrollData.counts.totalEpfSum.toLocaleString('en-IN')}</strong>
-              </div>
-              <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100">
-                <span>Total EPFO Remittance:</span>
-                <span className="text-indigo-600">₹{(payrollData.counts.totalEpfSum * 2).toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-              State Tax Compliance
-            </span>
-            <h3 className="text-xl font-extrabold text-slate-900">Professional Tax (PT)</h3>
-            <div className="space-y-2 text-xs pt-2 border-t border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Standard Monthly Slab:</span>
-                <strong className="text-slate-900">₹200 / employee</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total Employees Assessed:</span>
-                <strong className="text-slate-900">{payrollData.counts.totalStaff}</strong>
-              </div>
-              <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100">
-                <span>Total PT Payable to Govt:</span>
-                <span className="text-emerald-600">₹{payrollData.counts.totalPtSum.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-            <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">
-              Income Tax Act 1961
-            </span>
-            <h3 className="text-xl font-extrabold text-slate-900">TDS Deduction (Section 192)</h3>
-            <div className="space-y-2 text-xs pt-2 border-t border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Tax Deducted at Source:</span>
-                <strong className="text-slate-900">₹{payrollData.counts.totalTdsSum.toLocaleString('en-IN')}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Quarterly Form 24Q Filing:</span>
-                <strong className="text-emerald-700 font-bold">Q2 Ready</strong>
-              </div>
-              <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100">
-                <span>Challan 281 Payment:</span>
-                <span className="text-amber-600">₹{payrollData.counts.totalTdsSum.toLocaleString('en-IN')}</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="saffron"
+                size="sm"
+                onClick={handleDownloadCsv}
+                isLoading={isExportingCsv}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-xs"
+                leftIcon={<Download className="w-4 h-4" />}
+              >
+                Export Bank NEFT CSV
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 🌟 OFFICIAL FORM 16 / RULE 26 PAYSLIP MODAL */}
+      {/* Payslip Modal */}
       {payslipData && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-10 shadow-2xl border border-slate-200 text-slate-900 font-sans space-y-6 max-h-[92vh] overflow-y-auto">
-            
-            {/* Modal Actions */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                Official Monthly Salary Slip (Form 16 / Rule 26 Compliant)
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-[#E8DFC8] text-slate-900 font-sans space-y-6 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#E8DFC8] pb-3">
+              <span className="text-[10px] font-black uppercase text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+                Official Salary Slip
               </span>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />}>
+                <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />} className="bg-slate-900 text-white">
                   Print Salary Slip
                 </Button>
                 <button onClick={() => setPayslipData(null)} className="p-1 text-slate-400 hover:text-slate-900 font-bold">
@@ -425,171 +485,58 @@ export default function PayrollEngine() {
               </div>
             </div>
 
-            {/* Printable Payslip Box */}
-            <div className="border-4 border-double border-slate-300 p-6 rounded-2xl space-y-6 bg-white">
-              
-              {/* Trust Header */}
-              <div className="text-center space-y-1 border-b border-slate-200 pb-4">
-                <div className="flex items-center justify-center gap-2">
-                  <Building2 className="w-6 h-6 text-emerald-600" />
-                  <h2 className="text-xl font-black uppercase tracking-wider text-slate-900">
-                    VANI EDUCATIONAL TRUST
-                  </h2>
-                </div>
-                <p className="text-[11px] text-slate-500 font-semibold">
-                  (Registered Public Educational Trust • Central Head Office, New Delhi)
-                </p>
-                <span className="text-xs font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-0.5 rounded-full inline-block border border-emerald-200 mt-1">
-                  SALARY DISBURSEMENT SLIP FOR {payslipData.payroll_month.toUpperCase()}
-                </span>
+            <div className="border-2 border-slate-300 p-6 rounded-2xl space-y-4 bg-white text-xs">
+              <div className="text-center space-y-1 border-b pb-3">
+                <h2 className="text-lg font-black uppercase text-slate-900">CRAYON BOX SCHOOL</h2>
+                <p className="text-[10px] text-slate-500 uppercase">Salary Slip for the Month of {selectedMonth}</p>
               </div>
 
-              {/* Employee Demographics Card */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Employee Name</span>
-                  <strong className="text-slate-900 font-extrabold">{payslipData.staff_name}</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Designation</span>
-                  <span className="text-slate-700 font-semibold">{payslipData.designation}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Department</span>
-                  <span className="text-slate-700 font-semibold">{payslipData.department}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Institution Code</span>
-                  <strong className="text-indigo-700 font-mono font-bold">{payslipData.institution_code}</strong>
+              <div className="grid grid-cols-2 gap-2 bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8]">
+                <div><span className="text-slate-400 font-bold">Employee:</span> <strong className="text-slate-900">{payslipData.name}</strong></div>
+                <div><span className="text-slate-400 font-bold">Code:</span> <strong className="font-mono">{payslipData.employeeCode}</strong></div>
+                <div><span className="text-slate-400 font-bold">Designation:</span> <span>{payslipData.designation}</span></div>
+                <div><span className="text-slate-400 font-bold">Bank A/c:</span> <span className="font-mono">{payslipData.bankAccountNo || '502000456789'}</span></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 border-r pr-3">
+                  <strong className="block text-emerald-800 uppercase font-bold text-[11px] mb-1">Earnings</strong>
+                  <div className="flex justify-between"><span>Basic Pay:</span> <span>{formatCurrency(payslipData.basicPay)}</span></div>
+                  <div className="flex justify-between"><span>HRA (40%):</span> <span>{formatCurrency(payslipData.hra)}</span></div>
+                  <div className="flex justify-between"><span>DA (20%):</span> <span>{formatCurrency(payslipData.da)}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Total Gross:</span> <span>{formatCurrency(payslipData.grossPay)}</span></div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Bank Account No</span>
-                  <strong className="text-slate-900 font-mono">{payslipData.bank_account_no}</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Bank & IFSC</span>
-                  <span className="text-slate-700 font-mono">{payslipData.bank_name} ({payslipData.bank_ifsc})</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">PAN Number</span>
-                  <span className="text-slate-700 font-mono font-bold">{payslipData.pan_number}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">UAN (EPF)</span>
-                  <span className="text-slate-700 font-mono">{payslipData.uan_number}</span>
+                <div className="space-y-1">
+                  <strong className="block text-rose-800 uppercase font-bold text-[11px] mb-1">Deductions</strong>
+                  <div className="flex justify-between"><span>EPF (12%):</span> <span>{formatCurrency(payslipData.epfDeduction)}</span></div>
+                  <div className="flex justify-between"><span>ESIC:</span> <span>{formatCurrency(payslipData.esicDeduction || 0)}</span></div>
+                  <div className="flex justify-between"><span>TDS / PT:</span> <span>{formatCurrency((payslipData.tdsDeduction || 0) + (payslipData.ptDeduction || 0))}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Total Deductions:</span> <span>{formatCurrency(payslipData.totalDeductions)}</span></div>
                 </div>
               </div>
 
-              {/* Attendance Breakdown */}
-              <div className="grid grid-cols-3 gap-2 text-center text-xs p-2.5 bg-slate-100 rounded-lg">
-                <div>
-                  <span className="text-[10px] text-slate-500 font-bold block">Total Month Days</span>
-                  <strong className="text-slate-900">{payslipData.total_working_days} Days</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 font-bold block">Days Present</span>
-                  <strong className="text-emerald-700">{payslipData.present_days} Days</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 font-bold block">LWP Deductions</span>
-                  <strong className="text-slate-900">{payslipData.lwp_days} Days</strong>
-                </div>
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFC8] flex justify-between items-center text-sm font-black">
+                <span>Net Salary Payable:</span>
+                <span className="text-emerald-800 text-base font-mono">{formatCurrency(payslipData.netPay)}</span>
               </div>
-
-              {/* Earnings & Deductions Tables */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Earnings Table */}
-                <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
-                  <div className="bg-slate-100 p-2.5 font-black uppercase text-slate-700 text-[10px] border-b border-slate-200">
-                    Earnings (A)
-                  </div>
-                  <div className="p-3 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Basic Salary</span>
-                      <strong className="font-mono text-slate-900">₹{payslipData.basic_salary.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">House Rent Allowance (HRA)</span>
-                      <strong className="font-mono text-slate-900">₹{payslipData.hra.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Special & Teaching Allowance</span>
-                      <strong className="font-mono text-slate-900">₹{payslipData.special_allowance.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-slate-200 font-black text-slate-900">
-                      <span>Total Gross Earnings:</span>
-                      <span className="font-mono text-emerald-700">₹{payslipData.gross_earnings.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Deductions Table */}
-                <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
-                  <div className="bg-slate-100 p-2.5 font-black uppercase text-slate-700 text-[10px] border-b border-slate-200">
-                    Deductions (B)
-                  </div>
-                  <div className="p-3 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Employee Provident Fund (EPF)</span>
-                      <strong className="font-mono text-rose-600">₹{payslipData.epf_deduction.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Professional Tax (PT)</span>
-                      <strong className="font-mono text-rose-600">₹{payslipData.prof_tax_deduction.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">TDS Income Tax</span>
-                      <strong className="font-mono text-rose-600">₹{payslipData.tds_deduction.toLocaleString('en-IN')}</strong>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-slate-200 font-black text-slate-900">
-                      <span>Total Deductions:</span>
-                      <span className="font-mono text-rose-600">₹{payslipData.total_deductions.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Net Disbursed Box */}
-              <div className="p-4 bg-emerald-950 text-white rounded-xl flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-emerald-300 uppercase font-bold block">Net Payable Amount (A - B)</span>
-                  <span className="text-2xl font-black font-mono text-emerald-400">
-                    ₹{payslipData.net_payable.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-emerald-300 uppercase font-bold block">Disbursement Mode</span>
-                  <span className="text-sm font-bold text-white">Direct NEFT Transfer</span>
-                </div>
-              </div>
-
-              {/* Currency in Words */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Amount in Words:</span>
-                <strong className="text-slate-800 italic mt-0.5 block">{payslipData.net_payable_words}</strong>
-              </div>
-
-              {/* Signatures & Seal */}
-              <div className="grid grid-cols-2 gap-8 pt-8 text-center text-[10px] text-slate-500 font-bold border-t border-slate-200">
-                <div>
-                  <div className="h-8 border-b border-dashed border-slate-400 mb-1" />
-                  <span>Employee Signature</span>
-                </div>
-                <div>
-                  <div className="h-8 border-b border-dashed border-slate-400 mb-1" />
-                  <span>Authorized Signatory / Finance Officer (Vani Educational Trust)</span>
-                </div>
-              </div>
-
             </div>
-
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+export default function HRStatutoryPayrollHubPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 text-center text-slate-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading HR, Statutory Payroll &amp; Disbursals Hub...</span>
+      </div>
+    }>
+      <PayrollHubContent />
+    </Suspense>
   );
 }
