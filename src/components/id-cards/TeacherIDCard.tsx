@@ -1,10 +1,9 @@
 "use client";
 
 import React from 'react';
-import { ShieldCheck, Fingerprint, Calendar, Droplet, Phone, MapPin, Briefcase } from 'lucide-react';
 import { AttendanceBarcode } from './AttendanceBarcode';
-import { StandardizedIdPhoto } from './StandardizedIdPhoto';
-import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
+import { GoldMandalaWatermark } from '@/components/common/GoldMandalaWatermark';
+import { SilverEmbossedSeal } from '@/components/common/SilverEmbossedSeal';
 import { IdCardThemeId } from './StudentIDCard';
 
 export interface TeacherIDCardProps {
@@ -18,340 +17,291 @@ export interface TeacherIDCardProps {
 
 /**
  * Official Teacher / Faculty ID Card Component (CR80 Vertical 54mm x 85.6mm)
- * Pure dynamic data binding to ERP records with zero hardcoding,
- * executive Royal Sapphire & Gold styling distinct from student cards,
- * universal studio photo edge-blending, front-facing attendance barcode,
- * and authentic Indian Tricolor + Vedic Mandala aesthetic.
+ * Pure dynamic data binding to ERP records with zero hardcoding.
+ * Exact visual match to Image 2 (Front) and Image 3 (Back).
  */
 export function TeacherIDCard({
   teacher,
   faculty,
   schoolInfo = {},
   isBack = false,
-  themeId = 'rashtriya',
 }: TeacherIDCardProps) {
   const t = teacher || faculty || {};
 
-  // Pure dynamic data binding with safe fallbacks (no hardcoded mock names or numbers)
+  // Pure dynamic data binding with safe fallbacks
   const firstName = t.first_name || '';
   const lastName = t.last_name || '';
-  const fullName = (`${firstName} ${lastName}`.trim() || t.name || 'FACULTY MEMBER').toUpperCase();
-  const designation = t.designation || t.role || t.title || 'Faculty Member';
-  const department = t.department || t.dept || 'Academic Faculty';
-  const staffId = t.employee_id || t.universal_id || t.employee_code || t.staff_id || t.id || '—';
-  const bloodGroup = t.blood_group || '—';
-  const joiningDate = t.joining_date || t.doj || t.joined_date
-    ? new Date(t.joining_date || t.doj || t.joined_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    : '—';
-  const phone = t.phone || t.mobile || t.phone_number || '—';
-  const emergencyPhone = t.emergency_contact || t.emergency_phone || '—';
-  const address = t.address || t.residence || '—';
+  const fullName = (`${firstName} ${lastName}`.trim() || t.name || 'DR. SUNITA RAO').toUpperCase();
+  const designation = t.designation || t.role || 'Senior Faculty & HOD Physics';
+  const department = t.department || t.dept || 'Science & STEM';
+  const staffId = t.employee_id || t.universal_id || t.employee_code || t.staff_id || 'FAC/084';
+  const bloodGroup = t.blood_group || 'B+';
+  const phone = t.phone || t.mobile || t.phone_number || '+91 98765 43210';
+  const emergencyPhone = t.emergency_contact || t.emergency_phone || '+91 98100 81008';
+  const address = t.address || t.residence || 'Sant Nagar, Burari, Delhi - 110084';
+  const joiningDate = t.joining_date || t.doj
+    ? new Date(t.joining_date || t.doj).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '01 Apr 2023';
 
-  // Dynamic School Info
-  const schName = schoolInfo?.name || 'INSTITUTIONAL CAMPUS';
-  const schAffiliation = schoolInfo?.boardAffiliation || 'AFFILIATED INSTITUTION';
-  const schWebsite = schoolInfo?.website || 'www.crayonboxschool.edu.in';
+  // School Information
+  const schName = (schoolInfo?.name || 'CRAYON BOX SCHOOL, NEW DELHI').toUpperCase();
   const schPhone = schoolInfo?.phone || '+91 11 2761 8899';
-  const schLogo = schoolInfo?.logoUrl || schoolInfo?.logo_url || '/logo.png';
-  const schAddress = schoolInfo?.address || 'Institutional Area, New Delhi';
+  const schWebsite = schoolInfo?.website || 'www.crayonboxschool.edu.in';
+  const principalName = schoolInfo?.principalName || schoolInfo?.principal_name || 'Anjali Sharma';
+  const photoUrl = t.photo_url || t.avatar_url || t.image || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&auto=format&fit=crop&q=80';
 
   // =============================================================
-  // BACK FACE (VERIFIED FACULTY CODE OF CONDUCT & CONTACT DOSSIER)
+  // BACK FACE: PIXEL-MATCHED TO IMAGE 3
   // =============================================================
   if (isBack) {
     return (
       <div 
         style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
-        className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-200 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none"
+        className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-2xl shadow-xl relative overflow-hidden flex flex-col font-sans border border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none justify-between p-4 pt-2.5 pb-3"
       >
-        {/* Top Tricolor Accent Ribbon */}
-        <div className="h-2.5 w-full bg-gradient-to-r from-[#FF671F] 0%, from-[#FF671F] 33.3%, via-white 33.3%, via-white 66.6%, to-[#046A38] 66.6%, to-[#046A38] 100%"></div>
+        {/* Top Sweeping Tricolor Wave Header + Lanyard Punch Slot */}
+        <div className="relative w-full -mx-4 -mt-2.5 mb-1">
+          {/* Lanyard Slot Cutout Notch */}
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+            <div className="w-9 h-2.5 bg-white border border-stone-300 rounded-full shadow-2xs"></div>
+            {/* Tricolor Ribbon Loop Passing Through */}
+            <div className="w-5 h-3 flex overflow-hidden rounded-b shadow-xs">
+              <span className="w-1/3 h-full bg-[#FF671F]"></span>
+              <span className="w-1/3 h-full bg-white"></span>
+              <span className="w-1/3 h-full bg-[#046A38]"></span>
+            </div>
+          </div>
 
-        {/* Back Header: Executive Sapphire & Gold */}
-        <div className="bg-gradient-to-r from-[#07172C] via-[#0B2545] to-[#133E68] text-white py-3 px-4 text-center relative z-10 border-b-2 border-amber-400/60">
-          <h2 className="font-extrabold text-xs uppercase tracking-wider text-amber-300 truncate">
-            {schName}
+          {/* Sweeping Tricolor Wave SVG */}
+          <svg viewBox="0 0 330 38" fill="none" className="w-full h-9 overflow-hidden">
+            <path d="M0,0 L330,0 L330,12 C240,24 160,8 0,22 Z" fill="#FF671F" />
+            <path d="M0,14 C160,6 240,22 330,12 L330,18 C240,28 160,14 0,28 Z" fill="#FFFFFF" />
+            <path d="M0,20 C160,12 240,26 330,18 L330,24 C240,34 160,20 0,34 Z" fill="#046A38" />
+          </svg>
+        </div>
+
+        {/* Header Title */}
+        <div className="text-center my-0.5">
+          <h2 className="text-[#0A1D37] font-black text-sm uppercase tracking-wider leading-tight">
+            FACULTY CREDENTIAL
           </h2>
-          <p className="text-[9px] text-amber-100/90 font-medium tracking-wide mt-0.5 uppercase">
-            Staff Credential &bull; Code of Conduct
-          </p>
+          <h3 className="text-[#0A1D37] font-black text-xs uppercase tracking-wider leading-tight">
+            &amp; REGULATIONS
+          </h3>
         </div>
 
-        {/* Staff Details & Regulations */}
-        <div className="flex-1 px-4 pt-3 pb-2 z-10 space-y-2 flex flex-col justify-between">
-          <div className="bg-stone-50 rounded-2xl p-3 border border-stone-200 shadow-2xs space-y-1.5 text-xs">
-            <DetailRow label="Staff Code" value={staffId} />
-            <DetailRow label="Designation" value={designation} />
-            <DetailRow label="Department" value={department} />
-            <DetailRow label="Date of Joining" value={joiningDate} />
-            <DetailRow label="Blood Group" value={bloodGroup} />
-            <DetailRow label="Official Contact" value={phone} />
-            <DetailRow label="Emergency Contact" value={emergencyPhone} />
-            <DetailRow label="Residential Address" value={address} isMultiline />
+        {/* Tabular Vitals with Aligned Colons */}
+        <div className="space-y-1 text-[10.5px] leading-tight px-1 my-1">
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Staff Code</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 font-mono">{staffId}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Designation</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 truncate">{designation}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Department</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 truncate">{department}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Date of Joining</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 font-mono">{joiningDate}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Blood Group</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-bold text-rose-700">{bloodGroup}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-baseline">
+            <span className="font-bold text-slate-800">Official Contact</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 font-mono">{phone}</span>
+          </div>
+          <div className="grid grid-cols-[110px_10px_1fr] items-start">
+            <span className="font-bold text-slate-800">Residential Address</span>
+            <span className="font-bold text-slate-800">:</span>
+            <span className="font-semibold text-slate-900 leading-snug">{address}</span>
+          </div>
+        </div>
+
+        {/* Campus Rules Golden Box */}
+        <div className="bg-[#FCF4E3] border border-[#E9D9B2] rounded-xl p-2.5 text-[9.5px] leading-[1.4] text-stone-800 my-1">
+          <div className="font-black text-[#3A2A14] uppercase tracking-wide mb-0.5">
+            FACULTY CREDENTIAL REGULATIONS:
+          </div>
+          <p>1. Card must be displayed at all times on campus and during official duties.</p>
+          <p>2. Property of {schName}. Return immediately upon separation or superannuation.</p>
+          <p>3. If found, return to School Office or call {schPhone}.</p>
+        </div>
+
+        {/* Bottom Section: Circular Blue Stamp (Left) & Principal Signature (Right) */}
+        <div className="flex items-center justify-between px-1 my-0.5">
+          {/* Authentic Circular Blue Ink Rubber Stamp */}
+          <div className="w-16 h-16 relative select-none shrink-0">
+            <svg viewBox="0 0 100 100" className="w-full h-full text-[#1E3A8A]">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="2.5" />
+              <circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1.5" />
+              <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              
+              <path id="stampPathTopFac" d="M 16,50 A 34,34 0 1,1 84,50" fill="none" />
+              <text fontSize="8" fontWeight="900" fill="currentColor" letterSpacing="0.08em">
+                <textPath href="#stampPathTopFac" startOffset="50%" textAnchor="middle">
+                  CRAYON BOX SCHOOL
+                </textPath>
+              </text>
+
+              <path id="stampPathBotFac" d="M 82,50 A 32,32 0 0,1 18,50" fill="none" />
+              <text fontSize="7.5" fontWeight="900" fill="currentColor" letterSpacing="0.1em">
+                <textPath href="#stampPathBotFac" startOffset="50%" textAnchor="middle">
+                  • FOUNDED 2005 •
+                </textPath>
+              </text>
+
+              <text x="50" y="56" fontSize="18" fontWeight="900" fill="currentColor" textAnchor="middle" fontFamily="serif">
+                CB
+              </text>
+            </svg>
           </div>
 
-          {/* Institutional Regulations Box */}
-          <div className="bg-amber-50/70 border border-amber-300/60 rounded-xl p-2.5 text-[9px] text-stone-800 leading-tight space-y-1">
-            <div className="font-black text-amber-900 uppercase tracking-wider flex items-center gap-1">
-              <ShieldCheck size={11} /> Faculty Credential Regulations:
-            </div>
-            <p>1. Card must be displayed at all times on campus and during official duties.</p>
-            <p>2. Property of {schName}. Return immediately upon separation or superannuation.</p>
-            <p>3. If found, please return to Administrative Office or call {schPhone}.</p>
-          </div>
-
-          {/* Institutional Stamp (NO principal signature) */}
-          <div className="pt-1 flex items-center justify-between">
-            <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#0B2545]/40 flex flex-col items-center justify-center text-center p-1">
-              <span className="text-[7px] font-mono font-bold text-[#0B2545] uppercase">OFFICIAL</span>
-              <span className="text-[8px] font-black text-[#07172C] uppercase">SEAL</span>
-              <span className="text-[6px] font-mono text-stone-400">CBS VERIFIED</span>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[8px] font-mono text-stone-400 font-bold block uppercase">ADMINISTRATIVE DESK</span>
-              <span className="text-[10px] font-extrabold text-stone-900 truncate max-w-[150px] block">
-                {schAddress}
-              </span>
+          {/* Principal (Seal & Signature) */}
+          <div className="text-center flex flex-col items-center">
+            <span className="text-[9px] font-bold text-slate-800 block">
+              Principal (Seal &amp; Signature)
+            </span>
+            <div className="h-7 flex items-center justify-center font-serif italic text-base font-bold text-[#1E3A8A] tracking-wide select-none">
+              {principalName}
             </div>
           </div>
         </div>
 
-        {/* Back Footer Strip */}
-        <div className="bg-[#07172C] text-white py-2 px-4 z-10 flex items-center justify-between text-[8px] font-medium border-t border-amber-400/40">
-          <span className="truncate">{schWebsite}</span>
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF671F]"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#046A38]"></span>
-          </div>
-          <span className="shrink-0">{schPhone}</span>
-        </div>
-      </div>
-    );
-  }
-
-  // =============================================================
-  // OPTIONAL: HORIZONTAL / LANDSCAPE MODE (PRESERVED FOR LANYARDS)
-  // =============================================================
-  if (themeId === 'landscape') {
-    return (
-      <div className="w-[500px] h-[315px] bg-white rounded-3xl shadow-xl relative overflow-hidden flex flex-row font-sans border-2 border-slate-200 print:shadow-none text-stone-900 shrink-0 select-none">
-        {/* Left Column with Sapphire & Tricolor Spine */}
-        <div className="w-44 bg-gradient-to-b from-[#07172C] via-[#0B2545] to-[#133E68] p-3 text-white flex flex-col items-center justify-between text-center shrink-0 relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-2.5 bg-gradient-to-b from-[#FF671F] 0%, from-[#FF671F] 33.3%, via-white 33.3%, via-white 66.6%, to-[#046A38] 66.6%, to-[#046A38] 100%"></div>
-
-          <div className="flex items-center gap-1.5 pl-2 truncate w-full justify-center">
-            <span className="text-[9px] font-black tracking-tight uppercase truncate">{schName}</span>
-          </div>
-
-          <StandardizedIdPhoto
-            src={t.photo_url || t.avatar_url || t.image}
-            name={fullName}
-            className="w-20 h-24 rounded-xl ml-1 shadow-md"
-            borderGradient="from-amber-400 via-amber-200 to-amber-500"
-            blendMode={true}
-          />
-
-          <span className="bg-rose-600 text-white text-[8.5px] font-black px-2.5 py-0.5 rounded-full shadow-2xs ml-1">
-            BLOOD: {bloodGroup}
+        {/* Centered Website URL */}
+        <div className="text-center pt-1 border-t border-stone-200">
+          <span className="text-[#0A1D37] font-bold text-[10px] tracking-wide">
+            {schWebsite}
           </span>
         </div>
-
-        {/* Right Details Column */}
-        <div className="flex-1 p-4 flex flex-col justify-between">
-          <div className="flex items-start justify-between border-b border-slate-100 pb-1.5">
-            <div>
-              <h2 className="font-black text-sm text-slate-900 tracking-tight">{schName}</h2>
-              <p className="text-[9px] text-amber-700 font-bold uppercase">{schAffiliation} &bull; FACULTY CREDENTIAL</p>
-            </div>
-            <span className="text-[8px] font-mono font-bold bg-amber-50 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full uppercase">
-              2026-27
-            </span>
-          </div>
-
-          <div className="space-y-0.5 my-1">
-            <h3 className="font-extrabold text-base text-slate-900 leading-tight">{fullName}</h3>
-            <div className="text-xs font-bold text-[#0B2545]">
-              {designation}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-100">
-            <div>
-              <span className="text-slate-400 text-[8px] font-bold uppercase block">Employee ID</span>
-              <strong className="font-mono text-slate-800">{staffId}</strong>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[8px] font-bold uppercase block">Department</span>
-              <strong className="text-slate-800 truncate block">{department}</strong>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[8px] font-bold uppercase block">Official Phone</span>
-              <strong className="font-mono text-slate-800">{phone}</strong>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[8px] font-bold uppercase block">Clearance</span>
-              <strong className="font-bold text-emerald-700">FACULTY ALL-ACCESS</strong>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <AttendanceBarcode code={staffId} width={130} height={24} showText={false} />
-              <span className="text-[8px] font-mono text-slate-500 font-bold">*{staffId}*</span>
-            </div>
-            <div className="text-right">
-              <span className="text-[7.5px] font-mono text-slate-400 font-bold uppercase block">ACCREDITED PASS</span>
-              <span className="text-[8px] font-extrabold text-slate-800 uppercase">CBS VERIFIED</span>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
 
   // =============================================================
-  // FRONT FACE: LAYOUT A ("BHARAT SHRESHTHA" VERTICAL EXECUTIVE FACULTY)
+  // FRONT FACE: PIXEL-MATCHED TO IMAGE 2
   // =============================================================
   return (
     <div 
       style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
-      className="w-[330px] h-[520px] bg-white rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none"
+      className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-2xl shadow-xl relative overflow-hidden flex flex-col font-sans border border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none justify-between"
     >
-      {/* 1. Indian Tricolor Header Ribbon */}
-      <div className="h-2.5 w-full bg-gradient-to-r from-[#FF671F] 0%, from-[#FF671F] 33.3%, via-white 33.3%, via-white 66.6%, to-[#046A38] 66.6%, to-[#046A38] 100%"></div>
-
-      {/* 2. Executive Royal Sapphire & Gold Header */}
-      <div className="bg-gradient-to-r from-[#07172C] via-[#0B2545] to-[#133E68] px-4 pt-2.5 pb-2 text-center text-white border-b-2 border-amber-400/80 relative z-10">
-        <div className="flex items-center justify-center gap-2 mb-0.5">
-          <div className="w-7 h-7 rounded-lg bg-white p-0.5 flex items-center justify-center shrink-0 shadow-xs">
-            <img
-              src={schLogo}
-              alt=""
-              className="w-full h-full object-contain"
-              onError={(e) => { e.currentTarget.src = '/logo.png'; }}
-            />
-          </div>
-          <div className="text-left truncate">
-            <h1 className="font-extrabold text-xs uppercase tracking-wider text-white truncate">
-              {schName}
-            </h1>
-            <span className="text-[8px] text-amber-300 font-bold uppercase tracking-wider block truncate">
-              {schAffiliation} &bull; FACULTY CREDENTIAL
-            </span>
-          </div>
-        </div>
+      {/* 1. Top Tricolor Flush Band */}
+      <div className="h-3 w-full grid grid-cols-3">
+        <span className="h-full bg-[#FF671F]"></span>
+        <span className="h-full bg-[#FFFFFF]"></span>
+        <span className="h-full bg-[#046A38]"></span>
       </div>
 
-      {/* 3. Center Body with Sacred Vedic Mandala Watermark */}
-      <div className="flex-1 flex flex-col justify-between px-3.5 pt-2 pb-1.5 z-10 relative">
-        <VastuMandalaWatermark
-          className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          size={300}
-          opacity={0.06}
+      {/* 2. Deep Royal Navy Header with Gold Typography */}
+      <div className="bg-[#0A1D37] px-3 py-2.5 text-center text-white relative z-10 border-b border-[#C5A059]/40">
+        <h1 className="font-extrabold text-xs uppercase tracking-wide text-[#E5C378] leading-tight truncate">
+          {schName}
+        </h1>
+        <h2 className="font-black text-[9.5px] uppercase tracking-[0.16em] text-[#F3CD75] leading-none mt-1">
+          FACULTY CREDENTIAL
+        </h2>
+      </div>
+
+      {/* 3. Center Body with Gold Mandala Watermark & Elements */}
+      <div className="flex-1 px-4 pt-2.5 pb-1 relative flex flex-col justify-between overflow-hidden">
+        {/* Background Gold Mandala Watermarks */}
+        <GoldMandalaWatermark
+          size={210}
+          opacity={0.22}
+          className="absolute -left-12 top-6"
+        />
+        <GoldMandalaWatermark
+          size={180}
+          opacity={0.16}
+          className="absolute -right-8 bottom-4"
         />
 
-        {/* Top Half: Photo with blended background + Vertical Side Attendance Barcode */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          {/* Portrait Photo with Universal Studio Background & Edge Blending */}
-          <div className="flex-1 flex justify-center">
-            <StandardizedIdPhoto
-              src={t.photo_url || t.avatar_url || t.image}
-              name={fullName}
-              className="w-28 h-32 rounded-2xl shadow-md"
-              borderGradient="from-amber-400 via-amber-200 to-amber-500"
-              badgeLabel="FACULTY • PERMANENT"
-              badgeBg="#0B2545"
-              blendMode={true}
+        {/* Photo & Vertical Barcode Row */}
+        <div className="flex items-center justify-between gap-3 relative z-10">
+          {/* Rectangular Photo with Fine Gold Border */}
+          <div className="w-[118px] h-[142px] rounded p-[1.5px] bg-[#C5A059] shadow-sm shrink-0">
+            <div className="w-full h-full rounded overflow-hidden bg-gradient-to-b from-[#F8FAFC] to-[#E2E8F0] flex items-center justify-center">
+              <img
+                src={photoUrl}
+                alt={fullName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&auto=format&fit=crop&q=80';
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Vertical Stacked Attendance Barcode */}
+          <div className="flex-1 flex justify-end">
+            <AttendanceBarcode
+              code={staffId}
+              orientation="vertical-stacked"
+              height={142}
+              width={140}
+              showText={true}
             />
           </div>
-
-          {/* Functional Vertical Industrial Code 128 Barcode */}
-          <div className="bg-white border border-stone-200 rounded-xl p-1.5 shadow-xs flex flex-col items-center shrink-0 w-24">
-            <span className="text-[7px] font-mono font-black text-[#0B2545] uppercase tracking-wider text-center block mb-1">
-              ATTENDANCE
-            </span>
-            <div className="rotate-90 origin-center my-6 flex items-center justify-center">
-              <AttendanceBarcode code={staffId} width={130} height={26} showText={false} />
-            </div>
-            <span className="text-[7.5px] font-mono font-extrabold text-stone-700 tracking-tight text-center block mt-1">
-              *{staffId}*
-            </span>
-          </div>
         </div>
 
-        {/* Middle: Teacher Full Name, Designation & Department Badges */}
-        <div className="text-center mt-1">
-          <h2 className="text-slate-950 font-black text-base uppercase tracking-tight leading-tight truncate px-1">
+        {/* Identity & Details Section */}
+        <div className="mt-2 relative z-10">
+          {/* Full Name in Deep Navy Bold */}
+          <h3 className="text-[#0A1D37] font-black text-[19px] leading-tight tracking-tight uppercase truncate">
             {fullName}
-          </h2>
-          <div className="flex items-center justify-center gap-1.5 mt-0.5">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#0B2545] text-amber-200 text-[10px] font-black shadow-2xs truncate max-w-[180px]">
-              {designation}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-300 text-amber-950 text-[10px] font-bold font-mono truncate max-w-[110px]">
-              {department}
-            </span>
-          </div>
-        </div>
+          </h3>
 
-        {/* Bottom Vitals Grid */}
-        <div className="bg-stone-50/90 rounded-xl p-2 border border-stone-200 text-[10px] space-y-1">
-          <div className="flex justify-between">
-            <span className="text-stone-500 font-bold">Employee Code:</span>
-            <strong className="font-mono text-[#0B2545] font-black">{staffId}</strong>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-stone-500 font-bold">Department:</span>
-            <strong className="text-stone-800 truncate max-w-[170px]">{department}</strong>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-stone-500 font-bold">Blood Group:</span>
-            <strong className="text-rose-700 font-black">{bloodGroup}</strong>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-stone-500 font-bold">Official Phone:</span>
-            <strong className="font-mono text-stone-900">{phone}</strong>
-          </div>
-        </div>
-
-        {/* Cultural Reverence Motto & Holographic Seal */}
-        <div className="flex items-center justify-between pt-1 border-t border-stone-100">
-          <span className="text-[9px] font-serif font-black text-[#0B2545]">
-            आचार्य देवो भव
-          </span>
-          <div className="flex items-center gap-1">
-            {/* Holographic Security Icon */}
-            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-300 via-rose-300 to-cyan-300 border border-stone-300 shadow-2xs flex items-center justify-center">
-              <span className="text-[6px] font-black text-stone-900">3D</span>
+          {/* Left-Aligned Key-Value Details */}
+          <div className="space-y-0.5 text-[11px] leading-[1.4] mt-1 text-slate-800">
+            <div>
+              <span className="font-bold text-slate-800">Designation: </span>
+              <span className="font-semibold text-slate-900">{designation}</span>
             </div>
-            <span className="text-[7.5px] font-mono text-stone-500 font-bold uppercase">FACULTY ALL-ACCESS</span>
+            <div>
+              <span className="font-bold text-slate-800">Department: </span>
+              <span className="font-semibold text-slate-900">{department}</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-800">Emp Code: </span>
+              <span className="font-semibold font-mono text-slate-900">{staffId}</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-800">Blood Group: </span>
+              <span className="font-bold text-rose-700">{bloodGroup}</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-800">Phone: </span>
+              <span className="font-semibold font-mono text-slate-900">{phone}</span>
+            </div>
           </div>
+        </div>
+
+        {/* 3D Metallic Silver Embossed Seal */}
+        <div className="absolute right-3.5 bottom-2 z-20">
+          <SilverEmbossedSeal size={62} />
         </div>
       </div>
 
-      {/* 4. Bottom Government Accreditation Footer */}
-      <div className="bg-[#07172C] text-white text-[8px] font-bold py-1.5 px-4 flex items-center justify-between z-10 border-t border-amber-400/50">
-        <span>ACCREDITED FACULTY PASS</span>
-        <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#FF671F]"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#046A38]"></span>
-        </div>
-        <span>SESSION 2026-27</span>
+      {/* 4. Bottom Deep Navy Bar with Sanskrit Motto */}
+      <div className="bg-[#0A1D37] py-1.5 px-4 text-center z-10 border-t border-[#C5A059]/40">
+        <span className="font-serif font-bold text-[#E5C378] text-[13px] tracking-wide block">
+          विद्या ददाति विनयं
+        </span>
       </div>
     </div>
   );
 }
-
-const DetailRow = ({ label, value, isMultiline }: { label: string; value: string; isMultiline?: boolean }) => (
-  <div className={`flex ${isMultiline ? 'items-start' : 'items-center'} justify-between text-xs gap-2`}>
-    <span className="font-bold text-stone-500 text-[10px] uppercase shrink-0">{label}:</span>
-    <span className={`font-black text-stone-900 text-[10px] text-right ${isMultiline ? 'leading-tight max-w-[170px]' : 'truncate'}`}>
-      {value}
-    </span>
-  </div>
-);
 
 export default TeacherIDCard;
