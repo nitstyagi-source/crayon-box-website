@@ -11,6 +11,7 @@ import {
   Zap, Settings, MessageCircle, Smartphone, CheckCircle, RefreshCw
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   getSchoolCalendarEvents, 
   createCalendarEvent, 
@@ -42,6 +43,7 @@ const ALL_CLASSES = ["All", "Grade 5", "Grade 4", "Grade 3", "Grade 2", "Grade 1
 
 export function SchoolCalendarDesk() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
 
   // Simple ERP Menu Sub-tabs
   const [activeTab, setActiveTab] = useState<
@@ -91,8 +93,8 @@ export function SchoolCalendarDesk() {
     allow_classmates_to_wish: false,
     allow_parents_to_wish: true,
     hide_dob_from_users: true,
-    custom_student_message: "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness, joy, and learning! From Crayon Box School family 🎉",
-    custom_teacher_message: "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School family!"
+    custom_student_message: `🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness, joy, and learning! From ${selectedInstitutionObj?.name || 'our school'} family 🎉`,
+    custom_teacher_message: `🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from ${selectedInstitutionObj?.name || 'our school'} family!`
   });
 
   // Add Event Modal State
@@ -247,8 +249,8 @@ export function SchoolCalendarDesk() {
     setSelectedRecipient(person);
     setRecipientType(type);
     const defaultText = type === "Student"
-      ? (bdaySettings.custom_student_message || `🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From Crayon Box School family 🎉`).replace(/{NAME}/g, person.fullName)
-      : (bdaySettings.custom_teacher_message || `🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School!`).replace(/{NAME}/g, person.fullName);
+      ? (bdaySettings.custom_student_message || `🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From ${selectedInstitutionObj?.name || 'our school'} family 🎉`).replace(/{NAME}/g, person.fullName)
+      : (bdaySettings.custom_teacher_message || `🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from ${selectedInstitutionObj?.name || 'our school'}!`).replace(/{NAME}/g, person.fullName);
     setWishMessage(defaultText);
     setIsWishModalOpen(true);
   }
@@ -2101,7 +2103,7 @@ export function SchoolCalendarDesk() {
                 <span className="text-[10px] font-bold text-pink-800 uppercase block">Recipient Details:</span>
                 <strong className="text-stone-900 block text-xs">{selectedRecipient.fullName}</strong>
                 <span className="text-[11px] text-stone-500">
-                  {selectedRecipient.classDisplay || selectedRecipient.designation || "Crayon Box Family"}
+                  {selectedRecipient.classDisplay || selectedRecipient.designation || selectedInstitutionObj?.name || "School Family"}
                 </span>
               </div>
 

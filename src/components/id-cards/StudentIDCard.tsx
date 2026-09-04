@@ -25,9 +25,9 @@ export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: Stud
   const address = student.address || student.residential_address || 'Sant Nagar, Burari, Delhi - 110084';
   const busRoute = student.bus_route_no || student.route_name || 'Route 04';
   
-  const schName = schoolInfo.name || 'CRAYON BOX SCHOOL';
-  const schAffiliation = schoolInfo.boardAffiliation || 'CBSE AFFILIATED (REG. 2730588)';
-  const schWebsite = schoolInfo.website || 'www.crayonboxschool.edu.in';
+  const schName = schoolInfo.name || 'STUDENT IDENTITY CARD';
+  const schAffiliation = schoolInfo.boardAffiliation || 'CBSE AFFILIATED';
+  const schWebsite = schoolInfo.website || 'www.school.edu.in';
   const schPhone = schoolInfo.phone || '011-45678901';
 
   // BACK FACE

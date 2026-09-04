@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SchoolLeavingCertificate } from '@/components/documents/SchoolLeavingCertificate';
 import { StudentIDCard } from '@/components/id-cards/StudentIDCard';
 import { EscortPickupCard } from '@/components/id-cards/EscortPickupCard';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 import { createClient } from '@/lib/supabase/client';
 import {
   getStudentProgressionTimeline,
@@ -43,6 +44,7 @@ import { standardizePhotoBackground } from '@/lib/utils/photo-standardizer';
 
 export default function UniversalStudent360DossierV2Page({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const { selectedInstitutionObj, institutionsList } = useInstitution();
   const [student, setStudent] = useState<any>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [enrollmentPeriods, setEnrollmentPeriods] = useState<any[]>([]);
@@ -983,8 +985,10 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-indigo-700 block">Session 2024–2025</span>
-                      <h4 className="text-sm font-bold text-slate-900">Crayon Box School • Class 2 (Section A)</h4>
-                      <p className="text-xs text-slate-500">Admission No: CBS-2024-0042 • Class Teacher: Mrs. Kavita Deshmukh</p>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        {selectedInstitutionObj?.name || 'Academic Campus'} • Class 2 (Section A)
+                      </h4>
+                      <p className="text-xs text-slate-500">Admission No: {student?.admission_no || 'ADM-0042'} • Class Teacher: Mrs. Kavita Deshmukh</p>
                     </div>
                     <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black">
                       PROMOTED (Result: 94.2%)
@@ -998,8 +1002,10 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-indigo-700 block">Session 2025–2026</span>
-                      <h4 className="text-sm font-bold text-slate-900">Crayon Box School • Class 3 (Section A)</h4>
-                      <p className="text-xs text-slate-500">Admission No: CBS-2024-0042 • Class Teacher: Ms. Pooja Mishra</p>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        {selectedInstitutionObj?.name || 'Academic Campus'} • Class 3 (Section A)
+                      </h4>
+                      <p className="text-xs text-slate-500">Admission No: {student?.admission_no || 'ADM-0042'} • Class Teacher: Ms. Pooja Mishra</p>
                     </div>
                     <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black">
                       PROMOTED (Result: 91.8%)
@@ -1560,10 +1566,11 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                     required
                   >
-                    <option value="CBS">Crayon Box School (CBS)</option>
-                    <option value="CBPS">Crayon Box Play School (CBPS)</option>
-                    <option value="AS">Ananda School (AS)</option>
-                    <option value="AVM">Ananda Vidya Mandir (AVM)</option>
+                    {institutionsList.map((inst: any) => (
+                      <option key={inst.code} value={inst.code}>
+                        {inst.name} ({inst.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
 

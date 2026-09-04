@@ -231,7 +231,7 @@ export default function TeacherAppAttendancePage() {
               {currentTime}
             </div>
             <span className="text-[11px] font-bold text-indigo-400 bg-indigo-950/60 border border-indigo-800/60 px-3 py-0.5 rounded-full inline-block mt-1">
-              {activeCampus?.campus_name || 'Crayon Box School'}
+              {activeCampus?.campus_name || 'Academic Campus'}
             </span>
           </div>
 

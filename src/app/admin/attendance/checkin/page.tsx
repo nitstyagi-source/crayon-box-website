@@ -8,6 +8,7 @@ import {
   Building2, ChevronRight, HelpCircle
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getFacultyList } from "@/app/actions/faculty";
 import { 
   getGeofenceConfig, 
@@ -20,6 +21,7 @@ import FileUpload from "@/components/admin/FileUpload";
 
 export default function StaffCheckInPortal() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [faculty, setFaculty] = useState<any[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [config, setConfig] = useState<any>(null);
@@ -246,7 +248,9 @@ export default function StaffCheckInPortal() {
               <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-black">
                 GEOFENCED ATTENDANCE TERMINAL
               </span>
-              <h2 className="text-xl font-black mt-0.5">{config?.school_name || "Crayon Box School"}</h2>
+              <h2 className="text-xl font-black mt-0.5">
+                {config?.school_name || selectedInstitutionObj?.name || "Campus Attendance Terminal"}
+              </h2>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
               <Building2 className="w-5 h-5 text-amber-400" />

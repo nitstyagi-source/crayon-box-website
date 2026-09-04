@@ -7,16 +7,18 @@ import {
   Save, Sparkles, Building2, CheckCircle2, Sliders, Lock
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getGeofenceConfig, saveGeofenceConfig } from "@/app/actions/attendance";
 
 export default function AttendanceSettingsPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    school_name: "Crayon Box School - Main Campus, Burari",
+    school_name: selectedInstitutionObj?.name || "Campus Attendance Terminal",
     latitude: 28.7533150,
     longitude: 77.2024180,
     geofence_radius_meters: 120,

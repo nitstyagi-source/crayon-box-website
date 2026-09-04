@@ -38,15 +38,15 @@ export async function enhanceTeacherReplyAction(params: {
     let hindiTranslation = "";
 
     if (params.tone === "EMPATHETIC") {
-      polishedReply = `Dear ${parent},\n\nThank you for reaching out to us. We truly value our partnership with you in supporting ${student}'s learning and overall growth.\n\nRegarding your note: ${raw.replace(/^./, (c) => c.toUpperCase())}. We have observed that with a little extra encouragement and structured focus, ${student} responds very well. We are actively guiding them in the classroom, and we would love to collaborate with you to reinforce positive study habits at home as well.\n\nPlease feel free to connect during our upcoming PTM or message us if you notice any further questions. Together, we will ensure ${student} thrives!\n\nWarm regards,\nClass Teacher, Crayon Box School`;
+      polishedReply = `Dear ${parent},\n\nThank you for reaching out to us. We truly value our partnership with you in supporting ${student}'s learning and overall growth.\n\nRegarding your note: ${raw.replace(/^./, (c) => c.toUpperCase())}. We have observed that with a little extra encouragement and structured focus, ${student} responds very well. We are actively guiding them in the classroom, and we would love to collaborate with you to reinforce positive study habits at home as well.\n\nPlease feel free to connect during our upcoming PTM or message us if you notice any further questions. Together, we will ensure ${student} thrives!\n\nWarm regards,\nClass Teacher`;
     } else if (params.tone === "FORMAL") {
-      polishedReply = `Dear ${parent},\n\nThis is with reference to your inquiry regarding ${student}.\n\nOfficial School Assessment: ${raw.replace(/^./, (c) => c.toUpperCase())}. The academic faculty and student mentorship team have noted these observations in accordance with institutional guidelines. Appropriate pedagogical support is being extended in the classroom.\n\nShould you require a detailed academic review, please schedule a formal appointment with the Academic Coordinator.\n\nSincerely,\nOffice of Academic Affairs, Crayon Box School`;
+      polishedReply = `Dear ${parent},\n\nThis is with reference to your inquiry regarding ${student}.\n\nOfficial School Assessment: ${raw.replace(/^./, (c) => c.toUpperCase())}. The academic faculty and student mentorship team have noted these observations in accordance with institutional guidelines. Appropriate pedagogical support is being extended in the classroom.\n\nShould you require a detailed academic review, please schedule a formal appointment with the Academic Coordinator.\n\nSincerely,\nOffice of Academic Affairs`;
     } else if (params.tone === "FIRM_CONSTRUCTIVE") {
-      polishedReply = `Dear ${parent},\n\nWe are writing to share an important developmental update regarding ${student}.\n\nObservation: ${raw.replace(/^./, (c) => c.toUpperCase())}. To ensure ${student} reaches their full academic and personal potential, it is essential that we address this together promptly. We request your active cooperation in reviewing their daily school diary and establishing a consistent routine at home.\n\nWe look forward to working closely with you on this.\n\nBest regards,\nClass Mentor & Faculty Team, Crayon Box School`;
+      polishedReply = `Dear ${parent},\n\nWe are writing to share an important developmental update regarding ${student}.\n\nObservation: ${raw.replace(/^./, (c) => c.toUpperCase())}. To ensure ${student} reaches their full academic and personal potential, it is essential that we address this together promptly. We request your active cooperation in reviewing their daily school diary and establishing a consistent routine at home.\n\nWe look forward to working closely with you on this.\n\nBest regards,\nClass Mentor & Faculty Team`;
     } else {
       // BILINGUAL (English + Hindi)
-      polishedReply = `Dear ${parent},\n\nThank you for reaching out regarding ${student}.\n\nObservation: ${raw.replace(/^./, (c) => c.toUpperCase())}. We are closely supporting ${student} in the classroom and request your guidance at home to maintain consistent progress.\n\nWarm regards,\nCrayon Box School`;
-      hindiTranslation = `प्रिय अभिभावक,\n\n${student} के संबंध में संपर्क करने के लिए धन्यवाद।\n\nशिक्षक अवलोकन: ${raw}। हम कक्षा में ${student} को निरंतर मार्गदर्शन दे रहे हैं और आपसे अनुरोध करते हैं कि घर पर भी दैनिक अभ्यास और सकारात्मक दिनचर्या बनाए रखने में सहयोग दें।\n\nसादर,\nक्रेयॉन बॉक्स स्कूल`;
+      polishedReply = `Dear ${parent},\n\nThank you for reaching out regarding ${student}.\n\nObservation: ${raw.replace(/^./, (c) => c.toUpperCase())}. We are closely supporting ${student} in the classroom and request your guidance at home to maintain consistent progress.\n\nWarm regards,\nAcademic Faculty`;
+      hindiTranslation = `प्रिय अभिभावक,\n\n${student} के संबंध में संपर्क करने के लिए धन्यवाद।\n\nशिक्षक अवलोकन: ${raw}। हम कक्षा में ${student} को निरंतर मार्गदर्शन दे रहे हैं और आपसे अनुरोध करते हैं कि घर पर भी दैनिक अभ्यास और सकारात्मक दिनचर्या बनाए रखने में सहयोग दें।\n\nसादर,\nशैक्षणिक संकाय`;
     }
 
     return {
@@ -69,20 +69,26 @@ export async function generateSchoolCircularAction(params: {
   eventDate?: string;
   keyPoints: string;
   isUrgent?: boolean;
+  schoolName?: string;
+  schoolAddress?: string;
+  affiliation?: string;
 }) {
   const p = getPool();
   const client = await p.connect();
 
   try {
-    const refNo = `CBS/CIR/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
+    const schName = params.schoolName || "OFFICIAL EDUCATIONAL INSTITUTION";
+    const schAffil = params.affiliation || "Recognized Educational Institution";
+    const schAddress = params.schoolAddress || "Academic Campus Administration";
+    const refNo = `ADM/CIR/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
     const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const circularHtml = `
       <div class="circular-document space-y-4 text-xs font-serif leading-relaxed">
         <div class="text-center border-b-2 border-stone-900 pb-3">
-          <div class="font-bold tracking-widest text-[10px] text-stone-500 uppercase">Registration No: 2730588 • School Code: 25189</div>
-          <h2 class="text-xl font-black text-blue-950 tracking-tight">CRAYON BOX SCHOOL</h2>
-          <div class="text-[11px] text-stone-600 font-sans font-medium">Sant Nagar • Burari • Delhi-110084 | Email: contact@crayonboxschool.com</div>
+          <div class="font-bold tracking-widest text-[10px] text-stone-500 uppercase">${schAffil}</div>
+          <h2 class="text-xl font-black text-blue-950 tracking-tight">${schName}</h2>
+          <div class="text-[11px] text-stone-600 font-sans font-medium">${schAddress}</div>
         </div>
 
         <div class="flex justify-between items-center text-[11px] font-mono font-bold border-b border-stone-200 pb-2">

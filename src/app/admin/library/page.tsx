@@ -1325,7 +1325,7 @@ function LibraryManagementContent() {
             <div id="library-barcode-sheet" className="p-6 bg-white border border-slate-200 rounded-2xl space-y-4">
               <div className="border-b border-slate-900 pb-2 text-center">
                 <h2 className="text-sm font-black uppercase tracking-wider text-slate-950">
-                  {selectedInstitutionObj?.name || "CRAYON BOX HIGH SCHOOL"} &bull; CENTRAL LIBRARY ACCESSION LABELS
+                  {selectedInstitutionObj?.name || "CENTRAL LIBRARY ACCESSION LABELS"}
                 </h2>
               </div>
 
@@ -1333,7 +1333,7 @@ function LibraryManagementContent() {
                 {accessions.slice(0, 18).map((acc) => (
                   <div key={acc.id} className="p-3 border-2 border-slate-900 rounded-xl text-center space-y-1 bg-white">
                     <span className="text-[9px] font-black uppercase text-slate-700 block truncate">
-                      CRAYON BOX LIBRARY
+                      {selectedInstitutionObj?.shortName || selectedInstitutionObj?.name || "CAMPUS"} LIBRARY
                     </span>
                     <strong className="text-xs font-black text-slate-900 font-mono block">
                       {acc.accession_number}

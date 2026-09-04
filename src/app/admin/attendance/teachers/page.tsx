@@ -52,11 +52,11 @@ export default function AdminTeacherAttendancePage() {
   const [selectedGeofenceInst, setSelectedGeofenceInst] = useState<string>('CBS');
   const [isSavingGeofence, setIsSavingGeofence] = useState(false);
   const [geofenceForm, setGeofenceForm] = useState({
-    campusName: 'Crayon Box School — Main Campus',
+    campusName: selectedInstitutionObj?.name || 'Campus Geofence Terminal',
     latitude: 28.7183200,
     longitude: 77.2144500,
     radiusMeters: 250,
-    address: 'Plot 12, Institutional Area, Sector 62, Noida, UP'
+    address: selectedInstitutionObj?.address || 'Institutional Campus'
   });
 
   const fetchRoster = async () => {

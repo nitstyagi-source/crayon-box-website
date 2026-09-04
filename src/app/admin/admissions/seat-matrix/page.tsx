@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { SeatMatrixWaitlistDesk } from '@/components/innovations/SeatMatrixWaitlistDesk';
 
 export const metadata: Metadata = {
-  title: 'Seat Matrix & Waitlist Radar | Crayon Box ERP',
+  title: 'Seat Matrix & Waitlist Radar | Vani ERP',
   description: 'Dynamic seat inventory and waitlist quota manager across admissions pools.',
 };
 

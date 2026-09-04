@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -1782,33 +1783,32 @@ export interface ReceiptTemplateSettings {
 
 export async function getReceiptTemplateSettingsAction(institutionCode?: string) {
   try {
+    const staticInst = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode);
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode).catch(() => null);
 
-    const { data: campus } = await supabase
-      .from('campuses')
-      .select('*')
-      .eq('id', resolvedId)
-      .single();
+    let campus: any = null;
+    if (resolvedId) {
+      const { data } = await supabase
+        .from('campuses')
+        .select('*')
+        .eq('id', resolvedId)
+        .single();
+      campus = data;
+    }
 
-    const { data: inst } = await supabase
-      .from('institutions')
-      .select('*')
-      .eq('status', 'ACTIVE')
-      .limit(1)
-      .single();
-
+    const instName = staticInst?.name || campus?.name || 'School Fee Billing';
     const settings: ReceiptTemplateSettings = {
-      institution_name: campus?.name || inst?.name || 'CRAYON BOX HIGH SCHOOL',
-      affiliation_number: inst?.affiliation_number || 'REG-1253481',
-      school_id: campus?.school_id || inst?.school_id_number || '1253481',
-      udise_code: campus?.udise_code || inst?.udise_code || '07124100151',
-      contact_phone: campus?.contact_phone || inst?.phone_number || '9811102008',
-      contact_email: campus?.contact_email || inst?.principal_email || 'crayonboxdelhi@gmail.com',
-      address: campus?.address || inst?.address || 'Burari, Sant Nagar, Delhi - 110084',
+      institution_name: instName,
+      affiliation_number: staticInst?.affiliationNumber || 'CBSE/AFF',
+      school_id: campus?.school_id || staticInst?.code || 'SCH-01',
+      udise_code: campus?.udise_code || '07124100151',
+      contact_phone: campus?.contact_phone || '9811102008',
+      contact_email: campus?.contact_email || staticInst?.principalEmail || 'accounts@school.edu.in',
+      address: staticInst?.address || campus?.address || 'Main Campus, Delhi NCR',
       receipt_title: 'FEE RECEIPT',
-      sub_title: 'Recognized & Registered Institution, Delhi NCR • Quality Education Foundation',
-      default_signatory: 'LAXMI (2026-2027)',
+      sub_title: 'Recognized & Registered Institution • Quality Education Foundation',
+      default_signatory: 'Accounts Counter',
       terms_and_conditions: '1. Fees once paid is non-refundable. 2. Cheques are subject to realization. 3. Please retain this receipt for year-end tax and verification purposes.',
       footer_disclaimer: 'This is a computer-generated fee receipt and does not require a physical seal unless explicitly requested.',
       show_qr_verification: true,
@@ -1817,19 +1817,20 @@ export async function getReceiptTemplateSettingsAction(institutionCode?: string)
 
     return { success: true, data: settings };
   } catch (error: any) {
+    const staticInst = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode);
     return {
       success: true,
       data: {
-        institution_name: 'CRAYON BOX HIGH SCHOOL',
-        affiliation_number: 'REG-1253481',
-        school_id: '1253481',
+        institution_name: staticInst?.name || 'School Fee Billing',
+        affiliation_number: staticInst?.affiliationNumber || 'CBSE/AFF',
+        school_id: staticInst?.code || 'SCH-01',
         udise_code: '07124100151',
         contact_phone: '9811102008',
-        contact_email: 'crayonboxdelhi@gmail.com',
-        address: 'Burari, Sant Nagar, Delhi - 110084',
+        contact_email: staticInst?.principalEmail || 'accounts@school.edu.in',
+        address: staticInst?.address || 'Main Campus, Delhi NCR',
         receipt_title: 'FEE RECEIPT',
-        sub_title: 'Recognized & Registered Institution, Delhi NCR • Quality Education Foundation',
-        default_signatory: 'LAXMI (2026-2027)',
+        sub_title: 'Recognized & Registered Institution • Quality Education Foundation',
+        default_signatory: 'Accounts Counter',
         terms_and_conditions: '1. Fees once paid is non-refundable. 2. Cheques are subject to realization. 3. Please retain this receipt for year-end tax and verification purposes.',
         footer_disclaimer: 'This is a computer-generated fee receipt and does not require a physical seal unless explicitly requested.',
         show_qr_verification: true,

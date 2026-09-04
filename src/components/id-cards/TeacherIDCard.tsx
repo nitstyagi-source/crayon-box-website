@@ -25,10 +25,10 @@ export function TeacherIDCard({ teacher, faculty, schoolInfo = {}, isBack = fals
   const emergencyPhone = t.emergency_contact || '9810081008';
   const address = t.address || 'Sant Nagar, Burari, Delhi - 110084';
   
-  const schName = schoolInfo.name || 'CRAYON BOX SCHOOL';
-  const schAffiliation = schoolInfo.boardAffiliation || 'CBSE AFFILIATED (REG. 2730588)';
-  const schWebsite = schoolInfo.website || 'www.crayonboxschool.edu.in';
-  const schPhone = schoolInfo.phone || '011-45678901';
+  const schName = schoolInfo.name || 'INSTITUTION IDENTITY';
+  const schAffiliation = schoolInfo.boardAffiliation || 'AFFILIATED INSTITUTION';
+  const schWebsite = schoolInfo.website || '';
+  const schPhone = schoolInfo.phone || '';
 
   // BACK FACE
   if (isBack) {

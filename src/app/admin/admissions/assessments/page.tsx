@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { ParentAssessmentBookingDesk } from '@/components/innovations/ParentAssessmentBookingDesk';
 
 export const metadata: Metadata = {
-  title: 'Parent Assessment Booking | Crayon Box ERP',
+  title: 'Parent Assessment Booking | Vani ERP',
   description: 'Self-service admissions interview and assessment scheduling calendar.',
 };
 

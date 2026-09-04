@@ -20,7 +20,7 @@ interface EvacuationTally {
 
 export function EmergencyBroadcastDesk() {
   const { activeCampusId } = useCampusContext();
-  const { selectedInstitutionObj } = useInstitution();
+  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const [isLockdownActive, setIsLockdownActive] = useState(false);
   const [selectedProtocol, setSelectedProtocol] = useState<"LOCKDOWN" | "FIRE" | "EARTHQUAKE" | "SMOG">("LOCKDOWN");
@@ -111,7 +111,7 @@ export function EmergencyBroadcastDesk() {
                 {isLockdownActive ? "RED ALERT ACTIVE" : "CAMPUS READY STATE"}
               </span>
               <span className="text-xs font-semibold text-stone-500">
-                {selectedInstitutionObj?.name || "Crayon Box School"}
+                {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "Campus Emergency Desk")}
               </span>
             </div>
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-2.5">

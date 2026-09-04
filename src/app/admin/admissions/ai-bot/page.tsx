@@ -46,8 +46,10 @@ import {
   VaniKnowledgeGap,
   VaniConversationRecord
 } from "@/app/actions/vani-admissions-actions";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export default function VaniAiAdmissionsReceptionistPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"SIMULATOR" | "KNOWLEDGE_BASE" | "GAPS" | "ANALYTICS">("SIMULATOR");
 
   // --------------------------------------------------------------------------
@@ -61,7 +63,7 @@ export default function VaniAiAdmissionsReceptionistPage() {
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; time: string }>>([
     {
       role: "assistant",
-      text: "Namaste and welcome to Crayon Box School! 🙏 I am VANI, your 24/7 Admissions Receptionist. I can assist you with fee structures, age eligibility, bus routes across Delhi NCR, curriculum, and campus tour bookings. May I know your child's name?",
+      text: `Namaste and welcome to ${selectedInstitutionObj?.name || 'our school'}! 🙏 I am Vani Copilot, your 24/7 Admissions Receptionist. I can assist you with fee structures, age eligibility, bus routes across Delhi NCR, curriculum, and campus tour bookings. May I know your child's name?`,
       time: "Just now"
     }
   ]);
@@ -194,7 +196,7 @@ export default function VaniAiAdmissionsReceptionistPage() {
     setChatMessages([
       {
         role: "assistant",
-        text: "Namaste and welcome to Crayon Box School! 🙏 I am VANI, your 24/7 Admissions Receptionist. I can assist you with fee structures, age eligibility, bus routes across Delhi NCR, curriculum, and campus tour bookings. May I know your child's name?",
+        text: `Namaste and welcome to ${selectedInstitutionObj?.name || 'our school'}! 🙏 I am Vani Copilot, your 24/7 Admissions Receptionist. I can assist you with fee structures, age eligibility, bus routes across Delhi NCR, curriculum, and campus tour bookings. May I know your child's name?`,
         time: "Just now"
       }
     ]);

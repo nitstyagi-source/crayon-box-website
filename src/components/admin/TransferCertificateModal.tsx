@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Printer, Download, X, Edit3, Eye, FileText, CheckCircle2, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 interface TransferCertificateProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export default function TransferCertificateModal({
   student,
   onLogTC
 }: TransferCertificateProps) {
+  const { selectedInstitutionObj } = useInstitution();
   const printRef = useRef<HTMLDivElement>(null);
   const [activeView, setActiveView] = useState<"preview" | "edit">("preview");
   const [isLogging, setIsLogging] = useState(false);
@@ -36,10 +38,10 @@ export default function TransferCertificateModal({
 
   // Certificate Editable State
   const [tcData, setTcData] = useState({
-    ref_no: `CBS/SLC/${new Date().getFullYear()}/${student?.admission_no?.replace(/\D/g, '') || Math.floor(100 + Math.random() * 900)}`,
+    ref_no: `${selectedInstitutionObj?.code || 'SCH'}/SLC/${new Date().getFullYear()}/${student?.admission_no?.replace(/\D/g, '') || Math.floor(100 + Math.random() * 900)}`,
     issue_date: todayStr,
-    school_name_id: "CRAYON BOX SCHOOL (1253481)",
-    udise_code: "07124100151",
+    school_name_id: `${selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"} (${selectedInstitutionObj?.affiliationNumber || selectedInstitutionObj?.code || "1253481"})`,
+    udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
     student_name: `${student?.first_name || ""} ${student?.middle_name || ""} ${student?.last_name || ""}`.trim().toUpperCase(),
     father_name: (father?.name || "").toUpperCase(),
     mother_name: (mother?.name || "").toUpperCase(),
@@ -371,17 +373,18 @@ export default function TransferCertificateModal({
                   {/* School Logo */}
                   <div className="w-14 h-14 relative shrink-0">
                     <img
-                      src="/logo.png"
-                      alt="Crayon Box School Logo"
+                      src={selectedInstitutionObj?.logoUrl || "/logo.png"}
+                      alt={selectedInstitutionObj?.name || "School Logo"}
                       className="w-14 h-14 object-contain"
+                      onError={(e) => { e.currentTarget.src = "/trust-logo.png"; }}
                     />
                   </div>
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-wider text-slate-900 uppercase font-sans">
-                      C R A Y O N &nbsp; B O X
+                    <h1 className="text-xl sm:text-2xl font-black tracking-wider text-slate-900 uppercase font-sans">
+                      {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
                     </h1>
-                    <p className="text-xs font-bold tracking-[0.25em] text-slate-700 uppercase -mt-0.5">
-                      S C H O O L
+                    <p className="text-[10px] font-bold tracking-widest text-slate-700 uppercase">
+                      {selectedInstitutionObj?.boardAffiliation ? `${selectedInstitutionObj.boardAffiliation} AFFILIATED` : "RECOGNIZED INSTITUTION"}
                     </p>
                   </div>
                 </div>

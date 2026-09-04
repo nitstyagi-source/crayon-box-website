@@ -20,8 +20,10 @@ import {
   StudentIdCardBadge
 } from "@/app/actions/id-card-studio-actions";
 import { StudentSuiteTabs } from "@/components/students/StudentSuiteTabs";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export default function BatchIDCardStudioPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [selectedClass, setSelectedClass] = useState("Class 1");
   const [cards, setCards] = useState<StudentIdCardBadge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,9 +111,11 @@ export default function BatchIDCardStudioPage() {
               <div className="text-[8px] font-bold text-amber-300 uppercase tracking-widest">
                 Recognized &amp; Registered School • Delhi
               </div>
-              <h4 className="text-sm font-black tracking-tight">CRAYON BOX SCHOOL</h4>
+              <h4 className="text-sm font-black tracking-tight uppercase">
+                {selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
+              </h4>
               <div className="text-[8px] text-blue-200/80 font-sans">
-                Sant Nagar, Burari, Delhi-110084
+                {selectedInstitutionObj?.address || "Recognized Institutional Campus"}
               </div>
             </div>
 

@@ -53,10 +53,10 @@ export const VaniGlobalDrawer: React.FC<Props> = ({
       if (messages.length === 0) {
         // Initial greeting
         const greeting = userRole === "Faculty" || userRole === "Teacher"
-          ? `Good day, ${userName}! 👩‍🏫 I am VANI, your Classroom Copilot. I can prepare your NEP 2020 lesson plans, draft differentiated homework, and check your teaching timetable.`
+          ? `Good day, ${userName}! 👩‍🏫 I am Vani Copilot, your Classroom Copilot. I can prepare your NEP 2020 lesson plans, draft differentiated homework, and check your teaching timetable.`
           : userRole === "Parent"
-            ? `Namaste, ${userName}! 👨‍👩‍👧 I am VANI, your Family Assistant. I can track your child's bus GPS radar, show today's homework, and provide fee statements.`
-            : `Good morning, ${userName}! 👑 I am VANI, your School Operating Intelligence Layer. I have prepared your morning School Pulse and attendance exception reports.`;
+            ? `Namaste, ${userName}! 👨‍👩‍👧 I am Vani Copilot, your Family Assistant. I can track your child's bus GPS radar, show today's homework, and provide fee statements.`
+            : `Good morning, ${userName}! 👑 I am Vani Copilot, your School Operating Intelligence Layer. I have prepared your morning School Pulse and attendance exception reports.`;
         setMessages([{ role: "vani", text: greeting }]);
       }
     }

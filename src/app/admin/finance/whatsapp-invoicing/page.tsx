@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { WhatsAppInvoicingCenter } from '@/components/innovations/WhatsAppInvoicingCenter';
 
 export const metadata: Metadata = {
-  title: 'WhatsApp UPI Invoicing | Crayon Box ERP',
+  title: 'WhatsApp UPI Invoicing | Vani ERP',
   description: 'Automated quarterly fee invoices with 1-click Razorpay/UPI deep links.',
 };
 

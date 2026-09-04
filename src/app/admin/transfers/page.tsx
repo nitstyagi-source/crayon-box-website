@@ -288,7 +288,9 @@ export default function TransferCertificatesPage() {
             {/* School Crest Header */}
             <div className="text-center border-b-2 border-emerald-900 pb-4 space-y-1">
               <span className="text-[10px] font-sans font-black tracking-widest text-emerald-900 uppercase">Vani Educational Trust</span>
-              <h2 className="text-xl font-bold uppercase tracking-tight text-emerald-950">CRAYON BOX INTERNATIONAL SCHOOL</h2>
+              <h2 className="text-xl font-bold uppercase tracking-tight text-emerald-950">
+                {selectedInstitutionObj?.name || "OFFICIAL EDUCATIONAL INSTITUTION"}
+              </h2>
               <p className="text-[10px] font-sans text-slate-500">Recognized &amp; Registered Institution, Delhi NCR • Reg No: 2730891 • School Code: 07010203401</p>
               <h3 className="text-sm font-sans font-black uppercase text-emerald-800 tracking-wider pt-2">TRANSFER CERTIFICATE</h3>
             </div>

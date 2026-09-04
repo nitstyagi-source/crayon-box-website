@@ -6,10 +6,12 @@ import {
   CheckCircle2, AlertTriangle, TrendingUp, TrendingDown, BookOpen
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getSyllabusDashboard } from "@/app/actions/syllabus-core";
 
 export default function SyllabusReportsPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [selectedClass, setSelectedClass] = useState("All");
   const [selectedSession, setSelectedSession] = useState("2026-2027");
   const [reportData, setReportData] = useState<any>(null);
@@ -136,7 +138,9 @@ export default function SyllabusReportsPage() {
         {/* Print Header */}
         <div className="border-b border-stone-200 pb-4 flex justify-between items-end">
           <div>
-            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">CRAYON BOX SCHOOL</h2>
+            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">
+              {selectedInstitutionObj?.name || "ACADEMIC INSTITUTION"}
+            </h2>
             <p className="text-xs text-stone-500 font-bold">
               Curriculum Variance & Syllabus Pacing Audit Report • Session {selectedSession}
             </p>

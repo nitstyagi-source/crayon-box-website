@@ -168,7 +168,7 @@ export const VaniCommandPalette: React.FC<Props> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Ask VANI anything (e.g. "${suggestions[0].replace(/^[^\s]+\s/, '')}")...`}
+            placeholder={`Ask Vani Copilot anything (e.g. "${suggestions[0].replace(/^[^\s]+\s/, '')}")...`}
             autoFocus
             className="flex-1 bg-transparent border-none text-xs text-stone-900 focus:outline-none font-semibold placeholder:text-stone-400"
           />

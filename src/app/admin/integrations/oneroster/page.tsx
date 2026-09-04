@@ -60,7 +60,7 @@ export default function OneRosterIntegrationPage() {
       <VastuModuleBanner
         badgeText="1EDTECH GLOBAL INTEROPERABILITY"
         title="OneRoster v1.2 & LTI 1.3 Advantage Gateway"
-        description="Connect Crayon Box School rosters automatically with Google Classroom, Canvas LMS, Schoology, and Apple School Manager."
+        description="Connect institutional rosters automatically with Google Classroom, Canvas LMS, Schoology, and Apple School Manager."
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

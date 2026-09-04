@@ -29,6 +29,8 @@ import {
   User
 } from 'lucide-react';
 
+import { useInstitution } from '@/components/providers/InstitutionContext';
+
 export interface Student360ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,6 +44,7 @@ export function Student360ProfileModal({
   student,
   onSaveProfile
 }: Student360ProfileModalProps) {
+  const { selectedInstitutionObj } = useInstitution();
   const [modalView, setModalView] = useState<'dossier' | 'edit' | 'id_card' | 'tc'>('dossier');
   const [activeTab, setActiveTab] = useState<
     'overview' | 'family' | 'academics' | 'attendance' | 'fees' | 'transport' | 'documents' | 'lifecycle'
@@ -824,15 +827,17 @@ export function Student360ProfileModal({
                 {/* Top Navy Arc */}
                 <div className="bg-[#0A2558] h-24 flex items-end justify-center pb-2 relative">
                   <div className="w-16 h-16 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center absolute -bottom-6 shadow-md z-10">
-                    <img src="/trust-logo.png" alt="Crayon Box" className="w-12 h-12 object-contain" />
+                    <img src={selectedInstitutionObj?.logoUrl || "/trust-logo.png"} alt={selectedInstitutionObj?.name || "Institution Logo"} className="w-12 h-12 object-contain" />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
                 </div>
 
                 {/* School Typography */}
                 <div className="mt-8 px-2">
-                  <div className="text-base font-black tracking-wider text-[#0A2558]">CRAYON BOX</div>
-                  <div className="text-[10px] font-bold text-red-600 tracking-widest uppercase">— S C H O O L —</div>
+                  <div className="text-base font-black tracking-wider text-[#0A2558] truncate">
+                    {selectedInstitutionObj?.shortName || selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
+                  </div>
+                  <div className="text-[10px] font-bold text-red-600 tracking-widest uppercase">— {selectedInstitutionObj?.code || "CAMPUS"} —</div>
                   <div className="text-[8px] font-bold text-slate-500 tracking-wider">LEARN • GROW • SHINE</div>
                 </div>
 
@@ -1010,9 +1015,15 @@ export function Student360ProfileModal({
               <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-slate-300 text-slate-900">
                 {/* Certificate Header */}
                 <div className="text-center border-b-2 border-slate-900 pb-4 mb-4">
-                  <div className="text-lg font-black tracking-wider uppercase text-slate-900">CRAYON BOX SCHOOL</div>
-                  <div className="text-[11px] font-medium text-slate-600">CBSE Affiliation No. 213089 • School Code: 70912</div>
-                  <div className="text-[10px] text-slate-500">Plot 4, Sector 62, Noida, Gautam Buddha Nagar, UP - 201309</div>
+                  <div className="text-lg font-black tracking-wider uppercase text-slate-900">
+                    {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-600">
+                    {selectedInstitutionObj?.affiliationNumber ? `Affiliation No. ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Official Student Record")}
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    {[selectedInstitutionObj?.address, selectedInstitutionObj?.phone ? `Ph: ${selectedInstitutionObj.phone}` : null].filter(Boolean).join(" • ") || "Campus Administration"}
+                  </div>
                   <div className="inline-block mt-3 px-4 py-1 bg-slate-900 text-amber-300 font-black text-xs uppercase tracking-widest rounded-md">
                     TRANSFER CERTIFICATE / SCHOOL LEAVING CERTIFICATE
                   </div>

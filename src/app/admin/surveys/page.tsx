@@ -9,6 +9,7 @@ import {
   HelpCircle, ChevronRight, Layers, Building2, Tag
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { 
   getSurveyDashboardStats,
   getSurveyFormsList,
@@ -20,6 +21,7 @@ import {
 
 export default function SurveysManagementPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
 
   // Navigation Sub-tabs
   const [activeTab, setActiveTab] = useState<
@@ -640,7 +642,7 @@ export default function SurveysManagementPage() {
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 text-xs text-center border-4 border-purple-600">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 block">
-                CRAYON BOX SCHOOL
+                {selectedInstitutionObj?.name || "INSTITUTION FEEDBACK"}
               </span>
               <h3 className="text-base font-black text-stone-900 mt-1">{selectedQrForm.title}</h3>
               <p className="text-[10px] text-stone-400 font-mono mt-0.5">{selectedQrForm.qr_code_token}</p>

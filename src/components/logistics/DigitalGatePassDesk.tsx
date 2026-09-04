@@ -32,12 +32,14 @@ import {
 } from "@/app/actions/gate-pass-actions";
 import { StudentQRCode } from "@/components/id-cards/StudentQRCode";
 import { VastuMandalaWatermark } from "@/components/common/VastuMandalaWatermark";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export function DigitalGatePassDesk({
   defaultTab = "early_exit"
 }: {
   defaultTab?: "early_exit" | "visitor" | "active_passes";
 }) {
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"early_exit" | "visitor" | "active_passes">(defaultTab);
   const [passes, setPasses] = useState<GatePassRecord[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -562,7 +564,9 @@ export function DigitalGatePassDesk({
 
             {/* Pass Header */}
             <div className="space-y-1 z-10 relative">
-              <h3 className="text-sm font-black uppercase text-[#0B1B30] tracking-wider">CRAYON BOX SCHOOL</h3>
+              <h3 className="text-sm font-black uppercase text-[#0B1B30] tracking-wider">
+                {selectedInstitutionObj?.name || "CAMPUS GATE PASS"}
+              </h3>
               <div className="inline-block px-3 py-0.5 rounded-full bg-amber-400 text-stone-950 text-[10px] font-black uppercase tracking-wide">
                 {previewPass.pass_type === 'STUDENT_EARLY_EXIT' ? 'STUDENT EARLY EXIT PASS' : 'OFFICIAL VISITOR PASS'}
               </div>

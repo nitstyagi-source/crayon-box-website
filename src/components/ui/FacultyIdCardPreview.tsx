@@ -7,6 +7,7 @@ import {
   Calendar, Layers, MapPin
 } from "lucide-react";
 import QRCode from "qrcode";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export interface FacultyCardData {
   id: string;
@@ -54,6 +55,12 @@ export default function FacultyIdCardPreview({
   showBack = false,
   isPrintMode = false
 }: FacultyIdCardProps) {
+  const { selectedInstitutionObj } = useInstitution();
+  const schoolName = selectedInstitutionObj?.name || "FACULTY IDENTITY CARD";
+  const campusCode = selectedInstitutionObj?.code || "CB";
+  const schoolAddress = selectedInstitutionObj?.address || "Main Institutional Campus";
+  const schoolPhone = selectedInstitutionObj?.phone || "";
+  const schoolEmail = selectedInstitutionObj?.email || "";
   const [qrUrl, setQrUrl] = useState<string>("");
 
   const qrToken = faculty.card?.qrToken || `CBS-FAC-VERIFY-${faculty.employeeCode || faculty.employeeId}-${faculty.id.substring(0, 6)}`;
@@ -117,10 +124,10 @@ export default function FacultyIdCardPreview({
           
           <div className="flex items-center justify-center gap-2 mb-0.5">
             <div className="w-6 h-6 rounded-full bg-white text-purple-950 flex items-center justify-center font-black text-xs shadow-xs shrink-0">
-              CB
+              {campusCode}
             </div>
             <h2 className="font-black text-sm uppercase tracking-wider">
-              CRAYON BOX SCHOOL
+              {schoolName}
             </h2>
           </div>
           
@@ -214,8 +221,8 @@ export default function FacultyIdCardPreview({
 
         {/* Bottom Strip */}
         <div className="px-3 py-1.5 bg-stone-900 text-stone-300 flex justify-between items-center text-[8px] font-mono shrink-0">
-          <span>MAIN CAMPUS</span>
-          <span className="text-amber-400 font-bold">CRAYON BOX SCHOOL</span>
+          <span>{campusCode} CAMPUS</span>
+          <span className="text-amber-400 font-bold">{schoolName}</span>
         </div>
       </div>
 
@@ -268,20 +275,20 @@ export default function FacultyIdCardPreview({
 
           {/* Official School Contact Block */}
           <div className="bg-purple-50/70 border border-purple-200 p-2.5 rounded-xl text-[9px] space-y-1 text-purple-950 font-sans">
-            <strong className="block font-black text-purple-900 uppercase">CRAYON BOX SCHOOL</strong>
+            <strong className="block font-black text-purple-900 uppercase">{schoolName}</strong>
             <div className="flex items-start gap-1 text-stone-600">
               <MapPin className="w-2.5 h-2.5 mt-0.5 text-purple-700 shrink-0" />
-              <span>Sant Nagar, Main Burari Road, Delhi - 110084</span>
+              <span>{schoolAddress}</span>
             </div>
             <div className="flex justify-between text-stone-600 pt-0.5 font-mono">
-              <span>Ph: 9811102008</span>
-              <span>crayonboxdelhi@gmail.com</span>
+              <span>{schoolPhone ? `Ph: ${schoolPhone}` : "Institutional Line"}</span>
+              <span>{schoolEmail || "Official Domain"}</span>
             </div>
           </div>
 
           {/* Legal / Institutional Disclaimer */}
           <div className="p-2 bg-stone-100 rounded-lg text-[8px] text-stone-600 leading-relaxed italic border border-stone-200">
-            "This card remains the exclusive property of Crayon Box School and must be returned upon separation from the organization. Loss of this card must be immediately reported to the Administration Office."
+            "This card remains the exclusive property of {schoolName} and must be returned upon separation from the organization. Loss of this card must be immediately reported to the Administration Office."
           </div>
 
           {/* Authorized Signature Block */}

@@ -21,8 +21,10 @@ import {
 import { StudentSuiteTabs } from "@/components/students/StudentSuiteTabs";
 import { VastuMandalaWatermark } from "@/components/common/VastuMandalaWatermark";
 import { StudentQRCode } from "@/components/id-cards/StudentQRCode";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export default function TransferCertificateStudioPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [certificates, setCertificates] = useState<TcRecord[]>([]);
   const [selectedTc, setSelectedTc] = useState<TcRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -290,10 +292,10 @@ export default function TransferCertificateStudioPage() {
                     Recognized &amp; Registered Educational Institution, Delhi NCR
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black text-[#0B1B30] tracking-tight uppercase">
-                    CRAYON BOX SCHOOL
+                    {selectedInstitutionObj?.name || "OFFICIAL EDUCATIONAL INSTITUTION"}
                   </h2>
                   <div className="text-xs text-stone-600 font-medium">
-                    Sant Nagar, Burari, Delhi-110084 | Email: info@crayonboxschool.edu.in
+                    {selectedInstitutionObj?.address || "Recognized Campus, Delhi NCR"} | Affiliation: {selectedInstitutionObj?.affiliationNumber || "CBSE/AFF"}
                   </div>
                   <div className="flex justify-center gap-6 text-[10px] font-mono text-stone-700 pt-1 font-bold">
                     <span>Registration No: 2730588</span>

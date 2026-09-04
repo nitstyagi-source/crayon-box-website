@@ -35,8 +35,10 @@ import { AdminNewEnquiryForm } from '@/components/enquiry/AdminNewEnquiryForm';
 import { AiLeadScoringDesk } from '@/components/admissions/AiLeadScoringDesk';
 import { Button } from '@/components/ui/Button';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 function AdmissionsCommandCenterContent() {
+  const { selectedInstitutionObj } = useInstitution();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -82,7 +84,7 @@ function AdmissionsCommandCenterContent() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; time: string }>>([
     {
       sender: 'bot',
-      text: 'Namaste! 🙏 Welcome to Crayon Box School Admissions Helpdesk. I can answer questions about fee structures, academic curriculum, age criteria, and bus transport routes across Delhi. How may I assist you today?',
+      text: `Namaste! 🙏 Welcome to ${selectedInstitutionObj?.name || 'School'} Admissions Helpdesk. I am Vani Copilot, your admissions assistant. I can answer questions about fee structures, academic curriculum, age criteria, and bus transport routes across Delhi. How may I assist you today?`,
       time: 'Just now'
     }
   ]);
@@ -169,7 +171,7 @@ function AdmissionsCommandCenterContent() {
       if (res.success && res.aiResponse) {
         setChatMessages(prev => [...prev, { sender: 'bot', text: res.aiResponse, time: 'Just now' }]);
       } else {
-        setChatMessages(prev => [...prev, { sender: 'bot', text: "Thank you for reaching out to Crayon Box Admissions. Our team is available at +91 9811102008 to assist you with registration details.", time: 'Just now' }]);
+        setChatMessages(prev => [...prev, { sender: 'bot', text: `Thank you for reaching out to ${selectedInstitutionObj?.name || 'Admissions'}. Our team is available at ${selectedInstitutionObj?.phone || '+91 9811102008'} to assist you with registration details.`, time: 'Just now' }]);
       }
     } catch (err: any) {
       setChatMessages(prev => [...prev, { sender: 'bot', text: 'Error connecting to Admissions AI Assistant.', time: 'Just now' }]);

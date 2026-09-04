@@ -149,7 +149,7 @@ export function EscortPickupCard({ escort, session = '2026–2027', layoutMode =
 
           {/* Bottom Strip */}
           <div className="bg-[#0B1B30] text-amber-100 text-[8px] font-medium py-1.5 px-3 text-center z-10 border-t border-[#D4AF37]/30">
-            DISPERSAL GATE SYSTEM • CRAYON BOX ERP
+            DISPERSAL GATE SYSTEM • VANI ERP
           </div>
         </div>
       )}

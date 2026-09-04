@@ -23,8 +23,7 @@ import { getProcurementPurchaseOrdersAction } from "@/app/actions/helpdesk-procu
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function ManagementReportsModule() {
-  const { currentInstitution } = useInstitution();
-  const { selectedInstitutionObj } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const [activeTab, setActiveTab] = useState<"daily" | "monthly" | "procurement" | "defaulters">("daily");
 
@@ -312,7 +311,7 @@ export default function ManagementReportsModule() {
 
     if (txns.length === 0) return;
 
-    const schoolName = selectedInstitutionObj?.name || "CRAYON BOX HIGH SCHOOL";
+    const schoolName = selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Division");
     const dateRangeLabel = isMonthly 
       ? `From : ${monthlyData.startDate || `01/${monthlyMonth}/${monthlyYear}`}   To : ${monthlyData.endDate || `31/${monthlyMonth}/${monthlyYear}`}`
       : `From : ${dailyFromDate}   To : ${dailyToDate}`;
@@ -395,7 +394,7 @@ export default function ManagementReportsModule() {
   function exportDefaultersCSV() {
     if (filteredDefaulters.length === 0) return;
 
-    const schoolName = selectedInstitutionObj?.name || "CRAYON BOX HIGH SCHOOL";
+    const schoolName = selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Division");
     const affiliation = selectedInstitutionObj?.affiliation_number 
       ? `Registration No: ${selectedInstitutionObj.affiliation_number} • Delhi NCR`
       : "Recognized & Registered Institution, Delhi NCR • Quality Education Foundation";
@@ -722,7 +721,7 @@ export default function ManagementReportsModule() {
             {/* Official School Print Letterhead Banner */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-1 text-center">
               <h1 className="text-base sm:text-lg font-black text-stone-950 uppercase tracking-tight">
-                {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Department")}
               </h1>
               <p className="text-[10.5px] font-bold text-stone-700">
                 {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
@@ -1083,7 +1082,7 @@ export default function ManagementReportsModule() {
             {/* Official School Print Letterhead Banner */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-1 text-center">
               <h1 className="text-base sm:text-lg font-black text-stone-950 uppercase tracking-tight">
-                {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Department")}
               </h1>
               <p className="text-[10.5px] font-bold text-stone-700">
                 {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}

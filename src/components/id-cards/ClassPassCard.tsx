@@ -12,7 +12,7 @@ interface ClassPassCardProps {
   isCompact?: boolean;
 }
 
-export function ClassPassCard({ pass, schoolName = "CRAYON BOX SCHOOL", isCompact = false }: ClassPassCardProps) {
+export function ClassPassCard({ pass, schoolName = "ACADEMIC CAMPUS", isCompact = false }: ClassPassCardProps) {
   return (
     <div className={`bg-[#FDFBF7] rounded-3xl shadow-lg border-2 border-[#E8DFC8] overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none ${
       isCompact ? 'w-[250px] h-[380px]' : 'w-[270px] h-[410px]'

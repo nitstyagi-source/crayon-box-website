@@ -29,7 +29,7 @@ import { getDistinctSubjectsAndChaptersAction } from "@/app/actions/curriculum-r
 
 export function AIQuestionPaperGeneratorDesk({ embedded = false }: { embedded?: boolean }) {
   const { activeCampusId } = useCampusContext();
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const activeInst = currentInstitution || activeCampusId || 'CBS';
 
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
@@ -387,10 +387,10 @@ export function AIQuestionPaperGeneratorDesk({ embedded = false }: { embedded?: 
             {/* Header / Masthead */}
             <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
               <h2 className="text-xl font-black uppercase tracking-wider text-slate-900">
-                CRAYON BOX SENIOR SECONDARY SCHOOL
+                {selectedInstitutionObj?.name || "ACADEMIC INSTITUTION"}
               </h2>
               <p className="text-xs font-bold uppercase text-slate-600">
-                Affiliated to CBSE, New Delhi • Affiliation No. 2130894
+                {selectedInstitutionObj?.affiliationNumber ? `Affiliation No. ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Official Examination Blueprint")}
               </p>
               <h3 className="text-base font-black text-slate-900 pt-1">
                 {generatedPaper.title}

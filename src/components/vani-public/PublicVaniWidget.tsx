@@ -98,12 +98,12 @@ export const PublicVaniWidget: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <strong className="text-sm font-black text-white">VANI Receptionist</strong>
+                  <strong className="text-sm font-black text-white">Vani Copilot</strong>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ● Available 24/7
                   </span>
                 </div>
-                <p className="text-[10px] text-blue-200/80">Crayon Box School Admissions Helpdesk</p>
+                <p className="text-[10px] text-blue-200/80">Admissions &amp; Academic Helpdesk</p>
               </div>
             </div>
 

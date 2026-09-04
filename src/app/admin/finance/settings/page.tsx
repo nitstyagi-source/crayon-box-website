@@ -11,7 +11,7 @@ import { getFinanceSettings, saveFinanceSettings } from "@/app/actions/finance-c
 import { resetFinanceData } from "@/app/actions/fee-heads";
 
 export default function SettingsModule() {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -19,13 +19,13 @@ export default function SettingsModule() {
 
   // Form State
   const [formData, setFormData] = useState({
-    institution_name: "Crayon Box School",
-    school_id: "1253481",
-    udise_code: "07124100151",
-    contact_phone: "9811102008",
-    contact_email: "crayonboxdelhi@gmail.com",
-    address: "Burari, Sant Nagar, Delhi - 110084",
-    receipt_prefix: "CBS-REC-",
+    institution_name: selectedInstitutionObj?.name || "School Name",
+    school_id: selectedInstitutionObj?.code || "1253481",
+    udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
+    contact_phone: selectedInstitutionObj?.phone || "9811102008",
+    contact_email: selectedInstitutionObj?.principalEmail || "accounts@school.edu.in",
+    address: selectedInstitutionObj?.address || "Main Campus, Delhi NCR",
+    receipt_prefix: `${selectedInstitutionObj?.code || "SCH"}-REC-`,
     invoice_prefix: "INV-2026-",
     default_due_day: 10,
     late_fee_per_day: 25,
@@ -46,7 +46,7 @@ export default function SettingsModule() {
       const res = await getFinanceSettings(currentInstitution);
       if (res.success && res.data) {
         setFormData({
-          institution_name: res.data.institution_name || "Crayon Box School",
+          institution_name: res.data.institution_name || selectedInstitutionObj?.name || "School Name",
           school_id: res.data.school_id || "1253481",
           udise_code: res.data.udise_code || "07124100151",
           contact_phone: res.data.contact_phone || "9811102008",

@@ -12,7 +12,7 @@ import { getDefaultersAging, sendFeeReminderNotification } from "@/app/actions/f
 import { getDepartedStudentsPendingDuesAction } from "@/app/actions/finance-concession-actions";
 
 export default function DefaultersAndAgingPage() {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const [defaulters, setDefaulters] = useState<any[]>([]);
   const [departedDefaulters, setDepartedDefaulters] = useState<any[]>([]);
   const [activeCategoryTab, setActiveCategoryTab] = useState<"ACTIVE" | "DEPARTED">("ACTIVE");
@@ -49,7 +49,7 @@ export default function DefaultersAndAgingPage() {
   async function handleSendReminder(d: any) {
     setSendingReminderId(d.studentId);
     try {
-      const message = `Dear Parent, this is a formal accounts notice from Crayon Box School. Pending fee balance of ₹${d.totalDue || d.pendingBalance} for ${d.name || d.studentName} (${d.className}) is overdue on ledger records. Kindly clear dues via accounts counter.`;
+      const message = `Dear Parent, this is a formal accounts notice from ${selectedInstitutionObj?.name || 'the School Accounts Department'}. Pending fee balance of ₹${d.totalDue || d.pendingBalance} for ${d.name || d.studentName} (${d.className}) is overdue on ledger records. Kindly clear dues via accounts counter.`;
       const res = await sendFeeReminderNotification({
         institution_code: currentInstitution,
         student_id: d.studentId,

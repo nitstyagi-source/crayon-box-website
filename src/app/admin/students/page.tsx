@@ -1193,10 +1193,10 @@ function UniversalStudentsDirectoryContent() {
                         Recognized &amp; Registered Institution
                       </div>
                       <h4 className="text-xs font-black tracking-tight uppercase">
-                        {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                        {selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
                       </h4>
                       <div className="text-[8px] text-blue-200 font-sans">
-                        Burari, Delhi-110084 • Session 2026-2027
+                        {selectedInstitutionObj?.address || "Delhi-NCR"} • Session 2026-2027
                       </div>
                     </div>
 
@@ -1473,10 +1473,10 @@ function UniversalStudentsDirectoryContent() {
                     Recognized &amp; Registered Educational Institution, Delhi NCR
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-950">
-                    {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                    {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
                   </h2>
                   <div className="text-xs text-stone-600 font-medium">
-                    Sant Nagar • Burari • Delhi-110084 | Registration Code: 1253481
+                    {selectedInstitutionObj?.address || "Delhi-NCR"} | Registration Code: {selectedInstitutionObj?.affiliationNumber || "1253481"}
                   </div>
                   <div className="inline-block mt-2 bg-stone-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                     Official Transfer Certificate (TC) / School Leaving Certificate

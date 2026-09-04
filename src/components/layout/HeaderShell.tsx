@@ -109,7 +109,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
   const activeLogo = selectedInstitutionObj?.logoUrl || '/logo.png';
   const activeName = isAllInstitutions 
     ? 'All Campuses (Trust HQ)' 
-    : (selectedInstitutionObj?.name || 'Crayon Box School');
+    : (selectedInstitutionObj?.name || 'School Portal');
   const activeBrandColor = selectedInstitutionObj?.brandColor || '#2563eb';
   const activeAffiliation = selectedInstitutionObj?.boardAffiliation || 'CBSE';
 
@@ -180,14 +180,14 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             <button
               onClick={() => setIsVaniPaletteOpen(true)}
               className="w-full flex items-center justify-between px-5 py-2.5 rounded-full bg-[#EBF3FC] hover:bg-[#E2EEFC] border border-sky-200/90 text-sky-950 transition shadow-[0_0_35px_rgba(245,158,11,0.22)] hover:shadow-[0_0_45px_rgba(245,158,11,0.30)] group cursor-pointer"
-              title="Search or ask VANI AI (⌘K)"
+              title="Search or ask Vani Copilot (⌘K)"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-500 via-indigo-500 to-amber-400 p-0.5 flex items-center justify-center shadow-xs">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </span>
                 <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 truncate">
-                  Search for students, grades, or ask Gemini AI...
+                  Search for students, grades, or ask Vani Copilot...
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0 pl-2">
@@ -200,13 +200,13 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
 
           {/* Right: Actions (Notifications, Profile, Direct Logout) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-             {/* Mobile-only Ask VANI button */}
+             {/* Mobile-only Ask Vani Copilot button */}
              <button
                onClick={() => setIsVaniPaletteOpen(true)}
                className="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 font-bold text-xs"
              >
                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-               <span>VANI</span>
+               <span>Vani Copilot</span>
              </button>
 
              {/* User Profile Dropdown */}

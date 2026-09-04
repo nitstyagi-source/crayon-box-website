@@ -238,14 +238,14 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
           href="/admin/dashboard"
           onClick={handleItemClick}
           className="flex items-center gap-3 min-w-0 group"
-          title="Crayon Box School — Executive Dashboard"
+          title="Vani ERP — Executive Dashboard"
         >
           <div className="w-10 h-10 rounded-xl bg-white p-1 border border-[#D4AF37]/50 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition">
             <img
-              src="/trust-logo.png"
-              alt="Vaani Educational Trust"
+              src={selectedInstitutionObj?.logoUrl || "/trust-logo.png"}
+              alt={selectedInstitutionObj?.name || "Vani ERP"}
               className="w-full h-full object-contain"
-              onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+              onError={(e) => { e.currentTarget.src = "/trust-logo.png"; }}
             />
           </div>
 
@@ -253,14 +253,17 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-xs sm:text-sm font-black text-[#2D2319] truncate tracking-tight">
-                  Crayon Box
+                  Vani
                 </h1>
-                <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-[#D97706]/15 text-[#92400E] border border-[#D97706]/30 uppercase">
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-[#D97706]/15 text-[#92400E] border border-[#D97706]/30 uppercase tracking-wider">
                   {activeCampusCode}
                 </span>
               </div>
-              <p className="text-[10px] text-stone-500 font-semibold truncate">
-                CBSE Enterprise Portal
+              <p 
+                className="text-[10px] text-stone-500 font-semibold truncate"
+                title={selectedInstitutionObj?.name || (isAllInstitutions ? "Multi-Campus Trust HQ" : "Enterprise Portal")}
+              >
+                {selectedInstitutionObj?.name || (isAllInstitutions ? "Multi-Campus Trust HQ" : "Enterprise Portal")}
               </p>
             </div>
           )}

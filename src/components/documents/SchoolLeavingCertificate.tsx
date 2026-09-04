@@ -179,7 +179,7 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black tracking-wider uppercase">
-                {data.school_name || 'CRAYON BOX SCHOOL'}
+                {data.school_name || 'EDUCATIONAL INSTITUTION'}
               </h1>
               <div className="bg-slate-900 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-3 py-0.5 rounded-sm inline-block mt-0.5">
                 MANAGED BY VANI EDUCATIONAL TRUST

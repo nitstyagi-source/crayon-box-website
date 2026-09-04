@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { BloomsTestBuilderStudio } from '@/components/innovations/BloomsTestBuilderStudio';
 
 export const metadata: Metadata = {
-  title: "Bloom's Taxonomy Test Builder | Crayon Box ERP",
+  title: "Bloom's Taxonomy Test Builder | Vani ERP",
   description: 'Automated test blueprinting and examination paper generator.',
 };
 

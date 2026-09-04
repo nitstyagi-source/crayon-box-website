@@ -487,7 +487,9 @@ function PayrollHubContent() {
 
             <div className="border-2 border-slate-300 p-6 rounded-2xl space-y-4 bg-white text-xs">
               <div className="text-center space-y-1 border-b pb-3">
-                <h2 className="text-lg font-black uppercase text-slate-900">CRAYON BOX SCHOOL</h2>
+                <h2 className="text-lg font-black uppercase text-slate-900">
+                  {selectedInstitutionObj?.name || (isAllInstitutions ? 'Vani Educational Institutions' : 'Educational Institution')}
+                </h2>
                 <p className="text-[10px] text-slate-500 uppercase">Salary Slip for the Month of {selectedMonth}</p>
               </div>
 

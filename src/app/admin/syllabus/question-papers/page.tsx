@@ -1076,12 +1076,12 @@ export default function QuestionPaperGeneratorPage() {
               {/* 1. OFFICIAL SCHOOL HEADER */}
               <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1.5">
                 <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider font-sans text-stone-950">
-                  {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                  {selectedInstitutionObj?.name || "EXAMINATION PAPER"}
                 </h1>
                 <p className="text-xs sm:text-sm font-sans font-bold text-stone-700 tracking-wide">
-                  {selectedInstitutionObj?.affiliation_number 
-                    ? `Affiliation No: ${selectedInstitutionObj.affiliation_number} • Recognized Institution, Delhi NCR`
-                    : "Recognized & Registered Institution, Delhi NCR • School ID: 1253481 • UDISE: 07124100151"}
+                  {selectedInstitutionObj?.affiliationNumber 
+                    ? `Affiliation No: ${selectedInstitutionObj.affiliationNumber} • Recognized Institution`
+                    : (selectedInstitutionObj?.boardAffiliation || "Recognized Educational Institution")}
                 </p>
                 <div className="pt-1.5 text-base sm:text-lg font-black font-sans uppercase tracking-tight text-stone-900">
                   {activePreviewPaper.exam_title} • SESSION {activePreviewPaper.academic_session}

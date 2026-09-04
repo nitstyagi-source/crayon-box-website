@@ -16,12 +16,14 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function WhatsAppBotSimulatorPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [messages, setMessages] = useState<Array<{ sender: 'PARENT' | 'BOT'; text: string; time: string }>>([
     {
       sender: 'BOT',
-      text: "👋 Welcome to Crayon Box School 2-Way Assistant! Reply with FEES, ATTENDANCE, HOMEWORK, or BUS.",
+      text: `👋 Welcome to ${selectedInstitutionObj?.name || 'School'} 2-Way Assistant (Vani Copilot)! Reply with FEES, ATTENDANCE, HOMEWORK, or BUS.`,
       time: '10:00 AM'
     }
   ]);
@@ -127,10 +129,10 @@ export default function WhatsAppBotSimulatorPage() {
             <div className="bg-[#075E54] text-white p-3.5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-emerald-700 text-white font-black flex items-center justify-center text-xs border border-emerald-400/40">
-                  CBS
+                  {selectedInstitutionObj?.code || 'VANI'}
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold leading-tight">Crayon Box School Assistant</h4>
+                  <h4 className="text-xs font-bold leading-tight">{selectedInstitutionObj?.name || 'School'} Assistant (Vani Copilot)</h4>
                   <span className="text-[10px] text-emerald-200 font-medium">Official WhatsApp Business Verified</span>
                 </div>
               </div>

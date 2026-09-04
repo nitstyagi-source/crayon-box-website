@@ -16,7 +16,7 @@ import { getDepartedStudentsPendingDuesAction } from "@/app/actions/finance-conc
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export function FeeCollectionsPOSDesk({ embedded = false }: { embedded?: boolean }) {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<any[]>([]);
   const [departedDues, setDepartedDues] = useState<any[]>([]);
@@ -613,12 +613,14 @@ export function FeeCollectionsPOSDesk({ embedded = false }: { embedded?: boolean
 
                 {/* School Header */}
                 <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-                  <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                  <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">
+                    {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
+                  </h2>
                   <p className="text-[10px] font-bold text-stone-700">
-                    School ID: 1253481 • UDISE Code: 07124100151
+                    {selectedInstitutionObj?.affiliationNumber ? `Affiliation / Reg: ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Official Fee Receipt")}
                   </p>
                   <p className="text-[9.5px] text-stone-500">
-                    Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                    {[selectedInstitutionObj?.address, selectedInstitutionObj?.phone ? `Phone: ${selectedInstitutionObj.phone}` : null, selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null].filter(Boolean).join(" • ") || "Campus Accounts Department"}
                   </p>
                   <div className="pt-1.5 flex justify-center">
                     <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">

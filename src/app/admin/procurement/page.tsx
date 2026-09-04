@@ -59,9 +59,9 @@ function ProcurementHubContent() {
   const [voucherData, setVoucherData] = useState<PaymentVoucherData>({
     voucher_no: "VCH-2026-089",
     voucher_date: new Date().toISOString().split('T')[0],
-    institution_name: "CRAYON BOX SCHOOL",
-    institution_address: "6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari",
-    school_id: "1253481",
+    institution_name: selectedInstitutionObj?.name || (isAllInstitutions ? "Vani Multi-Campus Trust HQ" : "School Administration"),
+    institution_address: selectedInstitutionObj?.address || "Institutional Campus, Delhi NCR",
+    school_id: selectedInstitutionObj?.affiliationNumber || selectedInstitutionObj?.code || "SCH-01",
     vendor_name: "Standard Stationery & Supplies",
     on_account_of: "Purchase of Classroom Stationery & Examination Materials",
     payment_mode: "Cheque / NEFT",
@@ -400,8 +400,12 @@ function ProcurementHubContent() {
           {/* Printable A5 Voucher Canvas */}
           <div className="bg-white p-8 sm:p-10 rounded-3xl border-2 border-slate-300 shadow-md space-y-6 text-slate-900 max-w-3xl mx-auto print:m-0 print:p-0 print:border-none">
             <div className="text-center border-b-2 border-slate-900 pb-3 space-y-0.5">
-              <h2 className="text-xl font-black uppercase text-slate-900">CRAYON BOX SCHOOL</h2>
-              <p className="text-[10px] uppercase text-slate-600 font-bold">6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari • School ID: 1253481</p>
+              <h2 className="text-xl font-black uppercase text-slate-900">
+                {voucherData.institution_name || selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
+              </h2>
+              <p className="text-[10px] uppercase text-slate-600 font-bold">
+                {voucherData.institution_address || selectedInstitutionObj?.address || "Main Campus"} • ID: {voucherData.school_id || selectedInstitutionObj?.code || "SCH"}
+              </p>
               <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 pt-1">PAYMENT VOUCHER</h3>
             </div>
 

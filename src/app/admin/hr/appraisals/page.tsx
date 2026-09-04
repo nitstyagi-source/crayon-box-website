@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { StaffAppraisalMatrixDesk } from '@/components/innovations/StaffAppraisalMatrixDesk';
 
 export const metadata: Metadata = {
-  title: 'Staff Appraisal Matrix | Crayon Box ERP',
+  title: 'Staff Appraisal Matrix | Vani ERP',
   description: '360° faculty performance appraisal and annual increment recommendations.',
 };
 

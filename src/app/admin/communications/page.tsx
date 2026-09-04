@@ -15,12 +15,14 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { AiCommsStudioDesk } from "@/components/community/AiCommsStudioDesk";
 import { WhatsAppEngineDesk } from "@/components/community/WhatsAppEngineDesk";
 import { CampaignsBroadcastDesk } from "@/components/community/CampaignsBroadcastDesk";
 import { ParentTeacherChatDesk } from "@/components/community/ParentTeacherChatDesk";
 
 function CommunicationsHubContent() {
+  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab")?.toLowerCase();
@@ -57,7 +59,7 @@ function CommunicationsHubContent() {
       <VastuModuleBanner
         badgeText="AI & WhatsApp Engine"
         badgeIcon={<Sparkles className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText="Crayon Box International"
+        institutionText={selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "Communications Hub")}
         title="Omnichannel Communications & WhatsApp Hub"
         titleIcon={<MessageSquare className="w-6 h-6 text-[#D97706]" />}
         description="Unified school communications engine: AI-powered circular studio, NEP-aligned pedagogical lesson planning, Meta Cloud WhatsApp absentee alerts, and multi-channel broadcast campaigns."

@@ -1393,14 +1393,14 @@ export default function GenerateInvoicesPage() {
               <div className="text-center border-b-2 border-stone-800 pb-2 space-y-0.5">
                 <div className="flex items-center justify-center gap-2">
                   <h1 className="text-sm sm:text-base font-black text-stone-900 tracking-tight uppercase">
-                    {selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                    {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
                   </h1>
                 </div>
                 <p className="text-[9px] font-bold text-stone-700">
-                  {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
+                  {selectedInstitutionObj?.affiliationNumber ? `Affiliation No: ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Official Fee Demand Invoice")}
                 </p>
                 <p className="text-[8.5px] text-stone-500">
-                  {selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084"} • Tel: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com"}
+                  {[selectedInstitutionObj?.address, selectedInstitutionObj?.phone ? `Tel: ${selectedInstitutionObj.phone}` : null, selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null].filter(Boolean).join(" • ") || "Campus Accounts Department"}
                 </p>
                 <div className="pt-1 flex justify-center items-center gap-2">
                   <span className="bg-stone-900 text-white font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded">
@@ -2045,12 +2045,14 @@ export default function GenerateInvoicesPage() {
                 >
                   {/* School Header (Official details, strictly no branch info) */}
                   <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-                    <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h2>
+                    <h2 className="text-base font-black text-stone-900 tracking-tight uppercase">
+                      {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
+                    </h2>
                     <p className="text-[10px] font-bold text-stone-700">
-                      School ID: 1253481 • UDISE Code: 07124100151
+                      {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : `School ID: ${selectedInstitutionObj?.code || "1253481"} • UDISE Code: 07124100151`}
                     </p>
                     <p className="text-[9.5px] text-stone-500">
-                      Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                      {selectedInstitutionObj?.address || "Delhi NCR"} • Phone: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "accounts@school.edu.in"}
                     </p>
                     <div className="pt-1.5 flex justify-center">
                       <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">

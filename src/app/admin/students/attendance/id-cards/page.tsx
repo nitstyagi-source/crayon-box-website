@@ -7,10 +7,12 @@ import {
   QrCode, ShieldCheck, Sparkles, Building2, User
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getStudents } from "@/app/actions/students";
 
 export default function StudentIdCardsPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState("All");
@@ -89,10 +91,12 @@ export default function StudentIdCardsPage() {
               <div className="flex items-center justify-between border-b-2 border-stone-900 pb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-stone-900 text-amber-400 flex items-center justify-center font-black text-xs">
-                    CBS
+                    {selectedInstitutionObj?.code || "VANI"}
                   </div>
                   <div>
-                    <h3 className="font-black text-xs tracking-tight text-stone-900 uppercase">Crayon Box School</h3>
+                    <h3 className="font-black text-xs tracking-tight text-stone-900 uppercase">
+                      {selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
+                    </h3>
                     <p className="text-[8px] font-bold text-stone-500 uppercase tracking-wider">Student Identity Card • 2026-2027</p>
                   </div>
                 </div>
@@ -145,7 +149,7 @@ export default function StudentIdCardsPage() {
 
               {/* Card Footer */}
               <div className="border-t border-stone-200 pt-1 flex justify-between items-center text-[7px] text-stone-400 font-bold uppercase">
-                <span>Crayon Box School • Burari Campus</span>
+                <span>{selectedInstitutionObj?.name || "ACADEMIC INSTITUTION"}</span>
                 <span>Authorized Card</span>
               </div>
             </div>

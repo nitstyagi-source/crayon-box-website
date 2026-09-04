@@ -29,7 +29,7 @@ import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
 
 export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: boolean }) {
   const { activeCampusId } = useCampusContext();
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const activeInst = currentInstitution || activeCampusId || 'CBS';
 
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
@@ -291,18 +291,18 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
               {/* Printable Official Holistic Progress Card */}
               <div className="bg-white p-8 sm:p-12 rounded-3xl border border-[#E8DFC8] shadow-md space-y-6 text-slate-900 print:m-0 print:p-0 print:border-none">
                 
-                {/* Masthead Header */}
+                {/* Institutional Header */}
                 <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 font-black text-[10px] uppercase tracking-wider">
-                      CBSE Affiliated No. 2130894 • School Code 07010203401
+                      {selectedInstitutionObj?.affiliationNumber ? `Affiliation No. ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Recognized Academic Institution")}
                     </span>
                   </div>
                   <h2 className="text-2xl font-black uppercase tracking-wider text-slate-900">
-                    CRAYON BOX SENIOR SECONDARY SCHOOL
+                    {selectedInstitutionObj?.name || "ACADEMIC INSTITUTION"}
                   </h2>
                   <p className="text-xs font-bold uppercase text-slate-600">
-                    Main Institutional Campus, Sector 4 • Ph: +91 120 4567890 • www.crayonboxschool.com
+                    {[selectedInstitutionObj?.address, selectedInstitutionObj?.phone ? `Ph: ${selectedInstitutionObj.phone}` : null].filter(Boolean).join(" • ") || "Official Student Assessment Record"}
                   </p>
                   <h3 className="text-sm font-black text-amber-700 uppercase pt-2 tracking-widest">
                     HOLISTIC PROGRESS CARD (HPC) — NEP 2020 ASSESSMENT RECORD

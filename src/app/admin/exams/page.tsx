@@ -816,10 +816,12 @@ function ExamHubContent() {
               {/* Institution Header */}
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
                 <h2 className="text-xl font-black uppercase tracking-wide text-slate-900">
-                  {reportCardData.institution?.name || 'Crayon Box Senior Secondary School'}
+                  {reportCardData.institution?.name || selectedInstitutionObj?.name || 'ACADEMIC INSTITUTION'}
                 </h2>
                 <p className="text-[10px] text-slate-500 font-semibold">
-                  Affiliated to CBSE, New Delhi • Affiliation No. {reportCardData.institution?.affiliationNumber || '2130894'}
+                  {reportCardData.institution?.affiliationNumber || selectedInstitutionObj?.affiliationNumber
+                    ? `Affiliation No. ${reportCardData.institution?.affiliationNumber || selectedInstitutionObj?.affiliationNumber}`
+                    : (selectedInstitutionObj?.boardAffiliation || 'Recognized Educational Institution')}
                 </p>
                 <div className="pt-2">
                   <span className="px-3 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-full">

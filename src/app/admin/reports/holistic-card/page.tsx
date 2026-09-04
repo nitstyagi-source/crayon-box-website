@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 import {
   getStudentsForEvaluationAction,
   getStudentHolisticCardDataAction,
@@ -27,6 +28,7 @@ import {
 } from '@/app/actions/hpc-actions';
 
 export default function HolisticReportCardPrintPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [term, setTerm] = useState('Term 1');
@@ -132,14 +134,14 @@ export default function HolisticReportCardPrintPage() {
           <div className="text-center border-b-2 border-stone-900 pb-6 space-y-2">
             <div className="flex justify-center mb-2">
               <div className="w-14 h-14 rounded-2xl bg-amber-500 text-stone-950 font-black flex items-center justify-center text-xl shadow-xs">
-                CBS
+                {selectedInstitutionObj?.code || 'HPC'}
               </div>
             </div>
             <h1 className="text-2xl font-black text-stone-900 tracking-tight uppercase">
-              Crayon Box School
+              {selectedInstitutionObj?.name || 'School Academic Report'}
             </h1>
             <p className="text-xs font-semibold text-stone-500">
-              Affiliated to CBSE, New Delhi • Affiliation No. 2130894 • School Code: 09020304501
+              Affiliated to {selectedInstitutionObj?.boardAffiliation || 'CBSE'}, New Delhi • Affiliation No. {selectedInstitutionObj?.affiliationNumber || '2130894'}
             </p>
             <div className="inline-block mt-2 px-4 py-1 rounded-full bg-amber-100 text-amber-900 font-black text-xs uppercase tracking-wider border border-amber-300">
               CBSE NEP 2020 — 360° Holistic Progress Card (HPC)

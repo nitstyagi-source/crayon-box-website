@@ -7,12 +7,14 @@ import {
   Printer, QrCode, ShieldCheck, Building2, AlertTriangle 
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { getStudents } from "@/app/actions/students";
 import { createTemporaryEscortPass } from "@/app/actions/id-cards";
 import FileUpload from "@/components/admin/FileUpload";
 
 export default function TemporaryEscortPassPage() {
   const { activeCampusId } = useCampusContext();
+  const { selectedInstitutionObj } = useInstitution();
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [escortName, setEscortName] = useState("");
@@ -210,9 +212,11 @@ export default function TemporaryEscortPassPage() {
         <div id="printable-temp-pass" className="bg-white rounded-3xl border-2 border-dashed border-stone-900 p-8 shadow-2xl space-y-6 max-w-md mx-auto print:border-solid print:shadow-none">
           <div className="text-center border-b-2 border-stone-900 pb-4 space-y-1">
             <div className="w-10 h-10 rounded-xl bg-stone-900 text-amber-400 font-black flex items-center justify-center mx-auto text-sm">
-              CBS
+              {selectedInstitutionObj?.code || 'PASS'}
             </div>
-            <h2 className="text-lg font-black text-stone-900 uppercase">Crayon Box School</h2>
+            <h2 className="text-lg font-black text-stone-900 uppercase">
+              {selectedInstitutionObj?.name || "School Campus"}
+            </h2>
             <span className="bg-amber-100 text-amber-900 font-black text-[10px] px-3 py-0.5 rounded-full uppercase tracking-wider">
               TEMPORARY EMERGENCY ESCORT PASS
             </span>

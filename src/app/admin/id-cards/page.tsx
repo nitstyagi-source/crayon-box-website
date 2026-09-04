@@ -393,7 +393,7 @@ export default function IDCardAndEscortGeneratorHubPage() {
               <div className="flex flex-wrap gap-5 justify-center items-start">
                 {classPasses.map((pass) => (
                   <div key={pass.passId} className="card-print-item">
-                    <ClassPassCard pass={pass} schoolName={selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"} />
+                    <ClassPassCard pass={pass} schoolName={selectedInstitutionObj?.name || "STUDENT ACCESS PASS"} />
                   </div>
                 ))}
               </div>

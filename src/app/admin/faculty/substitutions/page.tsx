@@ -383,7 +383,7 @@ export function FacultySubstitutionEngineDesk() {
               <div className="flex items-center justify-center gap-2">
                 <Building2 className="w-5 h-5 text-indigo-600" />
                 <h3 className="font-black text-sm uppercase tracking-wider">
-                  {selectedInstitutionObj?.name || 'CRAYON BOX SCHOOL'}
+                  {selectedInstitutionObj?.name || 'FACULTY SUBSTITUTION DESK'}
                 </h3>
               </div>
               <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 inline-block">

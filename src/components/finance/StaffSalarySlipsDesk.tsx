@@ -20,8 +20,10 @@ import {
   sendSalarySlipWhatsAppAction,
   PayrollRecord
 } from "@/app/actions/payroll-engine-actions";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean }) {
+  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const [selectedMonth, setSelectedMonth] = useState("September 2026");
   const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -228,7 +230,9 @@ export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean 
 
               {/* School Header */}
               <div className="text-center border-b-2 border-stone-900 pb-3 space-y-0.5">
-                <h4 className="text-base font-black text-blue-950">CRAYON BOX SCHOOL</h4>
+                <h4 className="text-base font-black text-blue-950">
+                  {selectedInstitutionObj?.name || (isAllInstitutions ? "Vani Educational Institutions" : "Educational Institution")}
+                </h4>
                 <div className="text-[10px] text-stone-500 font-sans">
                   Official Pay Slip for {selectedRecord.month_year}
                 </div>

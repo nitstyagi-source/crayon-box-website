@@ -20,14 +20,14 @@ export default function InvoiceA5PrintModal({ invoice, isOpen, onClose }: Invoic
   if (!isOpen || !invoice) return null;
 
   // Institution branding
-  const schoolName = selectedInstitutionObj?.name || "Crayon Box School";
-  const schoolAffiliation = selectedInstitutionObj?.affiliation_number 
-    ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` 
-    : "School ID: 1253481 • UDISE Code: 07124100151";
-  const schoolAddress = selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084";
-  const schoolPhone = selectedInstitutionObj?.phone || "9811102008";
-  const schoolEmail = selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com";
-  const schoolLogo = selectedInstitutionObj?.logo_url || null;
+  const schoolName = selectedInstitutionObj?.name || "School Invoice";
+  const schoolAffiliation = selectedInstitutionObj?.affiliationNumber 
+    ? `Affiliation No: ${selectedInstitutionObj.affiliationNumber}` 
+    : (selectedInstitutionObj?.boardAffiliation || "");
+  const schoolAddress = selectedInstitutionObj?.address || "";
+  const schoolPhone = selectedInstitutionObj?.phone || "";
+  const schoolEmail = selectedInstitutionObj?.email || "";
+  const schoolLogo = selectedInstitutionObj?.logoUrl || null;
 
   // Student & Invoice Metadata
   const invoiceNo = invoice.invoice_number || `INV-${invoice.id?.slice(0, 8).toUpperCase()}`;

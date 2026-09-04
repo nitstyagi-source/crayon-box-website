@@ -3,6 +3,7 @@
 import React, { useRef } from "react";
 import { Printer, Download, X } from "lucide-react";
 import { convertAmountToWords } from "@/lib/number-to-words";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 interface PaymentVoucherA5Props {
   expense: {
@@ -27,6 +28,12 @@ interface PaymentVoucherA5Props {
 }
 
 export default function PaymentVoucherA5({ expense, onClose }: PaymentVoucherA5Props) {
+  const { selectedInstitutionObj } = useInstitution();
+  const schoolName = selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION";
+  const schoolAddress = selectedInstitutionObj?.address || "";
+  const schoolIdText = selectedInstitutionObj?.affiliationNumber 
+    ? `AFFILIATION / CODE: ${selectedInstitutionObj.affiliationNumber}` 
+    : (selectedInstitutionObj?.code ? `CAMPUS CODE: ${selectedInstitutionObj.code}` : "");
   const printRef = useRef<HTMLDivElement>(null);
 
   function handlePrint() {
@@ -111,7 +118,7 @@ export default function PaymentVoucherA5({ expense, onClose }: PaymentVoucherA5P
               
               <div className="space-y-4 pt-2">
                 <p className="font-bold text-[12px] leading-tight">
-                  Received with thanks from <span className="font-black uppercase">CRAYON BOX SCHOOL</span>
+                  Received with thanks from <span className="font-black uppercase">{schoolName}</span>
                 </p>
 
                 <div className="space-y-2">
@@ -164,14 +171,18 @@ export default function PaymentVoucherA5({ expense, onClose }: PaymentVoucherA5P
                 {/* Header Title */}
                 <div className="text-center space-y-0.5">
                   <h1 className="text-2xl sm:text-3xl font-black tracking-wider uppercase font-sans">
-                    CRAYON BOX SCHOOL
+                    {schoolName}
                   </h1>
-                  <p className="text-[11px] font-medium tracking-tight">
-                    6/20, Shastri Park Ext. D-Block, Phool Bagh, Road Burari
-                  </p>
-                  <p className="text-xs font-bold underline tracking-wide pt-0.5">
-                    SCHOOL ID - 1253481
-                  </p>
+                  {schoolAddress && (
+                    <p className="text-[11px] font-medium tracking-tight">
+                      {schoolAddress}
+                    </p>
+                  )}
+                  {schoolIdText && (
+                    <p className="text-xs font-bold underline tracking-wide pt-0.5">
+                      {schoolIdText}
+                    </p>
+                  )}
                   <h2 className="text-sm font-black underline tracking-widest uppercase pt-0.5">
                     PAYMENT VOUCHER
                   </h2>

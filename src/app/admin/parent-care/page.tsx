@@ -15,12 +15,14 @@ import {
   Camera
 } from "lucide-react";
 import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import { PtmSchedulerDesk } from "@/components/community/PtmSchedulerDesk";
 import { ParentConsentDesk } from "@/components/community/ParentConsentDesk";
 import { ParentGrievanceDesk } from "@/components/community/ParentGrievanceDesk";
 import { ClassroomMomentsDesk } from "@/components/community/ClassroomMomentsDesk";
 
 function ParentCareHubContent() {
+  const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
@@ -50,7 +52,7 @@ function ParentCareHubContent() {
       <VastuModuleBanner
         badgeText="PTM & Grievance SLA"
         badgeIcon={<HeartHandshake className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText="Crayon Box International"
+        institutionText={selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "Campus Hub")}
         title="Parent Engagement, PTM & Grievance Care Hub"
         titleIcon={<HeartHandshake className="w-6 h-6 text-[#D97706]" />}
         description="Parent partnership ecosystem: 1-on-1 sibling-aligned PTM scheduling, digital cryptographic excursion consent slips, and CBSE statutory grievance SLA resolution tracking."

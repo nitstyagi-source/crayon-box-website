@@ -118,7 +118,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
         </div>
 
         <div className="p-5 bg-gradient-to-br from-blue-950 to-indigo-950 text-white rounded-2xl space-y-2">
-          <span className="text-[10px] font-black uppercase text-amber-400 block">VANI AI Narrative Engine</span>
+          <span className="text-[10px] font-black uppercase text-amber-400 block">Vani Copilot Narrative Engine</span>
           <strong className="text-lg font-black text-white block">CBSE HPC Report Cards</strong>
           <p className="text-[11px] text-slate-300">Synthesizes scholastic marks, attendance, and co-scholastic strengths.</p>
         </div>
@@ -166,7 +166,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <strong className="text-sm font-black text-stone-900 block flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-600" /> VANI AI Report Card Narrative Generator
+              <Sparkles className="w-4 h-4 text-amber-600" /> Vani Copilot Report Card Narrative Generator
             </strong>
             <p className="text-xs text-stone-600">
               Generates personalized, strengths-based CBSE Holistic Progress Card (HPC) narrative commentary

@@ -28,12 +28,14 @@ import {
   saveWhatsAppSettingsAction,
   WhatsAppMessageLog
 } from "@/app/actions/whatsapp-engine";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 interface WhatsAppEngineDeskProps {
   initialSubTab?: "triggers" | "broadcast" | "logs" | "settings";
 }
 
 export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngineDeskProps) {
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"triggers" | "broadcast" | "logs" | "settings">(initialSubTab);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -51,8 +53,8 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
   const [settingsForm, setSettingsForm] = useState({
     provider: "meta_cloud",
     sender_phone: "+919876543210",
-    upi_vpa: "crayonbox@icici",
-    upi_payee_name: "Crayon Box School",
+    upi_vpa: "campusfee@upi",
+    upi_payee_name: selectedInstitutionObj?.name || "School Fee Collection",
     auto_absent_alert_enabled: true,
     absent_alert_time: "09:30",
     auto_fee_reminder_enabled: true,
@@ -289,10 +291,10 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
                   <Smartphone className="w-4 h-4 text-emerald-600" /> WhatsApp Template Preview:
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8] text-[11px] leading-relaxed">
-                  🚨 <strong>Crayon Box School — Attendance Notice</strong><br /><br />
-                  Dear Parent, your ward <strong>Viraj Tyagi (Class 3-A)</strong> has been marked <strong>ABSENT</strong> today (2026-09-01).<br /><br />
+                  🚨 <strong>{selectedInstitutionObj?.name || "School"} — Attendance Notice</strong><br /><br />
+                  Dear Parent, your ward <strong>Viraj Tyagi (Class 3-A)</strong> has been marked <strong>ABSENT</strong> today ({new Date().toISOString().split("T")[0]}).<br /><br />
                   If this was unannounced, please tap to submit a leave note.<br /><br />
-                  <em>Crayon Box School Administration</em>
+                  <em>{selectedInstitutionObj?.name || "School"} Administration</em>
                 </div>
               </div>
             </div>
@@ -334,12 +336,12 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
                   <Smartphone className="w-4 h-4 text-purple-600" /> WhatsApp Template Preview:
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8] text-[11px] leading-relaxed">
-                  💳 <strong>Crayon Box School — Fee Due Reminder</strong><br /><br />
+                  💳 <strong>{selectedInstitutionObj?.name || "School"} — Fee Due Reminder</strong><br /><br />
                   Dear Parent, term fee for <strong>Aarav Sharma (Class 1-B)</strong> is due:<br />
                   • <strong>Amount Due</strong>: ₹4,500<br />
                   • <strong>Due Date</strong>: 10th of this Month<br /><br />
                   ⚡ <strong>1-Click Instant UPI Payment</strong>:<br />
-                  <span className="text-purple-600 underline">https://www.crayonboxschool.com/fees/pay?id=...</span>
+                  <span className="text-purple-600 underline">https://portal.vanierp.com/fees/pay?id=...</span>
                 </div>
               </div>
             </div>
@@ -564,7 +566,7 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
                   type="text"
                   value={settingsForm.upi_payee_name}
                   onChange={(e) => setSettingsForm({ ...settingsForm, upi_payee_name: e.target.value })}
-                  placeholder="Crayon Box School"
+                  placeholder={selectedInstitutionObj?.name || "School Name"}
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />
