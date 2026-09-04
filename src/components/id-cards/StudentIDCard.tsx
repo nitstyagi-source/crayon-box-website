@@ -18,7 +18,7 @@ export interface StudentIDCardProps {
 /**
  * Official Student ID Card Component (CR80 Vertical 54mm x 85.6mm)
  * Pure dynamic data binding to ERP records with zero hardcoding.
- * Exact visual match to Image 2 (Front) and Image 3 (Back).
+ * Exact visual match to Image 2 (Front) and Image 3 (Back - with principal signature removed).
  */
 export function StudentIDCard({
   student,
@@ -30,7 +30,7 @@ export function StudentIDCard({
   // Dynamic ERP data binding with safe fallbacks
   const firstName = s.first_name || '';
   const lastName = s.last_name || '';
-  const fullName = (`${firstName} ${lastName}`.trim() || s.name || 'STUDENT NAME').toUpperCase();
+  const fullName = (`${firstName} ${lastName}`.trim() || s.name || 'AARAV V. SHARMA').toUpperCase();
   const className = s.class_name || s.grade || '10';
   const section = s.section_name || s.section || 'A';
   const rollNo = s.roll_number || s.roll_no || '14';
@@ -49,20 +49,19 @@ export function StudentIDCard({
   const schName = (schoolInfo?.name || 'CRAYON BOX SCHOOL, NEW DELHI').toUpperCase();
   const schPhone = schoolInfo?.phone || '+91 11 2761 8899';
   const schWebsite = schoolInfo?.website || 'www.crayonboxschool.edu.in';
-  const principalName = schoolInfo?.principalName || schoolInfo?.principal_name || 'Anjali Sharma';
   const photoUrl = s.photo_url || s.avatar_url || s.image || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=240&auto=format&fit=crop&q=80';
 
   // =============================================================
-  // BACK FACE: PIXEL-MATCHED TO IMAGE 3
+  // BACK FACE: MATCHING IMAGE 3 (WITH PRINCIPAL SIGNATURE REMOVED)
   // =============================================================
   if (isBack) {
     return (
       <div 
         style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
-        className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-2xl shadow-xl relative overflow-hidden flex flex-col font-sans border border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none justify-between p-4 pt-2.5 pb-3"
+        className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-2xl shadow-xl relative overflow-hidden flex flex-col font-sans border border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none justify-between p-4 pt-2 pb-3"
       >
         {/* Top Sweeping Tricolor Wave Header + Lanyard Punch Slot */}
-        <div className="relative w-full -mx-4 -mt-2.5 mb-1">
+        <div className="relative w-full -mx-4 -mt-2 mb-1">
           {/* Lanyard Slot Cutout Notch */}
           <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
             <div className="w-9 h-2.5 bg-white border border-stone-300 rounded-full shadow-2xs"></div>
@@ -130,43 +129,43 @@ export function StudentIDCard({
           <p>2. If found, return to School Office or call {schPhone}.</p>
         </div>
 
-        {/* Bottom Section: Circular Blue Stamp (Left) & Principal Signature (Right) */}
-        <div className="flex items-center justify-between px-1 my-0.5">
+        {/* Bottom Section: Official Verification Desk (NO PRINCIPAL SIGNATURE) */}
+        <div className="flex items-center justify-between px-1 my-1">
           {/* Authentic Circular Blue Ink Rubber Stamp */}
           <div className="w-16 h-16 relative select-none shrink-0">
             <svg viewBox="0 0 100 100" className="w-full h-full text-[#1E3A8A]">
               <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="2.5" />
               <circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1.5" />
               <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="1.5" />
-              
               <path id="stampPathTopStu" d="M 16,50 A 34,34 0 1,1 84,50" fill="none" />
               <text fontSize="8" fontWeight="900" fill="currentColor" letterSpacing="0.08em">
                 <textPath href="#stampPathTopStu" startOffset="50%" textAnchor="middle">
                   CRAYON BOX SCHOOL
                 </textPath>
               </text>
-
               <path id="stampPathBotStu" d="M 82,50 A 32,32 0 0,1 18,50" fill="none" />
               <text fontSize="7.5" fontWeight="900" fill="currentColor" letterSpacing="0.1em">
                 <textPath href="#stampPathBotStu" startOffset="50%" textAnchor="middle">
                   • FOUNDED 2005 •
                 </textPath>
               </text>
-
               <text x="50" y="56" fontSize="18" fontWeight="900" fill="currentColor" textAnchor="middle" fontFamily="serif">
                 CB
               </text>
             </svg>
           </div>
 
-          {/* Principal (Seal & Signature) */}
-          <div className="text-center flex flex-col items-center">
-            <span className="text-[9px] font-bold text-slate-800 block">
-              Principal (Seal &amp; Signature)
+          {/* Official Verification Desk (Signature Removed) */}
+          <div className="text-right">
+            <span className="text-[8px] font-mono font-bold text-slate-500 uppercase block tracking-wider">
+              OFFICIAL VERIFICATION
             </span>
-            <div className="h-7 flex items-center justify-center font-serif italic text-base font-bold text-[#1E3A8A] tracking-wide select-none">
-              {principalName}
-            </div>
+            <span className="text-[10px] font-extrabold text-[#0A1D37] block">
+              CBS STUDENT DESK
+            </span>
+            <span className="text-[7.5px] font-mono text-emerald-800 font-extrabold uppercase block mt-0.5">
+              Govt. Recognized &bull; CBS Verified
+            </span>
           </div>
         </div>
 
@@ -181,22 +180,22 @@ export function StudentIDCard({
   }
 
   // =============================================================
-  // FRONT FACE: PIXEL-MATCHED TO IMAGE 2
+  // FRONT FACE: PIXEL-MATCHED TO IMAGE 2 (NO EMPTY GAP)
   // =============================================================
   return (
     <div 
       style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
       className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-2xl shadow-xl relative overflow-hidden flex flex-col font-sans border border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none justify-between"
     >
-      {/* 1. Top Tricolor Flush Band */}
-      <div className="h-3 w-full grid grid-cols-3">
+      {/* 1. Top Flush Tricolor Band */}
+      <div className="h-3 w-full grid grid-cols-3 shrink-0">
         <span className="h-full bg-[#FF671F]"></span>
         <span className="h-full bg-[#FFFFFF]"></span>
         <span className="h-full bg-[#046A38]"></span>
       </div>
 
       {/* 2. Deep Royal Navy Header with Gold Typography */}
-      <div className="bg-[#0A1D37] px-3 py-2.5 text-center text-white relative z-10 border-b border-[#C5A059]/40">
+      <div className="bg-[#0A1D37] px-3 py-2.5 text-center text-white relative z-10 border-b border-[#C5A059]/40 shrink-0">
         <h1 className="font-extrabold text-xs uppercase tracking-wide text-[#E5C378] leading-tight truncate">
           {schName}
         </h1>
@@ -205,24 +204,24 @@ export function StudentIDCard({
         </h2>
       </div>
 
-      {/* 3. Center Body with Gold Mandala Watermark & Elements */}
-      <div className="flex-1 px-4 pt-2.5 pb-1 relative flex flex-col justify-between overflow-hidden">
+      {/* 3. Center Body - Tightly Structured to Eliminate Empty Gap */}
+      <div className="flex-1 px-4 pt-3 pb-2 relative flex flex-col justify-start overflow-hidden">
         {/* Background Gold Mandala Watermarks */}
         <GoldMandalaWatermark
-          size={210}
-          opacity={0.22}
-          className="absolute -left-12 top-6"
+          size={230}
+          opacity={0.24}
+          className="absolute -left-10 top-6"
         />
         <GoldMandalaWatermark
-          size={180}
+          size={190}
           opacity={0.16}
-          className="absolute -right-8 bottom-4"
+          className="absolute -right-8 bottom-6"
         />
 
         {/* Photo & Vertical Barcode Row */}
         <div className="flex items-center justify-between gap-3 relative z-10">
-          {/* Rectangular Photo with Fine Gold Border */}
-          <div className="w-[118px] h-[142px] rounded p-[1.5px] bg-[#C5A059] shadow-sm shrink-0">
+          {/* Prominent Rectangular Photo with Fine Gold Border */}
+          <div className="w-[130px] h-[165px] rounded p-[1.5px] bg-[#C5A059] shadow-sm shrink-0">
             <div className="w-full h-full rounded overflow-hidden bg-gradient-to-b from-[#F8FAFC] to-[#E2E8F0] flex items-center justify-center">
               <img
                 src={photoUrl}
@@ -235,27 +234,27 @@ export function StudentIDCard({
             </div>
           </div>
 
-          {/* Vertical Stacked Attendance Barcode */}
+          {/* Vertical Stacked Attendance Barcode (Matching Photo Height) */}
           <div className="flex-1 flex justify-end">
             <AttendanceBarcode
               code={admissionNo}
               orientation="vertical-stacked"
-              height={142}
+              height={165}
               width={140}
               showText={true}
             />
           </div>
         </div>
 
-        {/* Identity & Details Section */}
-        <div className="mt-2 relative z-10">
+        {/* Identity & Details Section - Immediately Below Photo */}
+        <div className="mt-3 relative z-10 space-y-1">
           {/* Full Name in Deep Navy Bold */}
-          <h3 className="text-[#0A1D37] font-black text-[19px] leading-tight tracking-tight uppercase truncate">
+          <h3 className="text-[#0A1D37] font-black text-[20px] leading-tight tracking-tight uppercase truncate">
             {fullName}
           </h3>
 
           {/* Left-Aligned Key-Value Details */}
-          <div className="space-y-0.5 text-[11px] leading-[1.4] mt-1 text-slate-800">
+          <div className="space-y-1 text-[11px] leading-[1.45] text-slate-800 pr-14">
             <div>
               <span className="font-bold text-slate-800">Class &amp; Sec: </span>
               <span className="font-semibold text-slate-900">Class {className}-{section}</span>
@@ -280,13 +279,13 @@ export function StudentIDCard({
         </div>
 
         {/* 3D Metallic Silver Embossed Seal */}
-        <div className="absolute right-3.5 bottom-2 z-20">
-          <SilverEmbossedSeal size={62} />
+        <div className="absolute right-3.5 bottom-2.5 z-20">
+          <SilverEmbossedSeal size={56} />
         </div>
       </div>
 
       {/* 4. Bottom Deep Navy Bar with Sanskrit Motto */}
-      <div className="bg-[#0A1D37] py-1.5 px-4 text-center z-10 border-t border-[#C5A059]/40">
+      <div className="bg-[#0A1D37] py-2 px-4 text-center z-10 border-t border-[#C5A059]/40 shrink-0">
         <span className="font-serif font-bold text-[#E5C378] text-[13px] tracking-wide block">
           विद्या ददाति विनयं
         </span>
