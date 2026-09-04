@@ -36,6 +36,7 @@ import {
   Sparkles,
   CreditCard,
   Gamepad2,
+  HeartHandshake,
   LogOut,
   X
 } from 'lucide-react';
@@ -167,14 +168,9 @@ export function SidebarNav({ currentRole = 'SUPER_ADMIN', isMobileOpen = false, 
       accentColor: '#8B5CF6',
       allowedRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'],
       items: [
-        { name: 'AI Comms Studio', href: '/admin/communications/ai-writer', icon: Sparkles, badge: 'AI', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'WhatsApp Bot & Alerts', href: '/admin/communications/whatsapp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
-        { name: 'Broadcasts & Circulars', href: '/admin/campaigns', icon: PhoneCall, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
-        { name: 'Digital Parent Consent', href: '/admin/consent', icon: FileText, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'PTM Slot Booking', href: '/admin/ptm', icon: Calendar, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
-        { name: 'Parent Grievance Desk', href: '/admin/grievances', icon: LifeBuoy, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'Early Departure QR Passes', href: '/admin/early-departure', icon: QrCode, roles: ['SUPER_ADMIN', 'PRINCIPAL', 'PARENT'] },
-        { name: 'Website CMS & News', href: '/admin/cms', icon: Globe, roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
+        { name: 'Omnichannel Communications & WhatsApp Hub', href: '/admin/communications', icon: MessageSquare, badge: 'AI & WhatsApp Engine', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'] },
+        { name: 'Parent Engagement, PTM & Grievance Hub', href: '/admin/parent-care', icon: HeartHandshake, badge: 'PTM & Grievance SLA', roles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT'] },
+        { name: 'Public Website CMS & Portal Hub', href: '/admin/cms', icon: Globe, badge: 'Website & Newsroom', roles: ['SUPER_ADMIN', 'PRINCIPAL'] },
       ],
     },
   ];

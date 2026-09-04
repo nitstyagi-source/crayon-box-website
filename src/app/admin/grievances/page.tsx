@@ -1,5 +1,5 @@
-import HelpdeskGrievancePage from '@/app/admin/helpdesk/page';
+import { redirect } from 'next/navigation';
 
-export default function GrievancesRoute() {
-  return <HelpdeskGrievancePage />;
+export default function GrievancesRedirectPage() {
+  redirect('/admin/parent-care?tab=grievances');
 }

@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { getPageContent, updateContentBlock, clearAllCaches } from "@/app/actions/cms";
 import { 
   LayoutTemplate, Save, CheckCircle2, AlertCircle, RefreshCw, 
   ChevronRight, ChevronDown, Settings, Monitor, Tablet, Smartphone, Globe, 
-  History, Eye, PlaySquare, Building2
+  History, Eye, PlaySquare, Building2, Sparkles
 } from "lucide-react";
+import { useInstitution } from "@/components/providers/InstitutionContext";
+import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 
-export default function CMSDashboard() {
-  const [activeCampus, setActiveCampus] = useState("Delhi Main Branch");
+function CMSDashboardContent() {
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions, institutionsList, setInstitution } = useInstitution();
+
+  const CAMPUSES = [
+    "All Branches (Global)",
+    ...(institutionsList && institutionsList.length > 0
+      ? institutionsList.map((i: any) => i.name)
+      : ["Delhi Main Branch", "South Campus", "Gurugram Prep"])
+  ];
+
+  const [activeCampus, setActiveCampus] = useState(selectedInstitutionObj?.name || "Delhi Main Branch");
   const [activePage, setActivePage] = useState("about");
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   
@@ -32,13 +43,6 @@ export default function CMSDashboard() {
     { slug: "campus-life", title: "Campus Life" },
     { slug: "news", title: "News & Events" },
     { slug: "alumni", title: "Alumni Network" },
-  ];
-
-  const CAMPUSES = [
-    "All Branches (Global)",
-    "Delhi Main Branch",
-    "South Campus",
-    "Gurugram Prep"
   ];
 
   useEffect(() => {
@@ -475,3 +479,19 @@ function BuilderTabs({ content, handleInputChange }: { content: any, handleInput
     </div>
   );
 }
+
+export default function CMSDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-stone-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#D97706]" />
+          <span>Loading Website CMS & News Portal Hub...</span>
+        </div>
+      }
+    >
+      <CMSDashboardContent />
+    </Suspense>
+  );
+}
+
