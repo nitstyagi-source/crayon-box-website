@@ -89,6 +89,8 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       items: [
         { name: "Executive Command Desk", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
         { name: "Trust Board & MIS Intelligence", href: "/admin/trust", icon: Award, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
+        { name: "Enterprise Audit Vault", href: "/admin/audit-logs", icon: ShieldAlert, badge: "ISO & DPDP", roles: ["SUPER_ADMIN", "ACCOUNTS"] },
+        { name: "Statutory Board Exporter", href: "/admin/reports/compliance", icon: Award, badge: "CBSE & U-DISE", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
         { name: "Security & IAM Data Vault", href: "/admin/iam", icon: KeyRound, roles: ["SUPER_ADMIN"] },
       ],
     },

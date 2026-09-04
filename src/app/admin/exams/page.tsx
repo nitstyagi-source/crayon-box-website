@@ -33,15 +33,16 @@ import { CBSEHolisticReportCardsDesk } from '@/components/exams/CBSEHolisticRepo
 import { CameraOmrGraderDesk } from '@/components/exams/CameraOmrGraderDesk';
 import { PredictiveBoardAnalyticsDesk } from '@/components/exams/PredictiveBoardAnalyticsDesk';
 import { OnlineCbtTestingDesk } from '@/components/exams/OnlineCbtTestingDesk';
+import { NEP2020HolisticProgressDesk } from '@/components/exams/NEP2020HolisticProgressDesk';
 
-type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori' | 'omr-grader' | 'predictive-analytics' | 'online-cbt';
+type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'nep2020' | 'montessori' | 'omr-grader' | 'predictive-analytics' | 'online-cbt';
 
 function ExamHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') as ExamHubTab | null;
 
-  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori', 'omr-grader', 'predictive-analytics', 'online-cbt'];
+  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'nep2020', 'montessori', 'omr-grader', 'predictive-analytics', 'online-cbt'];
   const [activeTab, setActiveTab] = useState<ExamHubTab>(
     rawTab && validTabs.includes(rawTab) ? rawTab : 'gradebook'
   );
@@ -328,6 +329,22 @@ function ExamHubContent() {
           <span>3. Holistic Progress Cards (HPC) &amp; Dispatch</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
             NEP 2020
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('nep2020')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'nep2020'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#D97706]" />
+          <span>4. NEP 2020 360° HPC Matrix</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            Self &amp; Peer
           </span>
         </button>
 
@@ -880,6 +897,22 @@ function ExamHubContent() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: CBSE NEP 2020 360-DEGREE HOLISTIC PROGRESS MATRIX */}
+      {/* ========================================================================= */}
+      {activeTab === 'nep2020' && (
+        <div className="space-y-6">
+          <NEP2020HolisticProgressDesk
+            studentsList={rosterData.map(r => ({
+              id: r.studentId,
+              name: r.studentName,
+              admission_no: r.admissionNo,
+              class_name: selectedClass
+            }))}
+          />
         </div>
       )}
 
