@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   BookOpen, Plus, Search, Filter, QrCode, 
   CheckCircle2, Clock, AlertTriangle, ArrowRight, 
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useInstitution } from "@/components/providers/InstitutionContext";
+import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 
 import { 
   getLibraryDashboardStats,
@@ -39,7 +41,10 @@ const CATEGORIES = [
   "Teacher Reference"
 ];
 
-export default function LibraryManagementPage() {
+function LibraryManagementContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const { currentInstitution } = useInstitution();
   const { selectedInstitutionObj } = useInstitution();
 
@@ -47,6 +52,14 @@ export default function LibraryManagementPage() {
   const [activeTab, setActiveTab] = useState<
     "catalog" | "circulation" | "overdue" | "accession" | "shelves"
   >("catalog");
+
+  useEffect(() => {
+    if (tabParam === 'circulation') setActiveTab('circulation');
+    else if (tabParam === 'overdue') setActiveTab('overdue');
+    else if (tabParam === 'accession') setActiveTab('accession');
+    else if (tabParam === 'shelves') setActiveTab('shelves');
+    else if (tabParam === 'catalog') setActiveTab('catalog');
+  }, [tabParam]);
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -253,68 +266,55 @@ export default function LibraryManagementPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
       
-      {/* 🌟 TOP HEADER BANNER */}
-      <div className="bg-slate-900 text-white p-6 sm:p-7 rounded-3xl border border-slate-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1">
-              <Library className="w-3.5 h-3.5 text-indigo-400" /> Digital Library &amp; Circulation Desk
-            </span>
-            <span className="text-slate-600 text-xs">•</span>
-            <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
-              Accession Barcode &amp; OPAC Live
-            </span>
+      {/* 🌟 VASTU MANDALA MODULE BANNER */}
+      <VastuModuleBanner
+        title="Digital Library & Knowledge Media Hub"
+        description="Comprehensive learning resource center: DDC books catalog with ISBN auto-lookup, rapid barcode/RFID circulation desk, active loan management, and automated tuition ledger overdue fines."
+        badgeText="Catalog & Circulation"
+        badgeIcon={<Library className="w-3.5 h-3.5" />}
+        titleIcon={<BookOpen className="w-7 h-7 text-amber-600" />}
+        institutionText={selectedInstitutionObj?.name || "Campus Knowledge Center"}
+        actions={
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={loadAllData}
+              className="border-[#E8DFC8] text-xs font-bold bg-white"
+              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            >
+              Sync Live DB
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleOpenIssueModal()}
+              className="bg-[#D97706] hover:bg-[#B45309] text-white font-black text-xs shadow-md"
+              leftIcon={<ScanLine className="w-4 h-4" />}
+            >
+              ⚡ Issue Book (Scan)
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsAddBookModalOpen(true)}
+              className="border-[#E8DFC8] bg-white text-stone-800 hover:bg-stone-50 text-xs font-bold"
+              leftIcon={<Plus className="w-3.5 h-3.5 text-amber-600" />}
+            >
+              + Add Title
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsBarcodePrintOpen(true)}
+              className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-stone-50 text-xs font-bold"
+              leftIcon={<Printer className="w-3.5 h-3.5" />}
+            >
+              Barcode Sheet
+            </Button>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-indigo-400" />
-            Library Management &amp; Circulation Desk
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 font-medium mt-0.5">
-            Real-time catalog accession register, barcode scanner circulation desk, active loans, and overdue fine recovery.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => handleOpenIssueModal()}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/20"
-            leftIcon={<ScanLine className="w-4 h-4" />}
-          >
-            ⚡ Issue Book (Scan)
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsAddBookModalOpen(true)}
-            className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700 text-xs font-bold"
-            leftIcon={<Plus className="w-3.5 h-3.5 text-amber-400" />}
-          >
-            + Add Title
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsBarcodePrintOpen(true)}
-            className="bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<Printer className="w-3.5 h-3.5 text-indigo-400" />}
-          >
-            Print Barcodes
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={loadAllData}
-            isLoading={isLoading}
-            className="bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 text-xs"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-          />
-        </div>
-      </div>
+        }
+      />
 
       {/* 🌟 KPI STATS SUMMARY CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -1377,5 +1377,18 @@ function BarcodeIcon(props: any) {
       <path d="M17 5v14" />
       <path d="M21 5v14" />
     </svg>
+  );
+}
+
+export default function LibraryManagementPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 text-center text-stone-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading Digital Library &amp; Knowledge Media Hub...</span>
+      </div>
+    }>
+      <LibraryManagementContent />
+    </Suspense>
   );
 }

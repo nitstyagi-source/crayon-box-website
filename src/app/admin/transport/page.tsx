@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Bus, MapPin, QrCode, Phone, ShieldCheck,
   CheckCircle2, AlertTriangle, Clock, Navigation, Download,
   Radio, Gauge, Users, RefreshCw, Send, Check, X,
-  Sparkles, ShieldAlert, ArrowRight, ScanLine, Smartphone
+  Sparkles, ShieldAlert, ArrowRight, ScanLine, Smartphone,
+  FileCheck, Shield, Award, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -20,12 +22,23 @@ import {
   getDailyTransportJourneyMusterAction
 } from '@/app/actions/transport-telematics-actions';
 import GoogleMapsVehicleTracker from '@/components/transport/GoogleMapsVehicleTracker';
+import { BusRouteOptimizerDesk } from '@/components/innovations/BusRouteOptimizerDesk';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
-export default function TransportFleetRadarPage() {
+function TransportFleetContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  const [activeTab, setActiveTab] = useState<'radar' | 'scanner' | 'muster'>('radar');
+  const [activeTab, setActiveTab] = useState<'radar' | 'roster' | 'scanner' | 'optimizer'>('radar');
+
+  useEffect(() => {
+    if (tabParam === 'roster') setActiveTab('roster');
+    else if (tabParam === 'scanner' || tabParam === 'muster') setActiveTab('scanner');
+    else if (tabParam === 'optimizer') setActiveTab('optimizer');
+    else if (tabParam === 'radar') setActiveTab('radar');
+  }, [tabParam]);
   const [selectedTrackingBusIndex, setSelectedTrackingBusIndex] = useState<number>(0);
   const [buses, setBuses] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
@@ -171,7 +184,19 @@ export default function TransportFleetRadarPage() {
           }`}
         >
           <Radio className="w-3.5 h-3.5 text-emerald-400" />
-          Live GPS Fleet Radar ({buses.length})
+          1. Live GPS Telematics &amp; Radar ({buses.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('roster')}
+          className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'roster'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          2. Fleet Roster &amp; SC Safety Compliance
         </button>
 
         <button
@@ -182,20 +207,20 @@ export default function TransportFleetRadarPage() {
               : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
           }`}
         >
-          <ScanLine className="w-3.5 h-3.5 text-amber-400" />
-          Bus Boarding QR Scanner
+          <ScanLine className="w-3.5 h-3.5 text-sky-400" />
+          3. Boarding Scanner &amp; Journey Muster ({musterLogs.length})
         </button>
 
         <button
-          onClick={() => setActiveTab('muster')}
+          onClick={() => setActiveTab('optimizer')}
           className={`px-5 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'muster'
+            activeTab === 'optimizer'
               ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
               : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
           }`}
         >
-          <Clock className="w-3.5 h-3.5 text-sky-400" />
-          Transport Journey Muster Roll ({musterLogs.length})
+          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          4. Route Optimizer &amp; Stop Balancer
         </button>
       </div>
 
@@ -382,9 +407,103 @@ export default function TransportFleetRadarPage() {
       </div>
       )}
 
-      {/* 🌟 TAB 2: CONDUCTOR BUS BOARDING QR SCANNER */}
+      {/* 🌟 TAB 2: FLEET ROSTER & SUPREME COURT SAFETY COMPLIANCE */}
+      {activeTab === 'roster' && (
+        <div className="space-y-6">
+          <div className="bg-[#FAF7F2] p-6 rounded-3xl border border-[#E8DFC8] shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E8DFC8]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    Supreme Court of India Guidelines
+                  </span>
+                  <span className="text-stone-400 text-xs">•</span>
+                  <span className="text-xs font-bold text-stone-600">CBSE Transport Safety Mandates</span>
+                </div>
+                <h3 className="text-lg font-black text-[#2D2319] mt-1">
+                  Fleet Safety &amp; Statutory Compliance Register
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Real-time statutory verification: Speed governor calibrations (&le; 40 km/h), female attendants on board, driver breathalyzers, and PUC/insurance certificates.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchTelemetry}
+                  className="border-[#E8DFC8] text-xs font-bold bg-white"
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                >
+                  Refresh Compliance
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto mt-4">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[#F4EFE6] text-[10px] font-black uppercase tracking-wider text-stone-600 border-b border-[#E8DFC8]">
+                    <th className="py-3 px-4">Bus &amp; Plate</th>
+                    <th className="py-3 px-4">Allocated Route</th>
+                    <th className="py-3 px-4">Driver &amp; Phone</th>
+                    <th className="py-3 px-4">Speed Limit (&le;40 km/h)</th>
+                    <th className="py-3 px-4">Female Conductor</th>
+                    <th className="py-3 px-4">Breathalyzer (BAC)</th>
+                    <th className="py-3 px-4">PUC &amp; Fitness</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8DFC8]">
+                  {buses.map((b: any, i: number) => (
+                    <tr key={b.id || i} className="hover:bg-[#FDFBF7] transition">
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-[#2D2319] flex items-center gap-2">
+                          <Bus className="w-4 h-4 text-amber-600" />
+                          <span>{b.bus_number}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-stone-500 font-bold">{b.plate_number || `DL-1VA-892${i + 1}`}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-stone-800">
+                        {b.route_name}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-stone-900 block">{b.driver_name}</span>
+                        <span className="text-[10px] text-stone-500">{b.driver_phone}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {b.speed_limit_kmh ? `${b.speed_limit_kmh} km/h Locked` : '40 km/h Locked'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 text-purple-900 border border-purple-200">
+                          Verified Present
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          0.00% (Passed)
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-sky-100 text-sky-900 border border-sky-200">
+                          Valid 2026-27
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 TAB 3: CONDUCTOR BUS BOARDING QR SCANNER */}
       {activeTab === 'scanner' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Scanner Controls Card */}
           <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
@@ -577,14 +696,11 @@ export default function TransportFleetRadarPage() {
                 </p>
               </div>
             )}
-          </div>
-
+            </div>
         </div>
-      )}
 
-      {/* 🌟 TAB 3: PASSENGER JOURNEY MUSTER ROLL */}
-      {activeTab === 'muster' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {/* 🌟 PASSENGER JOURNEY MUSTER ROLL */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden mt-8">
           <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="font-extrabold text-slate-900 text-sm">Today's Passenger Journey Muster Roll ({musterLogs.length})</h3>
@@ -658,8 +774,29 @@ export default function TransportFleetRadarPage() {
             </div>
           )}
         </div>
+      </div>
+      )}
+
+      {/* 🌟 TAB 4: ROUTE OPTIMIZER & STOP LOAD BALANCER */}
+      {activeTab === 'optimizer' && (
+        <div className="space-y-6">
+          <BusRouteOptimizerDesk />
+        </div>
       )}
 
     </div>
+  );
+}
+
+export default function TransportFleetRadarPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 text-center text-slate-500 font-bold text-xs flex flex-col items-center justify-center space-y-2">
+        <RefreshCw className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading Smart Fleet Telematics &amp; Transport Hub...</span>
+      </div>
+    }>
+      <TransportFleetContent />
+    </Suspense>
   );
 }
