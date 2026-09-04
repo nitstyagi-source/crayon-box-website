@@ -11,31 +11,35 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
-  Users
+  Users,
+  Camera
 } from "lucide-react";
 import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 import { PtmSchedulerDesk } from "@/components/community/PtmSchedulerDesk";
 import { ParentConsentDesk } from "@/components/community/ParentConsentDesk";
 import { ParentGrievanceDesk } from "@/components/community/ParentGrievanceDesk";
+import { ClassroomMomentsDesk } from "@/components/community/ClassroomMomentsDesk";
 
 function ParentCareHubContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
 
-  const [activeTab, setActiveTab] = useState<"ptm" | "consent" | "grievances">("ptm");
+  const [activeTab, setActiveTab] = useState<"ptm" | "consent" | "grievances" | "moments">("ptm");
 
   useEffect(() => {
     if (tabParam === "consent") {
       setActiveTab("consent");
     } else if (tabParam === "grievances" || tabParam === "helpdesk") {
       setActiveTab("grievances");
+    } else if (tabParam === "moments") {
+      setActiveTab("moments");
     } else if (tabParam === "ptm") {
       setActiveTab("ptm");
     }
   }, [tabParam]);
 
-  const handleTabChange = (tab: "ptm" | "consent" | "grievances") => {
+  const handleTabChange = (tab: "ptm" | "consent" | "grievances" | "moments") => {
     setActiveTab(tab);
     router.replace(`/admin/parent-care?tab=${tab}`, { scroll: false });
   };
@@ -89,12 +93,25 @@ function ParentCareHubContent() {
           <LifeBuoy className="w-4 h-4 text-purple-600" />
           CBSE Statutory Grievance Redressal Desk
         </button>
+
+        <button
+          onClick={() => handleTabChange("moments")}
+          className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
+            activeTab === "moments"
+              ? "border-[#D97706] text-[#92400E] bg-[#FAF7F2] rounded-t-xl"
+              : "border-transparent text-stone-500 hover:text-stone-800"
+          }`}
+        >
+          <Camera className="w-4 h-4 text-[#D97706]" />
+          Private Cohort "Daily Moments" Feed
+        </button>
       </div>
 
       {/* Tab Contents */}
       {activeTab === "ptm" && <PtmSchedulerDesk />}
       {activeTab === "consent" && <ParentConsentDesk />}
       {activeTab === "grievances" && <ParentGrievanceDesk />}
+      {activeTab === "moments" && <ClassroomMomentsDesk />}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   Sparkles, Download, ArrowRight, ExternalLink, Filter, BarChart3,
   RefreshCw, Search, Eye, Plus, Check, Clock, ShieldAlert,
   GraduationCap, UserCheck, X, FileText, ChevronRight, Settings,
-  Calendar, Award, Target, HelpCircle, ArrowUpRight, Send
+  Calendar, Award, Target, HelpCircle, ArrowUpRight, Send, Atom
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -21,6 +21,7 @@ import { getInstitutionClassesAction } from '@/app/actions/attendance-actions';
 import { TeacherLessonDiaryDesk } from '@/components/academics/TeacherLessonDiaryDesk';
 import { InteractiveHomeworkLMSDesk } from '../academic/homework/page';
 import { HomeworkAnnotationDesk } from '@/components/innovations/HomeworkAnnotationDesk';
+import { LtiResourcePicker } from '@/components/curriculum/LtiResourcePicker';
 import {
   getCurriculumRadarAction,
   getSubjectChaptersAction,
@@ -53,10 +54,11 @@ function CurriculumRadarContent() {
   const router = useRouter();
 
   const tabParam = (searchParams.get('tab') || 'radar').toLowerCase();
-  const [activeTab, setActiveTab] = useState<'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING'>(
+  const [activeTab, setActiveTab] = useState<'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING' | 'DIGITAL_RESOURCES'>(
     tabParam === 'diary' ? 'DIARY' :
     tabParam === 'homework' ? 'HOMEWORK' :
-    tabParam === 'grading' ? 'GRADING' : 'RADAR'
+    tabParam === 'grading' ? 'GRADING' :
+    tabParam === 'digital-resources' || tabParam === 'lti' ? 'DIGITAL_RESOURCES' : 'RADAR'
   );
 
   const [dynamicClasses, setDynamicClasses] = useState<string[]>([
@@ -433,10 +435,17 @@ function CurriculumRadarContent() {
           { id: 'DIARY', label: '2. Teacher Lesson Diary', icon: <FileText className="w-4 h-4 text-emerald-600" /> },
           { id: 'HOMEWORK', label: '3. Homework & Assignments LMS', icon: <Send className="w-4 h-4 text-blue-600" /> },
           { id: 'GRADING', label: '4. Digital Ink Annotation Desk', icon: <Award className="w-4 h-4 text-amber-600" /> },
+          { id: 'DIGITAL_RESOURCES', label: '5. LTI 1.3 & DIKSHA Hub', icon: <Atom className="w-4 h-4 text-[#D97706]" /> },
         ]}
         activeTab={activeTab}
         onTabChange={(id) => handleTabChange(id as any)}
       />
+
+      {activeTab === 'DIGITAL_RESOURCES' && (
+        <div className="animate-in fade-in duration-200">
+          <LtiResourcePicker />
+        </div>
+      )}
 
       {activeTab === 'DIARY' && (
         <div className="animate-in fade-in duration-200">

@@ -18,13 +18,19 @@ import { VastuModuleBanner } from "@/components/common/VastuModuleBanner";
 import { AiCommsStudioDesk } from "@/components/community/AiCommsStudioDesk";
 import { WhatsAppEngineDesk } from "@/components/community/WhatsAppEngineDesk";
 import { CampaignsBroadcastDesk } from "@/components/community/CampaignsBroadcastDesk";
+import { ParentTeacherChatDesk } from "@/components/community/ParentTeacherChatDesk";
 
 function CommunicationsHubContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tabParam = searchParams.get("tab");
+  const tabParam = searchParams.get("tab")?.toLowerCase();
 
-  const [activeTab, setActiveTab] = useState<"ai-writer" | "campaigns" | "whatsapp" | "logs">("ai-writer");
+  const [activeTab, setActiveTab] = useState<"ai-writer" | "campaigns" | "whatsapp" | "logs" | "parent-chat">(
+    tabParam === "campaigns" ? "campaigns" :
+    tabParam === "whatsapp" || tabParam === "triggers" ? "whatsapp" :
+    tabParam === "logs" || tabParam === "settings" ? "logs" :
+    tabParam === "parent-chat" || tabParam === "chat" ? "parent-chat" : "ai-writer"
+  );
 
   useEffect(() => {
     if (tabParam === "campaigns") {
@@ -33,12 +39,14 @@ function CommunicationsHubContent() {
       setActiveTab("whatsapp");
     } else if (tabParam === "logs" || tabParam === "settings") {
       setActiveTab("logs");
+    } else if (tabParam === "parent-chat" || tabParam === "chat") {
+      setActiveTab("parent-chat");
     } else if (tabParam === "ai-writer" || tabParam === "ai") {
       setActiveTab("ai-writer");
     }
   }, [tabParam]);
 
-  const handleTabChange = (tab: "ai-writer" | "campaigns" | "whatsapp" | "logs") => {
+  const handleTabChange = (tab: "ai-writer" | "campaigns" | "whatsapp" | "logs" | "parent-chat") => {
     setActiveTab(tab);
     router.replace(`/admin/communications?tab=${tab}`, { scroll: false });
   };
@@ -104,6 +112,18 @@ function CommunicationsHubContent() {
           <FileText className="w-4 h-4 text-emerald-600" />
           Delivery Telematics & Gateway Logs
         </button>
+
+        <button
+          onClick={() => handleTabChange("parent-chat")}
+          className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
+            activeTab === "parent-chat"
+              ? "border-[#D97706] text-[#92400E] bg-[#FAF7F2] rounded-t-xl"
+              : "border-transparent text-stone-500 hover:text-stone-800"
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-[#D97706]" />
+          Parent-Teacher Direct Chat
+        </button>
       </div>
 
       {/* Tab Contents */}
@@ -111,6 +131,7 @@ function CommunicationsHubContent() {
       {activeTab === "campaigns" && <CampaignsBroadcastDesk />}
       {activeTab === "whatsapp" && <WhatsAppEngineDesk initialSubTab="triggers" />}
       {activeTab === "logs" && <WhatsAppEngineDesk initialSubTab="logs" />}
+      {activeTab === "parent-chat" && <ParentTeacherChatDesk />}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   Package, ShoppingCart, Truck, CheckCircle2,
   Clock, Plus, RefreshCw, IndianRupee, Building2, X,
   FileText, Printer, Edit3, Eye, Save, SlidersHorizontal, ArrowRight,
-  Receipt, Check, HelpCircle, Layers, QrCode, Sparkles
+  Receipt, Check, HelpCircle, Layers, QrCode, Sparkles, ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -23,15 +23,16 @@ import {
 import { numberToWordsINR } from '@/lib/numberUtils';
 import { printIsolatedElement } from '@/lib/printUtils';
 import { FixedAssetInventoryDesk } from '@/components/finance/FixedAssetInventoryDesk';
+import { SchoolStoreManagerDesk } from '@/components/procurement/SchoolStoreManagerDesk';
 
-type ProcurementTab = 'pos' | 'vouchers' | 'assets' | 'consumables';
+type ProcurementTab = 'pos' | 'vouchers' | 'assets' | 'consumables' | 'school-store';
 
 function ProcurementHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') as ProcurementTab | null;
 
-  const validTabs: ProcurementTab[] = ['pos', 'vouchers', 'assets', 'consumables'];
+  const validTabs: ProcurementTab[] = ['pos', 'vouchers', 'assets', 'consumables', 'school-store'];
   const [activeTab, setActiveTab] = useState<ProcurementTab>(
     rawTab && validTabs.includes(rawTab) ? rawTab : 'pos'
   );
@@ -234,6 +235,22 @@ function ProcurementHubContent() {
           <span>4. Consumables &amp; Lab Stockroom</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 font-bold">
             Reorder Radar
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('school-store')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'school-store'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4 text-[#D97706]" />
+          <span>5. School Uniform &amp; Book Store</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
+            E-Commerce
           </span>
         </button>
       </div>
@@ -455,6 +472,15 @@ function ProcurementHubContent() {
       {activeTab === 'consumables' && (
         <div className="space-y-6">
           <FixedAssetInventoryDesk embedded={true} defaultTab="consumables" />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: SCHOOL STORE & UNIFORM BUNDLE E-COMMERCE */}
+      {/* ========================================================================= */}
+      {activeTab === 'school-store' && (
+        <div className="space-y-6">
+          <SchoolStoreManagerDesk />
         </div>
       )}
 
