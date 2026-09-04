@@ -60,7 +60,10 @@ export function TeacherIDCard({
   // =============================================================
   if (isBack) {
     return (
-      <div className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-200 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none">
+      <div 
+        style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+        className="w-[330px] h-[520px] bg-[#FFFFFF] rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-200 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none"
+      >
         {/* Top Tricolor Accent Ribbon */}
         <div className="h-2.5 w-full bg-gradient-to-r from-[#FF671F] 0%, from-[#FF671F] 33.3%, via-white 33.3%, via-white 66.6%, to-[#046A38] 66.6%, to-[#046A38] 100%"></div>
 
@@ -212,7 +215,10 @@ export function TeacherIDCard({
   // FRONT FACE: LAYOUT A ("BHARAT SHRESHTHA" VERTICAL EXECUTIVE FACULTY)
   // =============================================================
   return (
-    <div className="w-[330px] h-[520px] bg-white rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none">
+    <div 
+      style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+      className="w-[330px] h-[520px] bg-white rounded-3xl shadow-xl relative overflow-hidden flex flex-col font-sans border-2 border-stone-300 print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none"
+    >
       {/* 1. Indian Tricolor Header Ribbon */}
       <div className="h-2.5 w-full bg-gradient-to-r from-[#FF671F] 0%, from-[#FF671F] 33.3%, via-white 33.3%, via-white 66.6%, to-[#046A38] 66.6%, to-[#046A38] 100%"></div>
 
