@@ -8,12 +8,13 @@ import {
   Clock, ShieldCheck, ChevronRight, Award, Bell
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
+import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function FamilyMobileDashboard() {
   const { user, activeChild, setIsProfileModalOpen } = useMobileAuth();
 
-  const childName = activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : "Your Child";
-  const grade = activeChild ? `${activeChild.grade} (${activeChild.section})` : "Grade 5A";
+  const childName = activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : "Aarav Sharma";
+  const grade = activeChild ? `${activeChild.grade} - Section ${activeChild.section}` : "Grade 5 - Section A";
   const pendingFee = activeChild?.pendingFee || 0;
   const attendance = activeChild?.attendancePercent || 94.2;
 
@@ -25,9 +26,12 @@ export default function FamilyMobileDashboard() {
         <div className="space-y-3 relative z-10">
           
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1 bg-emerald-400/20 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
-              👨‍👩‍👧 Parent Portal
-            </span>
+            <div className="flex items-center gap-2">
+              <SchoolLogo size="xs" shape="square" className="bg-white/95 p-0.5 shadow-2xs" />
+              <span className="inline-flex items-center gap-1 bg-emerald-400/20 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+                👨‍👩‍👧 Parent Portal
+              </span>
+            </div>
 
             {/* Switch Child pill trigger */}
             {user?.children && user.children.length > 1 && (

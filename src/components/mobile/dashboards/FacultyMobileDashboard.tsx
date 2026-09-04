@@ -8,6 +8,7 @@ import {
   PlusCircle, Sparkles, QrCode
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
+import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function FacultyMobileDashboard() {
   const { user } = useMobileAuth();
@@ -33,9 +34,12 @@ export default function FacultyMobileDashboard() {
             <span className="text-xs text-slate-300 font-mono">Today &bull; 09:30 AM</span>
           </div>
 
-          <div>
-            <h2 className="text-xl font-bold font-serif">{user?.fullName || "Neha Sharma"}</h2>
-            <p className="text-xs text-slate-300 mt-0.5">TGT Mathematics &bull; Class Teacher: Grade 5A</p>
+          <div className="flex items-center gap-3.5">
+            <SchoolLogo size="lg" shape="square" className="bg-white/95 p-1 shadow-md" />
+            <div>
+              <h2 className="text-xl font-bold font-serif">{user?.fullName || "Neha Sharma"}</h2>
+              <p className="text-xs text-slate-300 mt-0.5">TGT Mathematics &bull; Class Teacher: Grade 5A</p>
+            </div>
           </div>
 
           <div className="bg-white/10 rounded-2xl p-3 border border-white/10 flex items-center justify-between">

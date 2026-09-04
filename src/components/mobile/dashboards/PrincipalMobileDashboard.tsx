@@ -8,6 +8,7 @@ import {
   Calendar, Check, ShieldCheck, ChevronRight, UserCheck
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
+import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function PrincipalMobileDashboard() {
   const { user } = useMobileAuth();
@@ -35,9 +36,12 @@ export default function PrincipalMobileDashboard() {
             <span className="text-xs text-slate-400 font-mono">Today &bull; 08:30 AM</span>
           </div>
 
-          <div>
-            <h2 className="text-xl font-bold font-serif">{user?.fullName || "Dr. Sunita Rao"}</h2>
-            <p className="text-xs text-slate-300 mt-0.5">Classes in Session &bull; Academic Oversight</p>
+          <div className="flex items-center gap-3.5">
+            <SchoolLogo size="lg" shape="square" className="bg-white/95 p-1 shadow-md" />
+            <div>
+              <h2 className="text-xl font-bold font-serif">{user?.fullName || "Dr. Sunita Rao"}</h2>
+              <p className="text-xs text-slate-300 mt-0.5">Classes in Session &bull; Academic Oversight</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-1 text-center">

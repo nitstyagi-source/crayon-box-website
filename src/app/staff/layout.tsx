@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, BookOpen, Calendar, MessageSquare, Settings, Users, LogOut, CheckSquare } from "lucide-react";
 import { NotificationCenter } from "@/components/layout/NotificationCenter";
+import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,8 +22,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col hidden md:flex shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <span className="text-xl font-bold text-white tracking-tight">Crayon<span className="text-emerald-400">Box</span> <span className="text-xs text-slate-500 font-normal uppercase tracking-widest ml-2">Staff</span></span>
+        <div className="h-16 flex items-center px-6 border-b border-slate-800 gap-3">
+          <SchoolLogo size="sm" shape="square" />
+          <span className="text-lg font-bold text-white tracking-tight">Crayon<span className="text-emerald-400">Box</span> <span className="text-xs text-slate-500 font-normal uppercase tracking-widest ml-1">Staff</span></span>
         </div>
         
         <div className="p-4">

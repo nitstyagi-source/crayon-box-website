@@ -31,6 +31,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { DualFileUpload } from '@/components/ui/DualFileUpload';
+import { SchoolLogo } from '@/components/ui/SchoolLogo';
 
 export default function TrustCommandCenterPage() {
   const [metrics, setMetrics] = useState({
@@ -550,16 +551,25 @@ export default function TrustCommandCenterPage() {
             {VANI_TRUST_INSTITUTIONS.map((inst) => (
               <div key={inst.code} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="w-8 h-8 rounded-xl bg-[#0B1B30] text-white font-black text-xs flex items-center justify-center">
-                    {inst.code}
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    <SchoolLogo 
+                      code={inst.code} 
+                      logoUrl={inst.logoUrl} 
+                      name={inst.name} 
+                      size="md" 
+                      shape="square" 
+                    />
+                    <span className="text-[10px] font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                      {inst.code}
+                    </span>
+                  </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                     Online
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">{inst.name}</h3>
-                  <p className="text-[11px] text-slate-400">{inst.shortName} • {inst.institutionType === 'K12_SCHOOL' ? 'K-12' : 'Montessori'}</p>
+                  <h3 className="font-bold text-slate-900 text-sm leading-tight">{inst.name}</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{inst.shortName} • {inst.institutionType === 'K12_SCHOOL' ? 'K-12' : 'Montessori'}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-100 text-xs space-y-1">
                   <div className="flex justify-between"><span className="text-slate-500">Students:</span> <span className="font-bold text-slate-800">0</span></div>

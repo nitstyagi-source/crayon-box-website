@@ -8,6 +8,7 @@ import {
   UserPlus, Receipt, Bell, QrCode, Search, ChevronRight, TrendingUp
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
+import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function AdminMobileDashboard() {
   const { user } = useMobileAuth();
@@ -26,9 +27,12 @@ export default function AdminMobileDashboard() {
             <span className="text-xs text-slate-400 font-mono">22 Aug 2026</span>
           </div>
 
-          <div>
-            <h2 className="text-xl font-bold font-serif leading-tight">Welcome, {user?.fullName || "Director"}</h2>
-            <p className="text-xs text-slate-300 mt-1">Campus Snapshot &bull; Main Campus (Sector 62)</p>
+          <div className="flex items-center gap-3.5">
+            <SchoolLogo size="lg" shape="square" className="bg-white/95 p-1 shadow-md" />
+            <div>
+              <h2 className="text-xl font-bold font-serif leading-tight">Welcome, {user?.fullName || "Director"}</h2>
+              <p className="text-xs text-slate-300 mt-0.5">Campus Snapshot &bull; Main Campus</p>
+            </div>
           </div>
 
           {/* Quick Stat Pill Grid */}

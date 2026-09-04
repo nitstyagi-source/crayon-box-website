@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DualFileUpload } from '@/components/ui/DualFileUpload';
+import { SchoolLogo } from '@/components/ui/SchoolLogo';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 import {
@@ -669,11 +670,20 @@ export default function AdminDashboard() {
                   key={inst.id || inst.code}
                   className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 space-y-4 flex flex-col justify-between hover:border-indigo-300 transition"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
-                        {inst.code}
-                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <SchoolLogo 
+                          code={inst.code} 
+                          logoUrl={inst.logo_url || inst.logoUrl} 
+                          name={inst.name} 
+                          size="md" 
+                          shape="square" 
+                        />
+                        <span className="text-[10px] font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                          {inst.code}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEditModal(inst)}
@@ -696,8 +706,10 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <h3 className="font-extrabold text-slate-900 text-sm">{inst.name}</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">{inst.affiliation}</p>
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-sm leading-tight">{inst.name}</h3>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">{inst.affiliation}</p>
+                    </div>
                     {inst.school_id_number && (
                       <span className="text-[10px] font-mono text-slate-500 block">
                         ID: {inst.school_id_number} • UDISE: {inst.udise_code || '07010203401'}
@@ -758,19 +770,30 @@ export default function AdminDashboard() {
                   key={inst.id || inst.code}
                   className="bg-amber-50/40 rounded-3xl border border-amber-200 p-5 space-y-4 flex flex-col justify-between"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
-                        {inst.code}
-                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <SchoolLogo 
+                          code={inst.code} 
+                          logoUrl={inst.logo_url || inst.logoUrl} 
+                          name={inst.name} 
+                          size="md" 
+                          shape="square" 
+                        />
+                        <span className="text-[10px] font-mono font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                          {inst.code}
+                        </span>
+                      </div>
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md flex items-center gap-1">
                         <Archive className="w-3 h-3 text-amber-800" />
                         Archived
                       </span>
                     </div>
 
-                    <h3 className="font-extrabold text-slate-800 text-sm">{inst.name}</h3>
-                    <p className="text-[11px] text-amber-900 font-medium">{inst.affiliation}</p>
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-sm leading-tight">{inst.name}</h3>
+                      <p className="text-[11px] text-amber-900 font-medium mt-0.5">{inst.affiliation}</p>
+                    </div>
                     {inst.school_id_number && (
                       <span className="text-[10px] font-mono text-amber-800/80 block">
                         ID: {inst.school_id_number} • UDISE: {inst.udise_code || 'N/A'}
