@@ -65,6 +65,7 @@ export default function TransferCertificateStudioPage() {
     setIsProcessing(true);
     try {
       const res = await generateTransferCertificateAction({
+        institutionCode: selectedInstitutionObj?.code,
         studentName,
         admissionNo,
         fatherName,
@@ -105,7 +106,7 @@ export default function TransferCertificateStudioPage() {
             Transfer Certificate (TC) Studio
           </h1>
           <p className="text-xs sm:text-sm text-stone-300 max-w-2xl">
-            Issue tamper-proof CBSE-compliant School Transfer Certificates with anti-forgery front QR verification codes.
+            Issue tamper-proof standardized School Transfer Certificates with anti-forgery front QR verification codes.
           </p>
         </div>
 
@@ -264,7 +265,7 @@ export default function TransferCertificateStudioPage() {
           {(() => {
             const activeTc = selectedTc || {
               id: 'tc-preview',
-              tc_number: 'CBS/TC/2026/0412',
+              tc_number: `${selectedInstitutionObj?.code || 'CBS'}/TC/2026/0412`,
               admission_no: admissionNo || 'ADM-2024-0089',
               student_name: studentName || 'Rohan Singhal',
               father_name: fatherName || 'Mr. Vikram Singhal',
@@ -288,6 +289,15 @@ export default function TransferCertificateStudioPage() {
                 
                 {/* Official Header */}
                 <div className="text-center space-y-1 border-b-2 border-stone-900 pb-4 relative z-10">
+                  {selectedInstitutionObj?.logoUrl && (
+                    <div className="flex justify-center mb-2">
+                      <img
+                        src={selectedInstitutionObj.logoUrl}
+                        alt={selectedInstitutionObj.name || "School Logo"}
+                        className="w-14 h-14 object-contain rounded-full border border-amber-300 bg-white p-1 shadow-xs"
+                      />
+                    </div>
+                  )}
                   <div className="text-[10px] font-bold tracking-widest uppercase text-stone-600">
                     Recognized &amp; Registered Educational Institution, Delhi NCR
                   </div>
@@ -295,7 +305,7 @@ export default function TransferCertificateStudioPage() {
                     {selectedInstitutionObj?.name || "OFFICIAL EDUCATIONAL INSTITUTION"}
                   </h2>
                   <div className="text-xs text-stone-600 font-medium">
-                    {selectedInstitutionObj?.address || "Recognized Campus, Delhi NCR"} | Affiliation: {selectedInstitutionObj?.affiliationNumber || "CBSE/AFF"}
+                    {selectedInstitutionObj?.address || "Recognized Campus, Delhi NCR"} | Affiliation: {selectedInstitutionObj?.affiliationNumber || "AFF/REG"}
                   </div>
                   <div className="flex justify-center gap-6 text-[10px] font-mono text-stone-700 pt-1 font-bold">
                     <span>Registration No: 2730588</span>
@@ -317,7 +327,7 @@ export default function TransferCertificateStudioPage() {
                   </div>
                 </div>
 
-                {/* 12-Point CBSE Official Schedule Table */}
+                {/* 12-Point Statutory Official Schedule Table */}
                 <div className="space-y-2.5 text-xs text-stone-800 relative z-10">
                   <div className="grid grid-cols-12 border-b border-stone-200/80 pb-1.5">
                     <span className="col-span-6 font-bold">1. Name of the Pupil:</span>
@@ -378,7 +388,10 @@ export default function TransferCertificateStudioPage() {
 
                   {/* Front Verification QR Code */}
                   <div className="flex flex-col items-center space-y-1 bg-white p-2 rounded-2xl border border-[#E8DFC8] shadow-xs">
-                    <StudentQRCode payload={`https://crayonboxschool.edu.in/verify-tc?tc=${activeTc.tc_number}&adm=${activeTc.admission_no}`} size={70} />
+                    <StudentQRCode
+                      payload={typeof window !== "undefined" ? `${window.location.origin}/verify-tc/${encodeURIComponent(activeTc.tc_number)}` : `https://school.edu.in/verify-tc/${encodeURIComponent(activeTc.tc_number)}`}
+                      size={70}
+                    />
                     <span className="text-[8px] font-mono text-stone-600 font-bold uppercase tracking-wider">
                       Scan Front QR to Verify
                     </span>
@@ -386,7 +399,7 @@ export default function TransferCertificateStudioPage() {
 
                   <div className="text-center space-y-1">
                     <div className="w-32 border-b border-stone-900 mx-auto font-serif italic text-[11px] text-[#0B1B30] font-bold">
-                      Dr. S. K. Sharma
+                      {selectedInstitutionObj?.principalName || "Principal"}
                     </div>
                     <span className="font-bold text-stone-900 block">Principal (Seal &amp; Sign)</span>
                   </div>

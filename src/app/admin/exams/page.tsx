@@ -253,7 +253,7 @@ function ExamHubContent() {
         institutionText={`Campus: ${activeInst} • Multi-Curriculum Examination & Gradebook Hub`}
         title="Examination Command Center & Gradebook"
         titleIcon={<Award className="w-7 h-7 text-[#D97706]" />}
-        description="Unified assessment command center uniting Scholastic Gradebook & Moderation Radar, AI Question Paper Studio & Writing Ruling Engine, CBSE Holistic Progress Cards (HPC) with WhatsApp Push, and Montessori Developmental Portfolios."
+        description="Unified assessment command center uniting Scholastic Gradebook & Moderation Radar, AI Question Paper Studio & Writing Ruling Engine, Holistic Progress Cards (HPC) with WhatsApp Push, and Montessori Developmental Portfolios."
         actions={
           <>
             <Button
@@ -390,7 +390,7 @@ function ExamHubContent() {
           }`}
         >
           <TrendingUp className="w-4 h-4 text-[#D97706]" />
-          <span>6. CBSE Board Predictive Analytics</span>
+          <span>6. Board Examination Predictive Analytics</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold">
             AI Remedial
           </span>
@@ -798,7 +798,7 @@ function ExamHubContent() {
             {/* Modal Top Actions */}
             <div className="flex items-center justify-between border-b border-[#E8DFC8] pb-3">
               <span className="text-[10px] font-black uppercase text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
-                Official CBSE Report Card Preview
+                Official Report Card Preview
               </span>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="primary" onClick={() => window.print()} leftIcon={<Printer className="w-4 h-4" />} className="bg-slate-900 text-white">
@@ -853,7 +853,7 @@ function ExamHubContent() {
               {/* Scholastic Assessment Marks Table */}
               <div className="space-y-2">
                 <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1">
-                  Part 1: Scholastic Performance (CBSE 8-Point Scale)
+                  Part 1: Scholastic Performance (Standard 8-Point Scale)
                 </h4>
 
                 <div className="overflow-x-auto border border-[#E8DFC8] rounded-xl">
@@ -903,7 +903,7 @@ function ExamHubContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: CBSE NEP 2020 360-DEGREE HOLISTIC PROGRESS MATRIX */}
+      {/* TAB 4: NEP 2020 360-DEGREE HOLISTIC PROGRESS MATRIX */}
       {/* ========================================================================= */}
       {activeTab === 'nep2020' && (
         <div className="space-y-6">

@@ -7,8 +7,10 @@ import {
   generateBloomsExamPaperAction,
   getPublishedQuestionPapersAction
 } from '@/app/actions/blooms-test-builder-actions';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export const BloomsTestBuilderStudio: React.FC = () => {
+  const { selectedInstitutionObj } = useInstitution();
   const [questions, setQuestions] = useState<any[]>([]);
   const [publishedPapers, setPublishedPapers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +78,7 @@ export const BloomsTestBuilderStudio: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-purple-700 font-bold text-xs uppercase tracking-wider mb-1">
             <Sliders className="w-4 h-4" />
-            <span>CBSE NEP-2020 Cognitive Domain Framework</span>
+            <span>NEP-2020 Cognitive Domain Framework</span>
           </div>
           <h2 className="text-xl font-bold text-stone-900">Bloom's Taxonomy Question Paper &amp; Rubric Studio</h2>
           <p className="text-xs text-stone-500 mt-0.5">Automated test blueprinting across Remembering, Understanding, Applying, and Analyzing levels.</p>
@@ -190,7 +192,7 @@ export const BloomsTestBuilderStudio: React.FC = () => {
               className="w-full py-2.5 px-4 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
-              <span>{isGenerating ? 'Compiling Blueprint...' : 'Generate CBSE Exam Paper'}</span>
+              <span>{isGenerating ? 'Compiling Blueprint...' : 'Generate Examination Paper'}</span>
             </button>
           </div>
         </div>
@@ -215,8 +217,19 @@ export const BloomsTestBuilderStudio: React.FC = () => {
           {generatedPaper ? (
             <div className="p-6 border border-stone-200 rounded-xl bg-stone-50/40 space-y-6 animate-in fade-in duration-300">
               {/* Paper Masthead */}
-              <div className="text-center border-b border-stone-200 pb-4">
-                <h4 className="font-serif font-black text-lg text-stone-900 uppercase">Crayon Box School</h4>
+              <div className="text-center border-b border-stone-200 pb-4 space-y-1">
+                {selectedInstitutionObj?.logoUrl && (
+                  <div className="flex justify-center mb-1">
+                    <img
+                      src={selectedInstitutionObj.logoUrl}
+                      alt={selectedInstitutionObj.name || "School Logo"}
+                      className="w-10 h-10 object-contain rounded-full border border-stone-200 bg-white p-0.5 shadow-2xs"
+                    />
+                  </div>
+                )}
+                <h4 className="font-serif font-black text-lg text-stone-900 uppercase">
+                  {selectedInstitutionObj?.name || "Academic Institution"}
+                </h4>
                 <p className="text-xs font-bold text-stone-700">{generatedPaper.title}</p>
                 <div className="flex justify-center gap-4 text-[11px] text-stone-500 mt-1">
                   <span>Subject: {subjectName}</span>
@@ -257,7 +270,7 @@ export const BloomsTestBuilderStudio: React.FC = () => {
             </div>
           ) : (
             <div className="p-16 text-center text-xs text-stone-400 border border-dashed border-stone-200 rounded-xl">
-              Click &quot;Generate CBSE Exam Paper&quot; to compile questions matching Bloom&apos;s Taxonomy distribution.
+              Click &quot;Generate Examination Paper&quot; to compile questions matching Bloom&apos;s Taxonomy distribution.
             </div>
           )}
         </div>

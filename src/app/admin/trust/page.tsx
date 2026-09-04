@@ -329,7 +329,7 @@ export default function TrustCommandCenterPage() {
       header: 'Academic Framework',
       render: (row: any) => (
         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-bold uppercase border border-slate-200">
-          {row.academicFramework || row.boardAffiliation || 'CBSE'}
+          {row.academicFramework || row.boardAffiliation || 'Recognized Board'}
         </span>
       ),
     },

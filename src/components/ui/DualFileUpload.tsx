@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Upload, Link as LinkIcon, X, FileText, Image as ImageIcon, CheckCircle2, Sparkles } from 'lucide-react';
+import { Upload, Link as LinkIcon, X, FileText, Image as ImageIcon, CheckCircle2, Sparkles, Crop } from 'lucide-react';
 import { standardizePhotoBackground } from '@/lib/utils/photo-standardizer';
+import { ImageCropperModal, CropType } from '@/components/ui/ImageCropperModal';
 
 export interface DualFileUploadProps {
   label?: string;
@@ -35,6 +36,12 @@ export function DualFileUpload({
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState<string>('');
+
+  const isLogo = (label || '').toLowerCase().includes('logo') || (label || '').toLowerCase().includes('crest') || (placeholder || '').toLowerCase().includes('crest') || (placeholder || '').toLowerCase().includes('logo');
+  const cropType: CropType = isLogo ? 'logo' : (label || '').toLowerCase().includes('banner') ? 'banner' : 'photo';
+
   const isImage = value && (
     value.startsWith('data:image') ||
     value.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i) ||
@@ -57,16 +64,10 @@ export function DualFileUpload({
     const reader = new FileReader();
     reader.onload = async (e) => {
       const rawResult = e.target?.result as string;
-      if (file.type.startsWith('image/') && standardizeBackground && !file.name.includes('logo')) {
-        setIsProcessing(true);
-        try {
-          const standardized = await standardizePhotoBackground(rawResult, { backgroundType: 'studio-gradient-light' });
-          onChange(standardized);
-        } catch (err) {
-          onChange(rawResult);
-        } finally {
-          setIsProcessing(false);
-        }
+      if (file.type.startsWith('image/')) {
+        // Open interactive framing & crop modal so user can choose visible area
+        setCropperImage(rawResult);
+        setIsCropperOpen(true);
       } else {
         onChange(rawResult);
       }
@@ -198,17 +199,31 @@ export function DualFileUpload({
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
+                {isImage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCropperImage(value);
+                      setIsCropperOpen(true);
+                    }}
+                    className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg border border-amber-300 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                    title="Select which part of the photo or logo is visible"
+                  >
+                    <Crop className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Adjust Framing</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-[11px] font-bold"
+                  className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-[11px] font-bold cursor-pointer"
                 >
                   Change
                 </button>
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
+                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer"
                   title="Remove file"
                 >
                   <X className="w-4 h-4" />
@@ -236,7 +251,7 @@ export function DualFileUpload({
               <button
                 type="button"
                 onClick={handleClear}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-rose-600"
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-rose-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -245,32 +260,49 @@ export function DualFileUpload({
 
           {/* URL Live Image Preview Box */}
           {value && (
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3">
-              {isImage ? (
-                <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={value}
-                    alt="URL Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
+            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 overflow-hidden">
+                {isImage ? (
+                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={value}
+                      alt="URL Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                )}
+                <div className="truncate">
+                  <span className="text-[11px] font-bold text-slate-800 block truncate">
+                    External Resource Linked
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 truncate block">
+                    {value}
+                  </span>
                 </div>
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-              )}
-              <div className="truncate">
-                <span className="text-[11px] font-bold text-slate-800 block truncate">
-                  External Resource Linked
-                </span>
-                <span className="text-[10px] font-mono text-slate-400 truncate block">
-                  {value}
-                </span>
               </div>
+
+              {isImage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCropperImage(value);
+                    setIsCropperOpen(true);
+                  }}
+                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg border border-amber-300 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shrink-0"
+                  title="Adjust which part of the photo or logo is visible"
+                >
+                  <Crop className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Adjust Framing</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -279,6 +311,20 @@ export function DualFileUpload({
       {helperText && (
         <p className="text-[10px] text-slate-400">{helperText}</p>
       )}
+
+      {/* Interactive Image Cropper & Framing Modal */}
+      <ImageCropperModal
+        isOpen={isCropperOpen}
+        onClose={() => setIsCropperOpen(false)}
+        imageUrl={cropperImage}
+        cropType={cropType}
+        title={isLogo ? "Crop & Frame School Logo / Crest" : "Crop & Frame Photo"}
+        allowUniversalBackground={standardizeBackground && !isLogo}
+        onCropComplete={(croppedUrl) => {
+          onChange(croppedUrl);
+          setIsCropperOpen(false);
+        }}
+      />
     </div>
   );
 }

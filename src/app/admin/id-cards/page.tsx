@@ -581,19 +581,19 @@ export default function IDCardAndEscortGeneratorHubPage() {
               <div id="bulk-print-container">
                 {activeTab === 'STUDENT' && selectedStudent && (
                   <div className="card-print-item">
-                    <StudentIDCard student={selectedStudent} />
+                    <StudentIDCard student={selectedStudent} schoolInfo={selectedInstitutionObj} />
                   </div>
                 )}
 
                 {activeTab === 'TEACHER' && selectedFaculty && (
                   <div className="card-print-item">
-                    <TeacherIDCard faculty={selectedFaculty} />
+                    <TeacherIDCard faculty={selectedFaculty} schoolInfo={selectedInstitutionObj} />
                   </div>
                 )}
 
                 {activeTab === 'ESCORT' && selectedEscort && (
                   <div className="card-print-item">
-                    <EscortPickupCard escort={selectedEscort} />
+                    <EscortPickupCard escort={selectedEscort} schoolInfo={selectedInstitutionObj} />
                   </div>
                 )}
               </div>
@@ -821,14 +821,14 @@ export default function IDCardAndEscortGeneratorHubPage() {
                   {/* STUDENTS BULK */}
                   {activeTab === 'STUDENT' && bulkSelectedStudents.map((s) => (
                     <div key={s.id} className="card-print-item flex justify-center w-full">
-                      <StudentIDCard student={s} layoutMode={bulkLayout} />
+                      <StudentIDCard student={s} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} />
                     </div>
                   ))}
 
                   {/* TEACHERS BULK */}
                   {activeTab === 'TEACHER' && bulkSelectedFaculty.map((f) => (
                     <div key={f.id} className="card-print-item flex justify-center w-full">
-                      <TeacherIDCard faculty={f} layoutMode={bulkLayout} />
+                      <TeacherIDCard faculty={f} layoutMode={bulkLayout} schoolInfo={selectedInstitutionObj} />
                     </div>
                   ))}
 
@@ -837,6 +837,7 @@ export default function IDCardAndEscortGeneratorHubPage() {
                     <div key={s.id} className="card-print-item flex justify-center w-full">
                       <EscortPickupCard
                         layoutMode={bulkLayout}
+                        schoolInfo={selectedInstitutionObj}
                         escort={{
                           guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
                           relationship: 'FATHER',
@@ -848,7 +849,7 @@ export default function IDCardAndEscortGeneratorHubPage() {
                           studentPhotoUrl: s.photo_url || '',
                           className: s.class_name || 'Class 4',
                           sectionName: s.section_name || 'A',
-                          institutionCode: s.institution_code || 'CBS',
+                          institutionCode: s.institution_code || currentInstitution || 'CBS',
                         }}
                       />
                     </div>

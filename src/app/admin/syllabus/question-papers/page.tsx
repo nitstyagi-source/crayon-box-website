@@ -516,7 +516,7 @@ export default function QuestionPaperGeneratorPage() {
         status: "Published"
       });
     } else {
-      // Standard CBSE Examination format
+      // Standard Examination format
       setPaperForm({
         class_name: selectedClass,
         subject_id: defSubId,

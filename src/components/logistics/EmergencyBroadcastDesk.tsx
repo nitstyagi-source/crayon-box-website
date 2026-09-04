@@ -119,7 +119,7 @@ export function EmergencyBroadcastDesk() {
               Institutional Emergency & NDMA Disaster Command
             </h2>
             <p className={`text-xs ${isLockdownActive ? "text-rose-200" : "text-stone-600"} max-w-2xl`}>
-              Rapid multi-hazard response hub aligned with CBSE & NDMA guidelines: 1-click campus lockdown, parent WhatsApp emergency broadcasts, and live assembly point roll-call.
+              Rapid multi-hazard response hub aligned with National Safety & NDMA guidelines: 1-click campus lockdown, parent WhatsApp emergency broadcasts, and live assembly point roll-call.
             </p>
           </div>
 

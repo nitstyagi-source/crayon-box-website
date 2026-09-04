@@ -130,7 +130,7 @@ export async function getClassExamMarksRosterAction(params: {
       name: instData?.name || 'School Name',
       shortName: instData?.short_name || instData?.name || 'School',
       code: instData?.code || params.institutionCode || 'CBS',
-      boardAffiliation: instData?.board_affiliation || 'CBSE',
+      boardAffiliation: instData?.board_affiliation || 'Recognized Board',
       affiliationNumber: instData?.affiliation_number || '2130894',
       schoolIdNumber: instData?.school_id_number || '07010203401',
       udiseCode: instData?.udise_code || '07010203401',
@@ -178,7 +178,7 @@ export async function getClassExamMarksRosterAction(params: {
 }
 
 // -------------------------------------------------------------
-// 2. GET STUDENT COMPLETE CBSE REPORT CARD DATA
+// 2. GET STUDENT COMPLETE REPORT CARD DATA
 // -------------------------------------------------------------
 export async function getStudentCompleteReportCardAction(params: {
   studentId: string;
@@ -311,7 +311,7 @@ export async function getStudentCompleteReportCardAction(params: {
       name: instData?.name || 'School Name',
       shortName: instData?.short_name || instData?.name || 'School',
       code: instData?.code || instCandidateCode,
-      boardAffiliation: instData?.board_affiliation || 'CBSE',
+      boardAffiliation: instData?.board_affiliation || 'Recognized Board',
       affiliationNumber: instData?.affiliation_number || '2130894',
       schoolIdNumber: instData?.school_id_number || '07010203401',
       udiseCode: instData?.udise_code || '07010203401',
@@ -396,7 +396,7 @@ export async function moderateAndLockResultsAction(params: {
 }
 
 // -------------------------------------------------------------
-// 4. GET BULK CLASS REPORT CARDS (CBSE / NEP 2020 HPC)
+// 4. GET BULK CLASS REPORT CARDS (NEP 2020 HPC)
 // -------------------------------------------------------------
 export async function getBulkClassReportCardsAction(params: {
   className?: string;
@@ -550,8 +550,10 @@ export async function getBulkClassReportCardsAction(params: {
 }
 
 // -------------------------------------------------------------
-// 5. SEND REPORT CARD VIA WHATSAPP
+// 5. DISPATCH REPORT CARD VIA WHATSAPP WITH 1-CLICK VERIFICATION LINK
 // -------------------------------------------------------------
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+
 export async function sendReportCardWhatsAppAction(params: {
   studentId: string;
   studentName: string;
@@ -561,12 +563,22 @@ export async function sendReportCardWhatsAppAction(params: {
   overallGrade: string;
   percentage: number;
   reportCardUrl: string;
+  schoolName?: string;
+  principalName?: string;
+  institutionCode?: string;
 }) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    const msgContent = `🎓 *Crayon Box School — Holistic Progress Report Card*\n\nDear Parent, the official examination results for *${params.studentName}* (${params.className}) for *${params.examTerm}* are now available:\n\n• *Overall Grade*: ${params.overallGrade}\n• *Percentage*: ${params.percentage}%\n• *Result Status*: PROMOTED / PASSED\n\n📄 *View & Download Verified Digital Report Card*:\n${params.reportCardUrl}\n\n_Principal, Crayon Box School_`;
+    const matchedInst = params.institutionCode && params.institutionCode !== 'ALL'
+      ? VANI_TRUST_INSTITUTIONS.find(i => i.code === params.institutionCode)
+      : null;
+
+    const schName = params.schoolName || matchedInst?.name || "Crayon Box School";
+    const schPrincipal = params.principalName || matchedInst?.principalName || "Principal";
+
+    const msgContent = `🎓 *${schName} — Holistic Progress Report Card*\n\nDear Parent, the official examination results for *${params.studentName}* (${params.className}) for *${params.examTerm}* are now available:\n\n• *Overall Grade*: ${params.overallGrade}\n• *Percentage*: ${params.percentage}%\n• *Result Status*: PROMOTED / PASSED\n\n📄 *View & Download Verified Digital Report Card*:\n${params.reportCardUrl}\n\n_${schPrincipal}, ${schName}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (
@@ -603,6 +615,7 @@ export async function verifyReportCardTokenAction(token: string) {
     try {
       const stuRes = await client.query(`
         SELECT s.id, s.first_name, s.last_name, s.admission_no, s.dob,
+               COALESCE(s.campus_id, 'CBS') as campus_id,
                COALESCE(c.grade, 'Class 1') as class_name, COALESCE(c.section, 'A') as section_name
         FROM public.students s
         LEFT JOIN public.classes c ON c.id = s.class_id
@@ -614,6 +627,9 @@ export async function verifyReportCardTokenAction(token: string) {
       }
 
       const stu = stuRes.rows[0];
+      const instCode = stu.campus_id || 'CBS';
+      const matchedInst = VANI_TRUST_INSTITUTIONS.find(i => i.code === instCode || i.id === instCode) || VANI_TRUST_INSTITUTIONS[0];
+
       return {
         success: true,
         data: {
@@ -622,8 +638,13 @@ export async function verifyReportCardTokenAction(token: string) {
           className: stu.class_name,
           sectionName: stu.section_name,
           academicSession: session || '2026–2027',
-          institution: 'Crayon Box School',
-          affiliation: 'Recognized Institution (Affiliation No: 2730588)',
+          institution: matchedInst.name,
+          shortName: matchedInst.shortName,
+          affiliation: matchedInst.affiliationNumber ? `Affiliation No: ${matchedInst.affiliationNumber} (${matchedInst.boardAffiliation})` : (matchedInst.boardAffiliation || 'Recognized Academic Institution'),
+          logoUrl: matchedInst.logoUrl,
+          principalName: matchedInst.principalName,
+          address: matchedInst.address,
+          website: matchedInst.website || '/',
           isAuthentic: true,
           verificationDate: new Date().toISOString()
         }

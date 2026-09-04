@@ -96,11 +96,11 @@ export function PredictiveBoardAnalyticsDesk() {
               <Sparkles className="w-5 h-5" />
             </div>
             <h2 className="text-xl font-serif font-bold text-stone-900">
-              CBSE Board Exam Predictive Analytics & Remedial Engine
+              Board Exam Predictive Analytics & Remedial Engine
             </h2>
           </div>
           <p className="text-xs text-stone-600 mt-1 max-w-2xl">
-            Multi-term statistical regression synthesizing Periodic Tests (20%), Term 1 (35%), and Pre-Board Mocks (45%) to forecast final CBSE percentage and synthesize automated remedial plans.
+            Multi-term statistical regression synthesizing Periodic Tests (20%), Term 1 (35%), and Pre-Board Mocks (45%) to forecast final Board examination percentage and synthesize automated remedial plans.
           </p>
         </div>
 
@@ -143,7 +143,7 @@ export function PredictiveBoardAnalyticsDesk() {
               +3.2% vs 2025
             </span>
           </div>
-          <p className="text-[11px] text-stone-600 mt-1">Weighted projected CBSE aggregate</p>
+          <p className="text-[11px] text-stone-600 mt-1">Weighted projected Board aggregate</p>
         </Card>
 
         <Card className="p-4 bg-rose-50/70 border-rose-200/60 rounded-2xl">
@@ -183,7 +183,7 @@ export function PredictiveBoardAnalyticsDesk() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-serif font-bold text-emerald-900">{stats.honorsTrackCount}</span>
-            <span className="text-xs font-medium text-emerald-800">CBSE Merit Contenders</span>
+            <span className="text-xs font-medium text-emerald-800">Board Merit Contenders</span>
           </div>
           <p className="text-[11px] text-emerald-700/80 mt-1">Olympiad & Top Percentile prep</p>
         </Card>
@@ -235,7 +235,7 @@ export function PredictiveBoardAnalyticsDesk() {
                 <th className="py-3 px-4">Periodic Tests</th>
                 <th className="py-3 px-4">Term 1 Exam</th>
                 <th className="py-3 px-4">Mock Board 1</th>
-                <th className="py-3 px-4">Predicted CBSE Score</th>
+                <th className="py-3 px-4">Predicted Board Score</th>
                 <th className="py-3 px-4">Subject Weak Spots</th>
                 <th className="py-3 px-4 text-right">Remedial Action</th>
               </tr>
@@ -334,7 +334,7 @@ export function PredictiveBoardAnalyticsDesk() {
                   </h3>
                 </div>
                 <p className="text-xs text-stone-600 mt-1">
-                  Targeted CBSE Board Enhancement for <span className="font-semibold text-stone-900">{selectedStudentForRemedial.student_name}</span> ({selectedStudentForRemedial.admission_no})
+                  Targeted Board Examination Enhancement for <span className="font-semibold text-stone-900">{selectedStudentForRemedial.student_name}</span> ({selectedStudentForRemedial.admission_no})
                 </p>
               </div>
               <button
@@ -377,7 +377,7 @@ export function PredictiveBoardAnalyticsDesk() {
 
                 {/* AI Diagnosis Note */}
                 <div className="p-3.5 bg-amber-500/10 border border-amber-200 rounded-xl text-xs text-amber-950">
-                  <span className="font-bold">CBSE AI Diagnostic Recommendation: </span>
+                  <span className="font-bold">AI Board Diagnostic Recommendation: </span>
                   {selectedStudentForRemedial.ai_remedial_recommendation}
                 </div>
 

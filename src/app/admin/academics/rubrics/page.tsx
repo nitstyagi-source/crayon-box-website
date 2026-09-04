@@ -36,7 +36,7 @@ export default function AssessmentRubricsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRubric, setEditingRubric] = useState<RubricDefinition | null>(null);
   const [formData, setFormData] = useState({
-    name: 'CBSE NEP 2020 Holistic Standard',
+    name: 'NEP 2020 Holistic Standard',
     grade_level: 'Primary & Middle',
     domain: 'COGNITIVE',
     competency_name: '',
@@ -80,7 +80,7 @@ export default function AssessmentRubricsPage() {
     } else {
       setEditingRubric(null);
       setFormData({
-        name: 'CBSE NEP 2020 Holistic Standard',
+        name: 'NEP 2020 Holistic Standard',
         grade_level: 'Primary & Middle',
         domain: 'COGNITIVE',
         competency_name: '',
@@ -143,7 +143,7 @@ export default function AssessmentRubricsPage() {
   return (
     <div className="space-y-6 pb-12 font-sans">
       <VastuModuleBanner
-        badgeText="CBSE NEP 2020 PEDAGOGY"
+        badgeText="NEP 2020 PEDAGOGY"
         title="Competency-Based Assessment Rubrics"
         description="Design and calibrate 4-level descriptive assessment rubrics across Cognitive, Affective, Psychomotor, and Socio-Emotional domains."
       />

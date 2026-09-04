@@ -63,11 +63,12 @@ export default function FacultyIdCardPreview({
   const schoolEmail = selectedInstitutionObj?.email || "";
   const [qrUrl, setQrUrl] = useState<string>("");
 
-  const qrToken = faculty.card?.qrToken || `CBS-FAC-VERIFY-${faculty.employeeCode || faculty.employeeId}-${faculty.id.substring(0, 6)}`;
+  const qrToken = faculty.card?.qrToken || `${campusCode}-FAC-VERIFY-${faculty.employeeCode || faculty.employeeId}-${faculty.id.substring(0, 6)}`;
 
   useEffect(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : (selectedInstitutionObj?.website || 'https://crayonboxschool.com');
     QRCode.toDataURL(
-      `https://crayonboxschool.com/verify/faculty/${qrToken}`,
+      `${origin}/verify/faculty/${qrToken}`,
       {
         errorCorrectionLevel: "H",
         margin: 1,
@@ -78,7 +79,7 @@ export default function FacultyIdCardPreview({
         }
       }
     ).then(setQrUrl).catch(console.error);
-  }, [qrToken]);
+  }, [qrToken, selectedInstitutionObj?.website]);
 
   // Determine Visual Color Scheme by Template / Role
   const isLeadership = faculty.isLeadership || template === "Leadership" || faculty.designation.toLowerCase().includes("principal") || faculty.designation.toLowerCase().includes("director");
@@ -108,23 +109,19 @@ export default function FacultyIdCardPreview({
     <div className={`flex flex-col sm:flex-row gap-6 items-center justify-center ${isPrintMode ? "p-0" : ""}`}>
       
       {/* ========================================================================= */}
-      {/* 🪪 ID CARD FRONT */}
+      {/* FRONT SIDE */}
       {/* ========================================================================= */}
       <div 
-        className="relative bg-white rounded-2xl shadow-xl overflow-hidden border border-stone-300 flex flex-col justify-between select-none shrink-0"
-        style={{
-          width: "320px",
-          height: "480px",
-          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
-        }}
+        id={`faculty-card-${faculty.id}`}
+        className="w-[320px] h-[500px] bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200 flex flex-col justify-between text-left select-none relative print:shadow-none print:border-slate-800"
       >
         {/* Top Header */}
         <div className={`${themeStyles.headerBg} p-3.5 text-center relative overflow-hidden shrink-0`}>
           <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
           
           <div className="flex items-center justify-center gap-2 mb-0.5">
-            <div className="w-6 h-6 rounded-full bg-white text-purple-950 flex items-center justify-center font-black text-xs shadow-xs shrink-0">
-              {campusCode}
+            <div className="w-6 h-6 rounded-full bg-white p-0.5 text-purple-950 flex items-center justify-center font-black text-xs shadow-xs shrink-0 overflow-hidden">
+              <img src={selectedInstitutionObj?.logoUrl || '/logo.png'} alt="" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
             </div>
             <h2 className="font-black text-sm uppercase tracking-wider">
               {schoolName}

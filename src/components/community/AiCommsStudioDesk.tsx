@@ -24,8 +24,10 @@ import {
   generateSchoolCircularAction,
   generateWeeklyLessonPlanAction
 } from "@/app/actions/ai-copilot-actions";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export function AiCommsStudioDesk() {
+  const { selectedInstitutionObj, currentInstitution } = useInstitution();
   const [activeTab, setActiveTab] = useState<"circular" | "reply_enhancer" | "lesson_plan">("circular");
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -58,7 +60,14 @@ export function AiCommsStudioDesk() {
         topic: circularTopic,
         targetAudience,
         eventDate,
-        keyPoints
+        keyPoints,
+        institutionCode: selectedInstitutionObj?.code || currentInstitution,
+        schoolName: selectedInstitutionObj?.name,
+        schoolAddress: selectedInstitutionObj?.address,
+        affiliation: selectedInstitutionObj?.affiliationNumber ? `Affiliation No. ${selectedInstitutionObj.affiliationNumber} • ${selectedInstitutionObj.boardAffiliation}` : selectedInstitutionObj?.boardAffiliation,
+        logoUrl: selectedInstitutionObj?.logoUrl,
+        principalName: selectedInstitutionObj?.principalName,
+        website: selectedInstitutionObj?.website
       });
       if (res.success) {
         setGeneratedCircular(res);

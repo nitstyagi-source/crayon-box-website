@@ -430,7 +430,7 @@ function CampusSecurityHubContent() {
                   >
                     <option value="PARENT">Parent / Guardian</option>
                     <option value="VENDOR">Vendor / Contractor</option>
-                    <option value="OFFICIAL">Govt / CBSE Official</option>
+                    <option value="OFFICIAL">Govt / Board Official</option>
                     <option value="ALUMNI">School Alumni</option>
                     <option value="GUEST">General Guest</option>
                   </select>

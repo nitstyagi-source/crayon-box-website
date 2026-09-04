@@ -9,7 +9,7 @@ import {
   AlertTriangle, RefreshCw, Layers, Award, Bus, CheckSquare,
   FileCheck, Printer, UserCheck, ShieldAlert, Edit3, Camera,
   Upload, Trash2, Plus, Eye, File, FileUp, X, Save,
-  RotateCcw, History, Clock4, CheckCheck
+  RotateCcw, History, Clock4, CheckCheck, Crop
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -41,6 +41,7 @@ import {
   getStudentEnrollmentPeriodsAction
 } from '@/app/actions/universal-student-actions';
 import { standardizePhotoBackground } from '@/lib/utils/photo-standardizer';
+import { ImageCropperModal } from '@/components/ui/ImageCropperModal';
 
 export default function UniversalStudent360DossierV2Page({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -81,6 +82,8 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [photoTarget, setPhotoTarget] = useState<'STUDENT' | 'GUARDIAN'>('STUDENT');
   const [selectedPhotoGuardianId, setSelectedPhotoGuardianId] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropperSourceUrl, setCropperSourceUrl] = useState('');
 
   // --- Forms State ---
   const [studentForm, setStudentForm] = useState<any>({});
@@ -270,41 +273,29 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async () => {
-        let base64 = reader.result as string;
-        try {
-          base64 = await standardizePhotoBackground(base64, { backgroundType: 'studio-gradient-light' });
-        } catch (err) {
-          console.warn("Background standardization notice:", err);
-        }
-
-        if (photoTarget === 'STUDENT' && student) {
-          await uploadStudentPhotoAction(student.id, base64);
-        } else if (photoTarget === 'GUARDIAN' && selectedPhotoGuardianId) {
-          await uploadGuardianPhotoAction(selectedPhotoGuardianId, base64);
-        }
+      reader.onload = () => {
+        setCropperSourceUrl(reader.result as string);
         setIsPhotoModalOpen(false);
-        fetchStudentDossier();
+        setIsCropperOpen(true);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSavePhotoUrl = async () => {
+  const handleSavePhotoUrl = () => {
     if (!tempPhotoUrl.trim()) return;
-    let finalUrl = tempPhotoUrl.trim();
-    try {
-      finalUrl = await standardizePhotoBackground(finalUrl, { backgroundType: 'studio-gradient-light' });
-    } catch (err) {
-      console.warn("Background standardization notice:", err);
-    }
-
-    if (photoTarget === 'STUDENT' && student) {
-      await uploadStudentPhotoAction(student.id, finalUrl);
-    } else if (photoTarget === 'GUARDIAN' && selectedPhotoGuardianId) {
-      await uploadGuardianPhotoAction(selectedPhotoGuardianId, finalUrl);
-    }
+    setCropperSourceUrl(tempPhotoUrl.trim());
     setIsPhotoModalOpen(false);
+    setIsCropperOpen(true);
+  };
+
+  const handleCropComplete = async (croppedBase64: string) => {
+    setIsCropperOpen(false);
+    if (photoTarget === 'STUDENT' && student) {
+      await uploadStudentPhotoAction(student.id, croppedBase64);
+    } else if (photoTarget === 'GUARDIAN' && selectedPhotoGuardianId) {
+      await uploadGuardianPhotoAction(selectedPhotoGuardianId, croppedBase64);
+    }
     fetchStudentDossier();
   };
 
@@ -1423,17 +1414,43 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
             onChange={e => setTempPhotoUrl(e.target.value)}
           />
 
+          {photoTarget === 'STUDENT' && student?.photo_url && (
+            <button
+              type="button"
+              onClick={() => {
+                setCropperSourceUrl(student.photo_url);
+                setIsPhotoModalOpen(false);
+                setIsCropperOpen(true);
+              }}
+              className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-2xl font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Crop className="w-4 h-4 text-amber-600" />
+              <span>Adjust Visible Area / Framing of Current Photo</span>
+            </button>
+          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setIsPhotoModalOpen(false)}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleSavePhotoUrl} leftIcon={<Save className="w-4 h-4" />}>
-              Save Photo
+              Crop &amp; Frame Photo
             </Button>
           </div>
 
         </div>
       </Modal>
+
+      {/* Interactive Photo Cropper & Universal Studio Background Framing */}
+      <ImageCropperModal
+        isOpen={isCropperOpen}
+        onClose={() => setIsCropperOpen(false)}
+        imageUrl={cropperSourceUrl}
+        cropType="avatar"
+        title={photoTarget === 'STUDENT' ? 'Crop & Frame Student Photo' : 'Crop & Frame Guardian Photo'}
+        allowUniversalBackground={true}
+        onCropComplete={handleCropComplete}
+      />
 
       {/* ============================================================== */}
       {/* 🌟 MODAL 4: UPLOAD DOCUMENT */}

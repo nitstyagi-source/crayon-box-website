@@ -126,7 +126,7 @@ export function ParentGrievanceDesk() {
             Active Grievance & Helpdesk Register ({tickets.length})
           </h3>
           <p className="text-xs text-stone-500">
-            CBSE statutory grievance redressal with 24h response and 72h resolution deadline tracking.
+            Statutory grievance redressal with 24h response and 72h resolution deadline tracking.
           </p>
         </div>
 

@@ -1015,7 +1015,7 @@ export default function AdminDashboard() {
                     value={instAffilNo}
                     onChange={(e) => setInstAffilNo(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900"
-                    placeholder="CBSE/AFF/2130894"
+                    placeholder="AFF/2130894"
                   />
                 </div>
               </div>
@@ -1220,7 +1220,7 @@ export default function AdminDashboard() {
                     onChange={(e) => setCalendarModel(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900"
                   >
-                    <option value="CBSE_ANNUAL">CBSE Standard Annual (April to March)</option>
+                    <option value="CBSE_ANNUAL">Standard Annual (April to March)</option>
                     <option value="MONTESSORI_CONTINUOUS">Montessori Continuous Development</option>
                     <option value="IB_SEMESTER">IB / Cambridge Semester Model</option>
                     <option value="ICSE_TRIMESTER">ICSE Trimester Cycle</option>
@@ -1400,7 +1400,7 @@ export default function AdminDashboard() {
                     value={newSchoolAffilNo}
                     onChange={(e) => setNewSchoolAffilNo(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900"
-                    placeholder="CBSE/AFF/2026/09"
+                    placeholder="AFF/2026/09"
                   />
                 </div>
               </div>

@@ -54,6 +54,8 @@ export interface InstitutionMaster {
   logoUrl: string;
   brandColor: string;
   address: string;
+  phone?: string;
+  website?: string;
   totalStudents: number;
   totalStaff: number;
 
@@ -100,7 +102,7 @@ export interface AcademicSessionMaster {
   name: string; // e.g. "2026-2027"
   startDate: string;
   endDate: string;
-  calendarModel: 'CBSE_ANNUAL' | 'MONTESSORI_CONTINUOUS' | 'STATE_BOARD_ANNUAL';
+  calendarModel: 'CBSE_ANNUAL' | 'STANDARD_ANNUAL' | 'MONTESSORI_CONTINUOUS' | 'STATE_BOARD_ANNUAL';
   isCurrent: boolean;
   status: 'UPCOMING' | 'ACTIVE' | 'ARCHIVED';
 }
@@ -145,13 +147,15 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     institutionType: 'K12_SCHOOL',
     academicFramework: 'CBSE',
     boardAffiliation: 'CBSE',
-    affiliationNumber: 'CBSE/AFF/2130894',
+    affiliationNumber: 'AFF/2130894',
     status: 'ACTIVE',
     principalName: 'Dr. Ananya Roy',
     principalEmail: 'principal@crayonboxschool.com',
     logoUrl: '/logo.png',
     brandColor: '#2563eb', // Blue
     address: 'Shastri Park Extn., Delhi NCR',
+    phone: '+91 11 2761 8899',
+    website: 'https://crayonboxschool.edu.in',
     totalStudents: 0,
     totalStaff: 0,
     config: {
@@ -188,6 +192,8 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     logoUrl: '/logo.png',
     brandColor: '#ec4899', // Pink
     address: 'Shastri Park Extn., Delhi NCR',
+    phone: '+91 11 2761 8898',
+    website: 'https://crayonboxpreschool.edu.in',
     totalStudents: 0,
     totalStaff: 0,
     config: {
@@ -224,6 +230,8 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     logoUrl: '/logo.png',
     brandColor: '#7c3aed', // Purple
     address: 'Virender Nagar Burari, Delhi 110084',
+    phone: '+91 11 2761 9901',
+    website: 'https://avinyaschool.edu.in',
     totalStudents: 0,
     totalStaff: 0,
     config: {
@@ -254,13 +262,15 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     institutionType: 'K12_SCHOOL',
     academicFramework: 'CBSE',
     boardAffiliation: 'CBSE',
-    affiliationNumber: 'CBSE/AFF/2130992',
+    affiliationNumber: 'AFF/2130992',
     status: 'ACTIVE',
     principalName: 'Prof. Ramesh Chandra',
     principalEmail: 'principal@avinyavidyamandir.edu.in',
     logoUrl: '/logo.png',
     brandColor: '#ea580c', // Orange
     address: 'Virender Nagar Burari, Delhi 110084',
+    phone: '+91 11 2761 9902',
+    website: 'https://avinyavidyamandir.edu.in',
     totalStudents: 0,
     totalStaff: 0,
     config: {

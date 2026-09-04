@@ -45,11 +45,21 @@ export default async function VerifyReportCardPage({ params }: Props) {
         </div>
 
         <div className="text-center pt-4 space-y-2">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto border-2 border-emerald-300">
-            <Award className="w-8 h-8" />
-          </div>
+          {cert.logoUrl ? (
+            <div className="flex justify-center mx-auto">
+              <img
+                src={cert.logoUrl}
+                alt={cert.institution || "School"}
+                className="w-16 h-16 rounded-full object-contain border-2 border-emerald-300 p-1 bg-white shadow-xs"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto border-2 border-emerald-300">
+              <Award className="w-8 h-8" />
+            </div>
+          )}
           <h1 className="text-2xl font-black tracking-tight text-blue-950">
-            Crayon Box School
+            {cert.institution || "School"}
           </h1>
           <p className="text-xs font-bold text-stone-500">
             {cert.affiliation}
@@ -94,7 +104,7 @@ export default async function VerifyReportCardPage({ params }: Props) {
 
         <div className="pt-2">
           <Link
-            href="/"
+            href={cert.website || "/"}
             className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
           >
             <School className="w-4 h-4" /> Go to School Website

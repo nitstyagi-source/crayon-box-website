@@ -1800,7 +1800,7 @@ export async function getReceiptTemplateSettingsAction(institutionCode?: string)
     const instName = staticInst?.name || campus?.name || 'School Fee Billing';
     const settings: ReceiptTemplateSettings = {
       institution_name: instName,
-      affiliation_number: staticInst?.affiliationNumber || 'CBSE/AFF',
+      affiliation_number: staticInst?.affiliationNumber || 'AFF/REG',
       school_id: campus?.school_id || staticInst?.code || 'SCH-01',
       udise_code: campus?.udise_code || '07124100151',
       contact_phone: campus?.contact_phone || '9811102008',
@@ -1822,7 +1822,7 @@ export async function getReceiptTemplateSettingsAction(institutionCode?: string)
       success: true,
       data: {
         institution_name: staticInst?.name || 'School Fee Billing',
-        affiliation_number: staticInst?.affiliationNumber || 'CBSE/AFF',
+        affiliation_number: staticInst?.affiliationNumber || 'AFF/REG',
         school_id: staticInst?.code || 'SCH-01',
         udise_code: '07124100151',
         contact_phone: '9811102008',

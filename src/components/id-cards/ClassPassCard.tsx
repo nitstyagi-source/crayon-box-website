@@ -9,10 +9,11 @@ import { ClassAccessPass } from '@/app/actions/class-pass-actions';
 interface ClassPassCardProps {
   pass: ClassAccessPass;
   schoolName?: string;
+  schoolLogo?: string;
   isCompact?: boolean;
 }
 
-export function ClassPassCard({ pass, schoolName = "ACADEMIC CAMPUS", isCompact = false }: ClassPassCardProps) {
+export function ClassPassCard({ pass, schoolName = "ACADEMIC CAMPUS", schoolLogo, isCompact = false }: ClassPassCardProps) {
   return (
     <div className={`bg-[#FDFBF7] rounded-3xl shadow-lg border-2 border-[#E8DFC8] overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-stone-800 text-stone-900 shrink-0 select-none ${
       isCompact ? 'w-[250px] h-[380px]' : 'w-[270px] h-[410px]'
@@ -22,7 +23,13 @@ export function ClassPassCard({ pass, schoolName = "ACADEMIC CAMPUS", isCompact 
       {/* Top Regal Header */}
       <div className="bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white py-2.5 px-3 text-center relative z-10 border-b-2 border-[#D4AF37]/50 shadow-xs">
         <div className="flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          {schoolLogo ? (
+            <div className="w-5 h-5 rounded-md bg-white p-0.5 shrink-0 flex items-center justify-center">
+              <img src={schoolLogo} alt="" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
+            </div>
+          ) : (
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          )}
           <h3 className="font-black text-[11px] uppercase tracking-wider text-amber-200 truncate">{schoolName}</h3>
         </div>
         <div className="bg-amber-400 text-stone-950 text-[7.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 shadow-2xs">

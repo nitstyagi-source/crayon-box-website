@@ -54,7 +54,7 @@ async function initPhase8Schema() {
           'tc_token_rohan_2026'
         );
       `);
-      console.log("✓ Initialized sample CBSE Transfer Certificate!");
+      console.log("✓ Initialized sample Transfer Certificate!");
     }
 
     // 2. PTM Slots Table

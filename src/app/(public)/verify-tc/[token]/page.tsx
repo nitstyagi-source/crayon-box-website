@@ -27,6 +27,14 @@ export default async function PublicVerifyTcPage({
   }
 
   const tc = res.certificate;
+  const inst = res.institution || {
+    name: "Crayon Box School",
+    shortName: "CBS",
+    code: "CBS",
+    address: "Sant Nagar, Burari, Delhi-110084",
+    affiliation: "Institutional Registration No: 2730588",
+    logoUrl: "/logo.png"
+  };
 
   return (
     <div className="min-h-screen bg-stone-100/70 flex items-center justify-center p-4 sm:p-8 text-stone-900 font-sans">
@@ -40,15 +48,24 @@ export default async function PublicVerifyTcPage({
               ✓ Verified Authentic School Transfer Certificate
             </h3>
             <p className="text-[11px] text-emerald-700 font-medium">
-              Officially issued by Crayon Box School (Institutional Registration No: 2730588).
+              Officially issued by {inst.name} ({inst.affiliation}).
             </p>
           </div>
         </div>
 
         {/* School Crest */}
-        <div className="text-center border-b border-stone-200 pb-4 space-y-0.5">
-          <h2 className="text-xl font-black text-blue-950">CRAYON BOX SCHOOL</h2>
-          <div className="text-xs text-stone-500">Sant Nagar, Burari, Delhi-110084</div>
+        <div className="text-center border-b border-stone-200 pb-4 space-y-2">
+          {inst.logoUrl && (
+            <div className="flex justify-center">
+              <img
+                src={inst.logoUrl}
+                alt={inst.name}
+                className="w-14 h-14 rounded-full object-contain border border-stone-200 p-1 bg-white shadow-xs"
+              />
+            </div>
+          )}
+          <h2 className="text-xl font-black text-blue-950 uppercase">{inst.name}</h2>
+          <div className="text-xs text-stone-500">{inst.address}</div>
         </div>
 
         {/* Student Details Grid */}
@@ -102,7 +119,7 @@ export default async function PublicVerifyTcPage({
 
         {/* Registry Seal Footer */}
         <div className="pt-4 border-t border-stone-200 text-center text-[10px] text-stone-400 font-mono">
-          Cryptographically Verified Digital Record • Crayon Box School Institutional Registry
+          Cryptographically Verified Digital Record • {inst.name} Institutional Registry
         </div>
 
       </div>

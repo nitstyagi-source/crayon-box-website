@@ -91,8 +91,8 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
           workshops: teacherCpd.length > 0 ? teacherCpd : [
             {
               id: `w-${idx}-1`,
-              title: 'CBSE COE: NEP 2020 Experiential Learning in Classrooms',
-              agency: 'CBSE_COE',
+              title: 'Board COE: NEP 2020 Experiential Learning in Classrooms',
+              agency: 'EXTERNAL_BOARD',
               hours: 10,
               completion_date: '2026-05-18'
             },
@@ -126,7 +126,7 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
         compliance_percentage: 100,
         status: 'COMPLIANT',
         workshops: [
-          { id: 'w1', title: 'CBSE COE: Competency-Based Assessment in Science', agency: 'CBSE_COE', hours: 15, completion_date: '2026-05-12' },
+          { id: 'w1', title: 'Board COE: Competency-Based Assessment in Science', agency: 'EXTERNAL_BOARD', hours: 15, completion_date: '2026-05-12' },
           { id: 'w2', title: 'NCERT National Science Seminar & STEM Pedagogies', agency: 'NCERT', hours: 17, completion_date: '2026-06-19' },
           { id: 'w3', title: 'Digital Tools in Physics Laboratory Demonstrations', agency: 'INTERNAL', hours: 20, completion_date: '2026-07-04' }
         ]
@@ -146,7 +146,7 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
         status: 'IN_PROGRESS',
         workshops: [
           { id: 'w4', title: 'Sahodaya Math Lab Hands-on Manipulatives Workshop', agency: 'SAHODAYA', hours: 12, completion_date: '2026-05-28' },
-          { id: 'w5', title: 'CBSE COE: Remedial Teaching in Secondary Algebra', agency: 'CBSE_COE', hours: 10, completion_date: '2026-06-15' },
+          { id: 'w5', title: 'Board COE: Remedial Teaching in Secondary Algebra', agency: 'EXTERNAL_BOARD', hours: 10, completion_date: '2026-06-15' },
           { id: 'w6', title: 'Internal Formative Assessment Diagnostic Matrix', agency: 'INTERNAL', hours: 16, completion_date: '2026-07-10' }
         ]
       },
@@ -164,7 +164,7 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
         compliance_percentage: 40,
         status: 'ACTION_REQUIRED',
         workshops: [
-          { id: 'w7', title: 'NIPUN Bharat: Foundational Literacy & Numeracy', agency: 'CBSE_COE', hours: 10, completion_date: '2026-06-02' },
+          { id: 'w7', title: 'NIPUN Bharat: Foundational Literacy & Numeracy', agency: 'EXTERNAL_BOARD', hours: 10, completion_date: '2026-06-02' },
           { id: 'w8', title: 'Inclusive Classrooms & Neurodiversity Support', agency: 'INTERNAL', hours: 10, completion_date: '2026-06-25' }
         ]
       }

@@ -5,6 +5,8 @@ import { ShieldCheck, GraduationCap, Users, QrCode, Phone, CheckCircle2 } from '
 import { StudentQRCode } from './StudentQRCode';
 import { VastuMandalaWatermark } from '@/components/common/VastuMandalaWatermark';
 
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+
 export interface EscortCardProps {
   escort: {
     guardianName: string;
@@ -22,11 +24,14 @@ export interface EscortCardProps {
   };
   session?: string;
   layoutMode?: 'DUAL' | 'FRONT_ONLY' | 'BACK_ONLY';
+  schoolInfo?: any;
 }
 
-export function EscortPickupCard({ escort, session = '2026–2027', layoutMode = 'DUAL' }: EscortCardProps) {
+export function EscortPickupCard({ escort, session = '2026–2027', layoutMode = 'DUAL', schoolInfo }: EscortCardProps) {
   const instCode = escort.institutionCode || 'CBS';
-  const fullSchoolName = instCode === 'AVM' ? 'AVINYA VIDYA MANDIR' : instCode === 'AS' ? 'AVINYA SCHOOL' : instCode === 'CBPS' ? 'CRAYON BOX PRE SCHOOL' : 'CRAYON BOX SCHOOL';
+  const matchedInst = VANI_TRUST_INSTITUTIONS.find(i => i.code === instCode) || VANI_TRUST_INSTITUTIONS[0];
+  const fullSchoolName = schoolInfo?.name || matchedInst?.name || 'CRAYON BOX SCHOOL';
+  const schoolLogo = schoolInfo?.logoUrl || schoolInfo?.logo_url || matchedInst?.logoUrl || '/logo.png';
 
   const showFront = layoutMode === 'DUAL' || layoutMode === 'FRONT_ONLY';
   const showBack = layoutMode === 'DUAL' || layoutMode === 'BACK_ONLY';
@@ -42,7 +47,9 @@ export function EscortPickupCard({ escort, session = '2026–2027', layoutMode =
           {/* Top Header */}
           <div className="bg-gradient-to-r from-[#0B1B30] via-[#0F2744] to-[#153257] text-white py-2.5 px-3 text-center relative z-10 border-b-2 border-[#D4AF37]/50">
             <div className="flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-amber-300" />
+              <div className="w-5 h-5 rounded-md bg-white p-0.5 shrink-0 flex items-center justify-center">
+                <img src={schoolLogo} alt="" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
+              </div>
               <h3 className="font-black text-[11px] uppercase tracking-wider text-amber-200 truncate">{fullSchoolName}</h3>
             </div>
             <div className="bg-amber-400 text-stone-950 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mt-1 shadow-2xs">

@@ -35,7 +35,7 @@ export interface Student360Evaluation {
 }
 
 /**
- * Seed or retrieve CBSE NEP 2020 Rubrics
+ * Seed or retrieve NEP 2020 Rubrics
  */
 export async function getAssessmentRubricsAction() {
   const pool = getPool();
@@ -47,28 +47,28 @@ export async function getAssessmentRubricsAction() {
     `);
 
     if (res.rows.length === 0) {
-      // Seed standard CBSE NEP 2020 competencies
+      // Seed standard NEP 2020 competencies
       const defaultRubrics = [
         {
-          name: 'CBSE NEP 2020 Holistic Rubric',
+          name: 'NEP 2020 Holistic Rubric',
           grade: 'Primary & Middle',
           domain: 'COGNITIVE',
           comp: 'Critical Inquiry & Scientific Reasoning'
         },
         {
-          name: 'CBSE NEP 2020 Holistic Rubric',
+          name: 'NEP 2020 Holistic Rubric',
           grade: 'Primary & Middle',
           domain: 'AFFECTIVE',
           comp: 'Empathy, Inclusivity & Respect for Diversity'
         },
         {
-          name: 'CBSE NEP 2020 Holistic Rubric',
+          name: 'NEP 2020 Holistic Rubric',
           grade: 'Primary & Middle',
           domain: 'PSYCHOMOTOR',
           comp: 'Fine Motor Agility & Kinesthetic Health'
         },
         {
-          name: 'CBSE NEP 2020 Holistic Rubric',
+          name: 'NEP 2020 Holistic Rubric',
           grade: 'Primary & Middle',
           domain: 'SOCIO_EMOTIONAL',
           comp: 'Self-Regulation, Team Collaboration & Conflict Resolution'

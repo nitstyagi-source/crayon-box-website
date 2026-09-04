@@ -432,7 +432,7 @@ function TransportFleetContent() {
                     Supreme Court of India Guidelines
                   </span>
                   <span className="text-stone-400 text-xs">•</span>
-                  <span className="text-xs font-bold text-stone-600">CBSE Transport Safety Mandates</span>
+                  <span className="text-xs font-bold text-stone-600">Statutory Transport Safety Mandates</span>
                 </div>
                 <h3 className="text-lg font-black text-[#2D2319] mt-1">
                   Fleet Safety &amp; Statutory Compliance Register

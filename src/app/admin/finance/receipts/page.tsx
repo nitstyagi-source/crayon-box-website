@@ -41,7 +41,7 @@ export default function OfficialReceiptsHubPage() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [templateSettings, setTemplateSettings] = useState<ReceiptTemplateSettings>({
     institution_name: selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION",
-    affiliation_number: selectedInstitutionObj?.affiliationNumber || "CBSE/AFF",
+    affiliation_number: selectedInstitutionObj?.affiliationNumber || "AFF/REG",
     school_id: selectedInstitutionObj?.code || "SCH-01",
     udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
     contact_phone: selectedInstitutionObj?.phone || "9811102008",

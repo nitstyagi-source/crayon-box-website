@@ -23,8 +23,10 @@ import {
   generateUdisePlusProfileReportAction,
   generateCbseOasisSchoolProfileReportAction
 } from '@/app/actions/compliance-actions';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function ComplianceExportersPage() {
+  const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<'CBSE_LOC' | 'UDISE' | 'CBSE_OASIS'>('CBSE_LOC');
   const [locRecords, setLocRecords] = useState<any[]>([]);
   const [udiseProfile, setUdiseProfile] = useState<any | null>(null);
@@ -33,14 +35,15 @@ export default function ComplianceExportersPage() {
 
   const loadData = async () => {
     setIsLoading(true);
+    const instCode = selectedInstitutionObj?.code;
     if (activeTab === 'CBSE_LOC') {
-      const res = await generateCbseLocReportAction();
+      const res = await generateCbseLocReportAction(instCode);
       if (res.success) setLocRecords(res.records);
     } else if (activeTab === 'UDISE') {
-      const res = await generateUdisePlusProfileReportAction();
+      const res = await generateUdisePlusProfileReportAction(instCode);
       if (res.success) setUdiseProfile(res.udiseData);
     } else if (activeTab === 'CBSE_OASIS') {
-      const res = await generateCbseOasisSchoolProfileReportAction();
+      const res = await generateCbseOasisSchoolProfileReportAction(instCode);
       if (res.success) setOasisProfile(res.oasisData);
     }
     setIsLoading(false);
@@ -48,7 +51,7 @@ export default function ComplianceExportersPage() {
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, selectedInstitutionObj?.code]);
 
   const downloadCsv = () => {
     if (activeTab === 'CBSE_LOC' && locRecords.length > 0) {
@@ -67,7 +70,7 @@ export default function ComplianceExportersPage() {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `CBSE_LOC_EXAMINATION_DATASET_2026_27.csv`);
+      link.setAttribute('download', `BOARD_LOC_EXAMINATION_DATASET_2026_27.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -78,9 +81,9 @@ export default function ComplianceExportersPage() {
     <div className="space-y-6 pb-12 font-sans">
       {/* Vastu Module Header */}
       <VastuModuleBanner
-        badgeText="CBSE & U-DISE+ STATUTORY REPOSITORIES"
+        badgeText="STATUTORY & U-DISE+ REPOSITORIES"
         title="Statutory Board & Government Compliance Exporter"
-        description="1-Click pre-formatted exports for CBSE OASIS, List of Candidates (LOC), and Ministry of Education U-DISE+ Data Repository."
+        description="1-Click pre-formatted exports for Institutional OASIS, List of Candidates (LOC), and Ministry of Education U-DISE+ Data Repository."
       />
 
       {/* Selector & Actions */}
@@ -94,7 +97,7 @@ export default function ComplianceExportersPage() {
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            📋 CBSE Board LOC Export
+            📋 Board LOC Export
           </button>
           <button
             onClick={() => setActiveTab('UDISE')}
@@ -114,7 +117,7 @@ export default function ComplianceExportersPage() {
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            🏫 CBSE OASIS Master Return
+            🏫 Institutional OASIS Master Return
           </button>
         </div>
 
@@ -139,15 +142,15 @@ export default function ComplianceExportersPage() {
         </div>
       </div>
 
-      {/* Tab 1: CBSE LOC Table */}
+      {/* Tab 1: Board LOC Table */}
       {activeTab === 'CBSE_LOC' && (
         <Card className="p-0 overflow-hidden border-stone-200 shadow-xs">
           <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
             <span className="text-xs font-bold text-stone-800">
-              CBSE Candidate Registration Records ({locRecords.length})
+              Board Candidate Registration Records ({locRecords.length})
             </span>
             <span className="text-[11px] font-mono text-stone-500">
-              Format: CBSE OASIS-LOC Specification
+              Format: Board LOC Specification
             </span>
           </div>
 
@@ -168,7 +171,7 @@ export default function ComplianceExportersPage() {
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-stone-400">
                       <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-stone-400" />
-                      Formatting CBSE LOC dataset...
+                      Formatting Board LOC dataset...
                     </td>
                   </tr>
                 ) : locRecords.length === 0 ? (
@@ -253,7 +256,7 @@ export default function ComplianceExportersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-5 border-stone-200 shadow-xs space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-amber-600" /> CBSE Affiliated School Dossier
+              <Building2 className="w-4 h-4 text-amber-600" /> Affiliated School Dossier
             </h3>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-stone-100">

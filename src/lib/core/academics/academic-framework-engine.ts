@@ -82,7 +82,7 @@ export class AcademicFrameworkEngine {
         return {
           institutionCode,
           frameworkType: 'CBSE' as const,
-          frameworkName: 'CBSE K-12 Standard Academic Framework',
+          frameworkName: 'National Standard K-12 Academic Framework',
           isGradingBased: true,
           defaultAssessmentComponents: [
             { code: 'PA1', name: 'Periodic Assessment 1', weightage: 10 },

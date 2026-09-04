@@ -31,7 +31,7 @@ export function PublicEnquiryForm({
     childGender: "Male",
     currentClass: "",
     currentSchool: "",
-    currentBoard: "CBSE",
+    currentBoard: "",
     primaryGuardianName: "",
     primaryGuardianRelation: "FATHER",
     primaryGuardianPhone: "",
@@ -393,6 +393,7 @@ export function PublicEnquiryForm({
                 onChange={e => setFormData({ ...formData, currentBoard: e.target.value })}
                 className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
               >
+                <option value="">Select Board</option>
                 <option value="CBSE">CBSE</option>
                 <option value="ICSE">ICSE / ISC</option>
                 <option value="State Board">State Board</option>

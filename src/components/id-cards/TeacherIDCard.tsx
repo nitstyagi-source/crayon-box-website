@@ -29,6 +29,8 @@ export function TeacherIDCard({ teacher, faculty, schoolInfo = {}, isBack = fals
   const schAffiliation = schoolInfo.boardAffiliation || 'AFFILIATED INSTITUTION';
   const schWebsite = schoolInfo.website || '';
   const schPhone = schoolInfo.phone || '';
+  const schLogo = schoolInfo.logoUrl || schoolInfo.logo_url || '/logo.png';
+  const schPrincipal = schoolInfo.principalName || schoolInfo.principal_name || 'Principal';
 
   // BACK FACE
   if (isBack) {
@@ -70,7 +72,7 @@ export function TeacherIDCard({ teacher, faculty, schoolInfo = {}, isBack = fals
             </div>
             <div className="text-center">
               <div className="h-7 w-24 border-b border-stone-800 mx-auto font-serif italic text-[11px] font-bold text-stone-900">
-                Dr. S. K. Sharma
+                {schPrincipal}
               </div>
               <span className="text-[8.5px] font-black uppercase text-stone-700 tracking-wider">Principal (Seal & Sign)</span>
             </div>
@@ -96,8 +98,8 @@ export function TeacherIDCard({ teacher, faculty, schoolInfo = {}, isBack = fals
         <div className="flex items-center justify-center gap-2 mb-1">
           <div className="w-8 h-8 rounded-xl bg-white p-1 border border-amber-400 flex items-center justify-center shrink-0">
             <img 
-              src="/trust-logo.png" 
-              alt="Crest" 
+              src={schLogo} 
+              alt={schName} 
               className="w-full h-full object-contain" 
               onError={(e) => { e.currentTarget.src = '/logo.png'; }} 
             />

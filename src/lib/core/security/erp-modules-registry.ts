@@ -77,7 +77,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     name: 'Statutory Board Exporter',
     category: 'Governance & Overview',
     href: '/admin/reports/compliance',
-    description: 'CBSE OASIS, SARAS, and U-DISE+ XML/CSV automated compliance generation.',
+    description: 'Institutional OASIS, SARAS, and U-DISE+ XML/CSV automated compliance generation.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL'],
     supportsActions: ['can_view', 'can_create', 'can_export']
   },
@@ -162,7 +162,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     name: 'Curriculum & Syllabus',
     category: 'Academic Operations',
     href: '/admin/curriculum',
-    description: 'CBSE & Montessori learning frameworks, unit planners, and competency rubrics.',
+    description: 'National & Montessori learning frameworks, unit planners, and competency rubrics.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
   },
@@ -189,7 +189,7 @@ export const ERP_MODULES_REGISTRY: ErpModuleDefinition[] = [
     name: 'Exams & Moderation',
     category: 'Academic Operations',
     href: '/admin/exams',
-    description: 'Scholastic gradebooks, CBSE marks entry, report card generation, and hall tickets.',
+    description: 'Scholastic gradebooks, board marks entry, report card generation, and hall tickets.',
     defaultRoles: ['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER'],
     supportsActions: ['can_view', 'can_create', 'can_edit', 'can_export']
   },

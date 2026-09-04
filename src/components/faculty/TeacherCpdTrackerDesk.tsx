@@ -114,15 +114,15 @@ export function TeacherCpdTrackerDesk() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-stone-900">
-                CBSE Mandatory 50-Hour Teacher CPD Credit Tracker
+                Mandatory 50-Hour Teacher CPD Credit Tracker
               </h3>
               <span className="px-2 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-900 rounded-full border border-amber-200 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#D97706]" />
-                Affiliation Bye-Laws §5.3
+                Accreditation Bye-Laws §5.3
               </span>
             </div>
             <p className="text-xs text-stone-600 mt-0.5">
-              Tracks mandatory 50 hours/year in-service teacher training (minimum 25 hrs CBSE/Sahodaya + 25 hrs school/NCERT) with 1-click CBSE OASIS audit reporting.
+              Tracks mandatory 50 hours/year in-service teacher training (minimum 25 hrs External/Council + 25 hrs School/NCERT) with 1-click statutory audit reporting.
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export function TeacherCpdTrackerDesk() {
             className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-stone-50 text-xs font-semibold"
           >
             <Download className="w-3.5 h-3.5 mr-1.5 text-stone-500" />
-            CBSE OASIS Audit Export
+            Accreditation &amp; OASIS Audit Export
           </Button>
           <Button
             size="sm"
@@ -272,7 +272,7 @@ export function TeacherCpdTrackerDesk() {
                 <th className="py-3 px-4">Faculty Member</th>
                 <th className="py-3 px-4">Department & Wing</th>
                 <th className="py-3 px-4">Annual CPD Progress</th>
-                <th className="py-3 px-4 text-center">CBSE / Sahodaya</th>
+                <th className="py-3 px-4 text-center">Board / External</th>
                 <th className="py-3 px-4 text-center">School Internal</th>
                 <th className="py-3 px-4 text-center">Compliance Status</th>
                 <th className="py-3 px-4 text-right">Action</th>
@@ -392,7 +392,7 @@ export function TeacherCpdTrackerDesk() {
                 <Input
                   value={workshopTitle}
                   onChange={(e) => setWorkshopTitle(e.target.value)}
-                  placeholder="e.g. CBSE COE: NEP 2020 Pedagogical Leadership"
+                  placeholder="e.g. NEP 2020 Pedagogical Leadership"
                   className="text-xs border-[#E8DFC8]"
                 />
               </div>
@@ -405,8 +405,9 @@ export function TeacherCpdTrackerDesk() {
                     onChange={(e) => setAgency(e.target.value)}
                     className="w-full text-xs border border-[#E8DFC8] rounded-lg p-2 bg-white text-stone-800"
                   >
-                    <option value="CBSE_COE">CBSE COE (External)</option>
-                    <option value="SAHODAYA">Sahodaya Complex (External)</option>
+                    <option value="EXTERNAL_BOARD">Board / Council (External)</option>
+                    <option value="CBSE_COE">COE (External)</option>
+                    <option value="SAHODAYA">Sahodaya / Cluster (External)</option>
                     <option value="NCERT">NCERT / DIET (External)</option>
                     <option value="INTERNAL">School In-House (Internal)</option>
                   </select>
@@ -456,14 +457,14 @@ export function TeacherCpdTrackerDesk() {
         </div>
       )}
 
-      {/* Modal: CBSE OASIS Report Preview */}
+      {/* Modal: Accreditation & OASIS Report Preview */}
       {showOasisModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white border border-[#E8DFC8] rounded-2xl shadow-xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E8DFC8] pb-3">
               <div>
                 <h3 className="font-bold text-stone-900 text-base">
-                  CBSE OASIS Continuous Professional Development Compliance Report
+                  Continuous Professional Development Compliance Report
                 </h3>
                 <p className="text-xs text-stone-500">
                   Affiliation Code: 2132891 • Session 2026–2027 • Form §5.3

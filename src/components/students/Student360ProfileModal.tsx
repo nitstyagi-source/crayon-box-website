@@ -888,7 +888,7 @@ export function Student360ProfileModal({
                 {/* Top Navy Arc with Large Crest */}
                 <div className="bg-[#0A2558] h-28 flex items-center justify-center relative">
                   <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center shadow-md">
-                    <img src="/trust-logo.png" alt="Crayon Box" className="w-14 h-14 object-contain" />
+                    <img src={selectedInstitutionObj?.logoUrl || "/trust-logo.png"} alt={selectedInstitutionObj?.name || "School Crest"} className="w-14 h-14 object-contain" />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
                 </div>
@@ -930,14 +930,14 @@ export function Student360ProfileModal({
                 {/* Instructions */}
                 <div className="mx-4 bg-slate-100 p-2.5 rounded-xl text-[8px] text-slate-700 space-y-0.5">
                   <div className="font-black text-red-600 uppercase tracking-wider text-[9px]">INSTRUCTIONS</div>
-                  <div>• This card is the property of Crayon Box School.</div>
+                  <div>• This card is the property of {selectedInstitutionObj?.name || "the School"}.</div>
                   <div>• This card must be worn every day.</div>
                   <div>• In case of loss, inform the school immediately.</div>
                 </div>
 
                 {/* Principal Signature */}
                 <div className="my-2 text-center">
-                  <div className="font-serif italic text-xs text-[#0A2558] font-bold">Poulami</div>
+                  <div className="font-serif italic text-xs text-[#0A2558] font-bold">{selectedInstitutionObj?.principalName || "Principal"}</div>
                   <div className="w-16 h-px bg-slate-400 mx-auto my-0.5" />
                   <div className="text-[8px] font-black text-[#0A2558] uppercase">Principal</div>
                 </div>
@@ -947,8 +947,8 @@ export function Student360ProfileModal({
                   <div className="flex items-center justify-center gap-1 font-semibold text-amber-300">
                     <MapPin className="w-2.5 h-2.5" /> Excellence in Education. Values for Life.
                   </div>
-                  <div className="text-slate-300 font-mono">www.crayonboxschool.edu.in</div>
-                  <div className="text-slate-300 font-mono">011-45678901 | 9999999999</div>
+                  <div className="text-slate-300 font-mono">{selectedInstitutionObj?.website || "www.school.edu.in"}</div>
+                  <div className="text-slate-300 font-mono">{selectedInstitutionObj?.phone || "011-45678901"}</div>
                 </div>
               </div>
             </div>
@@ -973,7 +973,7 @@ export function Student360ProfileModal({
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 4: FORMAL CBSE SCHOOL LEAVING / TRANSFER CERTIFICATE (SLC / TC)       */}
+        {/* VIEW 4: FORMAL STATUTORY SCHOOL LEAVING / TRANSFER CERTIFICATE (SLC / TC)   */}
         {/* ========================================================================= */}
         {modalView === 'tc' && (
           <div className="flex flex-col h-full">
@@ -1011,7 +1011,7 @@ export function Student360ProfileModal({
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto flex-1 bg-slate-100 flex items-center justify-center">
-              {/* Formal CBSE Transfer Certificate Document */}
+              {/* Formal Transfer Certificate Document */}
               <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-slate-300 text-slate-900">
                 {/* Certificate Header */}
                 <div className="text-center border-b-2 border-slate-900 pb-4 mb-4">
@@ -1036,7 +1036,7 @@ export function Student360ProfileModal({
                   <span>Universal ID: {universalId}</span>
                 </div>
 
-                {/* 14-Point CBSE Certificate Details Table */}
+                {/* 14-Point Certificate Details Table */}
                 <div className="divide-y divide-slate-200 text-xs space-y-1">
                   <div className="py-1.5 flex justify-between">
                     <span className="text-slate-600 font-medium">1. Name of Pupil:</span>

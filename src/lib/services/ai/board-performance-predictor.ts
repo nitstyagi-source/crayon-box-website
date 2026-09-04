@@ -1,5 +1,5 @@
 /**
- * CBSE Longitudinal Board Exam Predictive Performance Engine
+ * Longitudinal Board Exam Predictive Performance Engine
  * Multi-term statistical regression synthesizing Periodic Tests, Half-Yearly,
  * and Mock Pre-Board data with attendance weightings.
  */
@@ -16,7 +16,8 @@ export interface StudentAssessmentHistory {
 }
 
 export interface BoardPredictionForecast {
-  predictedCbsePercentage: number;
+  predictedBoardPercentage: number;
+  predictedCbsePercentage?: number;
   confidenceInterval: number;
   riskCategory: 'CRITICAL_REMEDIAL' | 'BORDERLINE' | 'HONORS_TRACK';
   attendanceImpactFactor: number;
@@ -43,7 +44,7 @@ export function computeBoardScorePrediction(
   // Weights: PT = 20%, Term 1 = 35%, Pre-Board Mocks = 45%
   let rawPrediction = 0.2 * ptMean + 0.35 * history.term1ExamScore + 0.45 * mockMean;
 
-  // Attendance factor: CBSE enforces mandatory 75% attendance rule.
+  // Attendance factor: Statutory 75% attendance rule.
   // Attendance > 90% yields +1.5% consistency bonus; < 75% penalizes by -3.0%
   let attendanceBonus = 0;
   if (history.attendancePercentage >= 90) {
@@ -85,16 +86,17 @@ export function computeBoardScorePrediction(
   let strategicRemedialAdvice = '';
   if (riskCategory === 'CRITICAL_REMEDIAL') {
     strategicRemedialAdvice =
-      'Immediate intensive intervention required: Mandatory Zero-Period coaching in primary deficit subjects and weekly NCERT Exemplar drills.';
+      'Immediate intensive intervention required: Mandatory Zero-Period coaching in primary deficit subjects and weekly conceptual drills.';
   } else if (riskCategory === 'BORDERLINE') {
     strategicRemedialAdvice =
       'Consistent distinction capability: Targeted focus on 3-mark and 5-mark conceptual problems to elevate aggregate into >80% Honors band.';
   } else {
     strategicRemedialAdvice =
-      'Outstanding academic trajectory: Nominate for CBSE Merit Scholarship circle and introduce advanced competitive Olympiad/JEE-NEET foundation sets.';
+      'Outstanding academic trajectory: Nominate for Academic Merit Scholarship circle and introduce advanced competitive Olympiad foundation sets.';
   }
 
   return {
+    predictedBoardPercentage: finalPrediction,
     predictedCbsePercentage: finalPrediction,
     confidenceInterval,
     riskCategory,

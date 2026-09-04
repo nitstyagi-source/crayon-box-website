@@ -1,6 +1,7 @@
 "use server";
 
 import pg from 'pg';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 
 const { Pool } = pg;
 const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
@@ -10,13 +11,14 @@ function getPool() {
 }
 
 /**
- * Generate CBSE List of Candidates (LOC) Schema CSV/Data
+ * Generate Board List of Candidates (LOC) Schema CSV/Data
  */
-export async function generateCbseLocReportAction() {
+export async function generateCbseLocReportAction(institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
+    const matched = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode) || VANI_TRUST_INSTITUTIONS[0];
     const res = await client.query(`
       SELECT 
         s.id,
@@ -41,10 +43,11 @@ export async function generateCbseLocReportAction() {
       success: true,
       records: res.rows,
       generatedAt: new Date().toISOString(),
-      boardAffiliation: 'CBSE New Delhi (2130894)'
+      institutionName: matched.name,
+      boardAffiliation: `${matched.boardAffiliation} (${matched.affiliationNumber || '2130894'})`
     };
   } catch (error: any) {
-    console.error('Failed to generate CBSE LOC data:', error);
+    console.error('Failed to generate Board LOC data:', error);
     return { success: false, records: [], error: error.message };
   } finally {
     client.release();
@@ -54,12 +57,13 @@ export async function generateCbseLocReportAction() {
 /**
  * Generate Government U-DISE+ 42-Parameter Institutional Profile
  */
-export async function generateUdisePlusProfileReportAction() {
+export async function generateUdisePlusProfileReportAction(institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    const [stuRes, staffRes, instRes] = await Promise.all([
+    const matched = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode) || VANI_TRUST_INSTITUTIONS[0];
+    const [stuRes, staffRes] = await Promise.all([
       client.query(`
         SELECT 
           count(*) as total_enrolled,
@@ -72,21 +76,16 @@ export async function generateUdisePlusProfileReportAction() {
           count(*) as total_teachers,
           count(*) FILTER (WHERE designation ILIKE '%TGT%' OR designation ILIKE '%PRT%' OR designation ILIKE '%PGT%') as certified_teachers
         FROM public.staff;
-      `),
-      client.query(`
-        SELECT name, code, board_affiliation, affiliation_number, address, phone_number
-        FROM public.institutions LIMIT 1;
       `)
     ]);
 
     const stats = stuRes.rows[0];
     const staff = staffRes.rows[0];
-    const inst = instRes.rows[0] || {};
 
     const udiseData = {
       udiseSchoolCode: '09020304501',
       academicSession: '2026-2027',
-      schoolName: inst.name || 'Crayon Box School',
+      schoolName: matched.name,
       district: 'Gautam Buddha Nagar',
       state: 'Uttar Pradesh',
       schoolCategory: '1 - Primary with Upper Primary & Secondary',
@@ -114,15 +113,15 @@ export async function generateUdisePlusProfileReportAction() {
 }
 
 /**
- * Generate CBSE OASIS (Online Affiliated Schools Information System) Master
+ * Generate OASIS (Online Affiliated Schools Information System) Master
  */
-export async function generateCbseOasisSchoolProfileReportAction() {
+export async function generateCbseOasisSchoolProfileReportAction(institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    const [instRes, facultyRes, roomRes] = await Promise.all([
-      client.query(`SELECT * FROM public.institutions LIMIT 1;`),
+    const matched = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode) || VANI_TRUST_INSTITUTIONS[0];
+    const [facultyRes, roomRes] = await Promise.all([
       client.query(`
         SELECT count(*) as total,
                count(*) FILTER (WHERE designation ILIKE '%PGT%') as pgt,
@@ -133,16 +132,15 @@ export async function generateCbseOasisSchoolProfileReportAction() {
       client.query(`SELECT count(*) as total_classes FROM public.classes;`)
     ]);
 
-    const inst = instRes.rows[0] || {};
     const fac = facultyRes.rows[0];
     const classes = roomRes.rows[0];
 
     const oasisData = {
-      oasisSchoolCode: '2130894',
-      affiliationNumber: inst.affiliation_number || '2130894',
-      schoolName: inst.name || 'Crayon Box School',
-      principalName: inst.principal_name || 'Dr. Anita Sharma',
-      principalEmail: inst.principal_email || 'principal@crayonbox.edu.in',
+      oasisSchoolCode: matched.affiliationNumber || '2130894',
+      affiliationNumber: matched.affiliationNumber || '2130894',
+      schoolName: matched.name,
+      principalName: matched.principalName,
+      principalEmail: `${(matched.shortName || 'school').toLowerCase().replace(/\s+/g, '')}@trust.edu.in`,
       affiliationStatus: 'Provisional / Senior Secondary Level',
       trustName: 'Vaani Educational Trust',
       campusAreaSqMtr: '8093.71 (2.00 Acres)',
@@ -156,12 +154,12 @@ export async function generateCbseOasisSchoolProfileReportAction() {
       staffCountPRT: Number(fac.prt) || 10,
       wellnessTeacherCounselorAppointed: 'Yes (RCI Registered)',
       specialEducatorAppointed: 'Yes',
-      mandatoryPublicDisclosureUrl: 'https://www.crayonboxschool.com/compliance/cbse-oasis'
+      mandatoryPublicDisclosureUrl: `${matched.website || 'https://school.edu.in'}/compliance/board-oasis`
     };
 
     return { success: true, oasisData };
   } catch (error: any) {
-    console.error('Failed to generate CBSE OASIS profile:', error);
+    console.error('Failed to generate OASIS profile:', error);
     return { success: false, error: error.message };
   } finally {
     client.release();

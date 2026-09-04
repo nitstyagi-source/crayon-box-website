@@ -108,8 +108,13 @@ export default function BatchIDCardStudioPage() {
           >
             {/* ID Card Top Header */}
             <div className="bg-gradient-to-r from-blue-950 to-indigo-950 text-white p-3 text-center space-y-0.5 relative">
-              <div className="text-[8px] font-bold text-amber-300 uppercase tracking-widest">
-                Recognized &amp; Registered School • Delhi
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <div className="w-5 h-5 rounded-md bg-white p-0.5 shrink-0 flex items-center justify-center">
+                  <img src={selectedInstitutionObj?.logoUrl || '/logo.png'} alt="" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
+                </div>
+                <div className="text-[8px] font-bold text-amber-300 uppercase tracking-widest">
+                  {selectedInstitutionObj?.boardAffiliation || "Recognized School"} • {selectedInstitutionObj?.code || 'DELHI NCR'}
+                </div>
               </div>
               <h4 className="text-sm font-black tracking-tight uppercase">
                 {selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
@@ -169,7 +174,7 @@ export default function BatchIDCardStudioPage() {
             {/* Bottom Barcode & Security Strip */}
             <div className="bg-stone-900 text-white px-3 py-1.5 flex justify-between items-center text-[8px] font-mono">
               <span>|||||||| ||||| ||||||| {card.admissionNo}</span>
-              <span className="text-amber-400 font-bold">CBS VERIFIED</span>
+              <span className="text-amber-400 font-bold">{selectedInstitutionObj?.code || 'CBS'} VERIFIED</span>
             </div>
           </div>
         ))}

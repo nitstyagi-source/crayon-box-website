@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/Input';
 
 export interface DigitalResourceItem {
   id: string;
-  provider: 'CBSE_DIKSHA' | 'PHET_SIM' | 'KHAN_ACADEMY' | '3D_MOLVIEW';
+  provider: 'DIKSHA' | 'CBSE_DIKSHA' | 'PHET_SIM' | 'KHAN_ACADEMY' | '3D_MOLVIEW';
   title: string;
   subject: string;
   grade: string;
@@ -49,8 +49,8 @@ const DIGITAL_RESOURCES: DigitalResourceItem[] = [
   },
   {
     id: 'res-02',
-    provider: 'CBSE_DIKSHA',
-    title: 'CBSE DIKSHA: Class 10 Science Chapter 6 - Life Processes',
+    provider: 'DIKSHA',
+    title: 'DIKSHA: Class 10 Science Chapter 6 - Life Processes',
     subject: 'Science',
     grade: 'Class 10',
     description: 'Official NCERT digitized textbook with QR code-linked audio-visual explanations, 3D anatomical charts of human digestive and circulatory systems.',
@@ -124,7 +124,7 @@ export function LtiResourcePicker() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-stone-900">
-                LTI 1.3 Standard &amp; CBSE DIKSHA Digital Textbook Embedding
+                LTI 1.3 Standard &amp; DIKSHA Digital Textbook Embedding
               </h3>
               <span className="px-2 py-0.5 text-[11px] font-bold bg-blue-100 text-blue-900 rounded-full border border-blue-200 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
@@ -132,14 +132,14 @@ export function LtiResourcePicker() {
               </span>
             </div>
             <p className="text-xs text-stone-600 mt-0.5">
-              Embed interactive PhET science simulations, Khan Academy exercises, and official CBSE DIKSHA QR portal digital textbooks directly into lesson plans and homework with automated grade passback (AGS).
+              Embed interactive PhET science simulations, Khan Academy exercises, and official DIKSHA QR portal digital textbooks directly into lesson plans and homework with automated grade passback (AGS).
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <span className="text-xs text-stone-600 bg-white border border-[#E8DFC8] px-3 py-1.5 rounded-xl font-semibold">
-            SSO Auth: 1-Click CBSE Teacher Key
+            SSO Auth: 1-Click Teacher Key
           </span>
         </div>
       </div>
@@ -205,7 +205,7 @@ export function LtiResourcePicker() {
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                         res.provider === 'PHET_SIM'
                           ? 'bg-purple-100 text-purple-900 border-purple-200'
-                          : res.provider === 'CBSE_DIKSHA'
+                          : res.provider === 'DIKSHA' || (res.provider as string) === 'CBSE_DIKSHA'
                           ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
                           : res.provider === 'KHAN_ACADEMY'
                           ? 'bg-blue-100 text-blue-900 border-blue-200'

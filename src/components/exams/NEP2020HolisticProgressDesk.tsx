@@ -117,7 +117,7 @@ export function NEP2020HolisticProgressDesk({ studentsList }: NEP2020DeskProps) 
       <div className="bg-linear-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 p-5 rounded-2xl border border-amber-200/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> CBSE NEP 2020 Pedagogical Framework
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> NEP 2020 Pedagogical Framework
           </span>
           <h2 className="text-lg font-black text-stone-900 mt-1.5">
             360-Degree Multidimensional Holistic Progress Card (HPC)

@@ -12,12 +12,25 @@ export interface CbtQuestion {
   marks: number;
 }
 
+export interface CbtAssessment {
+  id: string;
+  title: string;
+  grade_section: string;
+  subject: string;
+  total_marks: number;
+  duration_minutes: number;
+  exam_type: 'BOARD_MOCK' | 'CBSE_BOARD_MOCK' | 'JEE_MAIN' | 'NEET';
+  questions_count: number;
+  status: 'SCHEDULED' | 'LIVE' | 'COMPLETED';
+  start_window: string;
+}
+
 export interface CbtExamTemplate {
   id: string;
   title: string;
   subject: string;
   grade: string;
-  exam_type: 'CBSE_BOARD_MOCK' | 'JEE_MAIN' | 'NEET';
+  exam_type: 'BOARD_MOCK' | 'CBSE_BOARD_MOCK' | 'JEE_MAIN' | 'NEET';
   duration_minutes: number;
   total_marks: number;
   is_lockdown_enabled: boolean;
@@ -97,11 +110,11 @@ const MOCK_QUESTIONS: CbtQuestion[] = [
 
 const MOCK_EXAM_TEMPLATES: CbtExamTemplate[] = [
   {
-    id: 'cbt-cbse-10-sci',
-    title: 'CBSE Class 10 Science Term-2 Standard CBT Mock',
+    id: 'cbt-board-10-sci',
+    title: 'Class 10 Science Term-2 Standard CBT Mock',
     subject: 'Science',
     grade: 'Class 10',
-    exam_type: 'CBSE_BOARD_MOCK',
+    exam_type: 'BOARD_MOCK',
     duration_minutes: 120,
     total_marks: 80,
     is_lockdown_enabled: true,
@@ -119,11 +132,11 @@ const MOCK_EXAM_TEMPLATES: CbtExamTemplate[] = [
     questions: MOCK_QUESTIONS
   },
   {
-    id: 'cbt-cbse-10-math',
-    title: 'CBSE Class 10 Standard Mathematics Digital Benchmark',
+    id: 'cbt-board-10-math',
+    title: 'Class 10 Standard Mathematics Digital Benchmark',
     subject: 'Mathematics',
     grade: 'Class 10',
-    exam_type: 'CBSE_BOARD_MOCK',
+    exam_type: 'BOARD_MOCK',
     duration_minutes: 120,
     total_marks: 80,
     is_lockdown_enabled: true,

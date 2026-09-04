@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       const att = attRes.rows[0];
       const pct = att.total_days > 0 ? Math.round((att.present_days / att.total_days) * 100) : 94;
 
-      replyText = `📊 *Crayon Box Attendance Bot*\n\nStudent: *${student.first_name} ${student.last_name}* (${student.class_name})\n• Overall Attendance: *${pct}%*\n• Present Days: *${att.present_days || 18} / ${att.total_days || 20} Days*\n• CBSE Statutory Compliance: ${pct >= 75 ? '✅ Satisfactory (>75%)' : '⚠️ Critical Remedial (<75%)'}\n\nType *MENU* for more options.`;
+      replyText = `📊 *Attendance Desk Bot*\n\nStudent: *${student.first_name} ${student.last_name}* (${student.class_name})\n• Overall Attendance: *${pct}%*\n• Present Days: *${att.present_days || 18} / ${att.total_days || 20} Days*\n• Statutory Compliance: ${pct >= 75 ? '✅ Satisfactory (>75%)' : '⚠️ Critical Remedial (<75%)'}\n\nType *MENU* for more options.`;
     }
     // INTENT 3: HOMEWORK & DIARY
     else if (text.includes('HOMEWORK') || text.includes('DIARY') || text.includes('LESSON')) {
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     }
     // FALLBACK / MENU
     else {
-      replyText = `👋 *Welcome to Crayon Box School 2-Way Assistant*\n\nHello! How can we assist you with *${student.first_name}* today? Reply with any keyword:\n\n• *FEES* - View invoice & online pay link\n• *ATTENDANCE* - View monthly roll-call record\n• *HOMEWORK* - Today's homework assignments\n• *BUS* - Live school bus GPS & driver contact\n• *PTM* - Book appointment with teacher\n\n_Crayon Box Automated Parent Desk_`;
+      replyText = `👋 *Welcome to Campus 2-Way Assistant*\n\nHello! How can we assist you with *${student.first_name}* today? Reply with any keyword:\n\n• *FEES* - View invoice & online pay link\n• *ATTENDANCE* - View monthly roll-call record\n• *HOMEWORK* - Today's homework assignments\n• *BUS* - Live school bus GPS & driver contact\n• *PTM* - Book appointment with teacher\n\n_Automated Parent Desk_`;
     }
 
     // Return compliant TwiML response

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, Check, Loader2, Camera, FileText, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Check, Loader2, Camera, FileText, ExternalLink, Image as ImageIcon, Crop } from "lucide-react";
 import { uploadFileToStorage } from "@/app/actions/students";
+import { ImageCropperModal } from "@/components/ui/ImageCropperModal";
 
 interface FileUploadProps {
   label?: string;
@@ -27,7 +28,22 @@ export default function FileUpload({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState(value || "");
   const [dragOver, setDragOver] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropperImage, setCropperImage] = useState<string>("");
+  const [selectedFileName, setSelectedFileName] = useState<string>("photo.jpg");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function dataUrlToFile(dataUrl: string, filename: string): File {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  }
 
   async function handleFileSelect(file: File) {
     if (!file) return;
@@ -54,14 +70,38 @@ export default function FileUpload({
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    if (!file) return;
+
+    if (file.type.startsWith("image/")) {
+      setSelectedFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropperImage(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      handleFileSelect(file);
+    }
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelect(file);
+    if (!file) return;
+
+    if (file.type.startsWith("image/")) {
+      setSelectedFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropperImage(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      handleFileSelect(file);
+    }
   }
 
   const isPdf = value?.endsWith(".pdf") || value?.includes(".pdf");
@@ -98,17 +138,32 @@ export default function FileUpload({
                 type="button"
                 disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+                className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 {isUploading ? "Uploading..." : value ? "Change Photo" : "Upload File"}
               </button>
 
+              {value && !isPdf && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCropperImage(value);
+                    setIsCropperOpen(true);
+                  }}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  title="Select visible area & frame photo"
+                >
+                  <Crop className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Adjust Framing</span>
+                </button>
+              )}
+
               {value && (
                 <button
                   type="button"
                   onClick={() => { onChange(""); setUrlValue(""); }}
-                  className="text-red-500 hover:bg-red-50 text-xs font-bold px-2 py-1.5 rounded-xl transition-colors"
+                  className="text-red-500 hover:bg-red-50 text-xs font-bold px-2 py-1.5 rounded-xl transition-colors cursor-pointer"
                   title="Remove"
                 >
                   <X className="w-4 h-4" />
@@ -228,6 +283,21 @@ export default function FileUpload({
           )}
         </div>
       )}
+
+      {/* Interactive Cropper & Universal Studio Background Framing */}
+      <ImageCropperModal
+        isOpen={isCropperOpen}
+        onClose={() => setIsCropperOpen(false)}
+        imageUrl={cropperImage}
+        cropType={mode === "avatar" ? "avatar" : mode === "banner" ? "banner" : "general"}
+        title={mode === "avatar" ? "Crop & Frame Profile Photo" : "Crop & Frame Image"}
+        allowUniversalBackground={mode === "avatar"}
+        onCropComplete={async (croppedUrl) => {
+          setIsCropperOpen(false);
+          const croppedFile = dataUrlToFile(croppedUrl, selectedFileName || "avatar.jpg");
+          await handleFileSelect(croppedFile);
+        }}
+      />
     </div>
   );
 }

@@ -72,7 +72,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider bg-amber-50 text-amber-900 px-2.5 py-1 rounded-full border border-amber-200">
-              CBSE &amp; NEP 2020 Holistic Progress
+              NEP 2020 Holistic Progress
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-stone-900 mt-1">
@@ -119,7 +119,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
 
         <div className="p-5 bg-gradient-to-br from-blue-950 to-indigo-950 text-white rounded-2xl space-y-2">
           <span className="text-[10px] font-black uppercase text-amber-400 block">Vani Copilot Narrative Engine</span>
-          <strong className="text-lg font-black text-white block">CBSE HPC Report Cards</strong>
+          <strong className="text-lg font-black text-white block">Holistic Progress Cards (HPC)</strong>
           <p className="text-[11px] text-slate-300">Synthesizes scholastic marks, attendance, and co-scholastic strengths.</p>
         </div>
       </div>
@@ -169,7 +169,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
               <Sparkles className="w-4 h-4 text-amber-600" /> Vani Copilot Report Card Narrative Generator
             </strong>
             <p className="text-xs text-stone-600">
-              Generates personalized, strengths-based CBSE Holistic Progress Card (HPC) narrative commentary
+              Generates personalized, strengths-based Holistic Progress Card (HPC) narrative commentary
             </p>
           </div>
 
@@ -206,7 +206,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
               &ldquo;{reportCardNarrative.aiNarrativeSummary}&rdquo;
             </p>
             <div className="flex items-center justify-between text-[10px] text-stone-400 pt-1">
-              <span>Standards: CBSE NEP 2020 Holistic Progress Card (HPC)</span>
+              <span>Standards: NEP 2020 Holistic Progress Card (HPC)</span>
               <span>Generated in 1.2s</span>
             </div>
           </div>

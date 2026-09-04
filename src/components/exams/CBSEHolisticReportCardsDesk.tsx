@@ -101,7 +101,10 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
         examTerm: card.academic.examTerm,
         overallGrade: card.academic.overallGrade,
         percentage: card.academic.percentage,
-        reportCardUrl: card.verificationUrl
+        reportCardUrl: card.verificationUrl,
+        schoolName: selectedInstitutionObj?.name,
+        principalName: selectedInstitutionObj?.principalName,
+        institutionCode: selectedInstitutionObj?.code || currentInstitution
       });
       if (res.success) {
         alert(res.message);
@@ -201,7 +204,7 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
       {isLoading ? (
         <div className="bg-white p-12 rounded-3xl border border-[#E8DFC8] flex flex-col items-center justify-center space-y-3">
           <RefreshCw className="w-8 h-8 text-amber-600 animate-spin" />
-          <span className="text-xs font-bold text-slate-500">Generating CBSE Holistic Progress Cards from Live DB...</span>
+          <span className="text-xs font-bold text-slate-500">Generating Holistic Progress Cards from Live DB...</span>
         </div>
       ) : reportCards.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-[#E8DFC8] text-center text-slate-500 font-bold text-xs">
@@ -257,7 +260,7 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
                   </span>
                   {currentCard.academic.meetsCbse75PercentRule ? (
                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-md">
-                      ✓ 75% CBSE Attendance Compliant ({currentCard.academic.attendancePercentage}%)
+                      ✓ 75% Statutory Attendance Compliant ({currentCard.academic.attendancePercentage}%)
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-md">
@@ -293,6 +296,15 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
                 
                 {/* Institutional Header */}
                 <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
+                  {selectedInstitutionObj?.logoUrl && (
+                    <div className="flex justify-center mb-2">
+                      <img
+                        src={selectedInstitutionObj.logoUrl}
+                        alt={selectedInstitutionObj.name || "School Logo"}
+                        className="w-14 h-14 object-contain rounded-full border border-amber-200 bg-white p-1 shadow-xs"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 font-black text-[10px] uppercase tracking-wider">
                       {selectedInstitutionObj?.affiliationNumber ? `Affiliation No. ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.boardAffiliation || "Recognized Academic Institution")}
@@ -352,7 +364,7 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
                 <div className="space-y-2">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5 text-amber-600" />
-                    Part 1: Scholastic Assessment (CBSE 8-Point Scale)
+                    Part 1: Scholastic Assessment (Standard 8-Point Scale)
                   </h4>
                   <div className="overflow-x-auto border border-[#E8DFC8] rounded-2xl">
                     <table className="w-full text-left text-xs border-collapse">
@@ -479,7 +491,11 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
                     <span>Examination In-Charge</span>
                   </div>
                   <div>
-                    <div className="h-8"></div>
+                    <div className="min-h-8 flex flex-col justify-end">
+                      {selectedInstitutionObj?.principalName && (
+                        <span className="font-serif italic text-slate-800 text-xs">{selectedInstitutionObj.principalName}</span>
+                      )}
+                    </div>
                     <span className="text-slate-950 font-black">Principal / Head of School</span>
                   </div>
                 </div>

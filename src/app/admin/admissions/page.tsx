@@ -695,7 +695,7 @@ function AdmissionsCommandCenterContent() {
                   <h3 className="font-extrabold text-stone-900 text-sm">Admissions AI WhatsApp & Prospectus Bot</h3>
                   <div className="flex items-center gap-2 text-[10px] text-stone-600 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>Trained on Official CBSE 2026-27 Prospectus & Fee Structure</span>
+                    <span>Trained on Official 2026-27 Institutional Prospectus & Fee Structure</span>
                   </div>
                 </div>
               </div>

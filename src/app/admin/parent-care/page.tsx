@@ -55,7 +55,7 @@ function ParentCareHubContent() {
         institutionText={selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "Campus Hub")}
         title="Parent Engagement, PTM & Grievance Care Hub"
         titleIcon={<HeartHandshake className="w-6 h-6 text-[#D97706]" />}
-        description="Parent partnership ecosystem: 1-on-1 sibling-aligned PTM scheduling, digital cryptographic excursion consent slips, and CBSE statutory grievance SLA resolution tracking."
+        description="Parent partnership ecosystem: 1-on-1 sibling-aligned PTM scheduling, digital cryptographic excursion consent slips, and statutory grievance SLA resolution tracking."
       />
 
       {/* Hub Master Navigation Tabs */}
@@ -93,7 +93,7 @@ function ParentCareHubContent() {
           }`}
         >
           <LifeBuoy className="w-4 h-4 text-purple-600" />
-          CBSE Statutory Grievance Redressal Desk
+          Statutory Grievance Redressal Desk
         </button>
 
         <button

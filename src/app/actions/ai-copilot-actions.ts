@@ -62,6 +62,10 @@ export async function enhanceTeacherReplyAction(params: {
 
 // -------------------------------------------------------------
 // 2. AI CIRCULAR & SCHOOL NOTICE DRAFTER
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
+
+// -------------------------------------------------------------
+// 2. OFFICIAL SCHOOL CIRCULAR & WHATSAPP DRAFTER
 // -------------------------------------------------------------
 export async function generateSchoolCircularAction(params: {
   topic: string;
@@ -69,23 +73,36 @@ export async function generateSchoolCircularAction(params: {
   eventDate?: string;
   keyPoints: string;
   isUrgent?: boolean;
+  institutionCode?: string;
   schoolName?: string;
   schoolAddress?: string;
   affiliation?: string;
+  logoUrl?: string;
+  principalName?: string;
+  website?: string;
 }) {
   const p = getPool();
   const client = await p.connect();
 
   try {
-    const schName = params.schoolName || "OFFICIAL EDUCATIONAL INSTITUTION";
-    const schAffil = params.affiliation || "Recognized Educational Institution";
-    const schAddress = params.schoolAddress || "Academic Campus Administration";
+    const matchedInst = params.institutionCode && params.institutionCode !== 'ALL'
+      ? VANI_TRUST_INSTITUTIONS.find(i => i.code === params.institutionCode)
+      : null;
+
+    const schName = params.schoolName || matchedInst?.name || "Crayon Box School";
+    const schAffil = params.affiliation || (matchedInst?.affiliationNumber ? `Affiliation No. ${matchedInst.affiliationNumber} • ${matchedInst.boardAffiliation}` : (matchedInst?.boardAffiliation || "Recognized Educational Institution"));
+    const schAddress = params.schoolAddress || matchedInst?.address || "Academic Campus Administration";
+    const schLogo = params.logoUrl || matchedInst?.logoUrl || "/logo.png";
+    const schPrincipal = params.principalName || matchedInst?.principalName || "Principal";
+    const schWebsite = params.website || "https://www.crayonboxschool.com";
+
     const refNo = `ADM/CIR/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
     const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const circularHtml = `
       <div class="circular-document space-y-4 text-xs font-serif leading-relaxed">
         <div class="text-center border-b-2 border-stone-900 pb-3">
+          ${schLogo ? `<img src="${schLogo}" alt="${schName}" class="w-12 h-12 object-contain mx-auto mb-1.5" />` : ''}
           <div class="font-bold tracking-widest text-[10px] text-stone-500 uppercase">${schAffil}</div>
           <h2 class="text-xl font-black text-blue-950 tracking-tight">${schName}</h2>
           <div class="text-[11px] text-stone-600 font-sans font-medium">${schAddress}</div>
@@ -105,7 +122,7 @@ export async function generateSchoolCircularAction(params: {
 
         <div class="space-y-3 font-sans text-stone-800">
           <p><strong>Dear Parents / Guardians,</strong></p>
-          <p>Greetings from Crayon Box School!</p>
+          <p>Greetings from ${schName}!</p>
           <p>This is to inform you regarding <strong>${params.topic}</strong> ${params.eventDate ? `scheduled on <strong>${params.eventDate}</strong>` : ''}. Please take note of the following important guidelines:</p>
           
           <div class="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2">
@@ -123,23 +140,23 @@ export async function generateSchoolCircularAction(params: {
               <div class="text-[10px] text-emerald-600 font-bold">✓ Official School Release</div>
             </div>
             <div class="text-right">
-              <div class="font-serif italic font-bold text-base text-blue-950">Dr. Sunita Tyagi</div>
+              <div class="font-serif italic font-bold text-base text-blue-950">${schPrincipal}</div>
               <div class="font-bold text-stone-900">Principal</div>
-              <div class="text-[10px] text-stone-500">Crayon Box School</div>
+              <div class="text-[10px] text-stone-500">${schName}</div>
             </div>
           </div>
         </div>
       </div>
     `;
 
-    const whatsAppMessage = `📢 *Crayon Box School — Official Circular*\n\n*Ref*: ${refNo}\n*Subject*: *${params.topic}*\n*Date*: ${params.eventDate || todayStr}\n\n*Key Guidelines*:\n${params.keyPoints}\n\n📄 *Download Full Official Circular*: https://www.crayonboxschool.com/circulars/${refNo.replace(/\//g, '-')}\n\n_Principal, Crayon Box School_`;
+    const whatsAppMessage = `📢 *${schName} — Official Circular*\n\n*Ref*: ${refNo}\n*Subject*: *${params.topic}*\n*Date*: ${params.eventDate || todayStr}\n\n*Key Guidelines*:\n${params.keyPoints}\n\n📄 *Download Full Official Circular*: ${schWebsite}/circulars/${refNo.replace(/\//g, '-')}\n\n_Principal, ${schName}_`;
 
     return {
       success: true,
       refNo,
       circularHtml,
       whatsAppMessage,
-      message: `✓ Official Circular ${refNo} generated successfully!`
+      message: `✓ Official Circular ${refNo} generated successfully for ${schName}!`
     };
   } catch (e: any) {
     return { success: false, error: e.message };

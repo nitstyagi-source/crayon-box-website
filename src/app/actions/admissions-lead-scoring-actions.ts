@@ -77,11 +77,11 @@ const MOCK_LEADS: LeadScoreRecord[] = [
     score_tier: 'WARM',
     key_drivers: [
       'Relocating to campus catchment area in November (+20)',
-      'Inquired about CBSE affiliation & Sports complex facilities (+15)',
+      'Inquired about board affiliation & Sports complex facilities (+15)',
       'Prospectus downloaded (+10)'
     ],
-    ai_recommended_action: 'Share CBSE Board academic track record brochure and military transfer TC admission guidelines.',
-    suggested_message: 'Dear Col. Rathore, welcome to our community. Crayon Box School offers flexible mid-term admission continuity for Defence personnel with full transfer certificate clearance support. Here is our Secondary School academic dossier.',
+    ai_recommended_action: 'Share Board academic track record brochure and military transfer TC admission guidelines.',
+    suggested_message: 'Dear Col. Rathore, welcome to our community. Our school offers flexible mid-term admission continuity for Defence personnel with full transfer certificate clearance support. Here is our Secondary School academic dossier.',
     last_contacted_at: null,
     created_at: '2026-09-02T16:45:00Z'
   },
@@ -102,7 +102,7 @@ const MOCK_LEADS: LeadScoreRecord[] = [
       'Has not confirmed campus tour appointment yet (-10)'
     ],
     ai_recommended_action: 'Send JEE/NEET faculty credentials and invite to free Sunday STEM Diagnostic Scholarship Assessment.',
-    suggested_message: 'Dear Sunita ji, Crayon Box Senior Secondary provides integrated JEE/NEET prep alongside CBSE Class 11-12 syllabus. We invite Vihaan to our upcoming Science scholarship benchmark test this Sunday.',
+    suggested_message: 'Dear Sunita ji, our Senior Secondary program provides integrated JEE/NEET prep alongside Class 11-12 syllabus. We invite Vihaan to our upcoming Science scholarship benchmark test this Sunday.',
     last_contacted_at: '2026-08-30T11:00:00Z',
     created_at: '2026-08-28T12:00:00Z'
   },

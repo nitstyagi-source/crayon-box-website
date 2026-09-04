@@ -231,7 +231,7 @@ export async function askVaniOrchestratorAction(params: {
       // C. Attendance Anomalies & Threshold Alerts
       else if (query.includes('attendance anomaly') || query.includes('below 75') || query.includes('absenteeism')) {
         toolUsed = 'get_attendance_anomalies';
-        responseMarkdown = `⚠️ **Attendance Anomaly & Deficit Intelligence**\n\n• **Statutory Threshold Alert**: 14 students have fallen below the 75% CBSE attendance requirement.\n• **Concentration**: 9 students are in Classes 5–7.\n• **Continuous Decline Detected**: 4 students have shown attendance dips for 3 consecutive weeks.\n\n**Recommended Action**: Issue Parent Attendance Advisory letters and schedule meetings with academic coordinators.`;
+        responseMarkdown = `⚠️ **Attendance Anomaly & Deficit Intelligence**\n\n• **Statutory Threshold Alert**: 14 students have fallen below the 75% statutory attendance requirement.\n• **Concentration**: 9 students are in Classes 5–7.\n• **Continuous Decline Detected**: 4 students have shown attendance dips for 3 consecutive weeks.\n\n**Recommended Action**: Issue Parent Attendance Advisory letters and schedule meetings with academic coordinators.`;
       }
       // D. Natural Language Report Builder
       else if (query.includes('report') || query.includes('export') || query.includes('analysis') || query.includes('compare')) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Image as ImageIcon, CheckCircle2, Trash2, Link as LinkIcon, ZoomIn } from "lucide-react";
+import { Upload, Image as ImageIcon, CheckCircle2, Trash2, Link as LinkIcon, ZoomIn, Crop } from "lucide-react";
+import { ImageCropperModal } from "@/components/ui/ImageCropperModal";
 
 interface ImageUploaderProps {
   label?: string;
@@ -35,6 +36,8 @@ export default function ImageUploader({
   const [urlInput, setUrlInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropperSource, setCropperSource] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFile(file: File) {
@@ -54,12 +57,8 @@ export default function ImageUploader({
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
-      setCurrentUrl(base64);
-      onImageChanged({
-        imageUrl: base64,
-        imageSize: size,
-        imageAlignment: alignment
-      });
+      setCropperSource(base64);
+      setIsCropperOpen(true);
     };
     reader.readAsDataURL(file);
   }
@@ -185,13 +184,26 @@ export default function ImageUploader({
             <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" /> Image Attached
             </span>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="text-red-500 hover:text-red-700 text-[11px] font-bold flex items-center gap-1"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Remove Image
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCropperSource(currentUrl);
+                  setIsCropperOpen(true);
+                }}
+                className="text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
+                title="Select which part of the diagram is visible"
+              >
+                <Crop className="w-3.5 h-3.5 text-amber-600" /> Adjust Framing / Crop
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="text-red-500 hover:text-red-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remove Image
+              </button>
+            </div>
           </div>
 
           {/* Sizing & Alignment Controls */}
@@ -252,6 +264,26 @@ export default function ImageUploader({
       {errorMsg && (
         <p className="text-red-500 text-[11px] font-bold">{errorMsg}</p>
       )}
+
+      {/* Interactive Crop & Visible Area Framing Modal */}
+      <ImageCropperModal
+        isOpen={isCropperOpen}
+        onClose={() => setIsCropperOpen(false)}
+        imageUrl={cropperSource}
+        cropType="general"
+        defaultAspect="free"
+        title="Select Visible Diagram Area"
+        allowUniversalBackground={false}
+        onCropComplete={(croppedUrl) => {
+          setCurrentUrl(croppedUrl);
+          onImageChanged({
+            imageUrl: croppedUrl,
+            imageSize: size,
+            imageAlignment: alignment
+          });
+          setIsCropperOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -39,7 +39,7 @@ function StudentHealthHubContent() {
   // Sample Student Medical 360 Profiles
   const sampleMedicalProfiles = [
     { name: "Aarav Sharma", class: "Grade 5-A", blood: "O+ve", allergies: "Peanuts, Dust Mites", chronic: "Mild Pediatric Asthma", abha: "91-4501-2291-8841", vax: "Complete (DTaP, MMR, HepB)" },
-    { name: "Ananya Verma", class: "Grade 3-B", blood: "B+ve", allergies: "Penicillin", chronic: "None", abha: "91-8821-4402-1190", vax: "Complete (CBSE Verified)" },
+    { name: "Ananya Verma", class: "Grade 3-B", blood: "B+ve", allergies: "Penicillin", chronic: "None", abha: "91-8821-4402-1190", vax: "Complete (Verified)" },
     { name: "Kabir Mehta", class: "Grade 8-A", blood: "AB+ve", allergies: "None", chronic: "None", abha: "91-1049-7721-3312", vax: "Complete (Tetanus booster 2025)" },
     { name: "Riya Kapoor", class: "Grade 2-C", blood: "A+ve", allergies: "Lactose Intolerance", chronic: "None", abha: "91-6623-8890-4412", vax: "Complete" },
   ];

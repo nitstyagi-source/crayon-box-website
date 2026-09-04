@@ -107,7 +107,7 @@ export default function AdminAdmissionApplicationsPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-blue-950 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
-              CBSE Student Master Admissions
+              Student Master Admissions
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">

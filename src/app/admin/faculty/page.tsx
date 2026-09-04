@@ -452,7 +452,7 @@ function FacultyAdminContent() {
         institutionText="Academic Session 2026–2027"
         title="Faculty Directory & Academic Calendar"
         titleIcon={<GraduationCap className="w-7 h-7 text-[#D97706]" />}
-        description="Unified faculty command center uniting Faculty & Staff Master Directory, Police Verification, CBSE Academic Calendar, Automated WhatsApp Birthday Wishes, and Workload Distribution."
+        description="Unified faculty command center uniting Faculty & Staff Master Directory, Police Verification, Institutional Academic Calendar, Automated WhatsApp Birthday Wishes, and Workload Distribution."
         actions={
           <>
             <button
@@ -467,7 +467,7 @@ function FacultyAdminContent() {
           { id: 'DIRECTORY', label: '1. Faculty Staff Directory', icon: <Users className="w-4 h-4 text-blue-600" />, count: faculty.length },
           { id: 'CALENDAR', label: '2. Academic & Exam Calendar', icon: <Calendar className="w-4 h-4 text-amber-600" /> },
           { id: 'WORKLOAD', label: '3. Teaching Workload & KPIs', icon: <Building2 className="w-4 h-4 text-emerald-600" /> },
-          { id: 'CPD', label: '4. CBSE 50-Hr CPD Tracker', icon: <Award className="w-4 h-4 text-[#D97706]" /> },
+          { id: 'CPD', label: '4. Annual 50-Hr CPD Tracker', icon: <Award className="w-4 h-4 text-[#D97706]" /> },
         ]}
         activeTab={pageTab}
         onTabChange={(id) => handlePageTabChange(id as any)}

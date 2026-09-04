@@ -76,7 +76,7 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
       principalName: inst.principalName || inst.principal_name || staticMatch?.principalName || 'Principal',
       address: inst.address || staticMatch?.address || 'Main Campus',
       logoUrl: inst.logoUrl || inst.logo_url || staticMatch?.logoUrl || '/logo.png',
-      boardAffiliation: inst.boardAffiliation || inst.board_affiliation || staticMatch?.boardAffiliation || 'CBSE',
+      boardAffiliation: inst.boardAffiliation || inst.board_affiliation || staticMatch?.boardAffiliation || 'Recognized Board',
       affiliationNumber: inst.affiliationNumber || inst.affiliation_number || staticMatch?.affiliationNumber || ''
     };
   });

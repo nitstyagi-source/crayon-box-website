@@ -94,11 +94,11 @@ const DEFAULT_QUESTIONS: CbtQuestion[] = [
 
 const DEFAULT_TEMPLATES: CbtExamTemplate[] = [
   {
-    id: 'cbt-cbse-10-sci',
-    title: 'CBSE Class 10 Science Term-2 Standard CBT Mock',
+    id: 'cbt-board-10-sci',
+    title: 'Class 10 Science Term-2 Standard CBT Mock',
     subject: 'Science',
     grade: 'Class 10',
-    exam_type: 'CBSE_BOARD_MOCK',
+    exam_type: 'BOARD_MOCK',
     duration_minutes: 120,
     total_marks: 80,
     is_lockdown_enabled: true,
@@ -116,11 +116,11 @@ const DEFAULT_TEMPLATES: CbtExamTemplate[] = [
     questions: DEFAULT_QUESTIONS
   },
   {
-    id: 'cbt-cbse-10-math',
-    title: 'CBSE Class 10 Standard Mathematics Digital Benchmark',
+    id: 'cbt-board-10-math',
+    title: 'Class 10 Standard Mathematics Digital Benchmark',
     subject: 'Mathematics',
     grade: 'Class 10',
-    exam_type: 'CBSE_BOARD_MOCK',
+    exam_type: 'BOARD_MOCK',
     duration_minutes: 120,
     total_marks: 80,
     is_lockdown_enabled: true,
@@ -323,7 +323,7 @@ export function OnlineCbtTestingDesk() {
             </h2>
           </div>
           <p className="text-xs text-stone-600 mt-1 max-w-2xl">
-            NTA/CBSE standard digital testing environment with hardware browser lockdown, anti-tab switch detection, live proctoring stream, and automated scoring passback.
+            Standard digital testing environment with hardware browser lockdown, anti-tab switch detection, live proctoring stream, and automated scoring passback.
           </p>
         </div>
 

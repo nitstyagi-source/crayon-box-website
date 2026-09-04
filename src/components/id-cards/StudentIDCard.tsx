@@ -26,9 +26,12 @@ export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: Stud
   const busRoute = student.bus_route_no || student.route_name || 'Route 04';
   
   const schName = schoolInfo.name || 'STUDENT IDENTITY CARD';
-  const schAffiliation = schoolInfo.boardAffiliation || 'CBSE AFFILIATED';
+  const schAffiliation = schoolInfo.boardAffiliation || 'OFFICIALLY ACCREDITED';
   const schWebsite = schoolInfo.website || 'www.school.edu.in';
   const schPhone = schoolInfo.phone || '011-45678901';
+  const schLogo = schoolInfo.logoUrl || schoolInfo.logo_url || '/logo.png';
+  const schPrincipal = schoolInfo.principalName || schoolInfo.principal_name || 'Principal';
+  const schShortName = schoolInfo.shortName || schoolInfo.short_name || schoolInfo.name || 'School';
 
   // BACK FACE
   if (isBack) {
@@ -58,7 +61,7 @@ export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: Stud
               <ShieldCheck size={11} /> Campus Safety Guidelines
             </div>
             <p>1. This identity credential must be worn during all school hours and transport transit.</p>
-            <p>2. Report immediate card loss to the Administrative Office or via Crayon Box Mobile App.</p>
+            <p>2. Report immediate card loss to the Administrative Office or via {schShortName} Mobile App.</p>
           </div>
 
           {/* Principal Seal & Authorized Signature */}
@@ -69,7 +72,7 @@ export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: Stud
             </div>
             <div className="text-center">
               <div className="h-7 w-24 border-b border-stone-800 mx-auto font-serif italic text-[11px] font-bold text-stone-900">
-                Dr. S. K. Sharma
+                {schPrincipal}
               </div>
               <span className="text-[8.5px] font-black uppercase text-stone-700 tracking-wider">Principal (Seal & Sign)</span>
             </div>
@@ -95,15 +98,15 @@ export function StudentIDCard({ student, schoolInfo = {}, isBack = false }: Stud
         <div className="flex items-center justify-center gap-2 mb-1">
           <div className="w-8 h-8 rounded-xl bg-white p-1 border border-amber-400 flex items-center justify-center shrink-0">
             <img 
-              src="/trust-logo.png" 
-              alt="Crest" 
+              src={schLogo} 
+              alt={schName} 
               className="w-full h-full object-contain" 
               onError={(e) => { e.currentTarget.src = '/logo.png'; }} 
             />
           </div>
           <div className="text-left">
             <h1 className="font-extrabold text-xs uppercase tracking-wider text-amber-300 leading-tight">{schName}</h1>
-            <span className="text-[8px] text-amber-100/80 font-medium block">Excellence in Education • Values for Life</span>
+            <span className="text-[8px] text-amber-100/80 font-medium block">{schAffiliation} • Values for Life</span>
           </div>
         </div>
       </div>

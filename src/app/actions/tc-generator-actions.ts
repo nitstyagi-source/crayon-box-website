@@ -2,6 +2,7 @@
 
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
+import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 
 const { Pool } = pg;
 const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
@@ -46,6 +47,7 @@ export interface TcRecord {
 // 1. GENERATE OFFICIAL TRANSFER CERTIFICATE
 // -------------------------------------------------------------
 export async function generateTransferCertificateAction(params: {
+  institutionCode?: string;
   studentName: string;
   admissionNo: string;
   fatherName: string;
@@ -61,9 +63,10 @@ export async function generateTransferCertificateAction(params: {
   const client = await p.connect();
 
   try {
+    const instCode = (params.institutionCode || 'CBS').toUpperCase();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const tcNumber = `TC/CBS/2026/${randomSuffix}`;
-    const refNumber = `REF/DEL/${randomSuffix}`;
+    const tcNumber = `TC/${instCode}/2026/${randomSuffix}`;
+    const refNumber = `REF/${instCode}/${randomSuffix}`;
     const result = params.annualResult || "Promoted to Higher Class (Passed)";
     const pen = params.penNo || `PEN-2026-${randomSuffix}`;
 
@@ -141,7 +144,27 @@ export async function verifyTransferCertificateTokenAction(tcNumberOrToken: stri
       return { success: false, error: "Transfer Certificate record not found on official registry." };
     }
 
-    return { success: true, certificate: res.rows[0] as TcRecord };
+    const tc = res.rows[0] as TcRecord;
+    // Extract school code from TC number like TC/CBS/2026/...
+    const parts = (tc.tc_number || '').split('/');
+    const codeCandidate = parts.length >= 2 ? parts[1].toUpperCase() : 'CBS';
+    const matchedInst = VANI_TRUST_INSTITUTIONS.find(i => i.code.toUpperCase() === codeCandidate || i.id === codeCandidate) || VANI_TRUST_INSTITUTIONS[0];
+
+    return { 
+      success: true, 
+      certificate: tc,
+      institution: {
+        name: matchedInst.name,
+        shortName: matchedInst.shortName,
+        code: matchedInst.code,
+        address: matchedInst.address,
+        affiliation: matchedInst.affiliationNumber ? `Affiliation No: ${matchedInst.affiliationNumber} (${matchedInst.boardAffiliation})` : (matchedInst.boardAffiliation || 'Recognized Academic Institution'),
+        logoUrl: matchedInst.logoUrl,
+        principalName: matchedInst.principalName,
+        website: matchedInst.website,
+        phone: matchedInst.phone
+      }
+    };
   } catch (e: any) {
     return { success: false, error: e.message };
   } finally {

@@ -111,7 +111,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
     ? 'All Campuses (Trust HQ)' 
     : (selectedInstitutionObj?.name || 'School Portal');
   const activeBrandColor = selectedInstitutionObj?.brandColor || '#2563eb';
-  const activeAffiliation = selectedInstitutionObj?.boardAffiliation || 'CBSE';
+  const activeAffiliation = selectedInstitutionObj?.boardAffiliation || 'Recognized Board';
 
   return (
     <>

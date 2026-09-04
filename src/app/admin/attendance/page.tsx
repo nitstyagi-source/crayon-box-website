@@ -79,7 +79,7 @@ function DailyAttendanceContent() {
   const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
 
   // -------------------------------------------------------------
-  // TAB 4: CBSE 75% DEFAULTER RADAR STATE
+  // TAB 4: 75% STATUTORY DEFAULTER RADAR STATE
   // -------------------------------------------------------------
   const [defaultersSearch, setDefaultersSearch] = useState('');
 
@@ -240,7 +240,7 @@ function DailyAttendanceContent() {
         institutionText={`Campus: ${activeInst} • Session 2026–2027`}
         title="Daily Attendance, Biometrics & Muster Hub"
         titleIcon={<CheckCircle2 className="w-7 h-7 text-[#D97706]" />}
-        description="Unified institutional muster uniting Student Classroom Roll-call, Faculty Geofence Muster, Medical Leaves, and CBSE 75% Statutory Defaulter Radar."
+        description="Unified institutional muster uniting Student Classroom Roll-call, Faculty Geofence Muster, Medical Leaves, and 75% Statutory Attendance Defaulter Radar."
         actions={
           <>
             <Button
@@ -275,7 +275,7 @@ function DailyAttendanceContent() {
           { id: 'STUDENT', label: '1. Student Classroom Roll-Call', icon: <GraduationCap className="w-4 h-4 text-emerald-600" />, count: roster.length },
           { id: 'STAFF', label: '2. Faculty & Staff Muster (Geofence)', icon: <UserCheck className="w-4 h-4 text-blue-600" />, count: staffRoster.length },
           { id: 'LEAVES', label: '3. Leave Requests & Duty Clearances', icon: <Calendar className="w-4 h-4 text-amber-600" />, count: leaves.length },
-          { id: 'DEFAULTERS', label: '4. CBSE 75% Defaulter Radar', icon: <AlertTriangle className="w-4 h-4 text-rose-600" /> },
+          { id: 'DEFAULTERS', label: '4. 75% Statutory Attendance Radar', icon: <AlertTriangle className="w-4 h-4 text-rose-600" /> },
         ]}
         activeTab={activeTab}
         onTabChange={(id) => handleTabChange(id as any)}
@@ -610,14 +610,14 @@ function DailyAttendanceContent() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 4: CBSE 75% STATUTORY DEFAULTER RADAR */}
+      {/* TAB 4: 75% STATUTORY DEFAULTER RADAR */}
       {/* ======================================================== */}
       {activeTab === 'DEFAULTERS' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <div className="bg-amber-50 border border-amber-300 p-5 rounded-3xl flex items-start gap-3">
             <AlertOctagon className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-black text-amber-950 text-xs uppercase tracking-wide">CBSE Statutory Examination Rule 14</h4>
+              <h4 className="font-black text-amber-950 text-xs uppercase tracking-wide">Statutory Examination Attendance Rule</h4>
               <p className="text-xs text-amber-900 mt-1">
                 Students with aggregate attendance below 75% must be issued written notices before term examinations. This radar dynamically calculates rolling working day percentages across the academic session.
               </p>
@@ -646,7 +646,7 @@ function DailyAttendanceContent() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => alert(`Official CBSE 75% Notice generated for ${def.name}. Sent to parent via WhatsApp & Registered Post.`)}
+                      onClick={() => alert(`Official 75% Attendance Notice generated for ${def.name}. Sent to parent via WhatsApp & Registered Post.`)}
                       className="text-xs font-bold border-rose-300 text-rose-800 bg-white"
                     >
                       Issue Warning Notice

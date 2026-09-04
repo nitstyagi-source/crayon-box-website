@@ -138,7 +138,7 @@ export default function IncidentOfficialReportModal({
                 : "STUDENT DISCIPLINARY & BEHAVIORAL INCIDENT INQUIRY DOSSIER"}
             </h2>
             <p className="text-[10px] text-slate-600 mt-0.5">
-              Generated in accordance with CBSE Student Safety Guidelines, Institutional Disciplinary Bye-Laws &amp; Safeguarding Standards.
+              Generated in accordance with Statutory Student Safety Guidelines, Institutional Disciplinary Bye-Laws &amp; Safeguarding Standards.
             </p>
           </div>
 

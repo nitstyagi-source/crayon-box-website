@@ -152,7 +152,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     // Step 6: Previous School & Academics (Class-Aware)
     previous_school_name: "",
     previous_school_address: "",
-    previous_school_board: "CBSE",
+    previous_school_board: "",
     previous_school_medium: "English",
     previous_class_attended: "",
     previous_academic_year: "2025-2026",
@@ -412,7 +412,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-black text-white">Master Admission Application (2026–27)</h2>
-              <p className="text-[11px] text-slate-300">12-Section CBSE Master Student Ledger Form</p>
+              <p className="text-[11px] text-slate-300">12-Section Master Student Ledger Form</p>
             </div>
           </div>
 
@@ -1081,10 +1081,12 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                   onChange={(e) => setForm({ ...form, previous_school_board: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900"
                 >
+                  <option value="">Select Board</option>
                   <option value="CBSE">CBSE</option>
                   <option value="ICSE">ICSE / CISCE</option>
                   <option value="STATE">State Board</option>
                   <option value="IB">IB / Cambridge</option>
+                  <option value="OTHER">Other Recognized Board</option>
                 </select>
               </div>
 

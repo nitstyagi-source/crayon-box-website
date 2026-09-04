@@ -19,6 +19,7 @@ export interface StudentBoardPrediction {
   current_term_pct: number;
   periodic_test_avg: number;
   mock_board_pct: number;
+  predicted_board_pct?: number;
   predicted_cbse_pct: number;
   confidence_interval: number;
   risk_category: 'CRITICAL_REMEDIAL' | 'BORDERLINE' | 'HONORS_TRACK';
@@ -91,7 +92,7 @@ const MOCK_PREDICTIONS: StudentBoardPrediction[] = [
       { subject: 'English', historicalAvg: 91, predictedScore: 93, weakTopics: ['Grammar error spotting'], remedialDifficulty: 'LOW' },
       { subject: 'Computer Applications', historicalAvg: 94, predictedScore: 96, weakTopics: ['None identified'], remedialDifficulty: 'LOW' },
     ],
-    ai_remedial_recommendation: 'Exemplary performance across all domains. Nominate for CBSE Merit Certificate and provide advanced Olympiad problem sets.',
+    ai_remedial_recommendation: 'Exemplary performance across all domains. Nominate for Academic Merit Certificate and provide advanced Olympiad problem sets.',
     last_computed_at: new Date().toISOString()
   },
   {
@@ -216,18 +217,18 @@ export async function generateRemedialPackageAction(studentId: string): Promise<
   const student = MOCK_PREDICTIONS.find(p => p.student_id === studentId) || MOCK_PREDICTIONS[0];
   return {
     success: true,
-    message: `Personalized CBSE 6-Week Remedial Package synthesized for ${student.student_name}. WhatsApp dispatch queued to parent.`,
+    message: `Personalized 6-Week Board Remedial Package synthesized for ${student.student_name}. WhatsApp dispatch queued to parent.`,
     remedialPlan: {
       studentName: student.student_name,
       targetScore: Math.min(100, student.predicted_cbse_pct + 12),
       durationWeeks: 6,
       modules: [
-        { week: 1, focusSubject: 'Mathematics', chapter: 'Quadratic Equations & Roots', worksheetUrl: '/worksheets/cbse-math-quad-booster.pdf' },
-        { week: 2, focusSubject: 'Science', chapter: 'Ohm’s Law & Electric Circuits Circuitry', worksheetUrl: '/worksheets/cbse-phys-circuits.pdf' },
-        { week: 3, focusSubject: 'Mathematics', chapter: 'Trigonometric Heights & Distances', worksheetUrl: '/worksheets/cbse-math-trigo-practice.pdf' },
-        { week: 4, focusSubject: 'Science', chapter: 'Chemical Reactions Balancing Formulae', worksheetUrl: '/worksheets/cbse-chem-reactions.pdf' },
-        { week: 5, focusSubject: 'Social Science', chapter: 'Assertion-Reasoning Mastery', worksheetUrl: '/worksheets/cbse-sst-assertion.pdf' },
-        { week: 6, focusSubject: 'All Subjects', chapter: 'Timed Full-Length Mock Board Exam 3', worksheetUrl: '/worksheets/cbse-full-mock-3.pdf' }
+        { week: 1, focusSubject: 'Mathematics', chapter: 'Quadratic Equations & Roots', worksheetUrl: '/worksheets/board-math-quad-booster.pdf' },
+        { week: 2, focusSubject: 'Science', chapter: 'Ohm’s Law & Electric Circuits Circuitry', worksheetUrl: '/worksheets/board-phys-circuits.pdf' },
+        { week: 3, focusSubject: 'Mathematics', chapter: 'Trigonometric Heights & Distances', worksheetUrl: '/worksheets/board-math-trigo-practice.pdf' },
+        { week: 4, focusSubject: 'Science', chapter: 'Chemical Reactions Balancing Formulae', worksheetUrl: '/worksheets/board-chem-reactions.pdf' },
+        { week: 5, focusSubject: 'Social Science', chapter: 'Assertion-Reasoning Mastery', worksheetUrl: '/worksheets/board-sst-assertion.pdf' },
+        { week: 6, focusSubject: 'All Subjects', chapter: 'Timed Full-Length Mock Board Exam 3', worksheetUrl: '/worksheets/board-full-mock-3.pdf' }
       ],
       parentNotificationSent: true
     }

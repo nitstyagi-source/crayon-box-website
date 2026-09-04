@@ -174,7 +174,7 @@ export function AIQuestionPaperGeneratorDesk({ embedded = false }: { embedded?: 
               AI Examination Question Paper Generator
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
-              Generates balanced CBSE question papers (MCQs, Short, Long, and HOTS Case-Studies) with complete step-by-step teacher marking schemes and printable A4 layouts.
+              Generates balanced board examination question papers (MCQs, Short, Long, and HOTS Case-Studies) with complete step-by-step teacher marking schemes and printable A4 layouts.
             </p>
           </div>
 
@@ -199,7 +199,7 @@ export function AIQuestionPaperGeneratorDesk({ embedded = false }: { embedded?: 
             Configure Examination Blueprint (Dynamic DB Connected)
           </h3>
           <span className="text-[11px] font-bold text-slate-500">
-            CBSE / NEP 2020 Standard Assessment Pattern
+            Board &amp; NEP 2020 Standard Assessment Pattern
           </span>
         </div>
 

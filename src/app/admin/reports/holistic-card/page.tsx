@@ -84,7 +84,7 @@ export default function HolisticReportCardPrintPage() {
     <div className="space-y-6 pb-12 font-sans">
       <div className="print:hidden">
         <VastuModuleBanner
-          badgeText="CBSE NEP 2020 OFFICIAL REPORT"
+          badgeText="NEP 2020 OFFICIAL REPORT"
           title="360° Holistic Progress Card (HPC) Generator"
           description="Print-ready 360-degree Multidimensional Report Card capturing Self, Peer, Teacher, and Parent evaluations."
         />
@@ -133,18 +133,18 @@ export default function HolisticReportCardPrintPage() {
           {/* Header */}
           <div className="text-center border-b-2 border-stone-900 pb-6 space-y-2">
             <div className="flex justify-center mb-2">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500 text-stone-950 font-black flex items-center justify-center text-xl shadow-xs">
-                {selectedInstitutionObj?.code || 'HPC'}
+              <div className="w-16 h-16 rounded-2xl bg-white border border-stone-200 p-1 flex items-center justify-center shadow-xs overflow-hidden">
+                <img src={selectedInstitutionObj?.logoUrl || '/logo.png'} alt="" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
               </div>
             </div>
             <h1 className="text-2xl font-black text-stone-900 tracking-tight uppercase">
               {selectedInstitutionObj?.name || 'School Academic Report'}
             </h1>
             <p className="text-xs font-semibold text-stone-500">
-              Affiliated to {selectedInstitutionObj?.boardAffiliation || 'CBSE'}, New Delhi • Affiliation No. {selectedInstitutionObj?.affiliationNumber || '2130894'}
+              Affiliated to {selectedInstitutionObj?.boardAffiliation || 'Recognized Board'} • Affiliation No. {selectedInstitutionObj?.affiliationNumber || '2130894'}
             </p>
             <div className="inline-block mt-2 px-4 py-1 rounded-full bg-amber-100 text-amber-900 font-black text-xs uppercase tracking-wider border border-amber-300">
-              CBSE NEP 2020 — 360° Holistic Progress Card (HPC)
+              NEP 2020 — 360° Holistic Progress Card (HPC)
             </div>
           </div>
 
@@ -265,7 +265,9 @@ export default function HolisticReportCardPrintPage() {
               <span className="text-[10px] text-stone-400">Reflection & Sign-off</span>
             </div>
             <div>
-              <div className="h-10 border-b border-stone-400 mb-2"></div>
+              <div className="h-10 border-b border-stone-400 mb-2 flex items-end justify-center font-serif italic text-xs font-bold text-stone-900 pb-1">
+                {selectedInstitutionObj?.principalName || 'Principal'}
+              </div>
               <span className="font-bold text-stone-700 block">Principal</span>
               <span className="text-[10px] text-stone-400">Institutional Seal</span>
             </div>

@@ -419,7 +419,7 @@ function PayrollHubContent() {
               Statutory Audit &amp; Remittance Summary
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              All statutory remittances are computed under CBSE Affiliation Bye-Laws Section 3.3.1. Monthly returns must be submitted to the EPFO Unified Portal and TRACES by the 15th of each calendar month.
+              All statutory remittances are computed under Statutory Institutional Remittance Bye-Laws. Monthly returns must be submitted to the EPFO Unified Portal and TRACES by the 15th of each calendar month.
             </p>
           </div>
         </div>
