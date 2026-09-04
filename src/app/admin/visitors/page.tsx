@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Users, UserCheck, ShieldCheck, Clock, Plus,
   RefreshCw, CheckCircle2, QrCode, Printer, X, DoorOpen,
-  Video, AlertOctagon, KeyRound, Lock, Send, ShieldAlert, Sparkles
+  Video, AlertOctagon, KeyRound, Lock, Send, ShieldAlert, Sparkles, Radio
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -20,6 +20,7 @@ import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 import { DigitalGatePassDesk } from '@/components/logistics/DigitalGatePassDesk';
 import { CctvVideoWallDesk } from '@/components/logistics/CctvVideoWallDesk';
 import { EmergencyBroadcastDesk } from '@/components/logistics/EmergencyBroadcastDesk';
+import { TurnstileHardwareSyncDesk } from '@/components/visitors/TurnstileHardwareSyncDesk';
 
 function CampusSecurityHubContent() {
   const searchParams = useSearchParams();
@@ -27,12 +28,18 @@ function CampusSecurityHubContent() {
 
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
-  const [activeTab, setActiveTab] = useState<'visitors' | 'gate-pass' | 'cctv' | 'emergency'>('visitors');
+  const [activeTab, setActiveTab] = useState<'visitors' | 'gate-pass' | 'cctv' | 'emergency' | 'turnstile-sync'>(
+    tabParam === 'gate-pass' || tabParam === 'early-departure' ? 'gate-pass' :
+    tabParam === 'cctv' ? 'cctv' :
+    tabParam === 'emergency' ? 'emergency' :
+    tabParam === 'turnstile-sync' || tabParam === 'turnstile' ? 'turnstile-sync' : 'visitors'
+  );
 
   useEffect(() => {
     if (tabParam === 'gate-pass' || tabParam === 'early-departure') setActiveTab('gate-pass');
     else if (tabParam === 'cctv') setActiveTab('cctv');
     else if (tabParam === 'emergency') setActiveTab('emergency');
+    else if (tabParam === 'turnstile-sync' || tabParam === 'turnstile') setActiveTab('turnstile-sync');
     else if (tabParam === 'visitors') setActiveTab('visitors');
   }, [tabParam]);
 
@@ -196,6 +203,21 @@ function CampusSecurityHubContent() {
             NDMA Protocol
           </span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('turnstile-sync')}
+          className={`px-4 py-2.5 rounded-2xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'turnstile-sync'
+              ? 'bg-[#0B1B30] text-amber-300 font-extrabold shadow-xs'
+              : 'text-stone-600 hover:text-stone-950 hover:bg-white/80'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5 text-amber-400" />
+          5. Turnstile UHF-RFID Hardware
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+            Biometric Sync
+          </span>
+        </button>
       </div>
 
       {/* 🌟 TAB 1: VISITOR BADGES & GATE LOGS */}
@@ -348,6 +370,13 @@ function CampusSecurityHubContent() {
       {activeTab === 'emergency' && (
         <div className="space-y-6">
           <EmergencyBroadcastDesk />
+        </div>
+      )}
+
+      {/* 🌟 TAB 5: TURNSTILE UHF-RFID GATE HARDWARE & BIOMETRIC SYNC */}
+      {activeTab === 'turnstile-sync' && (
+        <div className="space-y-6">
+          <TurnstileHardwareSyncDesk />
         </div>
       )}
 

@@ -9,7 +9,7 @@ import {
   Printer, Star, Check, RefreshCw, X, Building2, UserCheck,
   TrendingUp, BarChart3, QrCode, Plus, Copy, Trash2, Edit3,
   ExternalLink, Layers, Eye, BookOpen, AlignJustify, Image as ImageIcon,
-  Palette, Grid, Hash, HelpCircle, Send, CheckSquare, Camera
+  Palette, Grid, Hash, HelpCircle, Send, CheckSquare, Camera, Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -31,15 +31,17 @@ import WritingGuideRenderer from '@/components/ui/WritingGuideRenderer';
 import { AIQuestionPaperGeneratorDesk } from '@/components/exams/AIQuestionPaperGeneratorDesk';
 import { CBSEHolisticReportCardsDesk } from '@/components/exams/CBSEHolisticReportCardsDesk';
 import { CameraOmrGraderDesk } from '@/components/exams/CameraOmrGraderDesk';
+import { PredictiveBoardAnalyticsDesk } from '@/components/exams/PredictiveBoardAnalyticsDesk';
+import { OnlineCbtTestingDesk } from '@/components/exams/OnlineCbtTestingDesk';
 
-type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori' | 'omr-grader';
+type ExamHubTab = 'gradebook' | 'question-papers' | 'report-cards' | 'montessori' | 'omr-grader' | 'predictive-analytics' | 'online-cbt';
 
 function ExamHubContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') as ExamHubTab | null;
 
-  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori', 'omr-grader'];
+  const validTabs: ExamHubTab[] = ['gradebook', 'question-papers', 'report-cards', 'montessori', 'omr-grader', 'predictive-analytics', 'online-cbt'];
   const [activeTab, setActiveTab] = useState<ExamHubTab>(
     rawTab && validTabs.includes(rawTab) ? rawTab : 'gradebook'
   );
@@ -358,6 +360,38 @@ function ExamHubContent() {
           <span>5. Camera OMR Bubble Sheet Grader</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold">
             Auto-Grade
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('predictive-analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'predictive-analytics'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 text-[#D97706]" />
+          <span>6. CBSE Board Predictive Analytics</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold">
+            AI Remedial
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('online-cbt')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition whitespace-nowrap ${
+            activeTab === 'online-cbt'
+              ? 'bg-[#FAF7F2] text-[#D97706] border-2 border-[#D97706] shadow-xs'
+              : 'bg-white text-stone-600 hover:text-stone-900 border border-[#E8DFC8]'
+          }`}
+        >
+          <Monitor className="w-4 h-4 text-[#D97706]" />
+          <span>7. Online CBT &amp; Browser Lockdown</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold">
+            Proctored
           </span>
         </button>
       </div>
@@ -855,6 +889,24 @@ function ExamHubContent() {
       {activeTab === 'omr-grader' && (
         <div className="space-y-6">
           <CameraOmrGraderDesk />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 6: LONGITUDINAL BOARD EXAM PREDICTIVE ANALYTICS */}
+      {/* ========================================================================= */}
+      {activeTab === 'predictive-analytics' && (
+        <div className="space-y-6">
+          <PredictiveBoardAnalyticsDesk />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 7: COMPUTER-BASED TESTING (CBT) & BROWSER LOCKDOWN */}
+      {/* ========================================================================= */}
+      {activeTab === 'online-cbt' && (
+        <div className="space-y-6">
+          <OnlineCbtTestingDesk />
         </div>
       )}
     </div>

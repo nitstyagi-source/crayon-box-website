@@ -32,6 +32,7 @@ import { ManagementInsightsCard } from '@/components/admissions/analytics/Manage
 import { Enquiry360DossierModal } from '@/components/enquiry/Enquiry360DossierModal';
 import { AdminNewEnquiryModal } from '@/components/enquiry/AdminNewEnquiryModal';
 import { AdminNewEnquiryForm } from '@/components/enquiry/AdminNewEnquiryForm';
+import { AiLeadScoringDesk } from '@/components/admissions/AiLeadScoringDesk';
 import { Button } from '@/components/ui/Button';
 import { VastuModuleBanner } from '@/components/common/VastuModuleBanner';
 
@@ -42,10 +43,11 @@ function AdmissionsCommandCenterContent() {
   const tabParam = (searchParams.get('tab') || 'pipeline').toUpperCase();
   const actionParam = searchParams.get('action');
 
-  const [activeTab, setActiveTab] = useState<'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT'>(
+  const [activeTab, setActiveTab] = useState<'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT' | 'LEAD_SCORING'>(
     tabParam === 'ANALYTICS' ? 'ANALYTICS' :
     tabParam === 'WALKIN' || tabParam === 'INTAKE' ? 'WALKIN' :
-    tabParam === 'AI_BOT' || tabParam === 'AI-BOT' ? 'AI_BOT' : 'PIPELINE'
+    tabParam === 'AI_BOT' || tabParam === 'AI-BOT' ? 'AI_BOT' :
+    tabParam === 'LEAD_SCORING' || tabParam === 'LEAD-SCORING' ? 'LEAD_SCORING' : 'PIPELINE'
   );
 
   const [isLoading, setIsLoading] = useState(true);
@@ -123,9 +125,9 @@ function AdmissionsCommandCenterContent() {
     loadAllData();
   }, []);
 
-  const handleTabChange = (tab: 'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT') => {
+  const handleTabChange = (tab: 'PIPELINE' | 'ANALYTICS' | 'WALKIN' | 'AI_BOT' | 'LEAD_SCORING') => {
     setActiveTab(tab);
-    const param = tab === 'AI_BOT' ? 'ai-bot' : tab.toLowerCase();
+    const param = tab === 'AI_BOT' ? 'ai-bot' : tab === 'LEAD_SCORING' ? 'lead-scoring' : tab.toLowerCase();
     router.replace(`/admin/admissions?tab=${param}`, { scroll: false });
   };
 
@@ -268,6 +270,7 @@ function AdmissionsCommandCenterContent() {
           { id: 'ANALYTICS', label: '2. Funnel & Intelligence Analytics', icon: <BarChart3 className="w-4 h-4 text-emerald-600" /> },
           { id: 'WALKIN', label: '3. Rapid Walk-ins & Intake', icon: <UserPlus className="w-4 h-4 text-blue-600" /> },
           { id: 'AI_BOT', label: '4. 24/7 AI Admissions Assistant', icon: <Bot className="w-4 h-4 text-purple-600" /> },
+          { id: 'LEAD_SCORING', label: '5. AI Predictive Lead Scoring', icon: <Flame className="w-4 h-4 text-rose-600" /> },
         ]}
         activeTab={activeTab}
         onTabChange={(id) => handleTabChange(id as any)}
@@ -786,6 +789,15 @@ function AdmissionsCommandCenterContent() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 5: AI PREDICTIVE ADMISSIONS LEAD SCORING */}
+      {/* ======================================================== */}
+      {activeTab === 'LEAD_SCORING' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <AiLeadScoringDesk />
         </div>
       )}
 
