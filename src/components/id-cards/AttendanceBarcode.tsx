@@ -88,75 +88,75 @@ export function AttendanceBarcode({
     return { bars, totalHeight: curY };
   }, [cleanCode, height]);
 
-  // Mode 2: Vertical Stacked Barcode (Matching Image 2 - Borderless)
+  // Mode 2: Vertical Stacked Barcode (Matching media_1788548141303.jpg - Bars on left, Code text on right)
   if (orientation === 'vertical-stacked') {
-    const boxHeight = height > 50 ? height : 140;
-    const barWidth = width > 40 ? width - 26 : 54;
+    const boxHeight = height > 50 ? height : 155;
+    const barWidth = width > 40 ? width - 26 : 48;
 
     return (
       <div 
-        className={`flex items-center gap-1.5 select-none ${className}`}
-        style={{ height: `${boxHeight}px` }}
+        className={`flex items-center justify-between w-full h-full select-none px-1 ${className}`}
       >
         {/* Horizontal bars stacked along vertical height */}
-        <svg
-          viewBox={`0 0 ${barWidth} ${boxHeight}`}
-          style={{ width: `${barWidth}px`, height: `${boxHeight}px` }}
-          className="overflow-hidden shrink-0"
-        >
-          {verticalBars.bars.map((bar, idx) => (
-            <rect
-              key={idx}
-              x={0}
-              y={bar.y}
-              width={barWidth}
-              height={bar.h}
-              fill="#000000"
-            />
-          ))}
-        </svg>
+        <div className="flex-1 h-full flex items-center justify-center">
+          <svg
+            viewBox={`0 0 ${barWidth} ${boxHeight}`}
+            style={{ width: `${barWidth}px`, height: `${boxHeight}px` }}
+            className="overflow-hidden shrink-0"
+          >
+            {verticalBars.bars.map((bar, idx) => (
+              <rect
+                key={idx}
+                x={0}
+                y={bar.y}
+                width={barWidth}
+                height={bar.h}
+                fill="#000000"
+              />
+            ))}
+          </svg>
+        </div>
 
-        {/* Side Text oriented vertically (reading bottom-to-top) */}
+        {/* Side Text oriented vertically (CBS20260412) reading vertically */}
         {showText && (
           <div
-            className="flex items-center justify-between text-[8px] font-condensed font-bold text-slate-900 tracking-wider select-none shrink-0"
+            className="flex items-center justify-center text-[10px] font-mono font-bold text-slate-900 tracking-widest select-none shrink-0"
             style={{
               writingMode: 'vertical-rl',
               transform: 'rotate(180deg)',
               height: `${boxHeight}px`,
             }}
           >
-            <span className="font-extrabold tracking-tight">*{cleanCode}*</span>
-            <span className="font-bold text-slate-900 tracking-wider">ATTENDANCE BARCODE</span>
+            <span className="font-extrabold uppercase">{cleanCode.replace(/[^A-Z0-9]/g, '')}</span>
           </div>
         )}
       </div>
     );
   }
 
-  // Mode 1: Standard horizontal linear barcode
+  // Mode 1: Standard horizontal linear barcode (Matching media_1788549831427.jpg)
   return (
-    <div className={`flex flex-col items-center select-none ${className}`}>
+    <div className={`flex flex-col items-center justify-center w-full select-none ${className}`}>
       <svg
         viewBox={`0 0 ${stripes.totalWidth} ${height}`}
         style={{ width: '100%', maxWidth: `${width}px`, height: `${height}px` }}
-        className="overflow-visible"
+        className="overflow-hidden shrink-0"
+        preserveAspectRatio="none"
       >
-        <rect width={stripes.totalWidth} height={height} fill="#ffffff" rx={2} />
         {stripes.bars.map((bar, idx) => (
           <rect
             key={idx}
             x={bar.x}
-            y={2}
+            y={0}
             width={bar.w}
-            height={height - 4}
-            fill="#0f172a"
+            height={height}
+            fill="#000000"
           />
         ))}
       </svg>
       {showText && (
-        <span className="text-[9px] font-mono font-black text-slate-800 tracking-[0.25em] mt-0.5 uppercase">
-          *{code}*
+        <span className="text-[10.5px] font-mono font-bold text-black tracking-[0.28em] mt-1 uppercase text-center pl-1">
+          {cleanCode.replace(/[^A-Z0-9]/g, '')}
         </span>
       )}
     </div>

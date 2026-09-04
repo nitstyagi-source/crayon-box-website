@@ -624,19 +624,19 @@ export default function IDCardAndEscortGeneratorHubPage() {
 
               <div id="bulk-print-container">
                 {activeTab === 'STUDENT' && selectedStudent && (
-                  <div className="card-print-item">
-                    <StudentIDCard student={selectedStudent} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
+                  <div className="card-print-item flex justify-center">
+                    <StudentIDCard student={selectedStudent} layoutMode="DUAL" schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                   </div>
                 )}
 
                 {activeTab === 'TEACHER' && selectedFaculty && (
-                  <div className="card-print-item">
-                    <TeacherIDCard faculty={selectedFaculty} schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
+                  <div className="card-print-item flex justify-center">
+                    <TeacherIDCard faculty={selectedFaculty} layoutMode="DUAL" schoolInfo={selectedInstitutionObj} themeId={selectedTheme} />
                   </div>
                 )}
 
                 {activeTab === 'ESCORT' && selectedEscort && (
-                  <div className="card-print-item">
+                  <div className="card-print-item flex justify-center">
                     <EscortPickupCard escort={selectedEscort} schoolInfo={selectedInstitutionObj} />
                   </div>
                 )}
