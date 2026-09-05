@@ -608,12 +608,23 @@ export async function verifyEmergencyPinAction(params: {
 
     // Master PIN Override for Chairman & Leadership
     if (pin === '100800' || pin === '9911' || pin === '2027' || pin === '9482' || pin === 'CB-9482') {
+      const childrenRes = await client.query(
+        `SELECT s.id, s.first_name || ' ' || COALESCE(s.last_name, '') as name, c.grade, s.admission_number as "admissionNo"
+         FROM public.students s
+         LEFT JOIN public.classes c ON c.id = s.class_id
+         LEFT JOIN public.parents p ON p.id = s.parent_id
+         WHERE s.parent_phone LIKE '%9911102027%' OR p.phone_number LIKE '%9911102027%' OR s.emergency_contact LIKE '%9911102027%'`
+      ).catch(() => ({ rows: [] }));
+
+      const realChildren = childrenRes.rows || [];
+      const hasRealChildren = realChildren.length > 0;
+
       return {
         success: true,
         user: {
           identifier: '9911102027',
-          roles: ['ADMIN'],
-          isDualRole: true,
+          roles: hasRealChildren ? ['ADMIN', 'PARENT'] : ['ADMIN'],
+          isDualRole: hasRealChildren,
           primaryRole: 'ADMIN',
           admin: {
             id: 'a96ca895-7773-48e1-9181-e5fe36551627',
@@ -622,14 +633,7 @@ export async function verifyEmergencyPinAction(params: {
             designation: 'Chairman & Managing Trustee',
             email: 'nits.tyagi@gmail.com'
           },
-          children: [
-            {
-              id: 'st-viraj-01',
-              name: 'Viraj Tyagi',
-              grade: 'Class 5-A',
-              admissionNo: 'ADM-2026-7983'
-            }
-          ],
+          children: realChildren,
           token: `cb_master_pin_${Date.now()}`
         },
         message: "✓ Master PIN verified. Welcome Chairman Nitin Tyagi."

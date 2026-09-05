@@ -629,7 +629,7 @@ export default function UniversalLoginPage() {
                       👨‍👩‍👧 Continue as Parent
                     </strong>
                     <span className="text-xs text-stone-500">
-                      Parent of {dualRoleUser.children?.map((c: any) => `${c.name} (${c.grade || 'Class 5'})`).join(", ") || "Viraj Tyagi"} • Fees, Bus GPS &amp; Report Card
+                      Parent of {dualRoleUser.children?.map((c: any) => `${c.name} (${c.grade || 'Class 5'})`).join(", ") || "Student"} • Fees, Bus GPS &amp; Report Card
                     </span>
                   </div>
                 </div>
