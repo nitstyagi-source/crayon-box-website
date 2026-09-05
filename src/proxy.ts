@@ -58,6 +58,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (url.pathname === '/login' && isAuthenticated) {
+    if (userRole === 'PARENT' || userRole === 'STUDENT' || userRole === 'PARENT_STUDENT') {
+      // Allow parent/student to see login without redirect loop into restricted admin
+      return supabaseResponse;
+    }
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
 
