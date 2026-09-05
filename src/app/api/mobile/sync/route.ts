@@ -134,14 +134,7 @@ export async function GET(request: Request) {
 
     // 6. Real Institutions and Trust Hierarchy
     let institutions: any[] = [];
-    let trustInfo = {
-      name: 'Vani Educational Trust',
-      registration_number: 'VET/REG/2012/DEL-8891',
-      headquarters: 'Sector 62, Institutional Area, Noida, UP',
-      contact_email: 'governance@vanitrust.edu.in',
-      contact_phone: '+91 120 4567890',
-      website: 'https://vanitrust.edu.in'
-    };
+    let trustInfo: any = null;
 
     try {
       const [instsRes, trustRes] = await Promise.all([
