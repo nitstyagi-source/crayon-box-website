@@ -2,9 +2,12 @@
 
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
+import { callGemini } from '@/lib/services/ai/gemini-client';
+import { fetchLiveSchoolGrounding } from '@/lib/services/ai/erp-grounding';
+import { generateQuestionPaperWithKey, generate5ELessonPlan } from '@/lib/services/ai/pedagogical-engine';
 
 const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let pool: pg.Pool | null = null;
 function getPool() {
@@ -41,12 +44,12 @@ export interface VaniActionProposal {
 }
 
 // -------------------------------------------------------------------
-// 1. CENTRAL VANI ORCHESTRATOR (ROLE-AWARE & PERSONA-ISOLATED)
+// CENTRAL VANI ORCHESTRATOR (GEMINI 3.8 FLASH & SUPABASE GROUNDED)
 // -------------------------------------------------------------------
 export async function askVaniOrchestratorAction(params: {
   sessionId: string;
   userQuery: string;
-  userRole: string; // 'Super Admin' | 'Admin' | 'Faculty' | 'Parent' | 'Driver'
+  userRole: string; // 'Super Admin' | 'Admin' | 'Faculty' | 'Teacher' | 'Parent' | 'Driver'
   userName: string;
   userId?: string;
   activeCampusId?: string;
@@ -69,185 +72,325 @@ export async function askVaniOrchestratorAction(params: {
     let toolUsed = 'general_response';
     let actionProposal: VaniActionProposal | null = null;
     let structuredData: any = null;
+    let modelUsed = 'gemini-3.8-flash';
+
+    // Fetch live system ground truth metrics from Supabase
+    const liveSchool = await fetchLiveSchoolGrounding();
 
     // =================================================================
-    // PERSONA 1: PARENT VANI (STRICT HARDWARE-ISOLATED SANDBOX)
+    // PERSONA 1: PARENT VANI (EMPATHETIC & STRICT PRIVACY SANDBOX)
     // =================================================================
     if (isParent) {
-      // Strict Security Guardrail: Explicitly block any queries targeting internal staff, HR, school finances,
-      // report cards, marks, assessments, exam question papers, or records of other students/families.
+      // 1. Strict Security Guardrail: Privacy filter
       const prohibitedKeywords = [
         'teacher salary', 'staff salary', 'payroll', 'staff attendance', 'faculty leave',
         'other student', 'other child', 'other parent', 'rank', 'topper', 'class rank',
         'total collection', 'school profit', 'financial statement', 'general ledger', 'revenue',
         'internal report', 'management note', 'board meeting', 'disciplinary record',
-        'report card', 'marksheet', 'exam marks', 'exam score', 'question paper', 'rubric',
-        'confidential', 'audit log', 'iam', 'rbac', 'security camera', 'cctv recording'
+        'report card', 'marksheet', 'exam marks', 'exam score', 'confidential', 'audit log',
+        'iam', 'rbac', 'security camera', 'cctv recording'
       ];
 
       const isBreachAttempt = prohibitedKeywords.some(kw => query.includes(kw));
 
       if (isBreachAttempt) {
-        responseMarkdown = `🔒 **Institutional Privacy & Data Governance Active**\n\nAs your family's AI Assistant, I operate within strict privacy boundaries mandated by school policy:\n\n• **Official Report Cards & Exam Marks** are issued exclusively through the secure, verified **Academics & Grades** portal, subject to institutional moderation and principal sign-off.\n• **Internal School Data, Staff Records & Financial Ledgers** are strictly confidential and inaccessible.\n\nI can assist you with your child's daily class homework, bus GPS radar, fee payment receipts, and school event circulars.`;
+        responseMarkdown = `🔒 **Institutional Privacy & Data Governance Active**\n\n` +
+          `As your family's AI Assistant, I operate within strict institutional boundaries mandated by school policy:\n\n` +
+          `• **Official Report Cards & Exam Marks** are issued exclusively through the verified **Academics & Grades** screen after principal sign-off and moderation.\n` +
+          `• **Internal School Operations, Staff Records & Financial Ledgers** are strictly confidential and inaccessible.\n\n` +
+          `I can gladly assist you with your child's daily class homework, live bus GPS radar, fee payment receipts, and school announcements.`;
         toolUsed = 'parent_security_guardrail';
-      }
-      // A. Query Live Bus GPS Telematics
-      else if (query.includes('bus') || query.includes('where is bus') || query.includes('transport') || query.includes('pickup') || query.includes('tracking')) {
-        toolUsed = 'get_bus_telematics';
-        const { rows: buses } = await client.query(`SELECT * FROM public.transport_buses LIMIT 1`);
-        const bus = buses[0] || { bus_number: 'BUS-01', route_name: 'Burari - Sector 62', driver_name: 'Ramesh Kumar' };
+      } else {
+        // Fetch Child specific records if childId provided
+        let childInfo: any = null;
+        let recentInvoices: any[] = [];
+        let recentDiary: any[] = [];
 
-        responseMarkdown = `🚌 **Live Bus Radar & Proximity Status**\n\n• **Assigned Bus**: ${bus.bus_number}\n• **Route**: ${bus.route_name}\n• **Driver**: ${bus.driver_name} (GPS Active)\n• **Current Proximity**: Approximately 450 meters from your stop\n• **Estimated Arrival Time**: ~6–8 minutes\n\nYour parent mobile app radar will beep automatically when the bus enters your 500m zone.`;
-        structuredData = { busNumber: bus.bus_number, route: bus.route_name, etaMinutes: 7 };
-      }
-      // B. Query Child Fee & Invoice Status
-      else if (query.includes('fee') || query.includes('fees') || query.includes('invoice') || query.includes('receipt') || query.includes('due') || query.includes('pay')) {
-        toolUsed = 'get_child_status';
-        let childName = 'your child';
         if (params.activeChildId) {
-          const { rows: ch } = await client.query(`SELECT first_name, last_name, admission_no FROM public.students WHERE id = $1`, [params.activeChildId]);
-          if (ch.length > 0) childName = `${ch[0].first_name} ${ch[0].last_name}`.trim();
+          try {
+            const { rows: stu } = await client.query(
+              `SELECT id, first_name, last_name, admission_no, class_name, section_name FROM public.students WHERE id = $1 LIMIT 1`,
+              [params.activeChildId]
+            );
+            if (stu.length > 0) childInfo = stu[0];
+
+            const { rows: inv } = await client.query(
+              `SELECT invoice_number, total_amount, balance_due, status, due_date FROM public.student_invoices WHERE student_id = $1 ORDER BY due_date DESC LIMIT 3`,
+              [params.activeChildId]
+            );
+            recentInvoices = inv;
+          } catch {}
         }
 
-        responseMarkdown = `💳 **Fee Statement for ${childName}**\n\n• **Academic Session**: 2026–2027\n• **Quarter 1 Tuition Fee**: Paid (Receipt #REC-2026-8819)\n• **Quarter 2 Tuition Fee**: ₹13,500 (Due Date: 10th October 2026)\n• **Annual Activity & Digital LMS**: Cleared\n\nWould you like to pay Quarter 2 fee online via 1-Click UPI or download your receipt?`;
-        structuredData = { dueAmount: 13500, status: 'DUE_NEXT_MONTH', receiptNo: 'REC-2026-8819' };
-      }
-      // C. Query Homework & Class Diary
-      else if (query.includes('homework') || query.includes('diary') || query.includes('task') || query.includes('assignment')) {
-        toolUsed = 'get_child_status';
-        responseMarkdown = `📚 **Today's Class Diary & Homework**\n\n• **Mathematics**: Complete Exercise 4.2 (Questions 1 to 8 on Fractions) in notebook.\n• **English**: Read Chapter 5 "The Brave Wanderer" and write 5 new vocabulary words.\n• **EVS / Science**: Collect 3 different leaf specimens for tomorrow's activity.\n\nAll homework has been assigned by the class teacher.`;
-      }
-      // D. Query Official School FAQs
-      else {
-        toolUsed = 'get_school_faqs';
-        const { rows: faqs } = await client.query(`SELECT * FROM public.ai_knowledge_faqs WHERE is_active = true`);
-        const matchedFaq = faqs.find((f: any) => {
-          const kws = Array.isArray(f.search_keywords) ? f.search_keywords : [];
-          return kws.some((k: string) => query.includes(k.toLowerCase())) ||
-            f.question_title.toLowerCase().split(' ').some((w: string) => w.length > 3 && query.includes(w));
+        // Fetch bus info
+        let busInfo: any = null;
+        try {
+          const { rows: buses } = await client.query(`SELECT bus_number, route_name, driver_name, status FROM public.transport_buses LIMIT 1`);
+          if (buses.length > 0) busInfo = buses[0];
+        } catch {}
+
+        // Fetch recent digital diary homework
+        try {
+          const { rows: diary } = await client.query(
+            `SELECT title, content, entry_type, created_at FROM public.digital_diary_entries ORDER BY created_at DESC LIMIT 3`
+          );
+          recentDiary = diary;
+        } catch {}
+
+        const childContext = childInfo
+          ? `Active Child: ${childInfo.first_name} ${childInfo.last_name} (${childInfo.class_name || 'Class 5'}-${childInfo.section_name || 'A'}, Adm: ${childInfo.admission_no || 'N/A'}). Invoices: ${JSON.stringify(recentInvoices)}.`
+          : `No specific child profile selected.`;
+
+        const busContext = busInfo
+          ? `Assigned Bus: ${busInfo.bus_number}, Route: ${busInfo.route_name}, Driver: ${busInfo.driver_name}, Status: ${busInfo.status}.`
+          : `School Bus Fleet: Currently on standby or standard schedule.`;
+
+        const diaryContext = recentDiary.length > 0
+          ? `Recent Diary / Homework Entries: ${JSON.stringify(recentDiary.map(d => ({ title: d.title, content: d.content })))}`
+          : `No homework entries logged today.`;
+
+        const systemInstruction = `You are VANI, the loving, professional, and reliable Family AI Copilot for Crayon Box School.
+You are interacting with parent "${params.userName}".
+RULES:
+1. Always be polite, warm, and clear.
+2. Ground all answers strictly in the provided live school data:
+   ${childContext}
+   ${busContext}
+   ${diaryContext}
+3. If asked about bus tracking, explain the status clearly and mention the live radar on mobile.
+4. If asked about fees, report exact invoice status. If balance is 0 or no invoices, confirm all fees are up to date.
+5. If asked about homework, summarize today's diary.
+6. Never make up facts. Never discuss staff salaries, other children's grades, or school internal profits.`;
+
+        const geminiRes = await callGemini({
+          prompt: rawQuery,
+          systemInstruction,
+          temperature: 0.3,
+          thinkingBudget: 0,
+          timeoutMs: 30000
         });
 
-        if (matchedFaq) {
-          responseMarkdown = matchedFaq.answer_markdown;
-        } else {
-          responseMarkdown = `Namaste! I am VANI, your family's school assistant. I can help you check **today's homework, fee receipts, bus GPS tracking**, and official school timings. What would you like to know?`;
+        responseMarkdown = geminiRes.text;
+        modelUsed = geminiRes.modelUsed;
+        toolUsed = 'parent_grounded_copilot';
+
+        // Attach action buttons for mobile & web
+        if (query.includes('bus') || query.includes('track') || query.includes('transport')) {
+          structuredData = { action: { title: "Open Live Bus Radar", route: "BusTracker" } };
+        } else if (query.includes('fee') || query.includes('pay') || query.includes('receipt')) {
+          structuredData = { action: { title: "View Fee Receipts", route: "Fees" } };
+        } else if (query.includes('homework') || query.includes('diary')) {
+          structuredData = { action: { title: "Open Class Diary", route: "DigitalDiary" } };
         }
       }
     }
 
     // =================================================================
-    // PERSONA 2: TEACHER VANI (CLASSROOM COPILOT)
+    // PERSONA 2: TEACHER VANI (PEDAGOGICAL COPILOT & EXAM CREATOR)
     // =================================================================
     else if (isTeacher) {
-      // A. Generate Lesson Plan
-      if (query.includes('lesson plan') || query.includes('plan lesson') || query.includes('teach today') || query.includes('prepare lesson')) {
-        toolUsed = 'generate_lesson_plan';
-        const topicMatch = query.match(/(?:for|on|about)\s+([a-zA-Z0-9\s]+)/i);
-        const topic = topicMatch ? topicMatch[1].trim() : 'Fractions & Decimals';
-        const targetClass = params.activeClass || 'Class 5A';
+      const isQuestionPaperQuery = query.includes('question paper') ||
+        query.includes('exam paper') ||
+        query.includes('test paper') ||
+        query.includes('create test') ||
+        query.includes('exam questions') ||
+        query.includes('prepare questions') ||
+        query.includes('sample paper');
 
-        responseMarkdown = `📝 **NEP 2020 Lesson Plan: ${topic} (${targetClass})**\n\n• **Subject**: Mathematics | **Duration**: 40 Mins\n• **Learning Objectives**: Students will visualize equivalent fractions and solve real-world word problems.\n• **Starter Activity (7 mins)**: Paper folding pizza circle demonstration.\n• **Core Instruction (20 mins)**: Step-by-step numerator & denominator comparison on smart panel.\n• **Guided Practice (10 mins)**: Group worksheet with 5 practice problems.\n• **Plenary (3 mins)**: Quick exit ticket on key concept.\n\nWould you like me to prepare differentiated homework questions based on this plan?`;
+      const isLessonPlanQuery = query.includes('lesson plan') ||
+        query.includes('teach today') ||
+        query.includes('prepare lesson') ||
+        query.includes('5e plan') ||
+        query.includes('teaching plan');
+
+      // A. Create Authentic CBSE / NEP 2020 Question Paper
+      if (isQuestionPaperQuery) {
+        toolUsed = 'generate_cbse_question_paper';
+
+        // Extract class, subject, chapters from query
+        const classMatch = query.match(/(?:class|grade)\s*(\d+|[a-zA-Z]+)/i);
+        const className = classMatch ? `Class ${classMatch[1]}` : (params.activeClass || 'Class 10');
+
+        let subjectName = 'Mathematics';
+        if (query.includes('sci')) subjectName = 'Science';
+        else if (query.includes('eng')) subjectName = 'English';
+        else if (query.includes('soc') || query.includes('hist') || query.includes('geo')) subjectName = 'Social Science';
+        else if (query.includes('hin')) subjectName = 'Hindi';
+
+        const marksMatch = query.match(/(\d+)\s*(?:marks|m)\b/i);
+        const totalMarks = marksMatch ? parseInt(marksMatch[1], 10) : 40;
+
+        const topicMatch = rawQuery.match(/(?:on|for|about|chapter[s]?)\s+([^,.]+)/i);
+        const chapters = topicMatch ? topicMatch[1].trim() : `${subjectName} Core Syllabus`;
+
+        const qpResult = await generateQuestionPaperWithKey({
+          className,
+          subject: subjectName,
+          chapters,
+          totalMarks,
+          examTerm: 'Periodic Assessment 2026-2027',
+          difficulty: 'BALANCED',
+          createdByTeacher: params.userName || 'Faculty'
+        });
+
+        modelUsed = qpResult.modelUsed;
+        const qp = qpResult.questionPaper;
+
+        responseMarkdown = `📋 **CBSE Question Paper Generated: ${qp.title}**\n\n` +
+          `• **Class**: ${qp.className} | **Subject**: ${qp.subjectName} | **Total Marks**: ${qp.totalMarks} M (${qp.durationMinutes} mins)\n` +
+          `• **Syllabus / Chapters**: ${qp.chapters}\n` +
+          `• **Sections Created**: ${qp.sections?.length || 4} Sections (Section A: Objective/MCQ, Section B: Short Answer, Section C: Analytical, Section D: Long/HOTS)\n` +
+          `• **Complete Solution Key**: Step-by-step marking scheme generated and verified against CBSE Blueprint.\n` +
+          `• **Saved to Question Bank**: Record ID \`${qpResult.paperId}\` is now live in your school central repository.\n\n` +
+          `You can view, print, or export this exam paper using the action below.`;
 
         actionProposal = {
-          actionId: `LP-${Date.now()}`,
+          actionId: `QP-${qpResult.paperId}`,
+          actionType: 'VIEW_QUESTION_PAPER',
+          title: `Inspect ${qp.title}`,
+          description: `Open complete question paper and solution key`,
+          payload: { paperId: qpResult.paperId },
+          requiresConfirmation: false
+        };
+        structuredData = { paperId: qpResult.paperId, title: qp.title };
+      }
+      // B. Create Authentic NEP 2020 5E Experiential Lesson Plan
+      else if (isLessonPlanQuery) {
+        toolUsed = 'generate_5e_lesson_plan';
+
+        const classMatch = query.match(/(?:class|grade)\s*(\d+|[a-zA-Z]+)/i);
+        const className = classMatch ? `Class ${classMatch[1]}` : (params.activeClass || 'Class 8');
+
+        let subjectName = 'Science';
+        if (query.includes('math')) subjectName = 'Mathematics';
+        else if (query.includes('eng')) subjectName = 'English';
+        else if (query.includes('soc')) subjectName = 'Social Science';
+
+        const topicMatch = rawQuery.match(/(?:on|for|about)\s+([^,.]+)/i);
+        const topic = topicMatch ? topicMatch[1].trim() : 'Force, Pressure & Friction';
+
+        const lpResult = await generate5ELessonPlan({
+          className,
+          subject: subjectName,
+          topic,
+          durationMinutes: 45,
+          staffId: params.userId
+        });
+
+        modelUsed = lpResult.modelUsed;
+        const lp = lpResult.lessonPlan;
+
+        responseMarkdown = `📝 **NEP 2020 5E Lesson Plan: ${lp.topicName} (${lp.className})**\n\n` +
+          `• **Subject**: ${lp.subjectName} | **Duration**: ${lp.durationMinutes} Mins\n` +
+          `• **Pedagogy**: Experiential Inquiry (5E Instructional Model)\n` +
+          `• **1. Engage**: ${lp.fiveEModel?.engage?.substring(0, 140)}...\n` +
+          `• **2. Explore**: ${lp.fiveEModel?.explore?.substring(0, 140)}...\n` +
+          `• **3. Explain**: ${lp.fiveEModel?.explain?.substring(0, 140)}...\n` +
+          `• **4. Elaborate (HOTS)**: ${lp.fiveEModel?.elaborate?.substring(0, 140)}...\n` +
+          `• **5. Evaluate**: ${lp.fiveEModel?.evaluate?.substring(0, 140)}...\n\n` +
+          `• **Saved to Faculty Diary**: Plan ID \`${lpResult.planId || 'Recorded'}\` has been committed to your academic roster.`;
+
+        actionProposal = {
+          actionId: `LP-${lpResult.planId || Date.now()}`,
           actionType: 'PUBLISH_LESSON_PLAN',
-          title: `Publish ${topic} Lesson Plan to Diary`,
-          description: `Save this lesson plan to ${targetClass} academic record`,
-          payload: { topic, grade: targetClass },
-          requiresConfirmation: true
+          title: `Open Lesson Plan in Academic Diary`,
+          description: `View full 5E lesson details and rubrics`,
+          payload: { planId: lpResult.planId },
+          requiresConfirmation: false
         };
+        structuredData = { planId: lpResult.planId };
       }
-      // B. Create Homework Draft & Differentiated Tasks
-      else if (query.includes('homework') || query.includes('create homework') || query.includes('questions') || query.includes('assignment')) {
-        toolUsed = 'create_homework_draft';
-        const targetClass = params.activeClass || 'Class 5A';
+      // C. General Teacher Pedagogical Advice & Classroom Management
+      else {
+        toolUsed = 'teacher_pedagogical_copilot';
+        const systemInstruction = `You are VANI, the Senior CBSE & NEP 2020 Pedagogical Classroom Copilot for teachers at Crayon Box School.
+You are advising teacher "${params.userName}".
+RULES:
+1. Provide practical, high-impact instructional advice, classroom engagement strategies, rubrics, and activity ideas.
+2. Support differentiated learning for diverse classrooms.
+3. Be encouraging, concise, and structured with clear bullet points.`;
 
-        responseMarkdown = `📋 **Differentiated Homework Assignment (${targetClass})**\n\n**Core Assignment (All Students):**\n1. Convert 3/4 and 2/5 into equivalent fractions with denominator 20.\n2. Aarav ate 2/6 of a cake and Priya ate 3/6. How much is left?\n3. Solve textbook Exercise 4.2 Questions 1 to 5.\n\n**⭐ Support Tier (Guided):**\n• Draw visual fraction bars for 1/2, 2/4, and 4/8.\n\n**🚀 Challenge Tier (Advanced):**\n• If 3/x = 12/20, find the value of x with reasoning.\n\nWould you like me to publish this to the Parent Class Diary?`;
+        const geminiRes = await callGemini({
+          prompt: rawQuery,
+          systemInstruction,
+          temperature: 0.3,
+          thinkingBudget: 0,
+          timeoutMs: 30000
+        });
 
-        actionProposal = {
-          actionId: `HW-${Date.now()}`,
-          actionType: 'PUBLISH_HOMEWORK_TO_DIARY',
-          title: `Publish Homework to ${targetClass} Diary`,
-          description: `Post homework assignment to all parents of ${targetClass}`,
-          payload: { grade: targetClass, date: new Date().toISOString().split('T')[0] },
-          requiresConfirmation: true
-        };
-      }
-      // C. Submit Roll Call & Class Attendance
-      else if (query.includes('attendance') || query.includes('roll call') || query.includes('mark present') || query.includes('submit attendance')) {
-        toolUsed = 'submit_class_roll_call';
-        const targetClass = params.activeClass || 'Class 5A';
-
-        responseMarkdown = `✅ **Attendance Register Prepared for ${targetClass}**\n\n• **Date**: Today (${new Date().toLocaleDateString('en-GB')})\n• **Total Students**: 35\n• **Present**: 33 students\n• **Absent**: 2 students (Aarav Sharma, Vihaan Gupta)\n• **Pending Leave Requests**: 0\n\nAttendance is ready. Please click below to confirm and submit to ERP.`;
-
-        actionProposal = {
-          actionId: `ATT-${Date.now()}`,
-          actionType: 'SUBMIT_CLASS_ATTENDANCE',
-          title: `Submit ${targetClass} Attendance`,
-          description: `Commit 33 Present, 2 Absent to school attendance ledger`,
-          payload: { grade: targetClass, presentCount: 33, absentCount: 2 },
-          requiresConfirmation: true
-        };
-      }
-      // D. Teacher Schedule & Timetable
-      else if (query.includes('period') || query.includes('timetable') || query.includes('schedule') || query.includes('next class')) {
-        toolUsed = 'get_my_schedule';
-        responseMarkdown = `📅 **Your Teaching Schedule Today**\n\n• **Period 1 (08:30 – 09:15 AM)**: Class 5A Mathematics (Room 204) — *Completed*\n• **Period 2 (09:20 – 10:05 AM)**: Class 6B Mathematics (Room 302) — *Upcoming*\n• **Period 3 (10:10 – 10:55 AM)**: Class 4A Experiential Science (Lab 1)\n• **Period 4 (11:15 – 12:00 PM)**: Academic Lesson Planning\n• **Period 5 (12:05 – 12:50 PM)**: Class 5B Mathematics (Room 205)\n\nYour next class is in **15 minutes** in Room 302.`;
-      } else {
-        responseMarkdown = `Good day, Teacher! I am VANI, your Classroom Copilot. I can **generate NEP 2020 lesson plans, draft differentiated homework, prepare your class roll call**, or check your teaching timetable. How can I assist you right now?`;
+        responseMarkdown = geminiRes.text;
+        modelUsed = geminiRes.modelUsed;
       }
     }
 
     // =================================================================
-    // PERSONA 3: SUPER ADMIN & PRINCIPAL VANI (LEADERSHIP COCKPIT)
+    // PERSONA 3: SUPER ADMIN & PRINCIPAL (EXECUTIVE LEADERSHIP COCKPIT)
     // =================================================================
     else {
-      // A. Morning School Pulse
-      if (query.includes('pulse') || query.includes('what happened') || query.includes('briefing') || query.includes('today summary') || query.includes('morning')) {
-        toolUsed = 'get_school_pulse';
-        const { rows: studentCount } = await client.query(`SELECT COUNT(*) FROM public.students`);
-        const totalStudents = Number(studentCount[0]?.count || 1240);
+      toolUsed = 'executive_leadership_cockpit';
 
-        responseMarkdown = `🏫 **Vaani Trust Morning School Pulse — ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}**\n\n**Key Operational Indicators:**\n• **Student Attendance**: 94.6% (${totalStudents - 67} Present, 67 Absent across all campuses)\n• **Staff Attendance Exceptions**: 4 teachers on approved casual leave (substitute allocation active)\n• **Daily Fee Collections**: ₹4,82,650 collected today across UPI, Net Banking & Counters\n• **Admissions Velocity**: 12 new parent enquiries captured by VANI; 3 campus tours scheduled\n• **Transport Telematics**: 1 bus route delayed by 12 mins (BUS-02 Sant Nagar traffic)\n\n**⚠️ Items Requiring Attention:**\n1. Class 7B attendance has not been submitted by teacher.\n2. 2 high-intent Class 1 admissions enquiries have not received counsellor follow-up for >24 hrs.`;
+      const groundTruthSummary = `
+LIVE SCHOOL ERP DATABASE METRICS (TRUTH FROM SUPABASE):
+- Institutions Count: ${liveSchool.institutionsCount}
+- Active Enrolled Students: ${liveSchool.totalStudents}
+- Active Faculty / Staff: ${liveSchool.totalFaculty}
+- Today's Student Attendance: ${liveSchool.todayAttendance.presentCount}/${liveSchool.todayAttendance.totalLogs} (${liveSchool.todayAttendance.attendanceRate})
+- Fiscal Snapshot: ₹${liveSchool.finances.totalCollected.toLocaleString('en-IN')} collected of ₹${liveSchool.finances.totalBilled.toLocaleString('en-IN')} invoiced (₹${liveSchool.finances.totalPending.toLocaleString('en-IN')} pending)
+- Active Transport Fleet: ${liveSchool.transport.activeRoutes}/${liveSchool.transport.totalBuses} buses active
+- Admissions Pipeline: ${liveSchool.admissions.pendingEnquiries} pending inquiries
+${liveSchool.summaryText}
+`;
 
-        structuredData = { attendanceRate: 94.6, feeCollection: 482650, newEnquiries: 12 };
-      }
-      // B. Fee Collection & Defaulters Analysis
-      else if (query.includes('fee') || query.includes('defaulter') || query.includes('outstanding') || query.includes('collection')) {
-        toolUsed = 'get_fee_analysis';
-        const { rows: fees } = await client.query(`SELECT COUNT(*) as active_count FROM public.fee_structures WHERE is_active = true`);
+      const systemInstruction = `You are VANI, the Strategic AI Operating System and Executive Intelligence Layer for the Super Admin and Trust Leadership of Crayon Box School.
+You are addressing "${params.userName}".
 
-        responseMarkdown = `💰 **Comprehensive Fee Collection & Arrears Analysis**\n\n• **Quarter 2 Overall Realization**: 88.4% (₹48.2 Lakhs collected of ₹54.5 Lakhs target)\n• **Top Performing Grades**: Class 1 (96%), Class 5 (94%), Nursery (92%)\n• **Classes with Arrears**: Class 8 (12 students, ₹1.82L pending), Class 6 (8 students, ₹1.10L pending)\n• **Online UPI / Gateway Share**: 74% of all payments processed digitally\n\nWould you like me to prepare approved WhatsApp fee reminders for the Class 8 defaulter list?`;
+STRICT GROUND TRUTH RULES:
+1. You have DIRECT access to live Supabase PostgreSQL tables. The metrics above represent 100% empirical truth.
+2. NEVER hallucinate numbers (e.g. do NOT invent 1,240 students or fake ₹4.8 Lakhs if the database shows 0 students or 0 collection).
+3. If the database shows 0 institutions or 0 students, explain clearly that the system is currently in a clean reset / onboarding state, ready for institution registration and user trial.
+4. When reporting School Pulse or operational briefings, quote the exact live numbers above.
+5. Provide sharp, executive-level insights, identifying bottlenecks, statutory compliance alerts, and proactive recommendations.
 
+${groundTruthSummary}`;
+
+      const geminiRes = await callGemini({
+        prompt: rawQuery,
+        systemInstruction,
+        temperature: 0.2,
+        thinkingBudget: 0,
+        timeoutMs: 30000
+      });
+
+      responseMarkdown = geminiRes.text;
+      modelUsed = geminiRes.modelUsed;
+      structuredData = liveSchool;
+
+      if (query.includes('pulse') || query.includes('summary')) {
         actionProposal = {
-          actionId: `REM-${Date.now()}`,
-          actionType: 'PREPARE_FEE_REMINDERS',
-          title: 'Dispatch Class 8 Fee Reminders',
-          description: 'Send approved WhatsApp reminder notifications to 12 parents',
-          payload: { grade: 'Class 8', count: 12 },
-          requiresConfirmation: true
+          actionId: `PULSE-${Date.now()}`,
+          actionType: 'NAVIGATE_DASHBOARD',
+          title: 'Open Live Executive Dashboard',
+          description: 'View full visual real-time analytics',
+          payload: { route: '/admin/dashboard' },
+          requiresConfirmation: false
         };
-      }
-      // C. Attendance Anomalies & Threshold Alerts
-      else if (query.includes('attendance anomaly') || query.includes('below 75') || query.includes('absenteeism')) {
-        toolUsed = 'get_attendance_anomalies';
-        responseMarkdown = `⚠️ **Attendance Anomaly & Deficit Intelligence**\n\n• **Statutory Threshold Alert**: 14 students have fallen below the 75% statutory attendance requirement.\n• **Concentration**: 9 students are in Classes 5–7.\n• **Continuous Decline Detected**: 4 students have shown attendance dips for 3 consecutive weeks.\n\n**Recommended Action**: Issue Parent Attendance Advisory letters and schedule meetings with academic coordinators.`;
-      }
-      // D. Natural Language Report Builder
-      else if (query.includes('report') || query.includes('export') || query.includes('analysis') || query.includes('compare')) {
-        toolUsed = 'build_natural_report';
-        responseMarkdown = `📊 **Custom Dynamic Report Generated from Criteria**\n\n| Campus / Grade | Approved Capacity | Current Enrolled | Attendance % | Q2 Fee Realization |\n| :--- | :--- | :--- | :--- | :--- |\n| **Burari (Class 1–5)** | 350 | 338 | 95.2% | 94.8% |\n| **Sector 62 (Class 6–10)** | 400 | 382 | 93.8% | 89.2% |\n| **Pre-School (Nur–UKG)** | 250 | 244 | 96.1% | 97.4% |\n\nReport generated across live Supabase tables. Would you like to export this data to Excel or save this view?`;
-      } else {
-        responseMarkdown = `Good day, Principal! I am VANI, your School Operating Intelligence Layer. You can ask for **today's School Pulse, fee collection summaries, attendance anomaly alerts, staff exception rosters**, or natural language reports. What would you like to inspect?`;
       }
     }
 
-    // Record Action in Audit Log
-    await client.query(`
-      INSERT INTO public.vani_audit_logs (
-        user_name, user_role, tool_name, input_params, execution_result, status
-      ) VALUES ($1, $2, $3, $4, $5, 'SUCCESS')
-    `, [params.userName, role, toolUsed, JSON.stringify({ query: rawQuery }), JSON.stringify({ summary: responseMarkdown.substring(0, 100) })]);
+    // Record interaction in public.vani_audit_logs
+    try {
+      await client.query(`
+        INSERT INTO public.vani_audit_logs (
+          user_name, user_role, tool_name, input_params, execution_result, status
+        ) VALUES ($1, $2, $3, $4, $5, 'SUCCESS')
+      `, [
+        params.userName,
+        role,
+        toolUsed,
+        JSON.stringify({ query: rawQuery, modelUsed }),
+        JSON.stringify({ summary: responseMarkdown.substring(0, 150) })
+      ]);
+    } catch {}
 
     safeRevalidate('/admin/admissions/ai-bot');
 
@@ -257,12 +400,17 @@ export async function askVaniOrchestratorAction(params: {
       toolUsed,
       actionProposal,
       structuredData,
+      modelUsed,
       role
     };
 
   } catch (err: any) {
     console.error('VANI Orchestrator error:', err);
-    return { success: false, error: err.message, responseMarkdown: `⚠️ VANI Error: ${err.message}` };
+    return {
+      success: false,
+      error: err.message,
+      responseMarkdown: `⚠️ VANI Error: ${err.message}`
+    };
   } finally {
     client.release();
   }
@@ -312,7 +460,6 @@ export async function executeVaniConfirmedAction(actionPayload: {
   try {
     console.log(`Executing confirmed VANI action: ${actionPayload.actionType}`, actionPayload.payload);
 
-    // Record verified audit log
     await client.query(`
       INSERT INTO public.vani_audit_logs (
         user_name, user_role, tool_name, input_params, execution_result, confirmed_by_user, status
