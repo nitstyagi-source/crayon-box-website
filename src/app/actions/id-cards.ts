@@ -95,9 +95,18 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
       .select('student_id, name, mobile, parent_type, is_primary_contact');
 
     const parentMap: Record<string, any> = {};
+    const fatherMap: Record<string, any> = {};
+    const motherMap: Record<string, any> = {};
     (parents || []).forEach((p: any) => {
       if (p.is_primary_contact || !parentMap[p.student_id]) {
         parentMap[p.student_id] = p.mobile;
+      }
+      const type = (p.parent_type || '').toUpperCase();
+      if (type.includes('FATHER') || !fatherMap[p.student_id]) {
+        fatherMap[p.student_id] = p.name;
+      }
+      if (type.includes('MOTHER')) {
+        motherMap[p.student_id] = p.name;
       }
     });
 
@@ -128,6 +137,8 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
         card_status: card?.status || 'Active',
         expiry_date: card?.expiry_date || '2027-03-31',
         parent_phone: parentMap[s.id] || '+91 9811102008',
+        father_name: fatherMap[s.id] || 'Mr. Rajesh Sharma',
+        mother_name: motherMap[s.id] || 'Mrs. Sunita Sharma',
         transport_route: s.transport_route || 'Route #04 (Burari Main)',
         has_generated_card: !!card
       };

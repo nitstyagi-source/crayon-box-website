@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 
 import { useInstitution } from '@/components/providers/InstitutionContext';
+import { StudentIDCard } from '@/components/id-cards/StudentIDCard';
 
 export interface Student360ProfileModalProps {
   isOpen: boolean;
@@ -819,138 +820,27 @@ export function Student360ProfileModal({
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto flex-1 bg-slate-100 flex flex-wrap items-center justify-center gap-8">
-              {/* 1. FRONT SIDE */}
-              <div className="w-72 bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col relative text-center">
-                {/* Lanyard Slot */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-12 h-2.5 bg-white border border-slate-300 rounded-full" />
-
-                {/* Top Navy Arc */}
-                <div className="bg-[#0A2558] h-24 flex items-end justify-center pb-2 relative">
-                  <div className="w-16 h-16 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center absolute -bottom-6 shadow-md z-10">
-                    <img src={selectedInstitutionObj?.logoUrl || "/trust-logo.png"} alt={selectedInstitutionObj?.name || "Institution Logo"} className="w-12 h-12 object-contain" />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
-                </div>
-
-                {/* School Typography */}
-                <div className="mt-8 px-2">
-                  <div className="text-base font-black tracking-wider text-[#0A2558] truncate">
-                    {selectedInstitutionObj?.shortName || selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
-                  </div>
-                  <div className="text-[10px] font-bold text-red-600 tracking-widest uppercase">— {selectedInstitutionObj?.code || "CAMPUS"} —</div>
-                  <div className="text-[8px] font-bold text-slate-500 tracking-wider">LEARN • GROW • SHINE</div>
-                </div>
-
-                {/* Portrait */}
-                <div className="mt-2.5 flex justify-center">
-                  <div className="w-20 h-20 rounded-full bg-slate-900 border-2 border-[#0A2558] overflow-hidden shadow-sm flex items-center justify-center">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-amber-300 font-black text-xl">{fullName.slice(0, 2).toUpperCase()}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Name Banner */}
-                <div className="mt-2.5 mx-auto bg-[#0A2558] text-white px-5 py-1 rounded-xl text-xs font-black tracking-wide">
-                  {fullName.toUpperCase()}
-                </div>
-
-                {/* Class & Roll */}
-                <div className="mt-1.5">
-                  <span className="inline-block bg-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-md">
-                    {formData.className}
-                  </span>
-                  <div className="text-[10px] font-bold text-[#0A2558] mt-0.5">Roll No. : {formData.rollNo}</div>
-                </div>
-
-                {/* QR Box */}
-                <div className="my-2.5 mx-auto w-32 h-32 border-1.5 border-rose-500 rounded-xl flex flex-col items-center justify-center relative pt-1 bg-white">
-                  <div className="absolute -top-2 bg-rose-600 text-white text-[7px] font-black px-2 py-0.5 rounded-sm">
-                    ATTENDANCE QR
-                  </div>
-                  <QrCode className="w-24 h-24 text-[#0A2558]" />
-                </div>
-
-                {/* Bottom Navy Bar */}
-                <div className="bg-[#0A2558] text-white py-2 text-[9px] font-bold tracking-wide border-t-2 border-amber-500 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-amber-400" />
-                  <span>ID No. : {admissionNo || 'CBS/24-25/0412'}</span>
-                </div>
-              </div>
-
-              {/* 2. BACK SIDE */}
-              <div className="w-72 bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col relative text-left">
-                {/* Lanyard Slot */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-12 h-2.5 bg-white border border-slate-300 rounded-full" />
-
-                {/* Top Navy Arc with Large Crest */}
-                <div className="bg-[#0A2558] h-28 flex items-center justify-center relative">
-                  <div className="w-18 h-18 rounded-full bg-white border-2 border-amber-500 p-1 flex items-center justify-center shadow-md">
-                    <img src={selectedInstitutionObj?.logoUrl || "/trust-logo.png"} alt={selectedInstitutionObj?.name || "School Crest"} className="w-14 h-14 object-contain" />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
-                </div>
-
-                {/* Details List */}
-                <div className="p-4 space-y-1.5 text-[10px]">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1">
-                    <User className="w-3 h-3 text-rose-600 shrink-0" />
-                    <span className="w-20 text-slate-500 font-medium">Name</span>
-                    <span className="text-slate-400">:</span>
-                    <span className="font-bold text-slate-900 truncate">{fullName}</span>
-                  </div>
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1">
-                    <Calendar className="w-3 h-3 text-rose-600 shrink-0" />
-                    <span className="w-20 text-slate-500 font-medium">DOB</span>
-                    <span className="text-slate-400">:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formData.dob}</span>
-                  </div>
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1">
-                    <span className="w-3 h-3 text-rose-600 font-bold shrink-0">🩸</span>
-                    <span className="w-20 text-slate-500 font-medium">Blood Group</span>
-                    <span className="text-slate-400">:</span>
-                    <span className="font-black text-rose-600">{formData.bloodGroup}</span>
-                  </div>
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1">
-                    <Phone className="w-3 h-3 text-rose-600 shrink-0" />
-                    <span className="w-20 text-slate-500 font-medium">Parent Contact</span>
-                    <span className="text-slate-400">:</span>
-                    <span className="font-bold text-slate-900 font-mono">{formData.phone}</span>
-                  </div>
-                  <div className="flex items-start gap-2 border-b border-slate-100 pb-1">
-                    <MapPin className="w-3 h-3 text-rose-600 shrink-0 mt-0.5" />
-                    <span className="w-20 text-slate-500 font-medium">Address</span>
-                    <span className="text-slate-400">:</span>
-                    <span className="font-medium text-slate-700 text-[9px] leading-tight flex-1">{formData.address}</span>
-                  </div>
-                </div>
-
-                {/* Instructions */}
-                <div className="mx-4 bg-slate-100 p-2.5 rounded-xl text-[8px] text-slate-700 space-y-0.5">
-                  <div className="font-black text-red-600 uppercase tracking-wider text-[9px]">INSTRUCTIONS</div>
-                  <div>• This card is the property of {selectedInstitutionObj?.name || "the School"}.</div>
-                  <div>• This card must be worn every day.</div>
-                  <div>• In case of loss, inform the school immediately.</div>
-                </div>
-
-                {/* Principal Signature */}
-                <div className="my-2 text-center">
-                  <div className="font-serif italic text-xs text-[#0A2558] font-bold">{selectedInstitutionObj?.principalName || "Principal"}</div>
-                  <div className="w-16 h-px bg-slate-400 mx-auto my-0.5" />
-                  <div className="text-[8px] font-black text-[#0A2558] uppercase">Principal</div>
-                </div>
-
-                {/* Back Footer */}
-                <div className="bg-[#0A2558] text-white p-2 text-[8px] text-center space-y-0.5">
-                  <div className="flex items-center justify-center gap-1 font-semibold text-amber-300">
-                    <MapPin className="w-2.5 h-2.5" /> Excellence in Education. Values for Life.
-                  </div>
-                  <div className="text-slate-300 font-mono">{selectedInstitutionObj?.website || "www.school.edu.in"}</div>
-                  <div className="text-slate-300 font-mono">{selectedInstitutionObj?.phone || "011-45678901"}</div>
-                </div>
-              </div>
+              <StudentIDCard
+                student={{
+                  ...student,
+                  first_name: formData.firstName,
+                  last_name: formData.lastName,
+                  admission_number: admissionNo,
+                  class_name: formData.className,
+                  roll_no: formData.rollNo,
+                  dob: formData.dob,
+                  blood_group: formData.bloodGroup,
+                  guardian_phone: formData.phone,
+                  photo_url: avatarUrl,
+                  address: formData.address,
+                  father_name: student?.father_name || (formData as any).fatherName,
+                  mother_name: student?.mother_name || (formData as any).motherName,
+                  bus_route_no: student?.bus_route_no || 'Route 04 (Burari)',
+                  valid_upto: '31 Mar 2027',
+                }}
+                schoolInfo={selectedInstitutionObj}
+                layoutMode="DUAL"
+              />
             </div>
 
             <div className="bg-white px-6 py-3.5 border-t border-slate-200 flex items-center justify-between text-xs">

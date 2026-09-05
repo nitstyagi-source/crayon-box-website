@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/Card";
 import { useInstitution } from "@/components/providers/InstitutionContext";
 import { Student360ProfileModal } from "@/components/students/Student360ProfileModal";
 import { StudentSuiteTabs, StudentSuiteTabType } from "@/components/students/StudentSuiteTabs";
+import { StudentIDCard } from "@/components/id-cards/StudentIDCard";
 import {
   getFilteredUniversalStudentsAction,
   enrollUniversalStudentTransactionalAction,
@@ -1184,94 +1185,12 @@ function UniversalStudentsDirectoryContent() {
               </div>
 
               {selectedStudentForIdCard ? (
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-4">
-                  {/* Front of Card */}
-                  <div className="w-[270px] h-[420px] bg-white rounded-3xl border-2 border-slate-800 shadow-xl overflow-hidden flex flex-col justify-between text-slate-900">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 text-white p-3 text-center space-y-0.5">
-                      <div className="text-[8px] font-bold text-amber-300 uppercase tracking-widest">
-                        Recognized &amp; Registered Institution
-                      </div>
-                      <h4 className="text-xs font-black tracking-tight uppercase">
-                        {selectedInstitutionObj?.name || "STUDENT IDENTITY CARD"}
-                      </h4>
-                      <div className="text-[8px] text-blue-200 font-sans">
-                        {selectedInstitutionObj?.address || "Delhi-NCR"} • Session 2026-2027
-                      </div>
-                    </div>
-
-                    {/* Photo & Badge */}
-                    <div className="px-4 py-2 text-center space-y-2">
-                      <div className="w-24 h-28 mx-auto rounded-2xl bg-slate-100 border-2 border-indigo-900 flex flex-col items-center justify-center overflow-hidden shadow-xs">
-                        {selectedStudentForIdCard.photo_url ? (
-                          <img src={selectedStudentForIdCard.photo_url} alt="Student" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-3xl">👦</span>
-                        )}
-                      </div>
-                      <div>
-                        <h5 className="font-black text-sm text-slate-950 leading-tight">
-                          {selectedStudentForIdCard.first_name} {selectedStudentForIdCard.last_name}
-                        </h5>
-                        <span className="text-[10px] font-bold text-indigo-700 block mt-0.5">
-                          {selectedStudentForIdCard.class_name} - Section {selectedStudentForIdCard.section_name}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Details Table */}
-                    <div className="px-4 py-2 text-[10px] space-y-1 bg-slate-50 border-t border-slate-100">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 font-bold">Adm No:</span>
-                        <strong className="font-mono font-bold text-slate-900">{selectedStudentForIdCard.admission_number}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 font-bold">Blood Group:</span>
-                        <strong className="text-rose-700 font-bold">{selectedStudentForIdCard.blood_group || "O+"}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 font-bold">Emergency Phone:</span>
-                        <strong className="font-mono text-slate-900">{selectedStudentForIdCard.guardian_phone || "9811102008"}</strong>
-                      </div>
-                    </div>
-
-                    {/* Footer with Barcode */}
-                    <div className="bg-slate-900 text-white p-2.5 text-center flex items-center justify-between text-[9px] font-mono font-bold">
-                      <span>VERIFIED BADGE</span>
-                      <span className="text-emerald-400">SECURE RFID</span>
-                    </div>
-                  </div>
-
-                  {/* Back of Card (Escort Pickup Authorization) */}
-                  <div className="w-[270px] h-[420px] bg-white rounded-3xl border-2 border-slate-800 shadow-xl overflow-hidden flex flex-col justify-between text-slate-900 p-4">
-                    <div className="text-center border-b border-slate-200 pb-2">
-                      <span className="text-[9px] font-black uppercase text-purple-700 tracking-wider block">
-                        Official Parent / Escort Pickup Pass
-                      </span>
-                      <span className="text-[8px] text-slate-400 font-semibold">Authorized Security Gate Clearance</span>
-                    </div>
-
-                    <div className="text-center space-y-2 py-2">
-                      <div className="w-24 h-24 mx-auto bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center p-2">
-                        <QrCode className="w-20 h-20 text-slate-900" />
-                      </div>
-                      <div className="text-[9px] font-mono text-slate-500 font-bold">
-                        Scan for Instant Biometric Gate Validation
-                      </div>
-                    </div>
-
-                    <div className="text-[9px] text-slate-600 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                      <div><strong>Guardian:</strong> {selectedStudentForIdCard.guardian_first || "Parent"} {selectedStudentForIdCard.guardian_last || ""}</div>
-                      <div><strong>Address:</strong> Delhi NCR</div>
-                      <div className="text-[8px] text-slate-400 pt-1 border-t border-slate-200 mt-1">
-                        If found, please return to School Reception or Call +91 98111 02008.
-                      </div>
-                    </div>
-
-                    <div className="pt-2 text-center text-[8px] font-mono font-bold text-slate-400">
-                      AUTHENTICATED &amp; ISSUED 2026-2027
-                    </div>
-                  </div>
+                <div className="flex items-center justify-center py-4">
+                  <StudentIDCard
+                    student={selectedStudentForIdCard}
+                    schoolInfo={selectedInstitutionObj}
+                    layoutMode="DUAL"
+                  />
                 </div>
               ) : (
                 <div className="p-12 text-center text-xs font-bold text-slate-400">
