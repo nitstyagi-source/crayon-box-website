@@ -428,3 +428,182 @@ export function resetTeacherIdCardConfig(institutionCode: string = 'DEFAULT'): b
   }
 }
 
+// =========================================================================
+// ESCORT / AUTHORISED PICKUP PASS CONFIGURATION (Matching media_1788638977129.png & media_1788638951627.jpg)
+// =========================================================================
+
+export interface EscortIdCardCustomConfig {
+  // Theme & Colors
+  primaryColor: string;      // Header/Footer navy background, default: '#0B1B3D'
+  accentColor: string;       // Arches, borders, dividers, default: '#C5A059'
+  goldTextColor: string;     // Sanskrit motto / subtitle text, default: '#E5C378'
+  cardBgColor: string;       // Body card background, default: '#FFFFFF'
+
+  // Header Elements
+  showTricolor: boolean;     // Show/Hide top tricolor band with Ashoka Chakra
+  showLaurelSeal: boolean;   // Show/Hide gold laurel wreath emblem
+  customLogoUrl?: string;    // Custom logo image override
+  schoolName?: string;       // School name override
+  city?: string;             // City/Location override
+  tagline?: string;          // Optional affiliation or tagline (default: empty, NO CBSE)
+  showPillars: boolean;      // Show/Hide pillars
+  frontPillars: [string, string, string]; // Default: ['LEARN', 'CREATE', 'BELONG']
+
+  // Front Header Titles
+  frontCardTitle: string;    // Default: 'CHILD ESCORT CARD'
+  academicYearLabel: string; // Default: 'ACADEMIC YEAR'
+  academicYear: string;      // Default: '2026 – 2027'
+  showAcademicYear: boolean; // Default: true
+
+  // Front Student Identity & Vitals
+  showClass: boolean;        // Default: true
+  classLabel: string;        // Default: 'Class'
+  showAdmissionNo: boolean;  // Default: true
+  admissionNoLabel: string;  // Default: 'Admission No.'
+  showDob: boolean;          // Default: true
+  dobLabel: string;          // Default: 'Date of Birth'
+
+  // Front Disclaimer Box
+  showDisclaimer: boolean;   // Default: true
+  disclaimerText: string;    // Default: 'This card authorises the people listed on the back to pick up the above child from school.'
+
+  // Front Bottom Footer
+  showMotto: boolean;        // Default: true
+  sanskritMotto: string;     // Default: 'विद्या ददाति विनयम्'
+  englishSubtitle: string;   // Default: 'KNOWLEDGE LEADS TO HUMILITY'
+  showCoreValues: boolean;   // Default: true
+  coreValues: [string, string, string, string]; // Default: ['SAFE', 'KIND', 'CURIOUS', 'CONFIDENT']
+
+  // Back Header & Instructions
+  backCardTitle: string;     // Default: 'AUTHORISED PERSONS'
+  backSubtitle: string;      // Default: 'ONLY THE FOLLOWING PERSONS ARE AUTHORISED TO PICK UP THE CHILD FROM SCHOOL'
+
+  // Back Escort Roster Labels
+  nameLabel: string;         // Default: 'Name'
+  relationLabel: string;     // Default: 'Relation'
+  phoneLabel: string;        // Default: 'Phone No.'
+  idProofLabel: string;      // Default: 'ID Proof'
+  idNoLabel: string;         // Default: 'ID No.'
+
+  // Back Bottom Contact Strip
+  showSchoolAddress: boolean;// Default: true
+  schoolAddress: string;     // Default: 'School Address Line 1, School Address Line 2, City - PIN'
+  showSchoolPhone: boolean;  // Default: true
+  schoolPhone: string;       // Default: 'School Phone'
+  showSchoolWebsite: boolean;// Default: true
+  schoolWebsite: string;     // Default: 'www.schoolwebsite.edu.in'
+}
+
+export const DEFAULT_ESCORT_ID_CARD_CONFIG: EscortIdCardCustomConfig = {
+  primaryColor: '#0B1B3D',
+  accentColor: '#C5A059',
+  goldTextColor: '#E5C378',
+  cardBgColor: '#FFFFFF',
+
+  showTricolor: true,
+  showLaurelSeal: true,
+  schoolName: '',
+  city: '',
+  tagline: '', // Clean by default (NO CBSE)
+  showPillars: true,
+  frontPillars: ['LEARN', 'CREATE', 'BELONG'],
+
+  frontCardTitle: 'CHILD ESCORT CARD',
+  academicYearLabel: 'ACADEMIC YEAR',
+  academicYear: '2026 – 2027',
+  showAcademicYear: true,
+
+  showClass: true,
+  classLabel: 'Class',
+  showAdmissionNo: true,
+  admissionNoLabel: 'Admission No.',
+  showDob: true,
+  dobLabel: 'Date of Birth',
+
+  showDisclaimer: true,
+  disclaimerText: 'This card authorises the people listed on the back to pick up the above child from school.',
+
+  showMotto: true,
+  sanskritMotto: 'विद्या ददाति विनयम्',
+  englishSubtitle: 'KNOWLEDGE LEADS TO HUMILITY',
+  showCoreValues: true,
+  coreValues: ['SAFE', 'KIND', 'CURIOUS', 'CONFIDENT'],
+
+  backCardTitle: 'AUTHORISED PERSONS',
+  backSubtitle: 'ONLY THE FOLLOWING PERSONS ARE AUTHORISED TO PICK UP THE CHILD FROM SCHOOL',
+
+  nameLabel: 'Name',
+  relationLabel: 'Relation',
+  phoneLabel: 'Phone No.',
+  idProofLabel: 'ID Proof',
+  idNoLabel: 'ID No.',
+
+  showSchoolAddress: true,
+  schoolAddress: 'School Address Line 1, School Address Line 2, City - PIN',
+  showSchoolPhone: true,
+  schoolPhone: 'School Phone',
+  showSchoolWebsite: true,
+  schoolWebsite: 'www.schoolwebsite.edu.in',
+};
+
+const ESCORT_STORAGE_PREFIX = 'vet_escort_idcard_config_';
+
+/**
+ * Retrieve saved Escort customization for a specific institution code
+ */
+export function getEscortIdCardConfig(institutionCode: string = 'DEFAULT'): EscortIdCardCustomConfig {
+  if (typeof window === 'undefined') {
+    return { ...DEFAULT_ESCORT_ID_CARD_CONFIG };
+  }
+
+  try {
+    const key = `${ESCORT_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_ESCORT_ID_CARD_CONFIG, ...parsed };
+    }
+  } catch (err) {
+    console.warn(`Error reading Escort ID card config for ${institutionCode}:`, err);
+  }
+
+  return { ...DEFAULT_ESCORT_ID_CARD_CONFIG };
+}
+
+/**
+ * Persist Escort customization for a specific institution code
+ */
+export function saveEscortIdCardConfig(institutionCode: string = 'DEFAULT', config: Partial<EscortIdCardCustomConfig>): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const key = `${ESCORT_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    const existing = getEscortIdCardConfig(institutionCode);
+    const updated = { ...existing, ...config };
+    localStorage.setItem(key, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('escort_idcard_config_updated', { detail: { institutionCode, config: updated } }));
+    return true;
+  } catch (err) {
+    console.error(`Error saving Escort ID card config for ${institutionCode}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Reset Escort customization for a specific institution code back to reference defaults
+ */
+export function resetEscortIdCardConfig(institutionCode: string = 'DEFAULT'): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const key = `${ESCORT_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    localStorage.removeItem(key);
+    window.dispatchEvent(new CustomEvent('escort_idcard_config_updated', { detail: { institutionCode, config: DEFAULT_ESCORT_ID_CARD_CONFIG } }));
+    return true;
+  } catch (err) {
+    console.error(`Error resetting Escort ID card config for ${institutionCode}:`, err);
+    return false;
+  }
+}
+
+
