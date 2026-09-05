@@ -60,7 +60,7 @@ export function TeacherIDCard({
   // School Information
   const schName = (schoolInfo?.name || 'CRAYON BOX SCHOOL').replace(', NEW DELHI', '').trim().toUpperCase();
   const schCity = (schoolInfo?.city || 'NEW DELHI').toUpperCase();
-  const schAffiliation = schoolInfo?.affiliation || 'Affiliated to CBSE';
+  const schAffiliation = schoolInfo?.affiliation || '';
   const schPhone = schoolInfo?.phone || '+91 11 2761 8899';
   const schWebsite = schoolInfo?.website || 'www.crayonboxschool.edu.in';
   const photoUrl = t.photo_url || t.avatar_url || t.image || '/faculty/sunita_rao.jpg';
@@ -317,7 +317,7 @@ export function TeacherIDCard({
             </p>
             <div className="w-20 h-[1px] bg-[#C5A059]/60 mx-auto my-1"></div>
             <p className="text-slate-200 text-[8px] tracking-wider font-sans leading-none opacity-90">
-              {schAffiliation} &bull; FACULTY CREDENTIAL
+              {schAffiliation ? `${schAffiliation} • FACULTY CREDENTIAL` : 'FACULTY CREDENTIAL'}
             </p>
           </div>
 
