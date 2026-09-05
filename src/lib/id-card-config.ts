@@ -188,6 +188,7 @@ export const ID_CARD_THEME_PRESETS: IdCardThemePreset[] = [
 ];
 
 const STORAGE_PREFIX = 'vet_idcard_config_';
+const TEACHER_STORAGE_PREFIX = 'vet_teacher_idcard_config_';
 
 /**
  * Retrieve saved customization for a specific institution code (e.g. 'CBS', 'CBPS', 'ALL')
@@ -247,3 +248,183 @@ export function resetIdCardConfig(institutionCode: string = 'DEFAULT'): boolean 
     return false;
   }
 }
+
+// =========================================================================
+// TEACHER / FACULTY ID CARD CONFIGURATION (Matching media_1788638761923.jpg)
+// =========================================================================
+
+export interface TeacherIdCardCustomConfig {
+  // Theme & Colors
+  primaryColor: string;      // Header/Footer background, default: '#0B1B3D'
+  accentColor: string;       // Arches, borders, dividers, default: '#C5A059'
+  goldTextColor: string;     // Sanskrit motto / subtitle text, default: '#E5C378'
+  cardBgColor: string;       // Body card background, default: '#FFFFFF'
+
+  // Header Elements
+  showTricolor: boolean;     // Show/Hide top tricolor band with Ashoka Chakra
+  showLaurelSeal: boolean;   // Show/Hide gold laurel wreath emblem
+  customLogoUrl?: string;    // Custom logo image override
+  schoolName?: string;       // School name override
+  city?: string;             // City/Location override
+  tagline?: string;          // Optional affiliation or tagline (default: empty, NO CBSE)
+  showPillars: boolean;      // Show/Hide right-side vertical pillars
+  frontPillars: [string, string, string]; // Default: ['LEARN', 'CREATE', 'BELONG']
+
+  // Front Faculty Identity & Vitals
+  categoryTag: string;       // Default: 'FACULTY'
+  showCategoryTag: boolean;  // Default: true
+  showDesignation: boolean;  // Default: true
+  designationLabel: string;  // Default: 'Designation'
+  showDepartment: boolean;   // Default: true
+  departmentLabel: string;   // Default: 'Department'
+  showEmployeeId: boolean;   // Default: true
+  employeeIdLabel: string;   // Default: 'Employee ID'
+  showDoj: boolean;          // Default: true
+  dojLabel: string;          // Default: 'Date of Joining'
+
+  // Footer & Motto
+  showMotto: boolean;        // Default: true
+  sanskritMotto: string;     // Default: 'विद्या ददाति विनयम्'
+  englishSubtitle: string;   // Default: 'KNOWLEDGE LEADS TO HUMILITY'
+
+  // Front Footer Core Values (Reference image 4 values separated by bars: SAFE | KIND | CURIOUS | CONFIDENT)
+  showCoreValues: boolean;   // Default: true
+  coreValues: [string, string, string, string]; // Default: ['SAFE', 'KIND', 'CURIOUS', 'CONFIDENT']
+
+  // Back Face Customization
+  backHeaderTitle: string;   // Default: 'IMPORTANT INFORMATION'
+  showBackName: boolean;     // Default: true
+  nameLabel: string;         // Default: 'Name'
+  showBackDesignation: boolean; // Default: true
+  showBackDepartment: boolean;  // Default: true
+  showContactNo: boolean;    // Default: true
+  contactNoLabel: string;    // Default: 'Contact No.'
+  showEmail: boolean;        // Default: true
+  emailLabel: string;        // Default: 'Email'
+  showAddress: boolean;      // Default: true
+  addressLabel: string;      // Default: 'Address'
+
+  // Back Guidelines
+  guidelinesTitle: string;   // Default: 'CARD GUIDELINES'
+  guideline1: string;        // Default: 'This card is the property of the school.'
+  guideline2: string;        // Default: 'Wear this card at all times on campus.'
+  guideline3: string;        // Default: 'This card is non-transferable.'
+  guideline4: string;        // Default: 'If found, please return to the School Office.'
+
+  // Back Footer
+  backPillars: [string, string, string]; // Default: ['PEOPLE', 'PURPOSE', 'PROGRESS']
+  customWebsite?: string;    // Custom website override
+  customPhone?: string;      // Custom phone override
+}
+
+export const DEFAULT_TEACHER_ID_CARD_CONFIG: TeacherIdCardCustomConfig = {
+  primaryColor: '#0B1B3D',
+  accentColor: '#C5A059',
+  goldTextColor: '#E5C378',
+  cardBgColor: '#FFFFFF',
+
+  showTricolor: true,
+  showLaurelSeal: true,
+  schoolName: '',
+  city: '',
+  tagline: '', // EMPTY by default - No "Affiliated to CBSE"
+  showPillars: true,
+  frontPillars: ['LEARN', 'CREATE', 'BELONG'],
+
+  categoryTag: 'FACULTY',
+  showCategoryTag: true,
+  showDesignation: true,
+  designationLabel: 'Designation',
+  showDepartment: true,
+  departmentLabel: 'Department',
+  showEmployeeId: true,
+  employeeIdLabel: 'Employee ID',
+  showDoj: true,
+  dojLabel: 'Date of Joining',
+
+  showMotto: true,
+  sanskritMotto: 'विद्या ददाति विनयम्',
+  englishSubtitle: 'KNOWLEDGE LEADS TO HUMILITY',
+
+  showCoreValues: true,
+  coreValues: ['SAFE', 'KIND', 'CURIOUS', 'CONFIDENT'],
+
+  backHeaderTitle: 'IMPORTANT INFORMATION',
+  showBackName: true,
+  nameLabel: 'Name',
+  showBackDesignation: true,
+  showBackDepartment: true,
+  showContactNo: true,
+  contactNoLabel: 'Contact No.',
+  showEmail: true,
+  emailLabel: 'Email',
+  showAddress: true,
+  addressLabel: 'Address',
+
+  guidelinesTitle: 'CARD GUIDELINES',
+  guideline1: 'This card is the property of the school.',
+  guideline2: 'Wear this card at all times on campus.',
+  guideline3: 'This card is non-transferable.',
+  guideline4: 'If found, please return to the School Office.',
+
+  backPillars: ['PEOPLE', 'PURPOSE', 'PROGRESS'],
+};
+
+/**
+ * Retrieve saved teacher customization for a specific institution code
+ */
+export function getTeacherIdCardConfig(institutionCode: string = 'DEFAULT'): TeacherIdCardCustomConfig {
+  if (typeof window === 'undefined') {
+    return { ...DEFAULT_TEACHER_ID_CARD_CONFIG };
+  }
+
+  try {
+    const key = `${TEACHER_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_TEACHER_ID_CARD_CONFIG, ...parsed };
+    }
+  } catch (err) {
+    console.warn(`Error reading Teacher ID card config for ${institutionCode}:`, err);
+  }
+
+  return { ...DEFAULT_TEACHER_ID_CARD_CONFIG };
+}
+
+/**
+ * Persist teacher customization for a specific institution code
+ */
+export function saveTeacherIdCardConfig(institutionCode: string = 'DEFAULT', config: Partial<TeacherIdCardCustomConfig>): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const key = `${TEACHER_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    const existing = getTeacherIdCardConfig(institutionCode);
+    const updated = { ...existing, ...config };
+    localStorage.setItem(key, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('teacher_idcard_config_updated', { detail: { institutionCode, config: updated } }));
+    return true;
+  } catch (err) {
+    console.error(`Error saving Teacher ID card config for ${institutionCode}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Reset teacher customization for a specific institution code back to reference defaults
+ */
+export function resetTeacherIdCardConfig(institutionCode: string = 'DEFAULT'): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const key = `${TEACHER_STORAGE_PREFIX}${institutionCode || 'DEFAULT'}`;
+    localStorage.removeItem(key);
+    window.dispatchEvent(new CustomEvent('teacher_idcard_config_updated', { detail: { institutionCode, config: DEFAULT_TEACHER_ID_CARD_CONFIG } }));
+    return true;
+  } catch (err) {
+    console.error(`Error resetting Teacher ID card config for ${institutionCode}:`, err);
+    return false;
+  }
+}
+
