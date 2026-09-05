@@ -495,14 +495,22 @@ export async function saveLiveStreamSettings(payload: {
       cid
     ]);
 
-    // 2. Sync all 16 cameras stream_urls
-    for (const [classroomName, pathKey] of Object.entries(CAM_PATH_MAP)) {
-      const streamUrl = `${cleanGateway}/${pathKey}/`;
-      await client.query(`
-        UPDATE public.cameras
-        SET stream_url = $1, status = 'Online', is_active = true, updated_at = NOW()
-        WHERE classroom_name = $2 OR classroom_name ILIKE $3;
-      `, [streamUrl, classroomName, `%${pathKey.replace('_cam', '')}%`]);
+    // 2. Sync all cameras stream_urls dynamically from database
+    const existingCamerasRes = await client.query(`SELECT id, camera_name, classroom_name, nvr_channel_number FROM public.cameras ORDER BY id ASC;`);
+    let syncedCount = 0;
+
+    if (existingCamerasRes.rows.length > 0) {
+      for (const cam of existingCamerasRes.rows) {
+        const pathKey = CAM_PATH_MAP[cam.classroom_name] || 
+          (cam.nvr_channel_number ? `ch${cam.nvr_channel_number}` : `cam_${cam.id}`);
+        const streamUrl = `${cleanGateway}/${pathKey}/`;
+        await client.query(`
+          UPDATE public.cameras
+          SET stream_url = $1, status = 'Online', is_active = true, updated_at = NOW()
+          WHERE id = $2;
+        `, [streamUrl, cam.id]);
+        syncedCount++;
+      }
     }
 
     safeRevalidate("/admin/live-stream");
@@ -510,7 +518,7 @@ export async function saveLiveStreamSettings(payload: {
 
     return {
       success: true,
-      message: `✓ Saved settings and synchronized all 16 cameras with gateway ${cleanGateway}!`
+      message: `✓ Saved settings and synchronized ${syncedCount} cameras with gateway ${cleanGateway}!`
     };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -755,7 +763,7 @@ export async function saveCameraExtendedAction(payload: {
   const client = await pool.connect();
 
   try {
-    const institutionCode = payload.institution_code || "CBS";
+    const institutionCode = payload.institution_code || null;
     const isStreaming = payload.is_streaming_enabled ?? true;
     const channelNum = payload.nvr_channel_number || 1;
     const customName = payload.custom_display_name || payload.camera_name;

@@ -15,8 +15,10 @@ import { SourcePerformanceMatrix } from '@/components/admissions/analytics/Sourc
 import { CounsellorScorecardTable } from '@/components/admissions/analytics/CounsellorScorecardTable';
 import { ManagementInsightsCard } from '@/components/admissions/analytics/ManagementInsightsCard';
 import { LegacyImportModal } from '@/components/admissions/analytics/LegacyImportModal';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function AdmissionsAnalyticsCommandCenter() {
+  const { institutionsList } = useInstitution();
   const [filters, setFilters] = useState<AnalyticsFilterParams>({
     institutionCode: 'ALL',
     academicSession: '2026-2027',
@@ -121,10 +123,11 @@ export default function AdmissionsAnalyticsCommandCenter() {
               className="w-full text-xs font-bold px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
               <option value="ALL">🏢 All Institutions (Trust HQ Aggregate)</option>
-              <option value="CBS">CBS - Crayon Box School (Main Campus)</option>
-              <option value="CBPS">CBPS - Crayon Box Pre-School (Montessori)</option>
-              <option value="AS">AS - Avinya School (Burari Campus)</option>
-              <option value="AVM">AVM - Avinya Vidya Mandir (Burari)</option>
+              {institutionsList.map((inst) => (
+                <option key={inst.code} value={inst.code}>
+                  {inst.code} - {inst.name}
+                </option>
+              ))}
             </select>
           </div>
 

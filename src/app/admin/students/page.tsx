@@ -10,7 +10,6 @@ import {
   ChevronRight, ArrowLeft, Check, Lock, Archive, RotateCcw, CheckCheck, History, X,
   Printer, QrCode, Mail, MapPin, HeartPulse, Award, FileText
 } from "lucide-react";
-import { VANI_TRUST_INSTITUTIONS } from "@/lib/core/institution/trust-hierarchy";
 import { DataTable } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -38,7 +37,7 @@ import {
 } from "@/app/actions/tc-generator-actions";
 
 function UniversalStudentsDirectoryContent() {
-  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions, institutionsList } = useInstitution();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -890,10 +889,11 @@ function UniversalStudentsDirectoryContent() {
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
                 >
                   <option value="ALL">All Campuses (Trust-Wide)</option>
-                  <option value="CBS">CBS (K-12 Senior Campus)</option>
-                  <option value="AVM">AVM (K-12 Senior Campus)</option>
-                  <option value="AS">AS (Kindergarten Montessori)</option>
-                  <option value="CBPS">CBPS (Pre-School Foundation)</option>
+                  {institutionsList.map((inst) => (
+                    <option key={inst.code} value={inst.code}>
+                      {inst.code} ({inst.name})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1697,12 +1697,10 @@ function UniversalStudentsDirectoryContent() {
               <div className="grid grid-cols-2 gap-3">
                 <Select
                   label="Assigned Institution *"
-                  options={[
-                    { value: "CBS", label: "CBS (Crayon Box School - K-12 Senior Campus)" },
-                    { value: "AVM", label: "AVM (Avinya Vidya Mandir - K-12 Senior Campus)" },
-                    { value: "AS", label: "AS (Avinya School - Kindergarten Montessori)" },
-                    { value: "CBPS", label: "CBPS (Crayon Box Pre School - Foundation)" },
-                  ]}
+                  options={institutionsList.map(inst => ({
+                    value: inst.code,
+                    label: `${inst.code} (${inst.name})`
+                  }))}
                   value={formData.institutionCode}
                   onChange={(e) => {
                     const inst = e.target.value;
@@ -1872,12 +1870,10 @@ function UniversalStudentsDirectoryContent() {
             <div className="grid grid-cols-2 gap-3">
               <Select
                 label="Target Campus *"
-                options={[
-                  { value: "CBS", label: "CBS (K-12 Senior Campus)" },
-                  { value: "AVM", label: "AVM (K-12 Senior Campus)" },
-                  { value: "AS", label: "AS (Kindergarten Montessori)" },
-                  { value: "CBPS", label: "CBPS (Pre-School Foundation)" },
-                ]}
+                options={institutionsList.map(inst => ({
+                  value: inst.code,
+                  label: `${inst.code} (${inst.name})`
+                }))}
                 value={readmitForm.institutionCode}
                 onChange={(e) => setReadmitForm({ ...readmitForm, institutionCode: e.target.value })}
               />

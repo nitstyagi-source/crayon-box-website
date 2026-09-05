@@ -10,6 +10,7 @@ import {
   Layers, ChevronRight, UserMinus, Signal, Zap
 } from "lucide-react";
 import { useCampusContext } from "@/components/providers/CampusProvider";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 import CctvStreamPlayer from "@/components/ui/CctvStreamPlayer";
 import { 
   getLiveStreamAdminDashboard, toggleGlobalKillSwitch, 
@@ -32,7 +33,9 @@ export function CctvVideoWallDesk({
   defaultTab?: "videowall" | "cameras" | "parents" | "standalone" | "logs" | "security" | "settings";
 }) {
   const { activeCampusId } = useCampusContext();
+  const { institutionsList } = useInstitution();
   const [data, setData] = useState<any>(null);
+  const cameras: any[] = data?.cameras || [];
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"videowall" | "cameras" | "parents" | "standalone" | "logs" | "security" | "settings">(defaultTab);
   
@@ -602,11 +605,14 @@ export function CctvVideoWallDesk({
           {/* School Differentiated Selector Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {[
-              { code: "ALL", label: "📺 All 16 DVR Channels (16 Cams)" },
-              { code: "CBS", label: "🎒 Crayon Box School (15 Cams)" },
-              { code: "CBPS", label: "🎨 Crayon Box Pre School (Camera #11)" },
-              { code: "AS", label: "🌱 Avinya School" },
-              { code: "AVM", label: "🎓 Avinya Vidya Mandir" },
+              { code: "ALL", label: `📺 All DVR Feeds (${cameras.length} Cams)` },
+              ...institutionsList.map(inst => {
+                const count = cameras.filter((c: any) => c.institution_code === inst.code).length;
+                return {
+                  code: inst.code,
+                  label: `🏫 ${inst.name} (${count} Cams)`
+                };
+              })
             ].map((s) => {
               const isCurrent = (selectedSchoolFilter || "ALL") === s.code;
               return (
@@ -1784,11 +1790,11 @@ export function CctvVideoWallDesk({
                 disabled={isProcessing}
                 className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2"
               >
-                {isProcessing ? "Saving..." : "⚡ Save Settings & Sync All 16 Cameras"}
+                {isProcessing ? "Saving..." : `⚡ Save Settings & Sync Cameras (${cameras.length})`}
               </button>
 
               <span className="text-[11px] text-stone-400 font-mono">
-                Auto-syncs all 16 channels to gateway
+                Auto-syncs all channels to gateway
               </span>
             </div>
           </form>

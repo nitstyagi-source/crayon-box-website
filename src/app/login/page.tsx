@@ -268,7 +268,7 @@ export default function UniversalLoginPage() {
               </h1>
               
               <p className="text-xs sm:text-sm text-stone-300 font-normal leading-relaxed">
-                Seamless digital gateway for School Leadership, Faculty, and Parents across CBS, CBPS, AS, and AVM campuses.
+                Seamless digital gateway for School Leadership, Faculty, and Parents across all educational campuses.
               </p>
             </div>
 
@@ -277,8 +277,8 @@ export default function UniversalLoginPage() {
           {/* Institutional Values & Campus Badges */}
           <div className="pt-8 space-y-3 relative z-10 border-t border-[#1E3A5F]">
             <div className="flex items-center justify-between text-[11px] text-stone-300">
-              <span className="font-medium text-[#E5C378]">Campuses Connected</span>
-              <span className="font-semibold text-stone-200">CBS • CBPS • AS • AVM</span>
+              <span className="font-medium text-[#E5C378]">Federated Network</span>
+              <span className="font-semibold text-stone-200">Trust HQ &amp; All Campuses</span>
             </div>
             
             <div className="flex items-center gap-2 text-[11px] text-stone-400">

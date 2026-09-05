@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useInstitution } from "@/components/providers/InstitutionContext";
-import { VANI_TRUST_INSTITUTIONS } from "@/lib/core/institution/trust-hierarchy";
 
 export interface SchoolLogoProps {
   code?: string;
@@ -30,7 +29,7 @@ export function SchoolLogo({
 
   // 1. Resolve target institution from code or active context
   const targetInst = code
-    ? institutionsList.find((i) => i.code === code) || VANI_TRUST_INSTITUTIONS.find((i) => i.code === code)
+    ? institutionsList.find((i) => i.code === code)
     : selectedInstitutionObj;
 
   const isTrustHq = code === "ALL" || code === "TRUST" || (isAllInstitutions && !code);

@@ -116,14 +116,33 @@ export async function POST(request: Request) {
       require_student_present, watermark_enabled
     ]);
 
-    // 2. Update all 16 cameras stream URLs
-    for (const [classroomName, pathKey] of Object.entries(CAM_PATH_MAP)) {
-      const streamUrl = `${cleanGateway}/${pathKey}/`;
-      await client.query(`
-        UPDATE public.cameras
-        SET stream_url = $1, status = 'Online', is_active = true, updated_at = NOW()
-        WHERE classroom_name = $2 OR classroom_name ILIKE $3;
-      `, [streamUrl, classroomName, `%${pathKey.replace('_cam', '')}%`]);
+    // 2. Update or provision cameras from NVR channels dynamically
+    const camRes = await client.query(`SELECT id, camera_name, classroom_name, nvr_channel_number FROM public.cameras ORDER BY id ASC;`);
+    
+    if (camRes.rows.length === 0) {
+      // If no cameras exist yet, auto-provision channels matching the added NVR
+      const channelCount = Number(body.channel_count || body.channelCount || 16);
+      for (let ch = 1; ch <= channelCount; ch++) {
+        const pathKey = `cam${ch}`;
+        const streamUrl = `${cleanGateway}/${pathKey}/`;
+        await client.query(`
+          INSERT INTO public.cameras (
+            camera_name, classroom_name, room_number, nvr_channel_number, stream_url,
+            status, is_active, is_streaming_enabled, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, 'Online', true, true, NOW(), NOW());
+        `, [`Camera Channel ${ch}`, `Classroom / Zone ${ch}`, `${ch}`, ch, streamUrl]);
+      }
+    } else {
+      for (const cam of camRes.rows) {
+        const pathKey = CAM_PATH_MAP[cam.classroom_name] || 
+          (cam.nvr_channel_number ? `ch${cam.nvr_channel_number}` : `cam_${cam.id}`);
+        const streamUrl = `${cleanGateway}/${pathKey}/`;
+        await client.query(`
+          UPDATE public.cameras
+          SET stream_url = $1, status = 'Online', is_active = true, updated_at = NOW()
+          WHERE id = $2;
+        `, [streamUrl, cam.id]);
+      }
     }
 
     return NextResponse.json({

@@ -13,14 +13,13 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 import { deleteFacultyAction } from '@/app/actions/master-data-actions';
 import { enrollFacultyTransactionalAction, FacultyEnrollmentInput } from '@/app/actions/faculty-enrollment-actions';
 import { createClient } from '@/lib/supabase/client';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export default function HumanResourcesPayrollPage() {
-  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions, institutionsList } = useInstitution();
 
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -442,12 +441,10 @@ export default function HumanResourcesPayrollPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Select
                   label="Assigned Institution *"
-                  options={[
-                    { value: 'CBS', label: 'CBS (Crayon Box School - K-12 Senior Campus)' },
-                    { value: 'AVM', label: 'AVM (Avinya Vidya Mandir - K-12 Senior Campus)' },
-                    { value: 'AS', label: 'AS (Avinya School - Kindergarten Montessori)' },
-                    { value: 'CBPS', label: 'CBPS (Crayon Box Pre School - Kindergarten)' },
-                  ]}
+                  options={institutionsList.map(inst => ({
+                    value: inst.code,
+                    label: `${inst.code} (${inst.name})`
+                  }))}
                   value={formData.institutionCode}
                   onChange={(e) => setFormData({ ...formData, institutionCode: e.target.value })}
                 />

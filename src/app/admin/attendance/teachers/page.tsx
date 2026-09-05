@@ -22,7 +22,7 @@ import {
 } from '@/app/actions/teacher-attendance-actions';
 
 export default function AdminTeacherAttendancePage() {
-  const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const { currentInstitution, selectedInstitutionObj, isAllInstitutions, institutionsList } = useInstitution();
 
   const [activeTab, setActiveTab] = useState<'MUSTER' | 'GEOFENCE'>('MUSTER');
 
@@ -49,7 +49,7 @@ export default function AdminTeacherAttendancePage() {
 
   // Geofence Configs State
   const [geofences, setGeofences] = useState<any[]>([]);
-  const [selectedGeofenceInst, setSelectedGeofenceInst] = useState<string>('CBS');
+  const [selectedGeofenceInst, setSelectedGeofenceInst] = useState<string>('');
   const [isSavingGeofence, setIsSavingGeofence] = useState(false);
   const [geofenceForm, setGeofenceForm] = useState({
     campusName: selectedInstitutionObj?.name || 'Campus Geofence Terminal',
@@ -58,6 +58,12 @@ export default function AdminTeacherAttendancePage() {
     radiusMeters: 250,
     address: selectedInstitutionObj?.address || 'Institutional Campus'
   });
+
+  useEffect(() => {
+    if (!selectedGeofenceInst && institutionsList.length > 0) {
+      setSelectedGeofenceInst(institutionsList[0].code);
+    }
+  }, [institutionsList, selectedGeofenceInst]);
 
   const fetchRoster = async () => {
     setIsLoadingRoster(true);
@@ -463,28 +469,27 @@ export default function AdminTeacherAttendancePage() {
           <div className="lg:col-span-4 space-y-4">
             <Card header={<h3 className="font-bold text-slate-900 text-sm">Select Campus Geofence</h3>}>
               <div className="space-y-2">
-                {[
-                  { code: 'CBS', name: 'Crayon Box School — Main Campus' },
-                  { code: 'AVM', name: 'Avinya Vidya Mandir — North Campus' },
-                  { code: 'AS', name: 'Avinya School — Central Campus' },
-                  { code: 'CBPS', name: 'Crayon Box Pre-School — Montessori' },
-                ].map((camp) => (
-                  <div
-                    key={camp.code}
-                    onClick={() => setSelectedGeofenceInst(camp.code)}
-                    className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between text-xs ${
-                      selectedGeofenceInst === camp.code
-                        ? 'bg-indigo-50 border-indigo-300 shadow-xs'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 block">{camp.name}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Code: {camp.code}</span>
+                {institutionsList.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-4 text-center">No campuses configured in database.</p>
+                ) : (
+                  institutionsList.map((camp) => (
+                    <div
+                      key={camp.code}
+                      onClick={() => setSelectedGeofenceInst(camp.code)}
+                      className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between text-xs ${
+                        selectedGeofenceInst === camp.code
+                          ? 'bg-indigo-50 border-indigo-300 shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div>
+                        <span className="font-bold text-slate-900 block">{camp.name}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Code: {camp.code}</span>
+                      </div>
+                      <Compass className="w-4 h-4 text-indigo-600" />
                     </div>
-                    <Compass className="w-4 h-4 text-indigo-600" />
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
 

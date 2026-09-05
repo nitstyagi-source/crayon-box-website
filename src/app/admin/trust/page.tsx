@@ -73,7 +73,7 @@ export default function TrustCommandCenterPage() {
   const [certSaving, setCertSaving] = useState(false);
   const [certForm, setCertForm] = useState<any>({
     id: '',
-    institutionCode: 'CBS',
+    institutionCode: 'TRUST',
     certificateType: 'BOARD_AFFILIATION',
     title: '',
     certificateNumber: '',
@@ -256,7 +256,7 @@ export default function TrustCommandCenterPage() {
   const handleOpenAddCert = (instCode?: string) => {
     setCertForm({
       id: '',
-      institutionCode: instCode || (selectedCertCampus !== 'ALL' ? selectedCertCampus : 'CBS'),
+      institutionCode: instCode || (selectedCertCampus !== 'ALL' ? selectedCertCampus : (institutionsList[0]?.code || 'TRUST')),
       certificateType: 'BOARD_AFFILIATION',
       title: '',
       certificateNumber: '',
@@ -273,7 +273,7 @@ export default function TrustCommandCenterPage() {
   const handleOpenEditCert = (cert: any) => {
     setCertForm({
       id: cert.id,
-      institutionCode: cert.institution_code || cert.institutionCode || 'CBS',
+      institutionCode: cert.institution_code || cert.institutionCode || (institutionsList[0]?.code || 'TRUST'),
       certificateType: cert.certificate_type || cert.certificateType || 'OTHER',
       title: cert.title,
       certificateNumber: cert.certificate_number || cert.certificateNumber || '',
@@ -513,7 +513,7 @@ export default function TrustCommandCenterPage() {
             <StatCard
               label="Operating Institutions"
               value={isLoading ? '...' : institutionsList.length.toString()}
-              subtext={institutionsList.map(i => i.code).join(', ') || 'CBS, AVM, AS, CBPS'}
+              subtext={institutionsList.map(i => i.code).join(', ') || 'No institutions onboarded'}
               icon={<Building2 className="w-4 h-4" />}
               iconBgColor="bg-purple-50 text-purple-600"
             />
@@ -524,7 +524,7 @@ export default function TrustCommandCenterPage() {
             title="Member Institutional Registry (Live Database)"
             subtitle="Operational status across live VET schools"
             columns={columns}
-            data={institutionsList.length > 0 ? institutionsList : VANI_TRUST_INSTITUTIONS}
+            data={institutionsList}
           />
         </div>
       )}
@@ -621,10 +621,10 @@ export default function TrustCommandCenterPage() {
             {[
               { code: 'ALL', label: 'All Entities & Schools' },
               { code: 'TRUST', label: '🏛️ Vaani Educational Trust' },
-              { code: 'CBS', label: '🏫 Crayon Box School (K-12)' },
-              { code: 'CBPS', label: '🎨 Crayon Box Pre-School' },
-              { code: 'AS', label: '🌱 Avinya School' },
-              { code: 'AVM', label: '📖 Avinya Vidya Mandir' },
+              ...institutionsList.map(inst => ({
+                code: inst.code,
+                label: `🏫 ${inst.name} (${inst.code})`
+              }))
             ].map((s) => (
               <button
                 key={s.code}
@@ -643,7 +643,7 @@ export default function TrustCommandCenterPage() {
           {/* Certificates Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {certificates.map((cert) => {
-              const instCode = cert.institution_code || cert.institutionCode || 'CBS';
+              const instCode = cert.institution_code || cert.institutionCode || 'TRUST';
               const isValid = cert.status === 'VALID' || cert.status === 'AUDITED' || cert.status === 'CERTIFIED';
               return (
                 <div
@@ -907,10 +907,11 @@ export default function TrustCommandCenterPage() {
                     className="w-full text-xs px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-800"
                   >
                     <option value="TRUST">🏛️ Vaani Educational Trust (HQ)</option>
-                    <option value="CBS">🏫 Crayon Box School (K-12)</option>
-                    <option value="CBPS">🎨 Crayon Box Pre-School</option>
-                    <option value="AS">🌱 Avinya School (Kindergarten)</option>
-                    <option value="AVM">📖 Avinya Vidya Mandir</option>
+                    {institutionsList.map((inst) => (
+                      <option key={inst.code} value={inst.code}>
+                        🏫 {inst.name} ({inst.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
 

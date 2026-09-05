@@ -36,7 +36,13 @@ export default function IdentityAccessManagementPage() {
   ]);
   
   const { currentInstitution, institutionsList } = useInstitution();
-  const [targetSchool, setTargetSchool] = useState<string>('CBS');
+  const [targetSchool, setTargetSchool] = useState<string>('');
+
+  useEffect(() => {
+    if (!targetSchool && institutionsList.length > 0) {
+      setTargetSchool(currentInstitution !== 'ALL' ? currentInstitution : institutionsList[0].code);
+    }
+  }, [institutionsList, currentInstitution, targetSchool]);
   
   const [permissions, setPermissions] = useState<any[]>([]);
   const [modules, setModules] = useState<DynamicModuleStatus[]>([]);
@@ -352,12 +358,10 @@ export default function IdentityAccessManagementPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {(institutionsList.length > 0 ? institutionsList : [
-                { code: 'CBS', shortName: 'CBS Main' },
-                { code: 'CBPS', shortName: 'CBPS Pre-School' },
-                { code: 'AS', shortName: 'Avinya School' },
-                { code: 'AVM', shortName: 'Avinya Vidya Mandir' }
-              ]).map((inst: any) => {
+              {institutionsList.length === 0 ? (
+                <span className="text-xs text-white/60">No institutions onboarded yet</span>
+              ) : (
+                institutionsList.map((inst: any) => {
                 const isSelected = targetSchool === inst.code;
                 return (
                   <button
@@ -374,7 +378,7 @@ export default function IdentityAccessManagementPage() {
                     <span className="text-[10px] opacity-70">({inst.code})</span>
                   </button>
                 );
-              })}
+              }))}
 
               <button
                 onClick={handleResetSchoolDefaults}
