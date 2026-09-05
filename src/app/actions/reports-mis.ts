@@ -98,9 +98,7 @@ export async function getFeeHeadsMaster(campusId?: string) {
       "Late Fee",
       "Examination Fee",
       "Computer & AI Fee",
-      "School App & ID Card",
-      "Books & Stationery",
-      "Uniform Kit"
+      "School App & ID Card"
     ];
 
     const headsList = (data && data.length > 0)

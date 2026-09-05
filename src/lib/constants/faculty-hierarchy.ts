@@ -278,7 +278,7 @@ export const ERP_ROLES_LIST: ErpRoleOption[] = [
   { role: "Security / Gate Guard", scope: "Visitor management, QR gate scanner, and student pickup verification" },
   { role: "School Nurse / Doctor", scope: "Student medical records, infirmary visits, and health allergies" },
   { role: "Librarian", scope: "Book inventory, barcode issue/returns, and digital library catalog" },
-  { role: "Store / Procurement Manager", scope: "Purchase requisitions, stock register, and book/uniform kits" }
+  { role: "Store / Procurement Manager", scope: "Purchase requisitions, stock register, and institutional consumables" }
 ];
 
 export const EMPLOYMENT_TYPES = [
