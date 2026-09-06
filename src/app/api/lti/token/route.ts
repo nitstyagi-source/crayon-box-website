@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       grantType = request.nextUrl.searchParams.get('grant_type') || 'client_credentials';
     }
 
-    const token = `cbs_lti_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+    const token = `cbs_lti_${crypto.randomUUID().replace(/-/g, '')}_${Date.now()}`;
 
     return NextResponse.json({
       access_token: token,

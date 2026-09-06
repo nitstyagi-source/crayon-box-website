@@ -131,13 +131,13 @@ export default function FacultyIdCardPreview({
           <div className="flex items-center justify-center gap-1.5 text-[9px] font-semibold text-white/80">
             <span>RECOGNIZED INSTITUTION</span>
             <span>•</span>
-            <span className="font-mono">DELHI</span>
+            <span className="font-mono">{selectedInstitutionObj?.state || "DELHI"}</span>
             <span>•</span>
-            <span className="font-mono">UDISE: 07124100151</span>
+            <span className="font-mono">{selectedInstitutionObj?.udise_code ? `UDISE: ${selectedInstitutionObj.udise_code}` : `CODE: ${campusCode}`}</span>
           </div>
 
           <div className="mt-1 flex items-center justify-between text-[8px] font-mono px-2 py-0.5 rounded bg-black/30 text-stone-200">
-            <span>SESSION: {faculty.academicSession || "2026–27"}</span>
+            <span>SESSION: {faculty.academicSession || `${new Date().getFullYear()}–${(new Date().getFullYear() + 1).toString().slice(-2)}`}</span>
             <span className="uppercase font-bold tracking-wider text-amber-300">FACULTY ID</span>
           </div>
         </div>
@@ -262,11 +262,11 @@ export default function FacultyIdCardPreview({
             </div>
             <div className="flex justify-between border-b border-stone-200 pb-1">
               <span className="text-stone-500">Date of Joining:</span>
-              <span className="font-mono text-stone-800">{faculty.joiningDate ? new Date(faculty.joiningDate).toLocaleDateString("en-IN") : "01/04/2020"}</span>
+              <span className="font-mono text-stone-800">{faculty.joiningDate ? new Date(faculty.joiningDate).toLocaleDateString("en-IN") : "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-stone-500">Emergency Contact:</span>
-              <strong className="text-red-700 font-mono font-bold">{faculty.emergencyContact || faculty.phone || "+91 98111 02008"}</strong>
+              <strong className="text-red-700 font-mono font-bold">{faculty.emergencyContact || faculty.phone || "—"}</strong>
             </div>
           </div>
 
@@ -299,7 +299,7 @@ export default function FacultyIdCardPreview({
 
             <div className="text-center">
               <div className="w-24 h-7 border-b-2 border-stone-800 flex items-center justify-center text-[10px] font-serif font-black text-purple-900 tracking-wider">
-                Nitin Tyagi
+                {selectedInstitutionObj?.principal_name || selectedInstitutionObj?.director_name || "Authorized"}
               </div>
               <span className="text-[8px] font-black text-stone-900 uppercase block mt-0.5">Authorized Signatory</span>
             </div>
@@ -309,7 +309,7 @@ export default function FacultyIdCardPreview({
 
         {/* Bottom Bar */}
         <div className="p-1.5 bg-stone-900 text-stone-400 text-center text-[8px] font-mono">
-          UDISE CODE: 07124100151 • SCHOOL ID: 1253481
+          UDISE CODE: {selectedInstitutionObj?.udise_code || selectedInstitutionObj?.code || 'N/A'} • INSTITUTION: {campusCode}
         </div>
       </div>
 

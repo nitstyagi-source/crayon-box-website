@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString });
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -42,7 +40,7 @@ export async function getBroadcastCampaignsAction() {
     const campaigns = res.rows.map((r: any) => ({
       ...r,
       created_at: safeDateStr(r.created_at),
-      openRate: r.delivered_count > 0 ? Math.round((r.read_count / r.delivered_count) * 100) : 95
+      openRate: r.delivered_count > 0 ? Math.round((r.read_count / r.delivered_count) * 100) : 0
     }));
 
     const counts = {
@@ -51,7 +49,7 @@ export async function getBroadcastCampaignsAction() {
       totalDelivered: campaigns.reduce((acc: number, cur: any) => acc + Number(cur.delivered_count || 0), 0),
       avgOpenRate: campaigns.length > 0
         ? Math.round(campaigns.reduce((acc: number, cur: any) => acc + cur.openRate, 0) / campaigns.length)
-        : 95
+        : 0
     };
 
     return { success: true, campaigns, counts };
@@ -78,13 +76,22 @@ export async function dispatchBroadcastCampaignAction(params: {
   try {
     const { title, channel, targetAudience, messageBody, sentBy = 'Principal Secretariat' } = params;
 
-    // Determine recipient count based on audience
-    let recipientCount = 220;
-    if (targetAudience === 'FACULTY') recipientCount = 64;
-    else if (targetAudience === 'CLASS_10') recipientCount = 35;
+    // Determine recipient count based on authentic database records
+    let recipientCount = 0;
+    if (targetAudience === 'FACULTY' || targetAudience === 'STAFF') {
+      const sRes = await client.query(`SELECT count(*)::int as count FROM public.staff WHERE status = 'ACTIVE';`);
+      recipientCount = sRes.rows[0]?.count || 0;
+    } else if (targetAudience.startsWith('CLASS_')) {
+      const cRes = await client.query(`SELECT count(*)::int as count FROM public.students WHERE status = 'ACTIVE' AND class_id IN (SELECT id FROM public.classes WHERE grade ILIKE $1 OR name ILIKE $1);`, [`%${targetAudience.replace('CLASS_', '')}%`]);
+      recipientCount = cRes.rows[0]?.count || 0;
+    } else {
+      const stuRes = await client.query(`SELECT count(*)::int as count FROM public.students WHERE status = 'ACTIVE';`);
+      recipientCount = stuRes.rows[0]?.count || 0;
+    }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const campaignCode = `CMP-2026-${randomSuffix}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.communication_campaigns;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const campaignCode = `CMP-${new Date().getFullYear()}-${nextSeq}`;
 
     const res = await client.query(`
       INSERT INTO public.communication_campaigns (
@@ -266,8 +273,9 @@ export async function issueStudentEarlyDeparturePassAction(params: {
     }
 
     const stu = stuRes.rows[0];
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
-    const passNumber = `GP-ED-2026-${randomSuffix}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.student_early_departures;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const passNumber = `GP-ED-${new Date().getFullYear()}-${nextSeq}`;
 
     const insertRes = await client.query(`
       INSERT INTO public.student_early_departures (

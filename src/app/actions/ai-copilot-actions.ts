@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -96,7 +94,17 @@ export async function generateSchoolCircularAction(params: {
     const schPrincipal = params.principalName || matchedInst?.principalName || "Principal";
     const schWebsite = params.website || "https://www.crayonboxschool.com";
 
-    const refNo = `ADM/CIR/${new Date().getFullYear()}/${Math.floor(100 + Math.random() * 900)}`;
+    const p = getPool();
+    let cirSeq = '001';
+    try {
+      const client = await p.connect();
+      const res = await client.query(`SELECT count(*)::int as count FROM public.whatsapp_logs WHERE category = 'school_circular';`);
+      cirSeq = String((res.rows[0]?.count || 0) + 1).padStart(3, '0');
+      client.release();
+    } catch {
+      cirSeq = String(Date.now()).slice(-3);
+    }
+    const refNo = `ADM/CIR/${new Date().getFullYear()}/${cirSeq}`;
     const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
     const circularHtml = `

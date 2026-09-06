@@ -83,23 +83,34 @@ export default async function Footer() {
           <div>
             <h3 className="text-white font-bold mb-6 tracking-wider text-sm uppercase">Contact & Visit</h3>
             <ul className="space-y-4 mb-6">
-              <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                <span className="text-sm leading-relaxed text-blue-200">
-                  {globalData.contact?.address || "Burari, Sant Nagar, Delhi - 110084"}
-                </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-accent shrink-0" />
-                <span className="text-sm text-blue-200">{globalData.contact?.phone || "9811102008"}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-accent shrink-0" />
-                <span className="text-sm text-blue-200">{globalData.contact?.email || "crayonboxdelhi@gmail.com"}</span>
-              </li>
-              <li className="text-xs text-blue-300/80 font-mono">
-                School ID: 1253481 • UDISE: 07124100151
-              </li>
+              {globalData.contact?.address && (
+                <li className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <span className="text-sm leading-relaxed text-blue-200">
+                    {globalData.contact.address}
+                  </span>
+                </li>
+              )}
+              {globalData.contact?.phone && (
+                <li className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-accent shrink-0" />
+                  <span className="text-sm text-blue-200">{globalData.contact.phone}</span>
+                </li>
+              )}
+              {globalData.contact?.email && (
+                <li className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-accent shrink-0" />
+                  <span className="text-sm text-blue-200">{globalData.contact.email}</span>
+                </li>
+              )}
+              {(globalData.contact?.school_id || globalData.contact?.udise) && (
+                <li className="text-xs text-blue-300/80 font-mono">
+                  {[
+                    globalData.contact?.school_id ? `School ID: ${globalData.contact.school_id}` : null,
+                    globalData.contact?.udise ? `UDISE: ${globalData.contact.udise}` : null
+                  ].filter(Boolean).join(" • ")}
+                </li>
+              )}
             </ul>
             
             {/* Interactive Map Embed */}

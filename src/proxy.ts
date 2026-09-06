@@ -31,13 +31,30 @@ export async function proxy(request: NextRequest) {
   );
 
   let user = null;
+  let hasSupabaseAuthError = false;
   try {
-    const { data } = await supabase.auth.getUser();
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      hasSupabaseAuthError = true;
+    }
     user = data?.user || null;
-  } catch {}
+  } catch {
+    hasSupabaseAuthError = true;
+  }
 
-  const hasIamAuth = request.cookies.has('cb_auth_token') || request.cookies.has('cb_user_role') || request.cookies.has('cb_user_email');
-  const isAuthenticated = Boolean(user) || hasIamAuth;
+  const authToken = request.cookies.get('cb_auth_token')?.value;
+  const isJwt = Boolean(authToken?.startsWith('ey'));
+
+  // If a JWT token was supplied but Supabase rejected or couldn't validate it, purge stale session cookies
+  if (isJwt && (!user || hasSupabaseAuthError)) {
+    supabaseResponse.cookies.delete('cb_auth_token');
+    supabaseResponse.cookies.delete('cb_user_role');
+    supabaseResponse.cookies.delete('cb_user_email');
+    supabaseResponse.cookies.delete('cb_user_name');
+  }
+
+  const hasValidCustomIamAuth = Boolean(authToken && !isJwt) && request.cookies.has('cb_user_role');
+  const isAuthenticated = Boolean(user) || hasValidCustomIamAuth;
 
   const url = request.nextUrl.clone();
   
@@ -49,7 +66,11 @@ export async function proxy(request: NextRequest) {
 
   if (url.pathname.startsWith('/admin')) {
     if (!isAuthenticated) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const redirectUrl = new URL('/login', request.url);
+      if (isJwt && (!user || hasSupabaseAuthError)) {
+        redirectUrl.searchParams.set('session_expired', 'true');
+      }
+      return NextResponse.redirect(redirectUrl);
     }
     if (userRole === 'PARENT' || userRole === 'STUDENT' || userRole === 'PARENT_STUDENT') {
       // Parents & Students are unified on Mobile App only - zero access to web admin console

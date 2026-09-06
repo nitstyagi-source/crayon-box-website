@@ -161,10 +161,10 @@ export function EscortPickupCard({
     if (escort) {
       const p1: AuthorizedPersonData = {
         name: escort.guardianName || 'Authorised Person 1',
-        relationship: escort.relationship || 'Father',
-        phone: escort.phone || '+91 98111 02008',
-        id_proof: 'Aadhaar Card',
-        id_no: 'XXXX-XXXX-1234',
+        relationship: escort.relationship || 'Guardian',
+        phone: escort.phone || '',
+        id_proof: 'Identity Card',
+        id_no: '',
         photo_url: escort.photoUrl || '',
       };
       return [p1];

@@ -33,29 +33,29 @@ export default function TransferCertificateModal({
   const totalPaid = student?.invoices?.reduce((acc: number, inv: any) => acc + Number(inv.amount_paid || 0), 0) || 0;
   const totalDues = Math.max(0, totalInvoiced - totalPaid);
 
-  const admissionDateStr = student?.lifecycle?.find((l: any) => l.action_type === 'Admission')?.action_date || student?.created_at?.split('T')[0] || "2024-04-01";
   const todayStr = new Date().toISOString().split('T')[0];
+  const admissionDateStr = student?.lifecycle?.find((l: any) => l.action_type === 'Admission')?.action_date || student?.created_at?.split('T')[0] || todayStr;
 
   // Certificate Editable State
   const [tcData, setTcData] = useState({
-    ref_no: `${selectedInstitutionObj?.code || 'SCH'}/SLC/${new Date().getFullYear()}/${student?.admission_no?.replace(/\D/g, '') || Math.floor(100 + Math.random() * 900)}`,
+    ref_no: `${selectedInstitutionObj?.code || 'SCH'}/SLC/${new Date().getFullYear()}/${student?.admission_no?.replace(/\D/g, '') || '001'}`,
     issue_date: todayStr,
-    school_name_id: `${selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"} (${selectedInstitutionObj?.affiliationNumber || selectedInstitutionObj?.code || "1253481"})`,
-    udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
+    school_name_id: `${selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"} (${selectedInstitutionObj?.affiliationNumber || selectedInstitutionObj?.code || "INST"})`,
+    udise_code: selectedInstitutionObj?.udiseCode || "",
     student_name: `${student?.first_name || ""} ${student?.middle_name || ""} ${student?.last_name || ""}`.trim().toUpperCase(),
     father_name: (father?.name || "").toUpperCase(),
     mother_name: (mother?.name || "").toUpperCase(),
     dob: student?.dob ? `${student.dob}` : "",
     admission_no_date: `${student?.admission_no || ""} & ${admissionDateStr}`,
-    class_admitted: firstAcademic?.class_name || "Nursery",
-    class_last_attended: `${currentAcademic?.class_name || "Grade 1"} - Section ${currentAcademic?.section_name || "A"}`,
-    pen_no: student?.pen_no || "N/A",
+    class_admitted: firstAcademic?.class_name || "",
+    class_last_attended: currentAcademic?.class_name ? `${currentAcademic.class_name}${currentAcademic.section_name ? ` - Section ${currentAcademic.section_name}` : ''}` : "",
+    pen_no: student?.pen_no || student?.pen_number || "N/A",
     withdrawal_date: todayStr,
     date_slc_issue: todayStr,
     dues_paid: totalDues <= 0 ? "Yes (All Dues Cleared)" : "No (Pending Dues)",
-    last_session_class: `2026-2027 (${currentAcademic?.class_name || "Grade 1"})`,
-    total_attendance: "210 Days",
-    student_attendance: "198 Days",
+    last_session_class: currentAcademic?.class_name ? `${currentAcademic?.session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`} (${currentAcademic.class_name})` : `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+    total_attendance: student?.total_attendance ? `${student.total_attendance} Days` : "N/A",
+    student_attendance: student?.student_attendance ? `${student.student_attendance} Days` : "N/A",
     result: "Passed and Promoted to Next Class",
     checked_by: "Administrative Staff",
     admission_incharge: "Admission In-Charge",
@@ -531,15 +531,20 @@ export default function TransferCertificateModal({
               
               {/* Left Contact */}
               <div className="space-y-0.5 font-medium">
-                <p><span className="font-bold">Tel.</span> +91 9811102008</p>
-                <p>info@crayonboxschool.com</p>
-                <p className="text-blue-700 font-bold">www.crayonboxschool.com</p>
+                {selectedInstitutionObj?.phone && (
+                  <p><span className="font-bold">Tel.</span> {selectedInstitutionObj.phone}</p>
+                )}
+                {selectedInstitutionObj?.principalEmail && (
+                  <p>{selectedInstitutionObj.principalEmail}</p>
+                )}
+                {selectedInstitutionObj?.website && (
+                  <p className="text-blue-700 font-bold">{selectedInstitutionObj.website}</p>
+                )}
               </div>
 
               {/* Right Address */}
-              <div className="text-right space-y-0.5 font-medium">
-                <p className="font-bold">Kh. No. 6/20, D-Block, Shastri</p>
-                <p>Park Ext. Burari, Delhi-110084</p>
+              <div className="text-right space-y-0.5 font-medium max-w-[50%]">
+                <p>{selectedInstitutionObj?.address || "Main Campus • Recognized Institution"}</p>
               </div>
             </div>
 

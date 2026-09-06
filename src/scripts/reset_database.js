@@ -1,6 +1,10 @@
 const { Client } = require('pg');
 
-const DATABASE_URL = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 async function resetDatabase() {
   const client = new Client({ connectionString: DATABASE_URL });
@@ -80,7 +84,7 @@ async function resetDatabase() {
     const campusRes = await client.query(`
       INSERT INTO campuses (id, name, address, contact_email, contact_phone, school_id, udise_code)
       VALUES (
-        'c3d782a9-a50b-4708-a3fc-6b146f456662',
+        'b11e9e78-a842-4a92-97d3-aa16691b3f9e',
         'Crayon Box International School - Main Campus',
         'Plot 12, Institutional Area, Sector 62, Noida, Uttar Pradesh 201309',
         'admissions@crayonboxschool.com',

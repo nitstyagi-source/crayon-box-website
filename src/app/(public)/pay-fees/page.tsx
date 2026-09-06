@@ -294,10 +294,10 @@ export default function PayFeesPage() {
               <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
                 <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h3>
                 <p className="text-[10px] font-bold text-stone-700">
-                  School ID: 1253481 • UDISE Code: 07124100151
+                  OFFICIAL ONLINE FEE PAYMENT RECEIPT
                 </p>
                 <p className="text-[9.5px] text-stone-500">
-                  Burari, Sant Nagar, Delhi - 110084 • Phone: 9811102008 • Email: crayonboxdelhi@gmail.com
+                  Recognized & Registered Institution • Quality Education Foundation
                 </p>
                 <div className="pt-1.5 flex justify-center">
                   <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">

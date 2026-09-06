@@ -21,7 +21,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -101,9 +101,9 @@ export async function getFacultyForIdCardGeneration(
         gender: staff.gender || "Not Specified",
         dob: staff.dob,
         bloodGroup: staff.blood_group || "B+",
-        email: staff.official_email || staff.email || "staff@crayonboxschool.com",
-        phone: staff.personal_mobile || staff.phone_number || "+91 98111 02008",
-        emergencyContact: staff.emergency_contact || "+91 98111 02008",
+        email: staff.official_email || staff.email || "",
+        phone: staff.personal_mobile || staff.phone_number || "",
+        emergencyContact: staff.emergency_contact || "",
         photoUrl: staff.photo_url || null,
         designation: staff.designation || "Teaching Faculty",
         department: staff.department || "Academics",
@@ -113,8 +113,8 @@ export async function getFacultyForIdCardGeneration(
         role: staff.role || "Teacher",
         isLeadership: staff.is_leadership || false,
         employmentStatus: staff.status || "Active",
-        joiningDate: staff.joining_date || "2020-04-01",
-        academicSession: activeCard?.academic_session || filters?.session || "2026–27",
+        joiningDate: staff.joining_date || new Date().toISOString().split("T")[0],
+        academicSession: activeCard?.academic_session || filters?.session || `${new Date().getFullYear()}–${(new Date().getFullYear() + 1).toString().slice(-2)}`,
         subjectsTaught: staff.subjects_taught || "Primary Curriculum",
         
         // Card Specific fields
@@ -194,7 +194,8 @@ export async function generateFacultyIdCards(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const session = payload.academicSession || "2026–27";
+    const currentYear = new Date().getFullYear();
+    const session = payload.academicSession || `${currentYear}–${(currentYear + 1).toString().slice(-2)}`;
     const template = payload.templateType || "Standard Teacher";
     const generatedBy = payload.generatedBy || "School Administrator";
 
@@ -206,6 +207,8 @@ export async function generateFacultyIdCards(payload: {
     if (fetchErr) throw fetchErr;
 
     const generatedCards: any[] = [];
+    const expiryYear = currentYear + 1;
+    const defaultExpiryDate = `${expiryYear}-03-31`;
 
     for (const staff of staffMembers || []) {
       const empCode = staff.employee_code || staff.employee_id || `CBS-${staff.id.substring(0, 4).toUpperCase()}`;
@@ -224,13 +227,13 @@ export async function generateFacultyIdCards(payload: {
             template_type: template,
             academic_session: session,
             issue_date: new Date().toISOString().split("T")[0],
-            expiry_date: "2027-03-31",
+            expiry_date: defaultExpiryDate,
             status: "Active",
             generated_by: generatedBy,
             designation_snapshot: staff.designation || "Faculty",
             department_snapshot: staff.department || "Academics",
-            blood_group_snapshot: staff.blood_group || "B+",
-            emergency_contact_snapshot: staff.emergency_contact || "+91 98111 02008"
+            blood_group_snapshot: staff.blood_group || "",
+            emergency_contact_snapshot: staff.emergency_contact || staff.personal_mobile || ""
           },
           { onConflict: "card_number" }
         )
@@ -291,7 +294,9 @@ export async function generateTemporaryFacultyCard(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
 
-    const tempCode = `GUEST-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: cardCount } = await supabase.from("id_cards").select("*", { count: "exact", head: true });
+    const nextCardSeq = ((cardCount || 0) + 1).toString().padStart(4, '0');
+    const tempCode = `GUEST-${nextCardSeq}`;
     const cardNum = `CBS-TEMP-${new Date().getFullYear()}-${tempCode}`;
     const qrToken = `CBS-TEMP-VERIFY-${tempCode}-${Date.now().toString().slice(-6)}`;
 
@@ -304,7 +309,7 @@ export async function generateTemporaryFacultyCard(payload: {
         is_temporary: true,
         template_type: "Guest / Temporary Faculty",
         qr_token: qrToken,
-        academic_session: "2026–27",
+        academic_session: `${new Date().getFullYear()}–${(new Date().getFullYear() + 1).toString().slice(-2)}`,
         issue_date: payload.validFrom,
         valid_from: payload.validFrom,
         valid_until: payload.validUntil,
@@ -314,7 +319,7 @@ export async function generateTemporaryFacultyCard(payload: {
         generated_by: payload.authorizedBy,
         designation_snapshot: payload.designation,
         department_snapshot: payload.department || payload.organization || "Visiting Faculty",
-        emergency_contact_snapshot: payload.emergencyContact || "+91 98111 02008"
+        emergency_contact_snapshot: payload.emergencyContact || ""
       })
       .select()
       .single();
@@ -363,8 +368,9 @@ export async function markCardLostAndIssueReplacement(
 
     // 3. Issue Replacement Card with new QR and incremented reprint count
     const nextReprint = (oldCard?.reprint_count || 0) + 1;
+    const currentYear = new Date().getFullYear();
     const empCode = staff.employee_code || staff.employee_id || `CBS-${staff.id.substring(0, 4).toUpperCase()}`;
-    const newCardNum = `CBS-FAC-2026-${empCode}-R${nextReprint}`;
+    const newCardNum = `CBS-FAC-${currentYear}-${empCode}-R${nextReprint}`;
     const newQrToken = `CBS-FAC-VERIFY-${empCode}-R${nextReprint}-${Date.now().toString().slice(-6)}`;
 
     const { data: newCard, error: newCardErr } = await supabase
@@ -377,9 +383,9 @@ export async function markCardLostAndIssueReplacement(
         previous_card_number: oldCard?.card_number || "Initial Issue",
         qr_token: newQrToken,
         template_type: oldCard?.template_type || "Standard Teacher",
-        academic_session: oldCard?.academic_session || "2026–27",
+        academic_session: oldCard?.academic_session || `${currentYear}–${(currentYear + 1).toString().slice(-2)}`,
         issue_date: new Date().toISOString().split("T")[0],
-        expiry_date: "2027-03-31",
+        expiry_date: `${currentYear + 1}-03-31`,
         status: "Active",
         reprint_count: nextReprint,
         generated_by: "Admin Replacement",
@@ -514,6 +520,16 @@ export async function verifyFacultyQrToken(qrToken: string) {
     const isCardActive = card.status === "Active";
     const isExpired = card.expiry_date && new Date(card.expiry_date) < new Date();
 
+    let campusData: any = null;
+    if (card.campus_id) {
+      const { data: campus } = await supabase
+        .from("campuses")
+        .select("id, name, address, contact_phone, contact_email, code")
+        .eq("id", card.campus_id)
+        .single();
+      campusData = campus;
+    }
+
     const isVerified = isStaffActive && isCardActive && !isExpired;
 
     return {
@@ -531,11 +547,12 @@ export async function verifyFacultyQrToken(qrToken: string) {
         bloodGroup: staff.blood_group || card.blood_group_snapshot,
         session: card.academic_session,
         validUntil: card.expiry_date,
-        branch: "Main Campus (Burari, Delhi)",
-        schoolName: "Crayon Box School",
-        schoolContact: "9811102008",
-        schoolEmail: "crayonboxdelhi@gmail.com",
-        udise: "07124100151"
+        branch: campusData?.name || "Main Campus",
+        schoolName: campusData?.name || "Crayon Box School",
+        schoolAddress: campusData?.address || "",
+        schoolContact: campusData?.contact_phone || "",
+        schoolEmail: campusData?.contact_email || "",
+        udise: campusData?.code || ""
       }
     };
   } catch (error: any) {

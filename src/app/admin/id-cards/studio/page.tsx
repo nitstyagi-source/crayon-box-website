@@ -109,14 +109,10 @@ export default function VisualIDCardStudioPage() {
 
   // Sample faculty list for preview and batch printing
   const sampleFacultyList = [
-    { id: "FAC-01", first_name: "Dr. Vikramaditya", last_name: "Shukla", designation: "Head of Science & Physics", department: "Science", universal_id: "FAC-VET-001", employee_id: "FAC-VET-001", phone_number: "+91 98111 22334", email: "v.shukla@schooldomain.edu.in", doj: "2022-04-01" },
-    { id: "FAC-02", first_name: "Mrs. Meenakshi", last_name: "Sundaram", designation: "Senior Mathematics PGT", department: "Mathematics", universal_id: "FAC-VET-002", employee_id: "FAC-VET-002", phone_number: "+91 98111 33445", email: "m.sundaram@schooldomain.edu.in", doj: "2021-07-15" },
-    { id: "FAC-03", first_name: "Mr. Rajesh", last_name: "Verma", designation: "Computer Science & AI HOD", department: "Technology", universal_id: "FAC-VET-003", employee_id: "FAC-VET-003", phone_number: "+91 98111 44556", email: "r.verma@schooldomain.edu.in", doj: "2023-01-10" },
-    { id: "FAC-04", first_name: "Ms. Sunita", last_name: "Chopra", designation: "English Literature TGT", department: "Languages", universal_id: "FAC-VET-004", employee_id: "FAC-VET-004", phone_number: "+91 98111 55667", email: "s.chopra@schooldomain.edu.in", doj: "2020-09-01" },
-    { id: "FAC-05", first_name: "Mr. Anil", last_name: "Kumble", designation: "Physical Education Director", department: "Sports", universal_id: "FAC-VET-005", employee_id: "FAC-VET-005", phone_number: "+91 98111 66778", email: "a.kumble@schooldomain.edu.in", doj: "2019-06-20" },
-    { id: "FAC-06", first_name: "Dr. Pratibha", last_name: "Nair", designation: "Biology & Biotechnology HOD", department: "Science", universal_id: "FAC-VET-006", employee_id: "FAC-VET-006", phone_number: "+91 98111 77889", email: "p.nair@schooldomain.edu.in", doj: "2022-11-05" },
-    { id: "FAC-07", first_name: "Mrs. Anjali", last_name: "Deshmukh", designation: "Social Sciences PGT", department: "Humanities", universal_id: "FAC-VET-007", employee_id: "FAC-VET-007", phone_number: "+91 98111 88990", email: "a.deshmukh@schooldomain.edu.in", doj: "2021-03-12" },
-    { id: "FAC-08", first_name: "Mr. Suresh", last_name: "Menon", designation: "Senior Librarian & Archival", department: "Library", universal_id: "FAC-VET-008", employee_id: "FAC-VET-008", phone_number: "+91 98111 99001", email: "s.menon@schooldomain.edu.in", doj: "2018-08-14" },
+    { id: "FAC-01", first_name: "Senior Faculty", last_name: "Assessor", designation: "Head of Science & Physics", department: "Science", universal_id: "FAC-001", employee_id: "FAC-001", phone_number: "", email: "faculty@schooldomain.edu.in", doj: "" },
+    { id: "FAC-02", first_name: "Senior Educator", last_name: "Mathematics", designation: "Senior Mathematics PGT", department: "Mathematics", universal_id: "FAC-002", employee_id: "FAC-002", phone_number: "", email: "maths@schooldomain.edu.in", doj: "" },
+    { id: "FAC-03", first_name: "Faculty Member", last_name: "Technology", designation: "Computer Science & AI HOD", department: "Technology", universal_id: "FAC-003", employee_id: "FAC-003", phone_number: "", email: "cs@schooldomain.edu.in", doj: "" },
+    { id: "FAC-04", first_name: "Educator", last_name: "Languages", designation: "English Literature TGT", department: "Languages", universal_id: "FAC-004", employee_id: "FAC-004", phone_number: "", email: "languages@schooldomain.edu.in", doj: "" },
   ];
 
   const previewFaculty = sampleFacultyList[0];
@@ -126,33 +122,33 @@ export default function VisualIDCardStudioPage() {
     if (cards.length > 0) {
       const c = cards[0];
       return {
-        first_name: c.studentName?.split(" ")[0] || "AARAV",
-        last_name: c.studentName?.split(" ").slice(1).join(" ") || "SHARMA",
+        first_name: c.studentName?.split(" ")[0] || "STUDENT",
+        last_name: c.studentName?.split(" ").slice(1).join(" ") || "NAME",
         class_name: c.className || selectedClass,
         section_name: c.sectionName || "A",
-        admission_number: c.admissionNo || "CBS/2026/0412",
+        admission_number: c.admissionNo || "ADM/2026/0001",
         blood_group: c.bloodGroup || "O+",
-        dob: "15 May 2015",
-        emergency_contact: c.emergencyPhone || "+91 98111 02008",
-        father_name: c.fatherName || "Rajesh Sharma",
-        mother_name: "Sunita Sharma",
-        address: "B-402, Royal Residency,\nBurari, Delhi - 110084",
-        bus_route_no: c.busRoute || "Route 04 (Burari)",
+        dob: c.dob || "01 Jan 2018",
+        emergency_contact: c.emergencyPhone || "",
+        father_name: c.fatherName || "Primary Guardian",
+        mother_name: c.motherName || "Secondary Guardian",
+        address: c.address || "Campus Residence Area, Delhi NCR",
+        bus_route_no: c.busRoute || "Self / Private Transit",
         valid_upto: "31 Mar 2027",
         school_code: instCode,
       };
     }
     return {
-      first_name: "AARAV",
-      last_name: "SHARMA",
+      first_name: "STUDENT",
+      last_name: "FULL NAME",
       class_name: selectedClass,
-      admission_number: "CBS/2026/0412",
+      admission_number: "ADM/2026/XXXX",
       blood_group: "O+",
-      dob: "15 May 2015",
-      father_name: "Rajesh Sharma",
-      mother_name: "Sunita Sharma",
-      address: "B-402, Royal Residency,\nBurari, Delhi - 110084",
-      bus_route_no: "Route 04 (Burari)",
+      dob: "01 Jan 2018",
+      father_name: "Primary Guardian",
+      mother_name: "Secondary Guardian",
+      address: "Campus Residence Area, Delhi NCR",
+      bus_route_no: "Self / Private Transit",
       valid_upto: "31 Mar 2027",
       school_code: instCode,
     };
@@ -163,29 +159,29 @@ export default function VisualIDCardStudioPage() {
     return [
       {
         id: "ESC-01",
-        name: "Mr. Rajesh Sharma",
+        name: "Primary Guardian",
         relationship: "Father",
-        phone: "+91 98111 02008",
-        id_proof: "Aadhaar Card",
-        id_no: "XXXX-XXXX-4102",
+        phone: "",
+        id_proof: "Government ID",
+        id_no: "XXXX-XXXX-XXXX",
         photo_url: ""
       },
       {
         id: "ESC-02",
-        name: "Mrs. Sunita Sharma",
+        name: "Secondary Guardian",
         relationship: "Mother",
-        phone: "+91 98111 02009",
-        id_proof: "Aadhaar Card",
-        id_no: "XXXX-XXXX-5519",
+        phone: "",
+        id_proof: "Government ID",
+        id_no: "XXXX-XXXX-XXXX",
         photo_url: ""
       },
       {
         id: "ESC-03",
-        name: "Mr. Rameshwar Dayal",
-        relationship: "Grandfather",
-        phone: "+91 98111 02010",
-        id_proof: "Voter ID Card",
-        id_no: "DL/04/012984",
+        name: "Authorized Family Escort",
+        relationship: "Guardian Escort",
+        phone: "",
+        id_proof: "Government ID",
+        id_no: "XXXX-XXXX-XXXX",
         photo_url: ""
       }
     ];

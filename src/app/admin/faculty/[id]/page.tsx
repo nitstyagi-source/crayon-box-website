@@ -627,19 +627,19 @@ export default function FacultyProfile360Page() {
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-blue-50/60 border border-blue-100">
                 <span className="font-bold text-blue-900">Casual Leave (CL)</span>
-                <span className="font-black text-blue-700 text-sm">{leaveBalance.casual_leave_balance ?? 10} Days</span>
+                <span className="font-black text-blue-700 text-sm">{leaveBalance.casual_leave_balance ?? 0} Days</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
                 <span className="font-bold text-emerald-900">Medical Leave (ML)</span>
-                <span className="font-black text-emerald-700 text-sm">{leaveBalance.medical_leave_balance ?? 8} Days</span>
+                <span className="font-black text-emerald-700 text-sm">{leaveBalance.medical_leave_balance ?? 0} Days</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-purple-50/60 border border-purple-100">
                 <span className="font-bold text-purple-900">Earned Leave (EL)</span>
-                <span className="font-black text-purple-700 text-sm">{leaveBalance.earned_leave_balance ?? 15} Days</span>
+                <span className="font-black text-purple-700 text-sm">{leaveBalance.earned_leave_balance ?? 0} Days</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-amber-50/60 border border-amber-100">
                 <span className="font-bold text-amber-900">Emergency Leave</span>
-                <span className="font-black text-amber-700 text-sm">{leaveBalance.emergency_leave_balance ?? 3} Days</span>
+                <span className="font-black text-amber-700 text-sm">{leaveBalance.emergency_leave_balance ?? 0} Days</span>
               </div>
             </div>
           </div>

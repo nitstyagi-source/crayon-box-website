@@ -46,16 +46,10 @@ export async function createApprovalRequestAction(payload: ApprovalRequestPayloa
       .single();
 
     if (error) {
-      console.error('Error creating approval request in DB, returning simulated success:', error);
+      console.error('Error creating approval request in DB:', error);
       return {
-        success: true,
-        data: {
-          id: 'appr-' + Date.now(),
-          ...payload,
-          status: 'PENDING',
-          created_at: new Date().toISOString(),
-        },
-        message: 'Approval request submitted to Executive Review Queue.',
+        success: false,
+        error: error.message,
       };
     }
 
@@ -100,73 +94,24 @@ export async function getApprovalRequestsAction(filters?: {
 
     const { data, error } = await query;
 
-    if (error || !data || data.length === 0) {
-      // Return high-quality initial pending mock records for demo & offline
-      const mockApprovals = [
-        {
-          id: 'appr-001',
-          institution_code: filters?.institutionCode || 'CBS',
-          request_type: 'FEE_CONCESSION',
-          title: 'Sibling Fee Concession Request (25% Waiver)',
-          description: 'Parent requested 25% sibling concession for Aarav Tyagi (Elder sibling in Grade 8).',
-          entity_type: 'STUDENT',
-          entity_id: 'STU-001092',
-          entity_name: 'Aarav Tyagi (Class 4-A)',
-          requested_by_name: 'Mrs. Pooja Sharma (Accounts)',
-          requested_by_role: 'ACCOUNTS_MANAGER',
-          status: 'PENDING',
-          priority: 'HIGH',
-          diff_payload: { originalFee: 25000, proposedFee: 18750, discountPct: 25 },
-          created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-        },
-        {
-          id: 'appr-002',
-          institution_code: filters?.institutionCode || 'CBS',
-          request_type: 'STUDENT_PROFILE_CHANGE',
-          title: 'Date of Birth & Blood Group Correction',
-          description: 'Aadhaar card evidence provided by guardian to correct DOB from 2014-05-15 to 2014-05-18.',
-          entity_type: 'STUDENT',
-          entity_id: 'STU-001092',
-          entity_name: 'Aarav Tyagi',
-          requested_by_name: 'Mr. Arvind Gupta (Registrar)',
-          requested_by_role: 'REGISTRAR',
-          status: 'PENDING',
-          priority: 'MEDIUM',
-          diff_payload: { field: 'dob', oldValue: '2014-05-15', newValue: '2014-05-18' },
-          created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        },
-        {
-          id: 'appr-003',
-          institution_code: filters?.institutionCode || 'CBS',
-          request_type: 'FEE_REFUND',
-          title: 'Security Deposit Refund on TC Clearance',
-          description: 'Student relocated out of NCR. All dues cleared and library books returned.',
-          entity_type: 'INVOICE',
-          entity_id: 'REF-2026-0081',
-          entity_name: 'Kabir Verma (Class 9-B)',
-          requested_by_name: 'Mrs. Ananya Roy (Cashier)',
-          requested_by_role: 'CASHIER',
-          status: 'PENDING',
-          priority: 'URGENT',
-          diff_payload: { refundAmount: 15000, clearanceStatus: 'ALL_VERIFIED' },
-          created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-        },
-      ];
-
+    if (error) {
+      console.error('Error querying approval requests:', error);
       return {
-        success: true,
-        data: mockApprovals,
+        success: false,
+        error: error.message,
+        data: []
       };
     }
 
     return {
       success: true,
-      data,
+      data: data || [],
     };
   } catch (err: any) {
     return {
       success: false,
       error: err?.message || 'Failed to fetch approval requests.',
+      data: []
     };
   }
 }

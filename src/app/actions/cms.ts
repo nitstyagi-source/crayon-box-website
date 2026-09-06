@@ -5,9 +5,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 // We use a vanilla Supabase client here because we are fetching public CMS data.
-// Using the SSR client with cookies() inside unstable_cache() throws dynamic server usage errors.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
 
 export async function getPageContent(slug: string) {

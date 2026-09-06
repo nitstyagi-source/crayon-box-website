@@ -137,10 +137,15 @@ export async function processInvoiceOnlinePayment(invoiceId: string, paymentMeth
     revalidatePath('/pay-fees');
     revalidatePath('/parent/fees');
 
+    const { count: ledgerCount } = await supabase
+      .from('student_fee_ledgers')
+      .select('*', { count: 'exact', head: true });
+    const receiptSeq = ((ledgerCount || 0) + 1).toString().padStart(5, '0');
+
     return {
       success: true,
       transactionId: txnId,
-      receiptNumber: `REC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+      receiptNumber: `REC-${new Date().getFullYear()}-${receiptSeq}`,
       amountPaid: totalAmount,
       invoiceNumber: invoice.invoice_number,
       paidAt: new Date().toISOString()

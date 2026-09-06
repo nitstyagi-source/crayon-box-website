@@ -36,98 +36,109 @@ export interface ChatMessage {
   is_read: boolean;
 }
 
-const DEFAULT_THREADS: ChatThread[] = [
-  {
-    id: 'thread-01',
-    student_id: 'stu-01',
-    student_name: 'Aarav Sharma',
-    grade_section: 'Class 5-A',
-    teacher_name: 'Dr. Sunita Rao (Class Teacher)',
-    parent_name: 'Rajesh Sharma (Father)',
-    parent_phone: '+91 98112 34567',
-    quiet_hours_enabled: true,
-    last_message_text: 'Thank you maam, Aarav will submit the Science fair model tomorrow morning.',
-    last_message_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
-    unread_count: 1
-  },
-  {
-    id: 'thread-02',
-    student_id: 'stu-02',
-    student_name: 'Ananya Verma',
-    grade_section: 'Class 3-B',
-    teacher_name: 'Pooja Aggarwal (Class Teacher)',
-    parent_name: 'Vikram Verma (Father)',
-    parent_phone: '+91 98112 99887',
-    quiet_hours_enabled: true,
-    last_message_text: 'Please note that Ananya has a mild cold and will not participate in swimming today.',
-    last_message_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    unread_count: 0
-  },
-  {
-    id: 'thread-03',
-    student_id: 'stu-03',
-    student_name: 'Vihaan Tyagi',
-    grade_section: 'Class 8-A',
-    teacher_name: 'Manish Tyagi (Math Faculty)',
-    parent_name: 'Nitin Tyagi (Father)',
-    parent_phone: '+91 99990 12345',
-    quiet_hours_enabled: true,
-    last_message_text: 'Sir, could you share the reference worksheet for quadratic equations?',
-    last_message_at: new Date(Date.now() - 1000 * 3600 * 5).toISOString(),
-    unread_count: 0
-  }
-];
+import pg from 'pg';
 
-const INITIAL_MESSAGES: Record<string, ChatMessage[]> = {
-  'thread-01': [
-    {
-      id: 'msg-1',
-      thread_id: 'thread-01',
-      sender_role: 'TEACHER',
-      sender_name: 'Dr. Sunita Rao',
-      content: 'Dear Mr. Sharma, Aarav did exceptionally well in today\'s robotics lab demonstration.',
-      translated_content: 'प्रिय श्री शर्मा, आरव ने आज की रोबोटिक्स लैब प्रदर्शन में असाधारण प्रदर्शन किया।',
-      created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      is_read: true
-    },
-    {
-      id: 'msg-2',
-      thread_id: 'thread-01',
-      sender_role: 'PARENT',
-      sender_name: 'Rajesh Sharma',
-      content: 'Thank you ma\'am, Aarav will submit the Science fair model tomorrow morning.',
-      translated_content: 'धन्यवाद मैम, आरव कल सुबह विज्ञान मेले का मॉडल जमा करेगा।',
-      created_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
-      is_read: true
-    }
-  ]
-};
+let globalPool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
+}
 
 export async function getChatThreadsAction(): Promise<{ success: boolean; threads: ChatThread[]; error?: string }> {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    return { success: true, threads: DEFAULT_THREADS };
+    const res = await client.query(`
+      SELECT 
+        s.id as student_id,
+        s.first_name || ' ' || s.last_name as student_name,
+        COALESCE(c.grade, 'Class 1') as grade_section,
+        COALESCE(s.parent_phone, s.father_mobile, s.emergency_contact, 'Not Provided') as parent_phone,
+        COALESCE(s.father_name, 'Parent') as parent_name,
+        'Class Teacher' as teacher_name
+      FROM public.students s
+      LEFT JOIN public.classes c ON c.id = s.class_id
+      WHERE s.status = 'ACTIVE'
+      ORDER BY s.first_name ASC
+      LIMIT 15;
+    `);
+
+    const threads: ChatThread[] = await Promise.all(res.rows.map(async (row: any) => {
+      const threadId = `thread-${row.student_id}`;
+      // Fetch latest message from database
+      const msgRes = await client.query(`
+        SELECT content, created_at, is_read
+        FROM public.parent_chat_messages
+        WHERE thread_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1;
+      `, [threadId]);
+
+      const lastMsg = msgRes.rows[0];
+
+      return {
+        id: threadId,
+        student_id: row.student_id,
+        student_name: row.student_name,
+        grade_section: row.grade_section,
+        teacher_name: row.teacher_name,
+        parent_name: `${row.parent_name} (Guardian)`,
+        parent_phone: row.parent_phone,
+        quiet_hours_enabled: true,
+        last_message_text: lastMsg ? lastMsg.content : 'Academic progress discussion initiated.',
+        last_message_at: lastMsg ? lastMsg.created_at : new Date().toISOString(),
+        unread_count: lastMsg && !lastMsg.is_read ? 1 : 0
+      };
+    }));
+
+    return { success: true, threads };
   } catch (err: any) {
     return { success: false, threads: [], error: err.message };
+  } finally {
+    client.release();
   }
 }
 
 export async function getThreadMessagesAction(threadId: string): Promise<{ success: boolean; messages: ChatMessage[]; error?: string }> {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const list = INITIAL_MESSAGES[threadId] || [
-      {
-        id: `msg-auto-${Date.now()}`,
-        thread_id: threadId,
-        sender_role: 'TEACHER',
-        sender_name: 'Class Teacher',
-        content: 'Good day! How can I assist you with your child\'s academic progress today?',
-        translated_content: 'नमस्ते! आज आपके बच्चे की शैक्षणिक प्रगति में मैं आपकी क्या सहायता कर सकता हूँ?',
-        created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        is_read: true
-      }
-    ];
+    const res = await client.query(`
+      SELECT id, thread_id, sender_role, sender_name, content, translated_content, created_at, is_read
+      FROM public.parent_chat_messages
+      WHERE thread_id = $1
+      ORDER BY created_at ASC;
+    `, [threadId]);
+
+    let list: ChatMessage[] = res.rows;
+    if (list.length === 0) {
+      list = [
+        {
+          id: `msg-welcome-${Date.now()}`,
+          thread_id: threadId,
+          sender_role: 'TEACHER',
+          sender_name: 'Class Teacher',
+          content: 'Good day! How can I assist you with your child\'s academic progress today?',
+          translated_content: 'नमस्ते! आज आपके बच्चे की शैक्षणिक प्रगति में मैं आपकी क्या सहायता कर सकता हूँ?',
+          created_at: new Date().toISOString(),
+          is_read: true
+        }
+      ];
+    }
     return { success: true, messages: list };
   } catch (err: any) {
     return { success: false, messages: [], error: err.message };
+  } finally {
+    client.release();
   }
 }
 
@@ -137,36 +148,29 @@ export async function sendChatMessageAction(payload: {
   senderName: string;
   content: string;
 }): Promise<{ success: boolean; message?: ChatMessage; error?: string }> {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    // Basic bilingual translation helper
-    const isEnglish = /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(payload.content);
-    const mockTranslation = isEnglish
-      ? `[अनुवादित]: ${payload.content}`
-      : `[Translated]: ${payload.content}`;
+    // Only set translated_content if actual multilingual translation exists
+    const res = await client.query(`
+      INSERT INTO public.parent_chat_messages (
+        thread_id, sender_role, sender_name, content, translated_content, is_read, created_at
+      ) VALUES ($1, $2, $3, $4, NULL, false, NOW())
+      RETURNING id, thread_id, sender_role, sender_name, content, translated_content, created_at, is_read;
+    `, [payload.threadId, payload.senderRole, payload.senderName, payload.content]);
 
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      thread_id: payload.threadId,
-      sender_role: payload.senderRole,
-      sender_name: payload.senderName,
-      content: payload.content,
-      translated_content: mockTranslation,
-      created_at: new Date().toISOString(),
-      is_read: false
-    };
-
-    if (!INITIAL_MESSAGES[payload.threadId]) {
-      INITIAL_MESSAGES[payload.threadId] = [];
-    }
-    INITIAL_MESSAGES[payload.threadId].push(newMsg);
+    const newMsg: ChatMessage = res.rows[0];
 
     try {
       revalidatePath('/admin/communications');
+      revalidatePath('/admin/parent-care');
     } catch (_) {}
 
     return { success: true, message: newMsg };
   } catch (err: any) {
     return { success: false, error: err.message };
+  } finally {
+    client.release();
   }
 }
 

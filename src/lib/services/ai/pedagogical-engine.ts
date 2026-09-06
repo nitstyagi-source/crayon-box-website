@@ -1,13 +1,11 @@
 import { callGemini } from './gemini-client';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -120,7 +118,7 @@ Distribute the ${totalMarks} marks logically across:
 
 CRITICAL: Return ONLY valid, parseable JSON matching this schema:
 {
-  "title": "${className} ${subject} ${examTerm} (Session 2026-2027)",
+  "title": "${className} ${subject} ${examTerm} (Session ${new Date().getFullYear()}-${new Date().getFullYear() + 1})",
   "className": "${className}",
   "subjectName": "${subject}",
   "examTerm": "${examTerm}",

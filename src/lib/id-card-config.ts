@@ -510,7 +510,7 @@ export const DEFAULT_ESCORT_ID_CARD_CONFIG: EscortIdCardCustomConfig = {
 
   frontCardTitle: 'CHILD ESCORT CARD',
   academicYearLabel: 'ACADEMIC YEAR',
-  academicYear: '2026 – 2027',
+  academicYear: `${new Date().getFullYear()} – ${new Date().getFullYear() + 1}`,
   showAcademicYear: true,
 
   showClass: true,

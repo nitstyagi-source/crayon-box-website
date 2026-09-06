@@ -91,14 +91,14 @@ function LibraryManagementContent() {
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState("");
   const [newBookAuthor, setNewBookAuthor] = useState("");
-  const [newBookPublisher, setNewBookPublisher] = useState("NCERT / National Book Trust");
+  const [newBookPublisher, setNewBookPublisher] = useState("");
   const [newBookIsbn, setNewBookIsbn] = useState("");
-  const [newBookCategory, setNewBookCategory] = useState("Science");
+  const [newBookCategory, setNewBookCategory] = useState("General");
   const [newBookLanguage, setNewBookLanguage] = useState("English");
-  const [newBookGrade, setNewBookGrade] = useState("Grade 3-8");
-  const [newBookRack, setNewBookRack] = useState("Rack S-02, Shelf 3");
-  const [newBookPrice, setNewBookPrice] = useState(450);
-  const [newBookCopies, setNewBookCopies] = useState(5);
+  const [newBookGrade, setNewBookGrade] = useState("");
+  const [newBookRack, setNewBookRack] = useState("");
+  const [newBookPrice, setNewBookPrice] = useState(0);
+  const [newBookCopies, setNewBookCopies] = useState(1);
   const [newBookDesc, setNewBookDesc] = useState("");
 
   // Barcode Labels Print State
@@ -151,8 +151,13 @@ function LibraryManagementContent() {
       return;
     }
 
-    const studentName = selectedStudentObj?.name || "Aarav Sharma";
-    const className = selectedStudentObj?.full_class || "Grade 5-A";
+    if (!selectedStudentObj) {
+      alert("Please select an enrolled borrower (Student or Faculty) from the list.");
+      return;
+    }
+
+    const studentName = selectedStudentObj.name;
+    const className = selectedStudentObj.full_class || "General";
 
     setIsSubmitting(true);
     try {
@@ -160,7 +165,7 @@ function LibraryManagementContent() {
         institutionCode: currentInstitution,
         bookId: selectedBookForIssue?.id,
         accessionNumber: accessionScanInput.trim(),
-        studentId: selectedStudentObj?.id,
+        studentId: selectedStudentObj.id,
         studentName,
         className,
         loanDays
@@ -727,7 +732,7 @@ function LibraryManagementContent() {
                           <span className="text-[10px] text-slate-500 font-semibold">{tx.class_name}</span>
                           <div className="flex items-center gap-1 text-[10px] text-indigo-600 mt-0.5">
                             <Phone className="w-3 h-3" />
-                            <span>{tx.parent_phone || "+91 98765 43210"}</span>
+                            <span>{tx.parent_phone || "Not Provided"}</span>
                           </div>
                         </td>
 
@@ -886,43 +891,55 @@ function LibraryManagementContent() {
 
       {/* 🌟 TAB 5: INTERACTIVE STACKS & RACK LAYOUT */}
       {activeTab === "shelves" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { name: "Rack S-01 (Science & Tech)", color: "border-indigo-200 bg-indigo-50/40 text-indigo-900", icon: "🔬", count: 8, books: ["Science Encyclopedia", "Physics for Primary", "Robotics Made Simple"] },
-            { name: "Rack F-04 (Fiction & Stories)", color: "border-amber-200 bg-amber-50/40 text-amber-900", icon: "📖", count: 12, books: ["Malgudi Days", "Panchatantra Tales", "Famous Five"] },
-            { name: "Rack R-01 (Reference & Lexicon)", color: "border-emerald-200 bg-emerald-50/40 text-emerald-900", icon: "📚", count: 8, books: ["Oxford Primary English Dictionary", "World Atlas", "Britannica Junior"] },
-            { name: "Rack M-02 (Mathematics & Logic)", color: "border-purple-200 bg-purple-50/40 text-purple-900", icon: "📐", count: 5, books: ["Vedic Mathematics", "Puzzles and Paradoxes", "Mental Math Grade 5"] }
-          ].map((rack) => (
-            <div
-              key={rack.name}
-              className={`p-5 rounded-3xl border shadow-xs space-y-3 flex flex-col justify-between ${rack.color}`}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">{rack.icon}</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-white/80 border border-current shadow-2xs">
-                    {rack.count} Books
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-slate-900 text-sm mt-2">{rack.name}</h3>
+        books.length === 0 ? (
+          <div className="p-12 text-center bg-white rounded-3xl border border-stone-200 text-xs text-stone-500 space-y-2">
+            <Library className="w-8 h-8 text-stone-400 mx-auto" />
+            <div className="font-bold text-stone-800 text-sm">No Library Books Shelved</div>
+            <p className="text-stone-400">Add titles to the accession register or catalog to map physical shelf stacks.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { name: "Rack S-01 (Science & Tech)", color: "border-indigo-200 bg-indigo-50/40 text-indigo-900", icon: "🔬", count: books.filter(b => b.category === 'Science').length, books: books.filter(b => b.category === 'Science').map(b => b.title).slice(0, 3) },
+              { name: "Rack F-04 (Fiction & Stories)", color: "border-amber-200 bg-amber-50/40 text-amber-900", icon: "📖", count: books.filter(b => b.category === 'Fiction').length, books: books.filter(b => b.category === 'Fiction').map(b => b.title).slice(0, 3) },
+              { name: "Rack R-01 (Reference & Lexicon)", color: "border-emerald-200 bg-emerald-50/40 text-emerald-900", icon: "📚", count: books.filter(b => b.category === 'Reference').length, books: books.filter(b => b.category === 'Reference').map(b => b.title).slice(0, 3) },
+              { name: "Rack M-02 (Mathematics & Logic)", color: "border-purple-200 bg-purple-50/40 text-purple-900", icon: "📐", count: books.filter(b => b.category === 'Mathematics').length, books: books.filter(b => b.category === 'Mathematics').map(b => b.title).slice(0, 3) }
+            ].map((rack) => (
+              <div
+                key={rack.name}
+                className={`p-5 rounded-3xl border shadow-xs space-y-3 flex flex-col justify-between ${rack.color}`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{rack.icon}</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-white/80 border border-current shadow-2xs">
+                      {rack.count} Books
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-slate-900 text-sm mt-2">{rack.name}</h3>
 
-                <div className="mt-3 space-y-1.5 text-xs text-slate-700">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Shelved Titles:</span>
-                  {rack.books.map((b, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 text-[11px] truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      <span className="truncate">{b}</span>
-                    </div>
-                  ))}
+                  <div className="mt-3 space-y-1.5 text-xs text-slate-700">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Shelved Titles:</span>
+                    {rack.books.length > 0 ? (
+                      rack.books.map((b, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 text-[11px] truncate">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          <span className="truncate">{b}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">No books in this rack yet</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 text-right">
+                  <span className="text-[10px] font-mono font-bold text-slate-600">Main Campus Stacks</span>
                 </div>
               </div>
-
-              <div className="pt-2 border-t border-slate-200/60 text-right">
-                <span className="text-[10px] font-mono font-bold text-slate-600">Main Campus Stacks</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
 
       {/* 🌟 1. ISSUE BOOK MODAL */}
@@ -1169,6 +1186,7 @@ function LibraryManagementContent() {
                     type="text"
                     value={newBookPublisher}
                     onChange={(e) => setNewBookPublisher(e.target.value)}
+                    placeholder="e.g. NCERT, Oxford Press"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900"
                   />
                 </div>
@@ -1233,6 +1251,7 @@ function LibraryManagementContent() {
                     type="text"
                     value={newBookRack}
                     onChange={(e) => setNewBookRack(e.target.value)}
+                    placeholder="e.g. Rack S-02, Shelf 3"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900"
                     required
                   />

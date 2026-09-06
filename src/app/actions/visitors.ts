@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -153,7 +153,9 @@ export async function createNewGatePass(payload: {
       };
     }
 
-    const passNumber = `VIS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const { count: passCount } = await supabase.from("school_gate_passes").select("*", { count: "exact", head: true });
+    const nextPassSeq = ((passCount || 0) + 1).toString().padStart(4, '0');
+    const passNumber = `VIS-2026-${nextPassSeq}`;
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

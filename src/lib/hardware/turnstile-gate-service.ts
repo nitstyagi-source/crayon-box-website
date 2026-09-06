@@ -31,11 +31,13 @@ export function parseWiegandCardHex(hexString: string): { facilityCode: number; 
 }
 
 export function validateGateAccess(payload: GateCredentialPayload): GateAccessValidationResult {
-  // Demo resolution based on hex tag
-  const isStudent = !payload.rfidTagHex.endsWith('F');
+  const { cardNumber, facilityCode } = parseWiegandCardHex(payload.rfidTagHex);
+  const isStudent = !payload.rfidTagHex.toUpperCase().endsWith('F');
 
-  const userId = isStudent ? 'CBS-2024-0018' : 'STAFF-DIR-01';
-  const userName = isStudent ? 'Ananya Verma (Class 10-A)' : 'Dr. Sunita Rao (Academic Coordinator)';
+  const userId = `CARD-${facilityCode}-${cardNumber.toString().padStart(5, '0')}`;
+  const userName = isStudent 
+    ? `Student Badge Holder (Card #${cardNumber})` 
+    : `Faculty / Staff Badge Holder (Card #${cardNumber})`;
   const userType = isStudent ? 'STUDENT' : 'STAFF';
 
   // Anti-passback check: verify sequential IN -> OUT state

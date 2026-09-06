@@ -39,44 +39,58 @@ export interface OmrGradingResult {
   answers: Record<number, { marked: string; correct: string; isCorrect: boolean }>;
 }
 
-const DEFAULT_ANSWER_KEYS: OmrAnswerKey[] = [
-  {
-    id: 'key-sci-pt1',
-    title: 'Class 10 Science - Periodic Test 1 (MCQ Section)',
-    subject: 'Science',
-    grade: 'Class 10',
-    total_questions: 20,
-    marks_per_question: 1,
-    negative_marking: 0,
-    keys: {
-      1: 'B', 2: 'A', 3: 'C', 4: 'D', 5: 'A',
-      6: 'C', 7: 'B', 8: 'B', 9: 'D', 10: 'A',
-      11: 'C', 12: 'D', 13: 'A', 14: 'B', 15: 'C',
-      16: 'B', 17: 'A', 18: 'D', 19: 'C', 20: 'B'
-    },
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'key-math-term1',
-    title: 'Class 8 Mathematics - Term 1 Objective Foundation',
-    subject: 'Mathematics',
-    grade: 'Class 8',
-    total_questions: 20,
-    marks_per_question: 1,
-    negative_marking: 0,
-    keys: {
-      1: 'A', 2: 'B', 3: 'D', 4: 'C', 5: 'B',
-      6: 'A', 7: 'C', 8: 'D', 9: 'A', 10: 'B',
-      11: 'D', 12: 'C', 13: 'B', 14: 'A', 15: 'C',
-      16: 'D', 17: 'B', 18: 'A', 19: 'C', 20: 'D'
-    },
-    created_at: new Date().toISOString()
-  }
-];
-
 export async function getOmrAnswerKeysAction() {
   try {
-    return { success: true, answerKeys: DEFAULT_ANSWER_KEYS };
+    const supabase = getSupabaseAdmin();
+    const { data: papers, error } = await supabase
+      .from('question_papers')
+      .select('id, title, subject_name, class_name, total_marks, solution_key_data, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error || !papers || papers.length === 0) {
+      return { success: true, answerKeys: [] };
+    }
+
+    const answerKeys: OmrAnswerKey[] = [];
+
+    for (const p of papers) {
+      const keysRecord: Record<number, string> = {};
+      let totalQ = 0;
+
+      if (Array.isArray(p.solution_key_data)) {
+        for (const sec of p.solution_key_data) {
+          if (Array.isArray(sec.solutions)) {
+            for (const sol of sec.solutions) {
+              const qNum = Number(sol.qNum) || ++totalQ;
+              // Extract option letter like "(b)" or "b" or "B"
+              const match = String(sol.answer).match(/\(([a-dA-D])\)/i) || String(sol.answer).match(/^([a-dA-D])\b/i);
+              if (match) {
+                keysRecord[qNum] = match[1].toUpperCase();
+              } else {
+                keysRecord[qNum] = 'A'; // fallback key option
+              }
+              if (qNum > totalQ) totalQ = qNum;
+            }
+          }
+        }
+      }
+
+      if (Object.keys(keysRecord).length > 0) {
+        answerKeys.push({
+          id: p.id,
+          title: p.title || 'Assessment',
+          subject: p.subject_name || 'General',
+          grade: p.class_name || 'Standard',
+          total_questions: totalQ || 20,
+          marks_per_question: 1,
+          negative_marking: 0,
+          keys: keysRecord,
+          created_at: p.created_at || new Date().toISOString()
+        });
+      }
+    }
+
+    return { success: true, answerKeys };
   } catch (err: any) {
     return { success: false, error: err.message, answerKeys: [] };
   }

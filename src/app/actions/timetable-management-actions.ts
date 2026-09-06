@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -514,7 +523,7 @@ export async function saveTimetableSlotWithConflictProtectionAction(payload: {
 
     // Resolve campus ID
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campusId = campusRes.rows[0]?.id || null;
 
     if (id) {
       await client.query(`
@@ -636,7 +645,7 @@ export async function autoGenerateTimetableAction(payload: AutoGenerateTimetable
 
     // Campus ID
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campusId = campusRes.rows[0]?.id || null;
 
     // Helper: Find best faculty for subject
     const findTeacherForSubject = (subj: string, motherTeacher?: any) => {
@@ -647,8 +656,7 @@ export async function autoGenerateTimetableAction(payload: AutoGenerateTimetable
         s.subjects.toLowerCase().includes(subj.toLowerCase()) ||
         s.department.toLowerCase().includes(subj.toLowerCase())
       );
-      if (match) return { id: match.id, name: match.name, isMotherTeacher: false };
-      const fallback = staffList[Math.floor(Math.random() * staffList.length)] || { id: null, name: 'Facilitator' };
+      const fallback = staffList[0] || { id: null, name: 'Facilitator' };
       return { id: fallback.id, name: fallback.name, isMotherTeacher: false };
     };
 

@@ -4,11 +4,13 @@ import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
 const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let pool: pg.Pool | null = null;
 function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -40,14 +42,14 @@ export async function getSyllabusCompletionMetricsAction(params?: {
     `, [params?.grade ? `%${params.grade}%` : null]);
 
     const mapped = chapters.map((ch: any) => {
-      const tot = parseInt(ch.total_topics, 10) || 5;
-      const comp = parseInt(ch.completed_topics, 10) || (ch.status === 'COMPLETED' ? tot : Math.floor(tot * 0.6));
-      const pct = Math.round((comp / tot) * 100);
+      const tot = parseInt(ch.total_topics, 10) || 0;
+      const comp = parseInt(ch.completed_topics, 10) || (ch.status === 'COMPLETED' ? tot : 0);
+      const pct = tot > 0 ? Math.round((comp / tot) * 100) : (ch.status === 'COMPLETED' ? 100 : 0);
       return {
         id: ch.id,
         chapterNumber: ch.chapter_number,
         title: ch.title,
-        gradeLevel: ch.grade_level || 'Grade 5',
+        gradeLevel: ch.grade_level || 'Standard',
         totalTopics: tot,
         completedTopics: comp,
         completionPercentage: Math.min(pct, 100),
@@ -59,7 +61,7 @@ export async function getSyllabusCompletionMetricsAction(params?: {
     const completedChapters = mapped.filter((m: any) => m.completionPercentage >= 100).length;
     const overallPercentage = totalChapters > 0
       ? Math.round(mapped.reduce((acc: number, m: any) => acc + m.completionPercentage, 0) / totalChapters)
-      : 74;
+      : 0;
 
     return {
       success: true,
@@ -69,7 +71,7 @@ export async function getSyllabusCompletionMetricsAction(params?: {
       chapters: mapped
     };
   } catch (err: any) {
-    return { success: false, error: err.message, overallPercentage: 74, chapters: [] };
+    return { success: false, error: err.message, overallPercentage: 0, chapters: [] };
   } finally {
     client.release();
   }
@@ -89,7 +91,7 @@ export async function generateAiNarrativeReportCardAction(studentId: string, ter
         (SELECT COUNT(*) FROM public.student_attendance_records WHERE student_id = s.id) as total_days
       FROM public.students s
       LEFT JOIN public.classes c ON s.class_id = c.id
-      WHERE s.id::text = $1 OR s.admission_no = $1 OR true
+      WHERE s.id::text = $1 OR s.admission_no = $1
       LIMIT 1
     `, [studentId]);
 
@@ -98,9 +100,9 @@ export async function generateAiNarrativeReportCardAction(studentId: string, ter
     }
 
     const s = students[0];
-    const totalDays = parseInt(s.total_days, 10) || 100;
-    const presentDays = parseInt(s.present_days, 10) || 94;
-    const attendancePct = Math.round((presentDays / totalDays) * 100);
+    const totalDays = parseInt(s.total_days, 10) || 0;
+    const presentDays = parseInt(s.present_days, 10) || 0;
+    const attendancePct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
 
     // Dynamic AI synthesis of personalized CBSE report card narrative
     const strengths = [
@@ -116,10 +118,14 @@ export async function generateAiNarrativeReportCardAction(studentId: string, ter
       'focus on maintaining sustained attention during longer afternoon study periods'
     ];
 
-    const randomStrength = strengths[Math.floor(Math.random() * strengths.length)];
-    const randomGrowth = growthAreas[Math.floor(Math.random() * growthAreas.length)];
+    // Deterministic selection based on attendance percentage and student identifier
+    const metricIndex = (attendancePct + (s.first_name ? s.first_name.charCodeAt(0) : 0)) % strengths.length;
+    const growthIndex = (attendancePct < 80 ? 2 : attendancePct < 90 ? 1 : 0) % growthAreas.length;
 
-    const aiNarrativeSummary = `${s.first_name} has had an enriching and academically productive ${term}. With an attendance rate of ${attendancePct}%, ${s.first_name} ${randomStrength}. In co-scholastic domains, ${s.first_name} exhibits remarkable empathy and team spirit. For continuous growth, ${randomGrowth}. Overall, an exemplary learner demonstrating holistic potential.`;
+    const chosenStrength = strengths[metricIndex];
+    const chosenGrowth = growthAreas[growthIndex];
+
+    const aiNarrativeSummary = `${s.first_name} has had an enriching and academically productive ${term}. With an attendance rate of ${attendancePct}%, ${s.first_name} ${chosenStrength}. In co-scholastic domains, ${s.first_name} exhibits remarkable empathy and team spirit. For continuous growth, ${chosenGrowth}. Overall, an exemplary learner demonstrating holistic potential.`;
 
     return {
       success: true,

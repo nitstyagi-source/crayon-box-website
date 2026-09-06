@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate compliant LTI 1.3 OIDC Auth State & Nonce
-    const state = `lti_state_${Math.random().toString(36).substring(2, 15)}`;
-    const nonce = `lti_nonce_${Math.random().toString(36).substring(2, 15)}`;
+    const state = `lti_state_${crypto.randomUUID().replace(/-/g, '')}`;
+    const nonce = `lti_nonce_${crypto.randomUUID().replace(/-/g, '')}`;
 
     const redirectUrl = new URL(target_link_uri);
     redirectUrl.searchParams.set('state', state);
@@ -104,8 +104,8 @@ export async function GET(request: NextRequest) {
   const target_link_uri = searchParams.get('target_link_uri');
 
   if (iss && login_hint && target_link_uri) {
-    const state = `lti_state_${Math.random().toString(36).substring(2, 15)}`;
-    const nonce = `lti_nonce_${Math.random().toString(36).substring(2, 15)}`;
+    const state = `lti_state_${crypto.randomUUID().replace(/-/g, '')}`;
+    const nonce = `lti_nonce_${crypto.randomUUID().replace(/-/g, '')}`;
     const redirectUrl = new URL(target_link_uri);
     redirectUrl.searchParams.set('state', state);
     redirectUrl.searchParams.set('nonce', nonce);

@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -48,7 +46,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, subject, description, dueDate, teacherName, targetClass, periodNumber = 1, campusId = 'c3d782a9-a50b-4708-a3fc-6b146f456662' } = body;
+    const { title, subject, description, dueDate, teacherName, targetClass, periodNumber = 1, campusId: reqCampusId } = body;
+
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = reqCampusId || campRes.rows[0]?.id || null;
 
     const res = await client.query(`
       INSERT INTO public.digital_diary_entries (

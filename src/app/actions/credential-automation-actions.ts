@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -27,9 +25,13 @@ export async function generateAndDispatchStudentCredentialsAction(params: {
   const client = await p.connect();
 
   try {
-    const randomSeq = Math.floor(1000 + Math.random() * 9000);
-    const admissionNo = `ADM-2026-${randomSeq}`;
-    const initialPassword = `Crayon@${randomSeq}`;
+    const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campusRes.rows[0]?.id || null;
+
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const admissionNo = `ADM-2026-${nextSeq}`;
+    const initialPassword = `Crayon@${nextSeq}`;
 
     const msgContent = `🎓 *Welcome to Crayon Box School! Official Portal Credentials*\n\nDear Parent, student admission and digital profile for *${params.studentName}* (${params.className}) has been activated:\n\n• *Admission ID*: ${admissionNo}\n• *Portal Username*: ${params.parentPhone}\n• *Default Password*: ${initialPassword}\n• *School Code*: CBS-DELHI\n\n📲 *Login to Parent Portal*: https://www.crayonboxschool.com/login\n\n_Please change your password upon first login._\n_Admissions Board, Crayon Box School_`;
 
@@ -37,8 +39,8 @@ export async function generateAndDispatchStudentCredentialsAction(params: {
       INSERT INTO public.whatsapp_messages (
         campus_id, student_id, student_name, parent_phone, message_type,
         template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, $2, 'WELCOME_CREDENTIALS', 'student_welcome_credentials', $3, 'DELIVERED', NOW());
-    `, [params.studentName, params.parentPhone, msgContent]);
+      ) VALUES ($1, NULL, $2, $3, 'WELCOME_CREDENTIALS', 'student_welcome_credentials', $4, 'DELIVERED', NOW());
+    `, [campusId, params.studentName, params.parentPhone, msgContent]);
 
     return {
       success: true,

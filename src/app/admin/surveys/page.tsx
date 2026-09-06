@@ -16,7 +16,8 @@ import {
   createSurveyForm,
   getSurveyDetailsWithResponses,
   updateFeedbackActionStatus,
-  getSurveyTemplates
+  getSurveyTemplates,
+  getFeedbackActionDeskItems
 } from "@/app/actions/surveys";
 
 export default function SurveysManagementPage() {
@@ -32,6 +33,7 @@ export default function SurveysManagementPage() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [forms, setForms] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [actionDeskItems, setActionDeskItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected Form for Analytics Modal
@@ -64,15 +66,17 @@ export default function SurveysManagementPage() {
   async function loadAllData() {
     setIsLoading(true);
     try {
-      const [statsRes, formsRes, tmplRes] = await Promise.all([
+      const [statsRes, formsRes, tmplRes, actionRes] = await Promise.all([
         getSurveyDashboardStats(activeCampusId),
         getSurveyFormsList({ campusId: activeCampusId }),
-        getSurveyTemplates()
+        getSurveyTemplates(),
+        getFeedbackActionDeskItems(activeCampusId)
       ]);
 
       if (statsRes.success && statsRes.data) setDashboardStats(statsRes.data);
       if (formsRes.success && formsRes.data) setForms(formsRes.data);
       if (tmplRes.success && tmplRes.data) setTemplates(tmplRes.data);
+      if (actionRes.success && actionRes.data) setActionDeskItems(actionRes.data);
     } catch (e) {
       console.error("Error loading survey data:", e);
     } finally {
@@ -524,34 +528,38 @@ export default function SurveysManagementPage() {
           </div>
 
           <div className="space-y-3">
-            {[
-              { id: "a1", name: "Rohan Mehra (Parent)", cls: "Grade 4-B", rating: 2, text: "Bus route 2 has been delayed by 15 minutes twice this week.", status: "Action Taken", notes: "Escalated to Helpdesk Ticket #TKT-2026-00458 for Transport Manager route shift." },
-              { id: "a2", name: "Rekha Gupta", cls: "Grade 3-B", rating: 4, text: "Would love more inter-house sports competitions for grade 3 students.", status: "Under Review", notes: "Forwarded to Physical Education dept." },
-              { id: "a3", name: "Nitin Tyagi", cls: "Grade 5-A", rating: 5, text: "The digital diary updates every evening are extremely helpful. Teachers are very attentive.", status: "Closed", notes: "Acknowledged and shared with faculty." }
-            ].map((item) => (
-              <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <strong className="text-stone-900 font-bold block">{item.name} ({item.cls})</strong>
-                    <span className="text-[10px] font-mono text-purple-700 font-bold">Rating: {item.rating} / 5 ★</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                    item.status === "Action Taken" ? "bg-emerald-100 text-emerald-900" :
-                    item.status === "Under Review" ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-stone-700 bg-white p-3 rounded-xl border border-stone-200/70 leading-relaxed">
-                  &ldquo;{item.text}&rdquo;
-                </p>
-
-                <div className="text-[10px] text-stone-500 font-mono">
-                  Action Note: <strong>{item.notes}</strong>
-                </div>
+            {actionDeskItems.length === 0 ? (
+              <div className="p-8 text-center bg-stone-50 rounded-2xl border border-stone-200 text-stone-500 space-y-1">
+                <MessageSquare className="w-6 h-6 mx-auto text-stone-400 mb-1" />
+                <p className="font-bold text-xs text-stone-700">No Parent Action Desk Items</p>
+                <p className="text-[11px] text-stone-400">Written suggestions and low-rating alerts submitted by parents will be tracked here for resolution.</p>
               </div>
-            ))}
+            ) : (
+              actionDeskItems.map((item) => (
+                <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <strong className="text-stone-900 font-bold block">{item.responder_name || 'Parent'} ({item.class_name || 'Enrolled'})</strong>
+                      <span className="text-[10px] font-mono text-purple-700 font-bold">Rating: {item.overall_rating || 5} / 5 ★</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                      item.action_status === "Action Taken" ? "bg-emerald-100 text-emerald-900" :
+                      item.action_status === "Under Review" ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"
+                    }`}>
+                      {item.action_status || "New"}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-stone-700 bg-white p-3 rounded-xl border border-stone-200/70 leading-relaxed">
+                    &ldquo;{item.written_feedback || (typeof item.answers === 'object' ? JSON.stringify(item.answers) : 'No written remarks.')}&rdquo;
+                  </p>
+
+                  <div className="text-[10px] text-stone-500 font-mono">
+                    Action Note: <strong>{item.action_notes || 'Pending administrative review'}</strong>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

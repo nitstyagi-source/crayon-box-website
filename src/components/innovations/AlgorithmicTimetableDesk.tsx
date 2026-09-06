@@ -39,7 +39,7 @@ export const AlgorithmicTimetableDesk: React.FC = () => {
       <VastuModuleBanner
         badgeText="Genetic Algorithm (GA) Evolutionary Engine"
         badgeIcon={<Zap className="w-3.5 h-3.5" />}
-        institutionText="Academic Session 2026–2027"
+        institutionText={`Academic Session ${new Date().getFullYear()}–${new Date().getFullYear() + 1}`}
         title="Algorithmic Master Timetable Studio"
         titleIcon={<Calendar className="w-7 h-7 text-amber-300" />}
         description="Multi-constraint evolutionary optimization eliminating teacher clashes, room bottlenecks, and balancing cognitive morning loads."

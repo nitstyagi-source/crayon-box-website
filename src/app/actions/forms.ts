@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import pg from 'pg';
 
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
 function getPool() {
-  if (!pool) pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -23,23 +24,24 @@ export async function submitAdmission(formData: FormData) {
   const firstName = nameParts[0] || "Applicant";
   const lastName = nameParts.slice(1).join(" ") || "Student";
   const grade = (formData.get("grade") as string) || "Grade 1";
-  const dob = (formData.get("dob") as string) || "2020-01-01";
+  const dob = (formData.get("dob") as string) || "";
   const parentName = (formData.get("parentName") as string) || (formData.get("parent_name") as string) || "Guardian";
-  const email = (formData.get("email") as string) || (formData.get("parent_email") as string) || "parent@example.com";
-  const phone = (formData.get("phone") as string) || (formData.get("parent_phone") as string) || "+91 98765 43210";
+  const email = (formData.get("email") as string) || (formData.get("parent_email") as string) || "";
+  const phone = (formData.get("phone") as string) || (formData.get("parent_phone") as string) || "";
   const documentUrl = (formData.get("document_url") as string) || "";
   
-  const randomDigits = Math.floor(1000 + Math.random() * 9000);
-  const trackingToken = `APP-2026-${randomDigits}`;
-
   const p = getPool();
   try {
     const client = await p.connect();
-    const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.admissions_applications;`);
+    const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+    const trackingToken = `APP-2026-${nextSeq}`;
 
-    const yearRes = await client.query(`SELECT id FROM public.academic_years LIMIT 1;`);
-    const yearId = yearRes.rows[0]?.id || '27438acf-7afd-4b12-a6c8-a059ab39b26a';
+    const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campusRes.rows[0]?.id || null;
+
+    const yearRes = await client.query(`SELECT id FROM public.academic_years ORDER BY created_at DESC LIMIT 1;`);
+    const yearId = yearRes.rows[0]?.id || null;
 
     const payloadKits = JSON.stringify({
       parent_name: parentName,
@@ -90,7 +92,9 @@ export async function submitFeePayment(formData: FormData) {
   try {
     const studentId = formData.get("studentId") as string;
     const amount = parseFloat(formData.get("amount") as string) || 0;
-    const utr = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.fee_payment_transactions;`);
+    const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+    const utr = `PAY-2026-${nextSeq}`;
 
     const { rows } = await client.query(`
       INSERT INTO public.fee_payment_transactions (
@@ -115,10 +119,12 @@ export async function submitContactEnquiry(formData: FormData) {
   try {
     const name = (formData.get("name") as string) || "Prospective Parent";
     const email = formData.get("email") as string;
-    const phone = (formData.get("phone") as string) || "+91 9811102008";
+    const phone = (formData.get("phone") as string) || "";
     const grade = (formData.get("department") as string) || "General";
     const message = (formData.get("message") as string) || "";
-    const enqNo = `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const enqCountRes = await client.query(`SELECT count(*)::int as count FROM public.enquiries;`);
+    const nextEnqSeq = String((enqCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+    const enqNo = `ENQ-2026-${nextEnqSeq}`;
 
     await client.query(`
       INSERT INTO public.enquiries (
@@ -163,8 +169,8 @@ export async function getAdmissions() {
       return res.rows.map((row: any) => {
         const kits = typeof row.co_curricular_kits === 'object' && row.co_curricular_kits !== null ? row.co_curricular_kits : {};
         const pName = kits.parent_name || 'Guardian';
-        const pEmail = kits.parent_email || 'parent@example.com';
-        const pPhone = kits.parent_phone || '+91 98765 43210';
+        const pEmail = kits.parent_email || '';
+        const pPhone = kits.parent_phone || '';
         return {
           id: row.tracking_token || row.id.substring(0, 8),
           parentName: pName,

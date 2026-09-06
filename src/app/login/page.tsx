@@ -559,7 +559,7 @@ export default function UniversalLoginPage() {
           {/* Clean Institutional Footer */}
           <div className="pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-500">
             <div>
-              Front Desk Assistance: <strong className="text-[#0B1B30] font-bold">+91 98111 02008</strong>
+              Front Desk Assistance: <Link href="/contact" className="text-[#0B1B30] font-bold hover:underline">Help &amp; Support Desk</Link>
             </div>
             <div className="text-[11px] text-stone-400">
               © 2026 Vaani Educational Trust

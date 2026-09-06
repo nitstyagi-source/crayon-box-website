@@ -96,9 +96,13 @@ export async function submitAdmissionApplication(formData: FormData) {
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-function getPool() {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-  return new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
+  return pool;
 }
 
 function safeRevalidate(path: string) {
@@ -127,7 +131,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
 
     const appRow = curApp.rows[0];
     const kits = typeof appRow.co_curricular_kits === 'object' && appRow.co_curricular_kits !== null ? appRow.co_curricular_kits : {};
-    const rawPhone = kits.parent_phone || '+91 98765 43210';
+    const rawPhone = kits.parent_phone || '';
     const cleanPhone = rawPhone.substring(0, 20);
     const parentFullName = (kits.parent_name || `${parentFirstName || ''} ${parentLastName || ''}`).trim() || 'Parent / Guardian';
     const finalParentEmail = (parentEmail || kits.parent_email || `parent_${appRow.tracking_token ? appRow.tracking_token.toLowerCase() : applicationId.slice(0, 8)}@example.com`).trim();
@@ -172,7 +176,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
           ON CONFLICT (id) DO NOTHING;
         `, [parentId, computedFirst.substring(0, 100), computedLast.substring(0, 100), cleanPhone]);
       } catch (authErr) {
-        const pRow = await client.query(`SELECT id FROM public.parents LIMIT 1;`);
+        const pRow = await client.query(`SELECT id FROM public.parents WHERE phone_number = $1 OR id = $2 LIMIT 1;`, [cleanPhone, dummyId]);
         parentId = pRow.rows[0]?.id || dummyId;
       }
     }
@@ -187,7 +191,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
       applicationId,
       appRow.student_first_name || 'Student',
       appRow.student_last_name || '',
-      appRow.date_of_birth || '2020-01-01',
+      appRow.date_of_birth || null,
       parentFullName
     ]);
 
@@ -195,9 +199,11 @@ export async function approveApplicationAndProvisionParent(applicationId: string
     let admissionNo = existingStuRes.rows[0]?.admission_no;
 
     if (!newStudentId) {
-      // Generate Official Admission Number
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      admissionNo = `ADM-2026-${randomSuffix}`;
+      // Generate Official Admission Number sequentially
+      const curYear = new Date().getFullYear();
+      const countRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
+      const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+      admissionNo = `ADM-${curYear}-${seq}`;
 
       // Create Student Master Record in public.students
       const studentRes = await client.query(`
@@ -224,7 +230,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
         admissionNo,
         appRow.student_first_name || 'Student',
         appRow.student_last_name || '',
-        appRow.date_of_birth || '2020-01-01',
+        appRow.date_of_birth || null,
         parentFullName,
         cleanPhone,
         parentEmail
@@ -232,7 +238,7 @@ export async function approveApplicationAndProvisionParent(applicationId: string
 
       newStudentId = studentRes.rows[0]?.id;
     } else {
-      // Re-activate and ensure linked
+      // Update existing student with approved application linkage
       await client.query(`
         UPDATE public.students
         SET status = 'Active', 
@@ -247,16 +253,21 @@ export async function approveApplicationAndProvisionParent(applicationId: string
 
     // 4. Create Active Student Enrollment Record
     if (newStudentId) {
+      const curYear = new Date().getFullYear();
+      const resolvedInstCode = appRow.institution_code || 'CBS';
+      const resolvedAcadSession = appRow.academic_session || `${curYear}-${curYear + 1}`;
+      const resolvedSection = appRow.section || appRow.section_name || 'A';
+
       await client.query(`
         INSERT INTO public.student_enrollments (
           student_id, campus_id, institution_code, academic_session, class_name, section_name,
           admission_number, enrollment_status, admission_date, is_current, created_at
         ) VALUES (
-          $1, $2, 'CBS', '2026-2027', $3, 'A',
-          $4, 'ACTIVE', NOW(), true, NOW()
+          $1, $2, $3, $4, $5, $6,
+          $7, 'ACTIVE', NOW(), true, NOW()
         )
         ON CONFLICT DO NOTHING;
-      `, [newStudentId, resolvedCampusId, appRow.grade_applied || 'Grade 1', admissionNo]);
+      `, [newStudentId, resolvedCampusId, resolvedInstCode, resolvedAcadSession, appRow.grade_applied || 'Grade 1', resolvedSection, admissionNo]);
 
       // 5. Link Parent in public.student_parents
       await client.query(`
@@ -286,8 +297,8 @@ export async function approveApplicationAndProvisionParent(applicationId: string
       }
 
       // 7. Activate Fee Invoicing & Ledger Entry for Instant Receipt Generation
-      const invoiceNo = `INV-2026-${(admissionNo || '').replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
-      const admissionFeeAmount = 25000;
+      const invoiceNo = `INV-${curYear}-${(admissionNo || '').replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
+      const admissionFeeAmount = Number(appRow.total_fee || 0);
 
       await client.query(`
         INSERT INTO public.student_invoices (
@@ -295,17 +306,19 @@ export async function approveApplicationAndProvisionParent(applicationId: string
           total_amount, total_discount, total_late_fee, amount_paid,
           status, due_date, class_name, section_name, student_name, admission_no, created_at
         ) VALUES (
-          $1, $2, $3, '2026-2027 (Admission & Term 1)',
-          $4, 0, 0, 0,
-          'Unpaid', NOW() + INTERVAL '15 days', $5, 'A', $6, $7, NOW()
+          $1, $2, $3, $4,
+          $5, 0, 0, 0,
+          'Unpaid', NOW() + INTERVAL '15 days', $6, $7, $8, $9, NOW()
         )
         ON CONFLICT DO NOTHING;
       `, [
         appRow.campus_id,
         newStudentId,
         invoiceNo,
+        `${resolvedAcadSession} (Admission & Term 1)`,
         admissionFeeAmount,
         appRow.grade_applied || 'Grade 1',
+        resolvedSection,
         `${appRow.student_first_name || 'Student'} ${appRow.student_last_name || ''}`.trim(),
         admissionNo
       ]);
@@ -318,9 +331,9 @@ export async function approveApplicationAndProvisionParent(applicationId: string
         ) VALUES (
           $1, $2, 'DEBIT', $3, $3,
           'New Admission & Term 1 Fee Invoice', 'Admission & Tuition', $3, 0, 'Invoice', $4,
-          '2026-2027', NOW(), NOW()
+          $5, NOW(), NOW()
         );
-      `, [appRow.campus_id, newStudentId, admissionFeeAmount, invoiceNo]);
+      `, [appRow.campus_id, newStudentId, admissionFeeAmount, invoiceNo, resolvedAcadSession]);
     }
 
     // 8. Update Application Status to Approved
@@ -377,6 +390,8 @@ export async function generateAdmissionFeeReceiptAction(payload: {
   chequeDate?: string;
   collectedBy?: string;
   remarks?: string;
+  academicSession?: string;
+  sectionName?: string;
 }) {
   const pool = getPool();
   try {
@@ -384,14 +399,13 @@ export async function generateAdmissionFeeReceiptAction(payload: {
     
     // Resolve campus
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campusId = campusRes.rows[0]?.id || null;
 
     // Calculate total due from heads or provided total
     let totalDue = Number(payload.totalAmountDue || 0);
     if (!totalDue && payload.feeHeads && payload.feeHeads.length > 0) {
       totalDue = payload.feeHeads.reduce((acc, h) => acc + Number(h.amount || 0), 0);
     }
-    if (!totalDue) totalDue = 25000;
 
     const concession = Number(payload.concessionAmount || 0);
     const lateFee = Number(payload.lateFeeAmount || 0);
@@ -401,10 +415,11 @@ export async function generateAdmissionFeeReceiptAction(payload: {
     const receiptStatus = remainingBalance === 0 ? 'Paid' : 'Partially Paid';
 
     // Generate or use custom Receipt Number
-    const randomReceiptSuffix = Math.floor(100000 + Math.random() * 900000);
+    const recCountRes = await client.query(`SELECT count(*)::int as count FROM public.fee_receipts;`);
+    const nextRecSeq = ((recCountRes.rows[0]?.count || 0) + 1).toString().padStart(6, '0');
     const receiptNo = (payload.customReceiptNo && payload.customReceiptNo.trim()) 
       ? payload.customReceiptNo.trim() 
-      : `CBS-REC-${randomReceiptSuffix}`;
+      : `CBS-REC-${nextRecSeq}`;
     const verificationQr = `https://crayonboxschool.edu.in/verify-receipt/${receiptNo}`;
     const receiptDate = payload.customReceiptDate || new Date().toISOString().split('T')[0];
 
@@ -432,7 +447,7 @@ export async function generateAdmissionFeeReceiptAction(payload: {
       payload.studentName,
       payload.className || 'Grade 1',
       payload.parentName || 'Parent / Guardian',
-      payload.parentMobile || '+91 98765 43210',
+      payload.parentMobile || '',
       totalDue,
       concession,
       lateFee,
@@ -440,7 +455,7 @@ export async function generateAdmissionFeeReceiptAction(payload: {
       remainingBalance,
       payload.paymentMode || 'UPI',
       payload.transactionRef || `TXN-${Date.now().toString().slice(-6)}`,
-      payload.bankName || (payload.paymentMode === 'Cheque' ? 'HDFC Bank' : null),
+      payload.bankName || null,
       payload.chequeNo || null,
       payload.chequeDate || null,
       payload.collectedBy || 'Accounts Desk (Admissions)',
@@ -468,7 +483,7 @@ export async function generateAdmissionFeeReceiptAction(payload: {
         ) VALUES (
           $1, $2, 'CREDIT', $3, $4,
           $5, 'Payment Receipt', 0, $3, 'Receipt', $6,
-          $7, '2026-2027', NOW(), NOW()
+          $7, $8, NOW(), NOW()
         );
       `, [
         campusId,
@@ -477,7 +492,8 @@ export async function generateAdmissionFeeReceiptAction(payload: {
         remainingBalance,
         `Custom Fee Receipt (${receiptStatus}) via ${payload.paymentMode}${payload.remarks ? ` - ${payload.remarks}` : ''}`,
         receiptNo,
-        createdReceipt?.id
+        createdReceipt?.id,
+        payload.academicSession || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
       ]);
     }
 
@@ -546,8 +562,8 @@ export async function getAdmissionsPipelineApplicationsAction() {
     const data = res.rows.map((row: any) => {
       const kits = typeof row.co_curricular_kits === 'object' && row.co_curricular_kits !== null ? row.co_curricular_kits : {};
       const parentName = kits.parent_name || `${row.parent_first_name || ''} ${row.parent_last_name || ''}`.trim() || 'Parent / Guardian';
-      const parentEmail = kits.parent_email || (row.parent_phone_db?.includes('@') ? row.parent_phone_db : 'parent@example.com');
-      const parentPhone = kits.parent_phone || (!row.parent_phone_db?.includes('@') ? row.parent_phone_db : '+91 98765 43210');
+      const parentEmail = kits.parent_email || (row.parent_phone_db?.includes('@') ? row.parent_phone_db : '');
+      const parentPhone = kits.parent_phone || (!row.parent_phone_db?.includes('@') ? row.parent_phone_db : '');
       const docUrl = kits.document_url || (row.documents?.[0]?.file_url) || null;
       const interviewSchedule = kits.interview_schedule || null;
 
@@ -569,7 +585,7 @@ export async function getAdmissionsPipelineApplicationsAction() {
         fullName: `${row.student_first_name || 'Applicant'} ${row.student_last_name || ''}`.trim(),
         dateOfBirth: row.date_of_birth 
           ? (typeof row.date_of_birth === 'string' ? row.date_of_birth.split('T')[0] : (row.date_of_birth instanceof Date ? new Date(row.date_of_birth.getTime() - row.date_of_birth.getTimezoneOffset() * 60000).toISOString().split('T')[0] : String(row.date_of_birth)))
-          : '2020-01-01',
+          : '',
         age: ageDisplay,
         gradeApplied: row.grade_applied || 'Grade 1',
         previousSchool: row.previous_school || 'None / First Time Enrolling',
@@ -771,7 +787,7 @@ export async function createAdminEnquiryAction(payload: {
       payload.studentFirstName,
       payload.studentLastName || '',
       payload.gradeApplied,
-      payload.dateOfBirth || '2020-05-15',
+      payload.dateOfBirth || null,
       payload.previousSchool || '',
       Boolean(payload.transportRequired),
       JSON.stringify(kits),
@@ -799,7 +815,7 @@ export async function createAdminEnquiryAction(payload: {
         payload.studentLastName || '',
         `${payload.studentFirstName} ${payload.studentLastName || ''}`.trim(),
         payload.gradeApplied,
-        payload.dateOfBirth || '2020-05-15',
+        payload.dateOfBirth || null,
         payload.parentName || 'Guardian',
         payload.parentPhone,
         payload.parentEmail || '',

@@ -28,6 +28,7 @@ export default function WhatsAppBotSimulatorPage() {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [senderPhone, setSenderPhone] = useState('+919810022334');
   const [isSending, setIsSending] = useState(false);
 
   const handleSend = async (customText?: string) => {
@@ -46,7 +47,7 @@ export default function WhatsAppBotSimulatorPage() {
 
     try {
       const formData = new FormData();
-      formData.append('From', '+919810022334');
+      formData.append('From', senderPhone.trim() || '+919810022334');
       formData.append('Body', textToSend);
 
       const res = await fetch('/api/webhooks/whatsapp', {
@@ -118,6 +119,19 @@ export default function WhatsAppBotSimulatorPage() {
                   </span>
                 </button>
               ))}
+            </div>
+
+            <div className="pt-3 border-t border-stone-200">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">
+                Simulated Parent Mobile No.
+              </label>
+              <input
+                type="text"
+                value={senderPhone}
+                onChange={(e) => setSenderPhone(e.target.value)}
+                placeholder="+919810022334"
+                className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border border-stone-300 bg-white focus:outline-emerald-500"
+              />
             </div>
           </Card>
         </div>

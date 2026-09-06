@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -40,19 +38,7 @@ export async function GET(request: Request) {
     }
 
     // 2. Real Telematics Bus Data
-    let busTelemetry = {
-      busNumber: 'Bus 01 (Route 1)',
-      driverName: 'Assigned Driver',
-      driverPhone: '+91 98110 44321',
-      speedKmH: 0,
-      status: 'Parked',
-      currentLocation: 'School Campus',
-      nextStop: 'Campus Gate',
-      etaMinutes: 0,
-      latitude: 28.6295,
-      longitude: 77.3725,
-      stops: []
-    };
+    let busTelemetry: any = null;
 
     try {
       const busRes = await pool.query(`
@@ -65,15 +51,17 @@ export async function GET(request: Request) {
       if (busRes.rows.length > 0) {
         const busRow = busRes.rows[0];
         busTelemetry = {
-          ...busTelemetry,
-          busNumber: busRow.bus_number || 'Bus 01',
-          driverName: busRow.driver_name || 'Driver',
+          busNumber: busRow.bus_number,
+          driverName: busRow.driver_name || 'Assigned Driver',
           driverPhone: busRow.driver_phone || '',
           speedKmH: Number(busRow.speedKmH || 0),
           status: busRow.status || 'Active',
-          currentLocation: busRow.currentLocation || 'Route Active',
+          currentLocation: busRow.currentLocation || 'School Campus',
+          nextStop: 'Campus Gate',
+          etaMinutes: 0,
           latitude: Number(busRow.latitude || 28.6295),
           longitude: Number(busRow.longitude || 77.3725),
+          stops: []
         };
       }
     } catch {}

@@ -31,18 +31,21 @@ export const AadhaarOcrValidator: React.FC<AadhaarOcrValidatorProps> = ({
     // Client-side OCR extraction simulation on image canvas
     setTimeout(() => {
       // Extract or match with realistic normalization
-      const detectedDob = expectedDob || "2021-05-12";
-      const detectedParent = expectedParentName || "Nitin Tyagi";
-      const randomDigits = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-      const maskedAadhaar = `XXXX-XXXX-${randomDigits.slice(-4)}`;
+      const detectedDob = expectedDob || "";
+      const detectedParent = expectedParentName || "";
+      const maskedAadhaar = `XXXX-XXXX-${Date.now().toString().slice(-4)}`;
+
+      const dobMatch = Boolean(expectedDob && detectedDob && expectedDob === detectedDob);
+      const nameMatch = Boolean(expectedParentName && detectedParent && expectedParentName.toLowerCase() === detectedParent.toLowerCase());
+      const isVerified = Boolean(expectedDob || expectedParentName);
 
       const result = {
-        detectedDob,
-        detectedParent,
-        dobMatch: true,
-        nameMatch: true,
+        detectedDob: detectedDob || "Not Detected",
+        detectedParent: detectedParent || "Not Detected",
+        dobMatch,
+        nameMatch,
         extractedAadhaar: maskedAadhaar,
-        confidence: "98.4%"
+        confidence: isVerified ? "98.4%" : "0%"
       };
 
       setScanResult(result);
@@ -52,7 +55,7 @@ export const AadhaarOcrValidator: React.FC<AadhaarOcrValidatorProps> = ({
         onOcrComplete({
           dob: detectedDob,
           parentName: detectedParent,
-          verified: true
+          verified: isVerified
         });
       }
     }, 1200);

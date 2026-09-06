@@ -34,11 +34,21 @@ export function FeeCollectionsPOSDesk({ embedded = false }: { embedded?: boolean
   const [chequeNo, setChequeNo] = useState("");
   const [lateFee, setLateFee] = useState<number>(0);
   const [concession, setConcession] = useState<number>(0);
+  const [collectorName, setCollectorName] = useState<string>("Accounts POS");
   const [generatedReceipt, setGeneratedReceipt] = useState<any>(null);
 
   const receiptPrintRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof document !== "undefined") {
+      const cookieUser = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("cb_user_name="))
+        ?.split("=")[1];
+      if (cookieUser) {
+        setCollectorName(decodeURIComponent(cookieUser));
+      }
+    }
     handleSearch();
     loadDepartedDues();
   }, [currentInstitution]);
@@ -139,7 +149,7 @@ export function FeeCollectionsPOSDesk({ embedded = false }: { embedded?: boolean
         transaction_ref: transactionRef || `TXN-${Date.now()}`,
         bank_name: bankName,
         cheque_no: chequeNo,
-        collected_by: 'Rushali (Accounts POS)'
+        collected_by: collectorName || 'Accounts POS'
       });
 
       if (res.success) {

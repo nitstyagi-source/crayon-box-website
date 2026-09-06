@@ -47,11 +47,11 @@ export function DigitalGatePassDesk({
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Early Exit Form State
-  const [studentName, setStudentName] = useState("Aarav Sharma");
-  const [className, setClassName] = useState("Class 5-A");
-  const [guardianName, setGuardianName] = useState("Sunita Sharma (Mother)");
-  const [guardianPhone, setGuardianPhone] = useState("+919810081008");
-  const [exitReason, setExitReason] = useState("Medical Checkup (Pediatric Consultation)");
+  const [studentName, setStudentName] = useState("");
+  const [className, setClassName] = useState("");
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [exitReason, setExitReason] = useState("");
   
   // OTP Verification Modal State
   const [otpModalOpen, setOtpModalOpen] = useState(false);
@@ -318,6 +318,7 @@ export function DigitalGatePassDesk({
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="e.g. Student full name"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 text-xs"
                   required
                 />
@@ -329,6 +330,7 @@ export function DigitalGatePassDesk({
                   type="text"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g. Class 5-A"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 text-xs"
                   required
                 />
@@ -340,6 +342,7 @@ export function DigitalGatePassDesk({
                   type="text"
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
+                  placeholder="e.g. Father/Mother name"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 text-xs"
                   required
                 />
@@ -351,6 +354,7 @@ export function DigitalGatePassDesk({
                   type="text"
                   value={guardianPhone}
                   onChange={(e) => setGuardianPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-mono font-bold text-stone-900 text-xs"
                   required
                 />
@@ -362,6 +366,7 @@ export function DigitalGatePassDesk({
               <textarea
                 value={exitReason}
                 onChange={(e) => setExitReason(e.target.value)}
+                placeholder="Reason for early exit (e.g. Medical emergency, urgent family appointment)"
                 rows={2}
                 className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 text-xs font-medium text-stone-900"
                 required

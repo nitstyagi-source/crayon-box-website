@@ -26,7 +26,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -128,9 +128,12 @@ export async function createCalendarEvent(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
 
+    const currentYear = new Date().getFullYear();
+    const dynamicSession = `${currentYear}-${currentYear + 1}`;
+
     const eventRecord = {
       campus_id: resolvedCampusId,
-      academic_session: payload.academicSession || "2026-2027",
+      academic_session: payload.academicSession || dynamicSession,
       title: payload.title,
       event_type: payload.eventType,
       start_date: payload.startDate,

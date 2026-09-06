@@ -184,11 +184,12 @@ function FacultyAdminContent() {
   function handleOpenAdd() {
     setIsEditing(false);
     setActiveTab("basic");
-    const randomNum = Math.floor(100 + Math.random() * 900);
+    const nextSeq = ((faculty?.length || 0) + 1).toString().padStart(3, '0');
+    const curYear = new Date().getFullYear();
     setFormData({
       id: "",
-      employee_id: `CB-FAC-${randomNum}`,
-      employee_code: `FAC2026${randomNum}`,
+      employee_id: `CB-FAC-${nextSeq}`,
+      employee_code: `FAC${curYear}${nextSeq}`,
       first_name: "",
       middle_name: "",
       last_name: "",
@@ -449,7 +450,7 @@ function FacultyAdminContent() {
       <VastuModuleBanner
         badgeText="Faculty & Staff LifeCycle"
         badgeIcon={<Users className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText="Academic Session 2026–2027"
+        institutionText={`Academic Session ${new Date().getFullYear()}–${new Date().getFullYear() + 1}`}
         title="Faculty Directory & Academic Calendar"
         titleIcon={<GraduationCap className="w-7 h-7 text-[#D97706]" />}
         description="Unified faculty command center uniting Faculty & Staff Master Directory, Police Verification, Institutional Academic Calendar, Automated WhatsApp Birthday Wishes, and Workload Distribution."

@@ -14,6 +14,11 @@ import InvoiceA5PrintModal from "@/components/finance/InvoiceA5PrintModal";
 
 export default function InvoicesModule() {
   const { currentInstitution } = useInstitution();
+  const currentYear = new Date().getFullYear();
+  const currentSession = `${currentYear}–${currentYear + 1}`;
+  const currentSessionCode = `${currentYear}-${currentYear + 1}`;
+  const defaultDueDate = `${currentYear}-04-10`;
+
   const [invoices, setInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,12 +162,12 @@ export default function InvoicesModule() {
       student_name: inv.student_name || `${inv.students?.first_name || 'Student'} ${inv.students?.last_name || ''}`.trim(),
       admission_no: inv.admission_no || inv.students?.admission_no || 'ADM-N/A',
       class_name: inv.class_name || 'Grade 1',
-      billing_period: inv.billing_period || 'Annual 2026-27 (Term 1)',
+      billing_period: inv.billing_period || `Annual ${currentYear}-${(currentYear + 1).toString().slice(-2)} (Term 1)`,
       total_amount: Number(inv.total_amount || 0),
       total_discount: Number(inv.total_discount || 0),
       total_late_fee: Number(inv.total_late_fee || 0),
       amount_paid: Number(inv.amount_paid || 0),
-      due_date: inv.due_date || '2026-04-10',
+      due_date: inv.due_date || defaultDueDate,
       status: inv.status || 'Unpaid',
       notes: inv.notes || ''
     });
@@ -268,7 +273,7 @@ export default function InvoicesModule() {
               Individual Invoicing Engine
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
+            <span className="text-stone-500 text-xs font-bold">Academic Session {currentSession}</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">Invoice Management</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
@@ -400,7 +405,7 @@ export default function InvoicesModule() {
                         {inv.billing_period}
                       </td>
                       <td className="py-4 px-6 text-stone-500 font-mono text-[11px]">
-                        {inv.due_date || '2026-04-10'}
+                        {inv.due_date || defaultDueDate}
                       </td>
                       <td className="py-4 px-6 font-bold text-stone-900">
                         {formatCurrency(total)}

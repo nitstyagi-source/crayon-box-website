@@ -1,15 +1,14 @@
 "use server";
 
 import pg from 'pg';
+import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -85,9 +84,11 @@ export async function requestEarlyStudentExitOtpAction(params: {
   const client = await p.connect();
 
   try {
-    // Generate 6-Digit Secure OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const passCode = `GP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate 6-Digit Secure OTP and sequential passCode
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.gate_passes;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const passCode = `GP-${new Date().getFullYear()}-${nextSeq}`;
 
     const insertRes = await client.query(`
       INSERT INTO public.gate_passes (
@@ -198,7 +199,9 @@ export async function createVisitorGatePassAction(params: {
   const client = await p.connect();
 
   try {
-    const passCode = `VP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.gate_passes;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const passCode = `VP-${new Date().getFullYear()}-${nextSeq}`;
 
     const res = await client.query(`
       INSERT INTO public.gate_passes (

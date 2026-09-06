@@ -20,28 +20,40 @@ import {
   SiblingStudentFee
 } from "@/app/actions/sibling-fee-cart-actions";
 
-export function MultiChildFeePaymentDesk({ embedded = false }: { embedded?: boolean }) {
-  const [parentPhone, setParentPhone] = useState("+919810081008");
+export function MultiChildFeePaymentDesk({ embedded = false, initialPhone = "" }: { embedded?: boolean; initialPhone?: string }) {
+  const [parentPhone, setParentPhone] = useState(initialPhone);
+  const [phoneInput, setPhoneInput] = useState(initialPhone);
   const [siblings, setSiblings] = useState<SiblingStudentFee[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [txnRef, setTxnRef] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDues();
+    if (parentPhone && parentPhone.trim().length >= 10) {
+      loadDues();
+    } else {
+      setSiblings([]);
+      setSummary(null);
+      setSelectedStudentIds([]);
+    }
   }, [parentPhone]);
 
   async function loadDues() {
+    if (!parentPhone || parentPhone.trim().length < 10) return;
     setIsLoading(true);
     try {
-      const res = await getFamilySiblingFeeDuesAction(parentPhone);
+      const res = await getFamilySiblingFeeDuesAction(parentPhone.trim());
       if (res.success) {
         setSiblings(res.siblings);
         setSummary(res.summary);
         setSelectedStudentIds(res.siblings.map(s => s.id));
+      } else {
+        setSiblings([]);
+        setSummary(null);
+        setSelectedStudentIds([]);
       }
     } finally {
       setIsLoading(false);
@@ -106,9 +118,26 @@ export function MultiChildFeePaymentDesk({ embedded = false }: { embedded?: bool
           </p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/15 text-xs">
-          <div className="text-stone-300 font-bold">Registered Mobile:</div>
-          <div className="text-sm font-mono font-black text-emerald-300">{parentPhone}</div>
+        <div className="bg-white/10 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/15 text-xs flex flex-col sm:flex-row items-center gap-3">
+          <div>
+            <div className="text-stone-300 font-bold mb-1">Parent Registered Mobile:</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="Enter 10-digit mobile"
+                className="px-3 py-1.5 rounded-lg bg-stone-900/80 border border-stone-700 text-white font-mono text-sm placeholder:text-stone-500 focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={() => setParentPhone(phoneInput)}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors text-xs"
+              >
+                Lookup
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

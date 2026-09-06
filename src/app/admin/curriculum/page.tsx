@@ -61,11 +61,7 @@ function CurriculumRadarContent() {
     tabParam === 'digital-resources' || tabParam === 'lti' ? 'DIGITAL_RESOURCES' : 'RADAR'
   );
 
-  const [dynamicClasses, setDynamicClasses] = useState<string[]>([
-    'All', 'Pre-Nursery', 'Nursery', 'LKG', 'UKG',
-    'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-    'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'
-  ]);
+  const [dynamicClasses, setDynamicClasses] = useState<string[]>(['All']);
 
   // Load dynamic classes
   useEffect(() => {
@@ -82,10 +78,16 @@ function CurriculumRadarContent() {
     loadClasses();
   }, [activeInst]);
 
-  const handleTabChange = (tab: 'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING') => {
+  const handleTabChange = (tab: 'RADAR' | 'DIARY' | 'HOMEWORK' | 'GRADING' | 'DIGITAL_RESOURCES') => {
     setActiveTab(tab);
-    const paramMap = { RADAR: 'radar', DIARY: 'diary', HOMEWORK: 'homework', GRADING: 'grading' };
-    router.replace(`/admin/curriculum?tab=${paramMap[tab]}`, { scroll: false });
+    const paramMap: Record<string, string> = {
+      RADAR: 'radar',
+      DIARY: 'diary',
+      HOMEWORK: 'homework',
+      GRADING: 'grading',
+      DIGITAL_RESOURCES: 'digital-resources'
+    };
+    router.replace(`/admin/curriculum?tab=${paramMap[tab] || 'radar'}`, { scroll: false });
   };
 
   const [subjects, setSubjects] = useState<CurriculumSubjectRadarItem[]>([]);
@@ -110,6 +112,10 @@ function CurriculumRadarContent() {
   // Term Configuration & Class Exemption Modal
   const [isTermModalOpen, setIsTermModalOpen] = useState(false);
   const [termManagerClass, setTermManagerClass] = useState('All');
+  const currentYear = new Date().getFullYear();
+  const currentSession = `${currentYear}–${currentYear + 1}`;
+  const currentSessionCode = `${currentYear}-${currentYear + 1}`;
+
   const [classOverrides, setClassOverrides] = useState<any[]>([]);
   const [isTogglingTerm, setIsTogglingTerm] = useState(false);
   const [newTermForm, setNewTermForm] = useState({
@@ -117,8 +123,8 @@ function CurriculumRadarContent() {
     termCode: 'T1_FA1',
     assessmentType: 'FORMATIVE' as 'FORMATIVE' | 'SUMMATIVE',
     milestoneLabel: 'Formative Assessment 1 (FA-1 / Periodic Test 1)',
-    startDate: '2026-04-01',
-    targetCompletionDate: '2026-07-15',
+    startDate: `${currentYear}-04-01`,
+    targetCompletionDate: `${currentYear}-07-15`,
     weightagePercentage: 10
   });
   const [isSavingTerm, setIsSavingTerm] = useState(false);
@@ -181,8 +187,8 @@ function CurriculumRadarContent() {
           termFilter: selectedTerm,
           milestoneFilter: selectedMilestone
         }),
-        getCurriculumTermsAction(activeInst, '2026-2027', selectedClass !== 'All' ? selectedClass : undefined),
-        getClassTermOverridesAction(activeInst, '2026-2027')
+        getCurriculumTermsAction(activeInst, currentSessionCode, selectedClass !== 'All' ? selectedClass : undefined),
+        getClassTermOverridesAction(activeInst, currentSessionCode)
       ]);
 
       if (radarRes.success) {
@@ -317,7 +323,7 @@ function CurriculumRadarContent() {
     try {
       const res = await toggleClassTermStatusAction({
         institutionCode: activeInst,
-        session: '2026-2027',
+        session: currentSessionCode,
         className: termManagerClass,
         termCode,
         termName,
@@ -331,7 +337,7 @@ function CurriculumRadarContent() {
         alert('Error updating term status: ' + res.error);
       }
     } catch (e: any) {
-      alert('Error: ' + e.message);
+      alert('Network error updating term status');
     } finally {
       setIsTogglingTerm(false);
     }
@@ -399,7 +405,7 @@ function CurriculumRadarContent() {
       
       {/* Option 6 Sattva-Digital Vastu Header Banner */}
       <VastuModuleBanner
-        badgeText="Academic Session 2026–2027"
+        badgeText={`Academic Session ${currentSession}`}
         badgeIcon={<BookOpen className="w-3.5 h-3.5 text-[#D97706]" />}
         institutionText={`Campus: ${activeInst} • Curriculum, Lesson Diary & Homework LMS`}
         title="Curriculum, Lesson Diary & Homework LMS"
@@ -491,7 +497,7 @@ function CurriculumRadarContent() {
               </span>
               <span className="text-slate-300">•</span>
               <span className="text-xs font-bold text-slate-500">
-                {selectedTerm === 'ALL' ? 'Full Session 2026-2027' : selectedTerm}
+                {selectedTerm === 'ALL' ? `Full Session ${currentSessionCode}` : selectedTerm}
               </span>
             </div>
             
@@ -1250,7 +1256,7 @@ function CurriculumRadarContent() {
                     </h4>
                   </div>
                   <span className="text-xs bg-purple-950 text-purple-300 border border-purple-800 px-2.5 py-1 rounded-xl font-bold font-mono">
-                    Session 2026-2027
+                    Session {currentSession}
                   </span>
                 </div>
 

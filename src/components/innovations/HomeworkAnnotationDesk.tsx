@@ -16,8 +16,8 @@ export const HomeworkAnnotationDesk: React.FC = () => {
 
   // Grading form state
   const [marks, setMarks] = useState(5);
-  const [feedback, setFeedback] = useState('Excellent handwritten clarity and neat problem presentation!');
-  const [teacherName, setTeacherName] = useState('Mrs. Priya Sharma');
+  const [feedback, setFeedback] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [gradeNotice, setGradeNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,18 +32,8 @@ export const HomeworkAnnotationDesk: React.FC = () => {
         setSubmissions(res.submissions);
         setSelectedSub(res.submissions[0]);
       } else {
-        // Provide demo submission if table empty
-        const demo = [{
-          id: 'sub-demo-1',
-          studentName: 'Viraj Tyagi',
-          admissionNo: 'ADM-2026-7983',
-          photoUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=60',
-          notes: 'Completed Chapter 4 Science exercise questions in class notebook.',
-          status: 'SUBMITTED',
-          submissionDate: new Date().toISOString()
-        }];
-        setSubmissions(demo);
-        setSelectedSub(demo[0]);
+        setSubmissions([]);
+        setSelectedSub(null);
       }
     } finally {
       setIsLoading(false);
@@ -113,33 +103,45 @@ export const HomeworkAnnotationDesk: React.FC = () => {
           </div>
 
           <div className="space-y-2.5">
-            {submissions.map((sub) => (
-              <div
-                key={sub.id}
-                onClick={() => setSelectedSub(sub)}
-                className={`p-3.5 rounded-xl border transition cursor-pointer space-y-1 ${
-                  selectedSub?.id === sub.id
-                    ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500'
-                    : 'bg-stone-50 border-stone-200 hover:bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <strong className="text-stone-900 font-bold text-xs">{sub.studentName}</strong>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                    sub.status === 'GRADED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {sub.status}
-                  </span>
-                </div>
-                <p className="text-[11px] text-stone-500 truncate">{sub.notes}</p>
-                <span className="text-[10px] text-stone-400 font-mono block">Roll: {sub.admissionNo}</span>
+            {submissions.length === 0 ? (
+              <div className="py-12 text-center text-stone-400 text-xs">
+                No submissions awaiting evaluation.
               </div>
-            ))}
+            ) : (
+              submissions.map((sub) => (
+                <div
+                  key={sub.id}
+                  onClick={() => setSelectedSub(sub)}
+                  className={`p-3.5 rounded-xl border transition cursor-pointer space-y-1 ${
+                    selectedSub?.id === sub.id
+                      ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500'
+                      : 'bg-stone-50 border-stone-200 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <strong className="text-stone-900 font-bold text-xs">{sub.studentName}</strong>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      sub.status === 'GRADED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {sub.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 truncate">{sub.notes}</p>
+                  <span className="text-[10px] text-stone-400 font-mono block">Roll: {sub.admissionNo}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* Right 2 Cols: Interactive Canvas & Teacher Feedback */}
-        {selectedSub && (
+        {!selectedSub ? (
+          <div className="lg:col-span-2 bg-white border border-stone-200/90 rounded-2xl p-12 shadow-xs text-center text-stone-400 space-y-2 flex flex-col items-center justify-center">
+            <PenTool className="w-8 h-8 mx-auto text-stone-300" />
+            <p className="text-xs font-semibold text-stone-600">No notebook submission selected</p>
+            <p className="text-[11px] text-stone-400">Select a student submission from the queue to view handwritten work and provide feedback.</p>
+          </div>
+        ) : (
           <div className="lg:col-span-2 bg-white border border-stone-200/90 rounded-2xl p-6 shadow-xs space-y-6">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>

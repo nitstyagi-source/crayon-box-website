@@ -35,6 +35,7 @@ const DEFAULT_NOTIFICATION_RULES: NotificationRule[] = [
 
 class NotificationHub {
   private rules: NotificationRule[] = [...DEFAULT_NOTIFICATION_RULES];
+  private counter = 0;
   private communicationHistory: Array<{
     id: string;
     timestamp: string;
@@ -46,6 +47,14 @@ class NotificationHub {
     message: string;
     status: 'DELIVERED' | 'SENT' | 'FAILED';
   }> = [];
+
+  /**
+   * Register or update a rule
+   */
+  public configureRule(rule: NotificationRule) {
+    this.rules = this.rules.filter((r) => r.eventType !== rule.eventType);
+    this.rules.push(rule);
+  }
 
   /**
    * Dispatch a notification through the policy matrix
@@ -62,7 +71,7 @@ class NotificationHub {
 
     for (const ch of channelsToUse) {
       const record = {
-        id: `NOTIF-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        id: `NOTIF-${Date.now()}-${(++this.counter).toString().padStart(4, '0')}`,
         timestamp: new Date().toISOString(),
         recipientId: params.recipientId,
         recipientRole: params.recipientRole,

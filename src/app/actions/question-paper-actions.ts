@@ -4,13 +4,11 @@ import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 import { generateQuestionPaperWithKey } from '@/lib/services/ai/pedagogical-engine';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -57,7 +55,7 @@ export async function generateAiQuestionPaperAction(params: {
       difficulty: 'BALANCED'
     });
 
-    safeRevalidate('/admin/exams/question-paper-generator');
+    safeRevalidate('/admin/exams');
 
     // Fetch the inserted paper row
     const p = getPool();

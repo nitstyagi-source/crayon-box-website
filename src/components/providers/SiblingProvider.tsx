@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { getSiblingsForContextAction } from "@/app/actions/students";
 
-type Sibling = {
+export type Sibling = {
   id: string;
   firstName: string;
   grade: string;
@@ -13,24 +14,59 @@ type SiblingContextType = {
   siblings: Sibling[];
   activeSibling: Sibling | null;
   setActiveSiblingId: (id: string) => void;
+  loading: boolean;
+  refreshSiblings: () => Promise<void>;
 };
 
 const SiblingContext = createContext<SiblingContextType | undefined>(undefined);
 
-// Dummy data for the prototype
-const MOCK_SIBLINGS: Sibling[] = [
-  { id: "S-1001", firstName: "Aarav", grade: "Grade 4", avatar: "https://ui-avatars.com/api/?name=Aarav&background=0D8ABC&color=fff" },
-  { id: "S-1002", firstName: "Diya", grade: "Grade 8", avatar: "https://ui-avatars.com/api/?name=Diya&background=f97316&color=fff" }
-];
+export function SiblingProvider({ 
+  children,
+  initialSiblings = [],
+  studentId
+}: { 
+  children: ReactNode;
+  initialSiblings?: Sibling[];
+  studentId?: string;
+}) {
+  const [siblings, setSiblings] = useState<Sibling[]>(initialSiblings);
+  const [activeSiblingId, setActiveSiblingId] = useState<string>(initialSiblings[0]?.id || "");
+  const [loading, setLoading] = useState<boolean>(initialSiblings.length === 0);
 
-export function SiblingProvider({ children }: { children: ReactNode }) {
-  const [siblings] = useState<Sibling[]>(MOCK_SIBLINGS);
-  const [activeSiblingId, setActiveSiblingId] = useState<string>(MOCK_SIBLINGS[0].id);
+  const fetchSiblings = async () => {
+    try {
+      setLoading(true);
+      const res = await getSiblingsForContextAction(studentId);
+      if (res.success && res.data.length > 0) {
+        setSiblings(res.data);
+        setActiveSiblingId((prev) => prev && res.data.some(s => s.id === prev) ? prev : res.data[0].id);
+      } else if (res.success && res.data.length === 0 && initialSiblings.length === 0) {
+        setSiblings([]);
+        setActiveSiblingId("");
+      }
+    } catch (e) {
+      console.error("Failed to load siblings dynamically:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const activeSibling = siblings.find(s => s.id === activeSiblingId) || null;
+  useEffect(() => {
+    if (initialSiblings.length === 0) {
+      fetchSiblings();
+    }
+  }, [studentId]);
+
+  const activeSibling = siblings.find(s => s.id === activeSiblingId) || (siblings.length > 0 ? siblings[0] : null);
 
   return (
-    <SiblingContext.Provider value={{ siblings, activeSibling, setActiveSiblingId }}>
+    <SiblingContext.Provider value={{ 
+      siblings, 
+      activeSibling, 
+      setActiveSiblingId,
+      loading,
+      refreshSiblings: fetchSiblings
+    }}>
       {children}
     </SiblingContext.Provider>
   );

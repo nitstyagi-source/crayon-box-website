@@ -23,7 +23,7 @@ export function ParentGrievanceDesk() {
 
   // New Ticket Modal State
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [studentInput, setStudentInput] = useState("CBS-2026-0001");
+  const [studentInput, setStudentInput] = useState("");
   const [category, setCategory] = useState("TRANSPORT");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");

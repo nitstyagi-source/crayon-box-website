@@ -1,7 +1,13 @@
 const { Client } = require('pg');
 
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL environment variable is required');
+  process.exit(1);
+}
+
 const client = new Client({
-  connectionString: 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres'
+  connectionString
 });
 
 async function seedHierarchyAndRbac() {

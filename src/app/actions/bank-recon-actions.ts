@@ -3,12 +3,12 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -22,49 +22,83 @@ function safeRevalidate(path: string) {
 export async function uploadAndAutoMatchBankStatementAction(params: {
   bankName: string;
   sampleBatch?: boolean;
+  statementLines?: Array<{
+    date: string;
+    desc: string;
+    utr: string;
+    phone?: string;
+    adm?: string;
+    amount: number;
+  }>;
+  uploadedBy?: string;
 }) {
   const p = getPool();
   const client = await p.connect();
   try {
-    const batchNo = `RECON-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const batchCountRes = await client.query(`SELECT count(*)::int as count FROM public.bank_reconciliation_batches;`);
+    const nextBatchSeq = ((batchCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const batchNo = `RECON-${new Date().getFullYear()}-${nextBatchSeq}`;
+
+    let linesToProcess = params.statementLines || [];
+    if (linesToProcess.length === 0 && params.sampleBatch) {
+      const { rows: stRows } = await client.query(`
+        SELECT admission_no, parent_phone 
+        FROM public.students 
+        WHERE parent_phone IS NOT NULL AND parent_phone != ''
+        LIMIT 3;
+      `);
+      
+      if (stRows.length > 0) {
+        linesToProcess = stRows.map((st: any, idx: number) => ({
+          date: new Date(Date.now() - 86400000 * (idx + 1)).toISOString().split('T')[0],
+          desc: idx === 0 ? 'UPI/Tuition Fee Transfer' : idx === 1 ? 'NEFT/Term Fee Transfer' : 'IMPS/Transport Fee',
+          utr: `BANK${Date.now().toString().slice(-6)}${idx}`,
+          phone: st.parent_phone,
+          adm: st.admission_no,
+          amount: 15000.00 + (idx * 5000)
+        }));
+      }
+    }
+
+    if (linesToProcess.length === 0) {
+      return { success: false, error: 'No statement lines found in upload payload.' };
+    }
+
+    const totalCreditAmount = linesToProcess.reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
+    const uploadedBy = params.uploadedBy || 'Finance Desk';
 
     // 1. Create Batch Header
     const { rows: batchRows } = await client.query(`
       INSERT INTO public.bank_reconciliation_batches (
         batch_number, bank_name, statement_from_date, statement_to_date,
         total_credit_amount, total_lines, uploaded_by, status
-      ) VALUES ($1, $2, CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE, 142500.00, 5, 'Chief Finance Officer', 'IN_PROGRESS')
+      ) VALUES ($1, $2, CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE, $3, $4, $5, 'IN_PROGRESS')
       RETURNING id, batch_number;
-    `, [batchNo, params.bankName || 'HDFC Bank Escrow']);
+    `, [batchNo, params.bankName || 'Bank Escrow Account', totalCreditAmount, linesToProcess.length, uploadedBy]);
 
     const batchId = batchRows[0].id;
-
-    // 2. Sample Statement Raw Lines for realistic Indian Banking NEFT/UPI entries
-    const sampleLines = [
-      { date: '2026-08-28', desc: 'UPI/9911102027/Viraj Tyagi Q2 Tuition/AXIS88921', utr: 'AXIS88921', phone: '9911102027', adm: 'ADM-2026-7983', amount: 28500.00 },
-      { date: '2026-08-29', desc: 'NEFT/Viraj Tyagi ADM-2026-7983 Term Fee/HDFC00192', utr: 'HDFC00192', phone: '9911102027', adm: 'ADM-2026-7983', amount: 32000.00 },
-      { date: '2026-08-30', desc: 'IMPS/Ananya Gupta Van Transport/SBIN77281', utr: 'SBIN77281', phone: '9810012345', adm: '', amount: 8000.00 },
-      { date: '2026-09-01', desc: 'UPI/Rohan Mehra Class 2 Fee Payment/ICIC99182', utr: 'ICIC99182', phone: '9811102008', adm: 'ADM-2026-0048', amount: 28500.00 },
-      { date: '2026-09-02', desc: 'NEFT/Kavita Singh Sibling Waiver Fee/KKBK55192', utr: 'KKBK55192', phone: '9999988888', adm: '', amount: 45500.00 }
-    ];
 
     let matchedCount = 0;
     let matchedTotal = 0;
 
-    for (const line of sampleLines) {
+    for (const line of linesToProcess) {
       // Find candidate student in database
       const { rows: matchedStudents } = await client.query(`
-        SELECT id, admission_no, first_name, last_name, parent_phone 
+        SELECT id, admission_no, first_name, last_name, emergency_contact as parent_phone 
         FROM public.students 
-        WHERE admission_no = $1 OR parent_phone ILIKE $2 OR first_name ILIKE $3
+        WHERE (admission_no IS NOT NULL AND admission_no = $1)
+           OR (emergency_contact IS NOT NULL AND emergency_contact ILIKE $2)
+           OR (first_name IS NOT NULL AND first_name ILIKE $3)
         LIMIT 1
-      `, [line.adm, `%${line.phone}%`, `%${line.desc.split(' ')[0]}%`]);
+      `, [line.adm || 'NONE', `%${line.phone || 'NONE'}%`, `%${line.desc.split(/[\s/]/)[0] || 'NONE'}%`]);
 
       const matchedStudent = matchedStudents[0] || null;
       const isMatched = Boolean(matchedStudent);
+      const lineAmt = Number(line.amount) || 0;
+
       if (isMatched) {
         matchedCount++;
-        matchedTotal += line.amount;
+        matchedTotal += lineAmt;
       }
 
       await client.query(`
@@ -79,9 +113,9 @@ export async function uploadAndAutoMatchBankStatementAction(params: {
         line.date,
         line.desc,
         line.utr,
-        line.phone,
-        line.adm,
-        line.amount,
+        line.phone || null,
+        line.adm || null,
+        lineAmt,
         matchedStudent ? matchedStudent.id : null,
         isMatched ? 95 : 0,
         isMatched ? 'EXACT_MATCH' : 'UNMATCHED'
@@ -101,9 +135,9 @@ export async function uploadAndAutoMatchBankStatementAction(params: {
       success: true,
       batchId,
       batchNumber: batchNo,
-      totalLines: sampleLines.length,
+      totalLines: linesToProcess.length,
       matchedLines: matchedCount,
-      totalAmount: 142500,
+      totalAmount: totalCreditAmount,
       matchedAmount: matchedTotal
     };
   } catch (err: any) {
@@ -167,13 +201,18 @@ export async function reconcileLineAndPostGlLedgerAction(lineId: string) {
     if (lines.length === 0) return { success: false, error: 'Line not found' };
     const line = lines[0];
 
-    const receiptNo = `RCP-BANK-${Math.floor(1000 + Math.random() * 9000)}`;
+    const recCountRes = await client.query(`SELECT count(*)::int as count FROM public.student_fee_ledgers;`);
+    const seq = ((recCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const receiptNo = `RCP-BANK-${seq}`;
 
     // Fetch student's campus_id
     const studentRes = await client.query(`
-      SELECT s.id, s.campus_id FROM public.students s WHERE s.id = $1 OR s.status ILIKE 'active' OR true LIMIT 1
+      SELECT s.id, s.campus_id FROM public.students s WHERE s.id = $1 OR s.status ILIKE 'active' LIMIT 1
     `, [line.matched_student_id || null]);
     const targetStudent = studentRes.rows[0];
+
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const resolvedCampusId = targetStudent?.campus_id || campRes.rows[0]?.id || null;
 
     // 1. Post Balancing Double-Entry GL Ledger Entry
     await client.query(`
@@ -185,7 +224,7 @@ export async function reconcileLineAndPostGlLedgerAction(lineId: string) {
         $4, $5, $6
       );
     `, [
-      targetStudent?.campus_id || 'c0000000-0000-0000-0000-000000000001',
+      resolvedCampusId,
       targetStudent?.id || line.matched_student_id,
       line.credit_amount,
       line.extracted_utr || receiptNo,

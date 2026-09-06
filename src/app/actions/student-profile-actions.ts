@@ -2,12 +2,10 @@
 
 import { Client } from 'pg';
 
-const DB_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const DB_CONNECTION_STRING = process.env.DATABASE_URL || '';
 
 function getPgClient() {
-  return new Client({ connectionString: DB_CONNECTION_STRING });
+  return new Client({ connectionString: DB_CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
 }
 
 // 1. Update Full Student Profile

@@ -54,7 +54,7 @@ function CampusSecurityHubContent() {
   const [visitorType, setVisitorType] = useState('PARENT');
   const [hostPerson, setHostPerson] = useState('Principal Office');
   const [purpose, setPurpose] = useState('Parent-Teacher Academic Inquiry');
-  const [vehicleNo, setVehicleNo] = useState('DL-01-AB-1234');
+  const [vehicleNo, setVehicleNo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Print Badge Modal

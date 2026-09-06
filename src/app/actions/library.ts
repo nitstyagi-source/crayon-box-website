@@ -4,10 +4,10 @@ import pg from 'pg';
 import { revalidatePath } from "next/cache";
 
 const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const connectionString = process.env.DATABASE_URL || '';
 
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
     globalPool = new Pool({ 
       connectionString,
@@ -30,6 +30,15 @@ function safeDateStr(d: any): string {
   return String(d);
 }
 
+async function getDefaultCampusId(pool: any): Promise<string> {
+  try {
+    const res = await pool.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    return res.rows[0]?.id || '';
+  } catch {
+    return '';
+  }
+}
+
 // -------------------------------------------------------------
 // 1. LIBRARY DASHBOARD STATS
 // -------------------------------------------------------------
@@ -37,11 +46,18 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
   const pool = getPool();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(pool);
     const cid = (institutionCode && institutionCode !== 'all' && institutionCode !== 'default') ? institutionCode : defaultCampus;
 
     const [booksRes, copiesRes, txsRes, resRes] = await Promise.all([
-      pool.query(`SELECT count(*) as total_titles, COALESCE(sum(total_copies), 0) as total_volumes FROM public.library_books WHERE institution_code = $1 OR $1 = 'ALL'`, [cid]),
+      pool.query(`
+        SELECT 
+          count(*) as total_titles, 
+          COALESCE(sum(total_copies), 0) as total_volumes,
+          count(CASE WHEN date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE) THEN 1 END) as added_this_month
+        FROM public.library_books 
+        WHERE institution_code = $1 OR $1 = 'ALL'
+      `, [cid]),
       pool.query(`
         SELECT status, count(*) as count 
         FROM public.library_book_copies c
@@ -54,6 +70,8 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
           count(*) as total_txs,
           count(CASE WHEN status = 'Issued' THEN 1 END) as active_loans,
           count(CASE WHEN status = 'Overdue' THEN 1 END) as overdue_loans,
+          count(CASE WHEN status = 'Issued' AND date_trunc('day', issue_date) = CURRENT_DATE THEN 1 END) as issued_today,
+          count(CASE WHEN return_date IS NOT NULL AND date_trunc('day', return_date) = CURRENT_DATE THEN 1 END) as returned_today,
           COALESCE(sum(CASE WHEN fine_status = 'Pending' THEN fine_amount ELSE 0 END), 0) as pending_fines,
           COALESCE(sum(CASE WHEN fine_status = 'Paid' THEN fine_amount ELSE 0 END), 0) as collected_fines
         FROM public.library_transactions
@@ -62,8 +80,9 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
       pool.query(`SELECT count(*) as active_reservations FROM public.library_reservations WHERE status = 'Active' AND (institution_code = $1 OR $1 = 'ALL')`, [cid])
     ]);
 
-    const totalTitles = Number(booksRes.rows[0]?.total_titles || 5);
+    const totalTitles = Number(booksRes.rows[0]?.total_titles || 0);
     const totalVolumes = Number(booksRes.rows[0]?.total_volumes ?? 0);
+    const addedThisMonth = Number(booksRes.rows[0]?.added_this_month || 0);
 
     const copiesMap: Record<string, number> = {};
     copiesRes.rows.forEach((r: any) => {
@@ -71,13 +90,15 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
     });
 
     const txMetrics = txsRes.rows[0] || {};
-    const available = copiesMap['Available'] !== undefined ? copiesMap['Available'] : 24;
-    const issued = Number(txMetrics.active_loans || copiesMap['Issued'] || 6);
-    const overdue = Number(txMetrics.overdue_loans || copiesMap['Overdue'] || 2);
+    const available = copiesMap['Available'] !== undefined ? copiesMap['Available'] : Math.max(0, totalVolumes - (copiesMap['Issued'] || 0));
+    const issued = Number(txMetrics.active_loans || copiesMap['Issued'] || 0);
+    const overdue = Number(txMetrics.overdue_loans || copiesMap['Overdue'] || 0);
     const lostDamaged = Number((copiesMap['Damaged'] || 0) + (copiesMap['Lost'] || 0));
-    const reserved = Number(resRes.rows[0]?.active_reservations || 1);
+    const reserved = Number(resRes.rows[0]?.active_reservations || 0);
     const pendingFines = Number(txMetrics.pending_fines ?? 0);
     const collectedFines = Number(txMetrics.collected_fines || 0);
+    const booksIssuedToday = Number(txMetrics.issued_today || 0);
+    const booksReturnedToday = Number(txMetrics.returned_today || 0);
 
     return {
       success: true,
@@ -89,9 +110,9 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
         overdue,
         lostDamaged,
         reserved,
-        booksAddedThisMonth: totalTitles,
-        booksIssuedToday: issued,
-        booksReturnedToday: 4,
+        booksAddedThisMonth: addedThisMonth,
+        booksIssuedToday,
+        booksReturnedToday,
         pendingFines,
         collectedFines
       }
@@ -102,17 +123,17 @@ export async function getLibraryDashboardStats(institutionCode?: string) {
       success: false,
       error: error.message,
       data: {
-        totalBooks: 5,
-        totalCopies: 33,
-        available: 24,
-        issued: 6,
-        overdue: 2,
+        totalBooks: 0,
+        totalCopies: 0,
+        available: 0,
+        issued: 0,
+        overdue: 0,
         lostDamaged: 0,
-        reserved: 1,
-        booksAddedThisMonth: 5,
-        booksIssuedToday: 6,
-        booksReturnedToday: 4,
-        pendingFines: 240,
+        reserved: 0,
+        booksAddedThisMonth: 0,
+        booksIssuedToday: 0,
+        booksReturnedToday: 0,
+        pendingFines: 0,
         collectedFines: 0
       }
     };
@@ -131,7 +152,7 @@ export async function getLibraryBooksCatalog(payload?: {
   const client = await pool.connect();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(client);
     const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
       ? payload.institutionCode 
       : defaultCampus;
@@ -204,7 +225,7 @@ export async function getLibraryTransactions(payload?: {
   const client = await pool.connect();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(client);
     const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
       ? payload.institutionCode 
       : defaultCampus;
@@ -215,7 +236,7 @@ export async function getLibraryTransactions(payload?: {
              b.category, 
              b.rack_location,
              s.photo_url as student_photo,
-             COALESCE(p.phone_number, '+91 98765 43210') as parent_phone
+             COALESCE(p.phone_number, '') as parent_phone
       FROM public.library_transactions tx
       LEFT JOIN public.library_books b ON b.id = tx.book_id
       LEFT JOIN public.students s ON s.id = tx.student_id
@@ -276,7 +297,7 @@ export async function getLibraryAccessionRegister(payload?: {
   const client = await pool.connect();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(client);
     const cid = (payload?.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
       ? payload.institutionCode 
       : defaultCampus;
@@ -349,7 +370,7 @@ export async function issueBookTransaction(payload: {
   const client = await pool.connect();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(client);
     const cid = (payload.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
       ? payload.institutionCode 
       : defaultCampus;
@@ -380,7 +401,9 @@ export async function issueBookTransaction(payload: {
     const loanDays = payload.loanDays || 7;
     const issueDate = new Date().toISOString().split('T')[0];
     const dueDate = new Date(Date.now() + loanDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const txCode = `LIB-TX-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.library_transactions;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const txCode = `LIB-TX-${new Date().getFullYear()}-${nextSeq}`;
 
     // 2. Insert Transaction
     const insertRes = await client.query(`
@@ -587,12 +610,14 @@ export async function addNewBookTitleAction(payload: {
   const client = await pool.connect();
 
   try {
-    const defaultCampus = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampus = await getDefaultCampusId(client);
     const cid = (payload.institutionCode && payload.institutionCode !== 'all' && payload.institutionCode !== 'default') 
       ? payload.institutionCode 
       : defaultCampus;
 
-    const bookCode = `BK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.library_books;`);
+    const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const bookCode = `BK-2026-${seq}`;
     const copiesCount = Math.max(1, payload.totalCopies || 1);
 
     // 1. Insert Title
@@ -609,9 +634,9 @@ export async function addNewBookTitleAction(payload: {
       RETURNING *;
     `, [
       cid, bookCode, payload.title, payload.author, payload.publisher,
-      payload.isbn || `978-81-${Math.floor(100000 + Math.random() * 900000)}`,
+      payload.isbn || (bookCode ? `ISBN-${bookCode}` : 'ISBN-PENDING'),
       payload.edition || '1st Edition', payload.category, payload.language || 'English',
-      payload.classGrade || 'All Grades', payload.rackLocation, payload.price || 350,
+      payload.classGrade || 'All Grades', payload.rackLocation, payload.price ?? 0,
       copiesCount, payload.description || 'Institutional library acquisition'
     ]);
 
@@ -675,14 +700,14 @@ export async function getStudentLibraryProfile(studentIdOrName?: string) {
       LIMIT 1;
     `, [`%${queryParam}%`]);
 
-    const student = stuRes.rows[0] || {
-      id: "3e6b0d63-7a91-47b4-800e-8886b23f3701",
-      first_name: "Rohan",
-      last_name: "Verma",
-      admission_no: "CBS-2026-0001",
-      grade: "Grade 5",
-      section: "A"
-    };
+    const student = stuRes.rows[0];
+    if (!student) {
+      return {
+        success: false,
+        error: "No student found matching query",
+        data: null
+      };
+    }
 
     const txsRes = await client.query(`
       SELECT * FROM public.library_transactions 

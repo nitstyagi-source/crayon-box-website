@@ -15,8 +15,9 @@ import {
 import PdfUploader from "@/components/ui/PdfUploader";
 
 export default function TeacherAcademicsPage() {
-  const [selectedSession, setSelectedSession] = useState("2026-2027");
-  const [teacherName, setTeacherName] = useState("Dr. Sunita Sharma");
+  const currentYear = new Date().getFullYear();
+  const [selectedSession, setSelectedSession] = useState(`${currentYear}-${currentYear + 1}`);
+  const [teacherName, setTeacherName] = useState("");
   const [assignedSubjects, setAssignedSubjects] = useState<any[]>([]);
   const [activeSubjectId, setActiveSubjectId] = useState("");
   const [fullSyllabus, setFullSyllabus] = useState<any>(null);
@@ -29,7 +30,7 @@ export default function TeacherAcademicsPage() {
   const [logForm, setLogForm] = useState({
     subject_id: "",
     chapter_id: "",
-    teacher_name: "Dr. Sunita Sharma",
+    teacher_name: "",
     lesson_date: new Date().toISOString().split("T")[0],
     period_number: 1,
     topic_title: "",
@@ -138,13 +139,25 @@ export default function TeacherAcademicsPage() {
             My Syllabus & Question Papers
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Welcome, <strong className="text-slate-900">{teacherName}</strong>. You have exclusive access to manage syllabus pacing, lesson diaries, and question papers for your assigned courses.
+            Welcome{teacherName ? `, ${teacherName}` : ' Faculty Member'}. You have access to manage syllabus pacing, lesson diaries, and question papers for assigned courses.
           </p>
         </div>
 
         {/* Academic Session Selector & Identity Switcher */}
         <div className="flex flex-wrap items-center gap-3">
           
+          {/* Faculty Filter */}
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
+            <span className="text-xs text-slate-400 font-bold">Faculty:</span>
+            <input
+              type="text"
+              value={teacherName}
+              onChange={(e) => setTeacherName(e.target.value)}
+              placeholder="All Faculty"
+              className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none w-28 sm:w-36"
+            />
+          </div>
+
           {/* Session Switcher */}
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5">
             <span className="text-xs text-slate-400 font-bold">Session:</span>
@@ -153,10 +166,10 @@ export default function TeacherAcademicsPage() {
               onChange={(e) => setSelectedSession(e.target.value)}
               className="bg-transparent text-xs font-black text-slate-900 focus:outline-none"
             >
-              <option value="2026-2027">2026–2027 (Active)</option>
-              <option value="2025-2026">2025–2026 (Archived)</option>
-              <option value="2024-2025">2024–2025 (Archived)</option>
-              <option value="2027-2028">2027–2028 (Upcoming)</option>
+              <option value={`${currentYear}-${currentYear + 1}`}>{currentYear}–{currentYear + 1} (Active)</option>
+              <option value={`${currentYear - 1}-${currentYear}`}>{currentYear - 1}–{currentYear} (Archived)</option>
+              <option value={`${currentYear - 2}-${currentYear - 1}`}>{currentYear - 2}–{currentYear - 1} (Archived)</option>
+              <option value={`${currentYear + 1}-${currentYear + 2}`}>{currentYear + 1}–{currentYear + 2} (Upcoming)</option>
             </select>
           </div>
 

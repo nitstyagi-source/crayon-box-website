@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString });
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -93,8 +91,12 @@ export async function createHelpdeskTicketAction(params: {
     `, [studentAdmissionNoOrName]);
 
     const stu = stuRes.rows[0];
-    const randomCode = Math.floor(1000 + Math.random() * 9000);
-    const ticketNo = `TCK-2026-${randomCode}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.helpdesk_tickets;`);
+    const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const ticketNo = `TCK-2026-${seq}`;
+
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = stu?.campus_id || campRes.rows[0]?.id || null;
 
     const res = await client.query(`
       INSERT INTO public.helpdesk_tickets (
@@ -103,14 +105,14 @@ export async function createHelpdeskTicketAction(params: {
         subject, description, priority, assigned_department,
         status, sla_target_hours, created_at
       ) VALUES (
-        'c3d782a9-a50b-4708-a3fc-6b146f456662', $1, $2, $3,
-        $4, $5, $6, $7,
-        $8, $9, $10, $11,
+        $1, $2, $3, $4,
+        $5, $6, $7, $8,
+        $9, $10, $11, $12,
         'OPEN', 24, NOW()
       )
       RETURNING *
     `, [
-      ticketNo, stu?.id || null, stu ? `${stu.first_name} ${stu.last_name}` : 'General Inquiry',
+      campusId, ticketNo, stu?.id || null, stu ? `${stu.first_name} ${stu.last_name}` : 'General Inquiry',
       stu?.admission_no || 'N/A', stu?.class_name || 'General',
       stu?.father_name || 'Parent / Guardian', category,
       subject, description, priority, assignedDept
@@ -211,8 +213,9 @@ export async function createPurchaseOrderAction(params: {
 
   try {
     const { vendorName, category, totalAmount, itemsSummary } = params;
-    const randomCode = Math.floor(100 + Math.random() * 900);
-    const poNumber = `PO-2026-${randomCode}`;
+    const poCountRes = await client.query(`SELECT count(*)::int as count FROM public.purchase_orders;`);
+    const nextPoSeq = ((poCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const poNumber = `PO-2026-${nextPoSeq}`;
 
     const res = await client.query(`
       INSERT INTO public.purchase_orders (

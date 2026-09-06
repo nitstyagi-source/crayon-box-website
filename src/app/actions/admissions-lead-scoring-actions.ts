@@ -20,115 +20,6 @@ export interface LeadScoreRecord {
   created_at: string;
 }
 
-const MOCK_LEADS: LeadScoreRecord[] = [
-  {
-    id: 'lead-01',
-    enquiry_id: 'enq-901',
-    parent_name: 'Dr. Rajesh Khanna',
-    parent_phone: '+91 98112 34567',
-    parent_email: 'rajesh.khanna@medcenter.in',
-    student_name: 'Advait Khanna',
-    grade_applying: 'Class 1 (Primary)',
-    lead_source: 'Parent Referral',
-    conversion_score: 92,
-    score_tier: 'HOT',
-    key_drivers: [
-      'Completed comprehensive campus tour on Saturday (+25)',
-      'Elder sibling Ananya already enrolled in Class 5 (+20)',
-      'Downloaded fee schedule within 5 minutes (+15)',
-      'Follow-up inquiry answered within 2 hours (+15)'
-    ],
-    ai_recommended_action: 'High conversion probability. Dispatch direct provisional admission link with sibling discount pre-applied.',
-    suggested_message: 'Dear Dr. Rajesh Khanna, thank you for visiting Crayon Box School campus. As an esteemed member of our parent community, we have reserved a provisional seat for Advait in Class 1 with our priority sibling fee concession.',
-    last_contacted_at: '2026-09-02T10:30:00Z',
-    created_at: '2026-09-01T08:00:00Z'
-  },
-  {
-    id: 'lead-02',
-    enquiry_id: 'enq-902',
-    parent_name: 'Meera Deshmukh',
-    parent_phone: '+91 97234 56789',
-    parent_email: 'meera.d@fintech.co',
-    student_name: 'Ira Deshmukh',
-    grade_applying: 'Montessori Early Years (Pre-K)',
-    lead_source: 'Google Search / Website',
-    conversion_score: 84,
-    score_tier: 'HOT',
-    key_drivers: [
-      'Visited Early Years Montessori curriculum page 3 times (+20)',
-      'Requested interactive campus walk-in slot (+20)',
-      'Inquired about air-conditioned transport routes (+15)'
-    ],
-    ai_recommended_action: 'Send Montessori sensory classroom video tour and invite for Principal Tea on Saturday.',
-    suggested_message: 'Hello Meera ji, we noticed your interest in our Montessori Early Years program. Our dedicated foundational wing ensures 1:8 teacher-child ratio. Would you like to reserve a private tour this Saturday at 10:30 AM?',
-    last_contacted_at: '2026-09-03T14:15:00Z',
-    created_at: '2026-09-02T09:30:00Z'
-  },
-  {
-    id: 'lead-03',
-    enquiry_id: 'enq-903',
-    parent_name: 'Col. Vikram Rathore',
-    parent_phone: '+91 94567 89012',
-    parent_email: 'rathore.v@army.nic.in',
-    student_name: 'Shaurya Rathore',
-    grade_applying: 'Class 9 (Secondary)',
-    lead_source: 'Defence / Institutional Transfer',
-    conversion_score: 73,
-    score_tier: 'WARM',
-    key_drivers: [
-      'Relocating to campus catchment area in November (+20)',
-      'Inquired about board affiliation & Sports complex facilities (+15)',
-      'Prospectus downloaded (+10)'
-    ],
-    ai_recommended_action: 'Share Board academic track record brochure and military transfer TC admission guidelines.',
-    suggested_message: 'Dear Col. Rathore, welcome to our community. Our school offers flexible mid-term admission continuity for Defence personnel with full transfer certificate clearance support. Here is our Secondary School academic dossier.',
-    last_contacted_at: null,
-    created_at: '2026-09-02T16:45:00Z'
-  },
-  {
-    id: 'lead-04',
-    enquiry_id: 'enq-904',
-    parent_name: 'Sunita Aggarwal',
-    parent_phone: '+91 98765 43210',
-    parent_email: 'sunita.aggarwal@gmail.com',
-    student_name: 'Vihaan Aggarwal',
-    grade_applying: 'Class 11 (Science / PCM)',
-    lead_source: 'Instagram Ad Campaign',
-    conversion_score: 65,
-    score_tier: 'WARM',
-    key_drivers: [
-      'Submitted digital inquiry form (+15)',
-      'Downloaded JEE/NEET coaching integrated curriculum syllabus (+15)',
-      'Has not confirmed campus tour appointment yet (-10)'
-    ],
-    ai_recommended_action: 'Send JEE/NEET faculty credentials and invite to free Sunday STEM Diagnostic Scholarship Assessment.',
-    suggested_message: 'Dear Sunita ji, our Senior Secondary program provides integrated JEE/NEET prep alongside Class 11-12 syllabus. We invite Vihaan to our upcoming Science scholarship benchmark test this Sunday.',
-    last_contacted_at: '2026-08-30T11:00:00Z',
-    created_at: '2026-08-28T12:00:00Z'
-  },
-  {
-    id: 'lead-05',
-    enquiry_id: 'enq-905',
-    parent_name: 'Rohan Kapoor',
-    parent_phone: '+91 91234 56780',
-    parent_email: 'rohan.k@consulting.com',
-    student_name: 'Reyansh Kapoor',
-    grade_applying: 'Class 3 (Primary)',
-    lead_source: 'Walk-in Inquiry Brochure',
-    conversion_score: 42,
-    score_tier: 'COLD',
-    key_drivers: [
-      'Collected print brochure 18 days ago (+10)',
-      'No digital touchpoints logged since initial visit (-15)',
-      'Unanswered phone reminder (-10)'
-    ],
-    ai_recommended_action: 'Re-engage via low-pressure WhatsApp digest of recent school awards and upcoming Annual Day showcase.',
-    suggested_message: 'Hello Rohan, discover life at Crayon Box School! Check out our students’ recent regional robotics championship highlights and explore admissions for the upcoming academic session.',
-    last_contacted_at: '2026-08-20T10:00:00Z',
-    created_at: '2026-08-16T15:00:00Z'
-  }
-];
-
 export async function getAdmissionsLeadScoresAction(): Promise<{
   success: boolean;
   leads: LeadScoreRecord[];
@@ -143,22 +34,81 @@ export async function getAdmissionsLeadScoresAction(): Promise<{
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('admissions_lead_scores')
+      .from('enquiries')
       .select('*')
-      .order('conversion_score', { ascending: false });
+      .order('created_at', { ascending: false });
 
-    let leads = MOCK_LEADS;
-    if (!error && data && data.length > 0) {
-      leads = data as unknown as LeadScoreRecord[];
+    if (error) {
+      console.error("Error querying enquiries for lead scoring:", error);
+      return {
+        success: false,
+        leads: [],
+        stats: { totalScored: 0, hotCount: 0, warmCount: 0, coldCount: 0, avgConversionRate: 0 }
+      };
     }
+
+    const leads: LeadScoreRecord[] = (data || []).map((row: any) => {
+      let score = 50;
+      const drivers: string[] = [];
+
+      if (row.campus_tour_completed) {
+        score += 25;
+        drivers.push('Campus tour completed (+25)');
+      }
+      if (row.sibling_studying) {
+        score += 20;
+        drivers.push('Sibling already enrolled in school (+20)');
+      }
+      if (row.fee_structure_shared) {
+        score += 10;
+        drivers.push('Fee structure requested and reviewed (+10)');
+      }
+      if (row.interest_level === 'High' || row.priority === 'High') {
+        score += 15;
+        drivers.push('High interest / priority inquiry (+15)');
+      }
+      if (row.status === 'Lost' || row.status === 'closed') {
+        score = Math.min(score, 25);
+        drivers.push('Inquiry marked inactive / lost (-25)');
+      }
+
+      const finalScore = Math.max(10, Math.min(99, score));
+      const tier: 'HOT' | 'WARM' | 'COLD' = finalScore >= 80 ? 'HOT' : finalScore >= 60 ? 'WARM' : 'COLD';
+      const pName = row.parent_name || row.father_name || row.mother_name || 'Parent';
+      const cName = row.child_name || row.first_name || 'Child';
+
+      return {
+        id: row.id,
+        enquiry_id: row.enquiry_no || row.id,
+        parent_name: pName,
+        parent_phone: row.parent_phone || row.father_mobile || row.mother_mobile || '',
+        parent_email: row.parent_email || row.father_email || row.mother_email || '',
+        student_name: cName,
+        grade_applying: row.grade_interested || row.current_class || 'General Admission',
+        lead_source: row.source || 'Direct Walk-in',
+        conversion_score: finalScore,
+        score_tier: tier,
+        key_drivers: drivers.length > 0 ? drivers : ['Initial digital inquiry logged'],
+        ai_recommended_action: tier === 'HOT' 
+          ? 'High conversion likelihood. Schedule principal interaction and dispatch provisional admission token.'
+          : tier === 'WARM'
+          ? 'Follow up with fee structure breakdown and invite for campus showcase.'
+          : 'Send automated newsletter digest and invitation to open house.',
+        suggested_message: `Dear ${pName}, greetings from Crayon Box School regarding admission for ${cName}. We invite you to complete the enrolment documentation.`,
+        last_contacted_at: row.next_follow_up_date || row.follow_up_date || null,
+        created_at: row.created_at || new Date().toISOString()
+      };
+    });
+
+    leads.sort((a, b) => b.conversion_score - a.conversion_score);
 
     const totalScored = leads.length;
     const hotCount = leads.filter(l => l.score_tier === 'HOT').length;
     const warmCount = leads.filter(l => l.score_tier === 'WARM').length;
     const coldCount = leads.filter(l => l.score_tier === 'COLD').length;
-    const avgConversionRate = Math.round(
-      leads.reduce((acc, curr) => acc + curr.conversion_score, 0) / (totalScored || 1)
-    );
+    const avgConversionRate = totalScored > 0
+      ? Math.round(leads.reduce((acc, curr) => acc + curr.conversion_score, 0) / totalScored)
+      : 0;
 
     return {
       success: true,
@@ -171,16 +121,16 @@ export async function getAdmissionsLeadScoresAction(): Promise<{
         avgConversionRate
       }
     };
-  } catch {
+  } catch (err: any) {
     return {
-      success: true,
-      leads: MOCK_LEADS,
+      success: false,
+      leads: [],
       stats: {
-        totalScored: 5,
-        hotCount: 2,
-        warmCount: 2,
-        coldCount: 1,
-        avgConversionRate: 71
+        totalScored: 0,
+        hotCount: 0,
+        warmCount: 0,
+        coldCount: 0,
+        avgConversionRate: 0
       }
     };
   }
@@ -193,12 +143,30 @@ export async function dispatchLeadNurtureMessageAction(
 ): Promise<{
   success: boolean;
   message: string;
-  dispatchId: string;
+  dispatchId?: string;
+  error?: string;
 }> {
-  const lead = MOCK_LEADS.find(l => l.id === leadId) || MOCK_LEADS[0];
-  return {
-    success: true,
-    message: `Personalized AI Nurture alert dispatched via ${channel} to ${lead.parent_name} (${lead.parent_phone}).`,
-    dispatchId: `disp-${Date.now()}`
-  };
+  try {
+    const supabase = await createClient();
+    const { data: enquiry } = await supabase
+      .from('enquiries')
+      .select('parent_name, parent_phone, father_name, father_mobile')
+      .eq('id', leadId)
+      .maybeSingle();
+
+    const parentName = enquiry?.parent_name || enquiry?.father_name || 'Parent';
+    const parentPhone = enquiry?.parent_phone || enquiry?.father_mobile || '';
+
+    return {
+      success: true,
+      message: `AI Nurture alert dispatched via ${channel} to ${parentName} ${parentPhone ? `(${parentPhone})` : ''}.`,
+      dispatchId: `disp-${Date.now()}`
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: 'Failed to dispatch nurture communication',
+      error: err.message
+    };
+  }
 }

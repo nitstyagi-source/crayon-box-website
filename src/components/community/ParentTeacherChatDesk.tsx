@@ -30,75 +30,10 @@ import {
   ChatMessage
 } from '@/app/actions/parent-chat-actions';
 
-const INITIAL_DEMO_THREADS: ChatThread[] = [
-  {
-    id: 'thread-01',
-    student_id: 'stu-01',
-    student_name: 'Aarav Sharma',
-    grade_section: 'Class 5-A',
-    teacher_name: 'Dr. Sunita Rao (Class Teacher)',
-    parent_name: 'Rajesh Sharma (Father)',
-    parent_phone: '+91 98112 34567',
-    quiet_hours_enabled: true,
-    last_message_text: 'Thank you maam, Aarav will submit the Science fair model tomorrow morning.',
-    last_message_at: new Date().toISOString(),
-    unread_count: 1
-  },
-  {
-    id: 'thread-02',
-    student_id: 'stu-02',
-    student_name: 'Ananya Verma',
-    grade_section: 'Class 3-B',
-    teacher_name: 'Pooja Aggarwal (Class Teacher)',
-    parent_name: 'Vikram Verma (Father)',
-    parent_phone: '+91 98112 99887',
-    quiet_hours_enabled: true,
-    last_message_text: 'Please note that Ananya has a mild cold and will not participate in swimming today.',
-    last_message_at: new Date(Date.now() - 3600000).toISOString(),
-    unread_count: 0
-  },
-  {
-    id: 'thread-03',
-    student_id: 'stu-03',
-    student_name: 'Vihaan Tyagi',
-    grade_section: 'Class 8-A',
-    teacher_name: 'Manish Tyagi (Math Faculty)',
-    parent_name: 'Nitin Tyagi (Father)',
-    parent_phone: '+91 99990 12345',
-    quiet_hours_enabled: true,
-    last_message_text: 'Sir, could you share the reference worksheet for quadratic equations?',
-    last_message_at: new Date(Date.now() - 7200000).toISOString(),
-    unread_count: 0
-  }
-];
-
-const INITIAL_DEMO_MSGS: ChatMessage[] = [
-  {
-    id: 'msg-1',
-    thread_id: 'thread-01',
-    sender_role: 'TEACHER',
-    sender_name: 'Dr. Sunita Rao',
-    content: 'Dear Mr. Sharma, Aarav did exceptionally well in today\'s robotics lab demonstration.',
-    translated_content: 'प्रिय श्री शर्मा, आरव ने आज की रोबोटिक्स लैब प्रदर्शन में असाधारण प्रदर्शन किया।',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    is_read: true
-  },
-  {
-    id: 'msg-2',
-    thread_id: 'thread-01',
-    sender_role: 'PARENT',
-    sender_name: 'Rajesh Sharma',
-    content: 'Thank you ma\'am, Aarav will submit the Science fair model tomorrow morning.',
-    translated_content: 'धन्यवाद मैम, आरव कल सुबह विज्ञान मेले का मॉडल जमा करेगा।',
-    created_at: new Date(Date.now() - 900000).toISOString(),
-    is_read: true
-  }
-];
-
 export function ParentTeacherChatDesk() {
-  const [threads, setThreads] = useState<ChatThread[]>(INITIAL_DEMO_THREADS);
-  const [activeThreadId, setActiveThreadId] = useState<string>('thread-01');
-  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_DEMO_MSGS);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [showTranslations, setShowTranslations] = useState(false);
   const [senderRole, setSenderRole] = useState<'TEACHER' | 'PARENT'>('TEACHER');
@@ -110,7 +45,7 @@ export function ParentTeacherChatDesk() {
 
   const quickReplies = [
     "Thank you for the update. I have noted this in the class register.",
-    "Aarav is performing wonderfully in today's activities!",
+    "The student is performing wonderfully in today's activities!",
     "Please ensure the homework worksheet is completed by Friday.",
     "I will discuss this in person during the upcoming PTM slot."
   ];
@@ -120,14 +55,21 @@ export function ParentTeacherChatDesk() {
     const res = await getChatThreadsAction();
     if (res.success && res.threads) {
       setThreads(res.threads);
-      if (res.threads.length > 0 && !activeThreadId) {
+      if (res.threads.length > 0) {
         setActiveThreadId(res.threads[0].id);
+      } else {
+        setActiveThreadId('');
+        setMessages([]);
       }
     }
     setIsLoading(false);
   };
 
   const loadMessages = async (threadId: string) => {
+    if (!threadId) {
+      setMessages([]);
+      return;
+    }
     const res = await getThreadMessagesAction(threadId);
     if (res.success && res.messages) {
       setMessages(res.messages);
@@ -236,45 +178,51 @@ export function ParentTeacherChatDesk() {
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-[#E8DFC8]">
-            {filteredThreads.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setActiveThreadId(t.id)}
-                className={`w-full text-left p-3.5 transition flex items-start justify-between gap-2 ${
-                  activeThreadId === t.id
-                    ? 'bg-amber-50/60 border-l-4 border-[#D97706]'
-                    : 'hover:bg-stone-50'
-                }`}
-              >
-                <div className="space-y-1 overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-stone-900 text-xs truncate">
-                      {t.student_name}
-                    </span>
-                    <span className="text-[10px] font-semibold text-stone-500 bg-stone-100 px-1.5 py-0.2 rounded border border-stone-200">
-                      {t.grade_section}
-                    </span>
+            {filteredThreads.length === 0 ? (
+              <div className="p-8 text-center text-stone-400 text-xs font-medium">
+                {isLoading ? 'Loading active chat threads...' : 'No parent-teacher communication threads found.'}
+              </div>
+            ) : (
+              filteredThreads.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveThreadId(t.id)}
+                  className={`w-full text-left p-3.5 transition flex items-start justify-between gap-2 ${
+                    activeThreadId === t.id
+                      ? 'bg-amber-50/60 border-l-4 border-[#D97706]'
+                      : 'hover:bg-stone-50'
+                  }`}
+                >
+                  <div className="space-y-1 overflow-hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-stone-900 text-xs truncate">
+                        {t.student_name}
+                      </span>
+                      <span className="text-[10px] font-semibold text-stone-500 bg-stone-100 px-1.5 py-0.2 rounded border border-stone-200">
+                        {t.grade_section}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-stone-500 truncate">
+                      {t.parent_name}
+                    </div>
+                    <p className="text-[11px] text-stone-600 truncate italic">
+                      {t.last_message_text}
+                    </p>
                   </div>
-                  <div className="text-[11px] text-stone-500 truncate">
-                    {t.parent_name}
-                  </div>
-                  <p className="text-[11px] text-stone-600 truncate italic">
-                    {t.last_message_text}
-                  </p>
-                </div>
 
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] text-stone-400 block font-medium">
-                    {new Date(t.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  {t.unread_count > 0 && (
-                    <span className="inline-block mt-1 w-4 h-4 bg-[#D97706] text-white text-[10px] font-bold rounded-full text-center leading-4">
-                      {t.unread_count}
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] text-stone-400 block font-medium">
+                      {new Date(t.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                  )}
-                </div>
-              </button>
-            ))}
+                    {t.unread_count > 0 && (
+                      <span className="inline-block mt-1 w-4 h-4 bg-[#D97706] text-white text-[10px] font-bold rounded-full text-center leading-4">
+                        {t.unread_count}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 

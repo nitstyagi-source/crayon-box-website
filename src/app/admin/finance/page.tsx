@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   CreditCard, IndianRupee, ArrowUpRight, TrendingUp,
@@ -353,16 +354,47 @@ function StudentFeesHubContent() {
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchInvoices}
-                isLoading={isLoadingInvoices}
-                className="border-[#E8DFC8] text-xs font-bold"
-                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-              >
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <Link href="/admin/finance/generate">
+                  <Button
+                    size="sm"
+                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                  >
+                    Generate Invoices
+                  </Button>
+                </Link>
+                <Link href="/admin/finance/receipts">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#E8DFC8] bg-white text-stone-700 hover:bg-[#FAF7F2] text-xs font-bold shadow-2xs"
+                    leftIcon={<Receipt className="w-3.5 h-3.5 text-stone-500" />}
+                  >
+                    Receipts
+                  </Button>
+                </Link>
+                <Link href="/admin/finance/pending">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold shadow-2xs"
+                    leftIcon={<AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
+                  >
+                    Aging Defaulters
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchInvoices}
+                  isLoading={isLoadingInvoices}
+                  className="border-[#E8DFC8] text-xs font-bold"
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                >
+                  Refresh
+                </Button>
+              </div>
             </div>
 
             <DataTable

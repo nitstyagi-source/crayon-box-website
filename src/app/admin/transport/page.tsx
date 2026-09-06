@@ -31,6 +31,8 @@ function TransportFleetContent() {
   const tabParam = searchParams.get('tab');
 
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
+  const curYear = new Date().getFullYear();
+  const curSessionShort = `${curYear}-${(curYear + 1).toString().slice(-2)}`;
 
   const [activeTab, setActiveTab] = useState<'radar' | 'roster' | 'scanner' | 'optimizer' | 'geofence-alerts'>('radar');
 
@@ -502,7 +504,7 @@ function TransportFleetContent() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-sky-100 text-sky-900 border border-sky-200">
-                          Valid 2026-27
+                          Valid {curSessionShort}
                         </span>
                       </td>
                     </tr>
@@ -601,7 +603,7 @@ function TransportFleetContent() {
                     type="text"
                     value={studentCodeInput}
                     onChange={(e) => setStudentCodeInput(e.target.value)}
-                    placeholder="e.g. VET:STU:CBS-2026-0001"
+                    placeholder={`e.g. VET:STU:CBS-${curYear}-0001`}
                     onKeyDown={(e) => e.key === 'Enter' && handlePerformScan()}
                   />
                   <Button
@@ -615,28 +617,26 @@ function TransportFleetContent() {
                 </div>
               </div>
 
-              {/* 1-Click Quick Simulators */}
-              <div className="space-y-1.5 pt-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  ⚡ 1-Click Student Test Simulator
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handlePerformScan('CBS-2026-0001')}
-                    className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-900 border border-slate-200 text-[11px] font-bold text-slate-800 text-left transition"
-                  >
-                    Rohan Verma (CBS-0001)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePerformScan('AS-2026-0143')}
-                    className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-900 border border-slate-200 text-[11px] font-bold text-slate-800 text-left transition"
-                  >
-                    Myra Iyer (AS-0143)
-                  </button>
+              {/* Quick Roster Passenger Scan */}
+              {musterLogs.length > 0 && (
+                <div className="space-y-1.5 pt-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    ⚡ Quick Roster Passenger Scan
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {musterLogs.slice(0, 4).map((m: any) => (
+                      <button
+                        key={m.id || m.admission_no}
+                        type="button"
+                        onClick={() => handlePerformScan(m.admission_no)}
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-900 border border-slate-200 text-[11px] font-bold text-slate-800 text-left transition truncate"
+                      >
+                        {m.student_name || 'Student'} ({m.admission_no})
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
           </div>

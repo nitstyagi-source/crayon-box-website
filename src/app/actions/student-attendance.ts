@@ -80,16 +80,7 @@ export async function getStudentAttendanceDashboard(campusId?: string, date?: st
       .eq('status', 'Pending');
 
     // Calculate Class-by-Class Attendance Matrix
-    const classList = classes && classes.length > 0 ? classes : [
-      { id: 'c1', grade: 'Pre-Nursery', section: 'A' },
-      { id: 'c2', grade: 'Nursery', section: 'A' },
-      { id: 'c3', grade: 'Kindergarten', section: 'A' },
-      { id: 'c4', grade: 'Grade 1', section: 'A' },
-      { id: 'c5', grade: 'Grade 2', section: 'A' },
-      { id: 'c6', grade: 'Grade 3', section: 'B' },
-      { id: 'c7', grade: 'Grade 4', section: 'A' },
-      { id: 'c8', grade: 'Grade 5', section: 'A' }
-    ];
+    const classList = classes && classes.length > 0 ? classes : [];
 
     const classMatrix = classList.map((c: any) => {
       const classStudents = (allStudents || []).filter(s => {
@@ -97,12 +88,12 @@ export async function getStudentAttendanceDashboard(campusId?: string, date?: st
         return mapping && mapping.class_name === c.grade && (mapping.section_name === c.section || !c.section);
       });
 
-      const total = classStudents.length || Math.floor(18 + Math.random() * 12);
-      const present = classStudents.filter(s => attendanceMap[s.id]?.status === 'Present').length || Math.round(total * 0.94);
-      const absent = classStudents.filter(s => attendanceMap[s.id]?.status === 'Absent').length || Math.max(0, total - present - 1);
-      const late = classStudents.filter(s => attendanceMap[s.id]?.status === 'Late').length || 1;
-      const leave = classStudents.filter(s => attendanceMap[s.id]?.status === 'Leave').length || 0;
-      const percentage = total > 0 ? Math.round((present / total) * 100) : 100;
+      const total = classStudents.length;
+      const present = classStudents.filter(s => attendanceMap[s.id]?.status === 'Present').length;
+      const absent = classStudents.filter(s => attendanceMap[s.id]?.status === 'Absent').length;
+      const late = classStudents.filter(s => attendanceMap[s.id]?.status === 'Late').length;
+      const leave = classStudents.filter(s => attendanceMap[s.id]?.status === 'Leave').length;
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
       return {
         grade: c.grade,
@@ -113,7 +104,7 @@ export async function getStudentAttendanceDashboard(campusId?: string, date?: st
         lateCount: late,
         leaveCount: leave,
         percentage,
-        isCompleted: true
+        isCompleted: total > 0 ? (present + absent + late + leave >= total) : false
       };
     });
 
@@ -122,21 +113,45 @@ export async function getStudentAttendanceDashboard(campusId?: string, date?: st
     const absentTotal = classMatrix.reduce((acc, c) => acc + c.absentCount, 0);
     const lateTotal = classMatrix.reduce((acc, c) => acc + c.lateCount, 0);
     const leaveTotal = classMatrix.reduce((acc, c) => acc + c.leaveCount, 0);
-    const overallPercentage = totalStudents > 0 ? Math.round((presentTotal / totalStudents) * 100) : 95;
+    const overallPercentage = totalStudents > 0 ? Math.round((presentTotal / totalStudents) * 100) : 0;
 
     // 6. Low Attendance Watchlist (< 75%)
-    const lowAttendanceStudents = (allStudents || []).slice(0, 3).map((s: any, idx: number) => ({
-      id: s.id,
-      name: `${s.first_name} ${s.last_name || ''}`,
-      admission_no: s.admission_no || `ADM-0${idx + 1}`,
-      class_name: studentClassMap[s.id]?.class_name || 'Grade 2',
-      section_name: studentClassMap[s.id]?.section_name || 'A',
-      photo_url: s.photo_url,
-      attendancePercentage: 68 + (idx * 2),
-      totalClasses: 120,
-      attendedClasses: 82 + (idx * 3),
-      consecutiveAbsences: 3
-    }));
+    const { data: recentRecords } = await supabase
+      .from('student_attendance_records')
+      .select('student_id, status')
+      .eq('event_type', 'Classroom')
+      .limit(500);
+
+    const studentStats: Record<string, { total: number; present: number }> = {};
+    (recentRecords || []).forEach((r: any) => {
+      if (!studentStats[r.student_id]) studentStats[r.student_id] = { total: 0, present: 0 };
+      studentStats[r.student_id].total += 1;
+      if (r.status === 'Present' || r.status === 'Late') {
+        studentStats[r.student_id].present += 1;
+      }
+    });
+
+    const lowAttendanceStudents: any[] = [];
+    (allStudents || []).forEach((s: any) => {
+      const stats = studentStats[s.id];
+      if (stats && stats.total >= 3) {
+        const pct = Math.round((stats.present / stats.total) * 100);
+        if (pct < 75) {
+          lowAttendanceStudents.push({
+            id: s.id,
+            name: `${s.first_name} ${s.last_name || ''}`.trim(),
+            admission_no: s.admission_no || '',
+            class_name: studentClassMap[s.id]?.class_name || 'N/A',
+            section_name: studentClassMap[s.id]?.section_name || 'A',
+            photo_url: s.photo_url || null,
+            attendancePercentage: pct,
+            totalClasses: stats.total,
+            attendedClasses: stats.present,
+            consecutiveAbsences: 0
+          });
+        }
+      }
+    });
 
     return {
       success: true,
@@ -150,7 +165,7 @@ export async function getStudentAttendanceDashboard(campusId?: string, date?: st
         overallPercentage,
         classMatrix,
         lowAttendanceStudents,
-        pendingCorrectionsCount: pendingCorrectionsCount || 1
+        pendingCorrectionsCount: pendingCorrectionsCount || 0
       }
     };
   } catch (error: any) {

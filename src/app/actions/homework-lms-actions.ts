@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -70,12 +68,43 @@ export async function createHomeworkAssignmentAction(params: {
     // Dispatch WhatsApp Broadcast to Class Parents
     const msgContent = `📝 *Crayon Box School — Daily Homework Notice*\n\n• *Class*: ${params.className}-${section}\n• *Subject*: ${params.subjectName}\n• *Teacher*: ${params.teacherName}\n• *Topic*: *${params.title}*\n• *Due Date*: ${new Date(params.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n📖 *Instructions*:\n${params.instructions}\n\n📲 *Submit Homework Online*: https://www.crayonboxschool.com/student/homework\n\n_Academic Faculty, Crayon Box School_`;
 
-    await client.query(`
-      INSERT INTO public.whatsapp_messages (
-        campus_id, student_id, student_name, parent_phone, message_type,
-        template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, '+919810081008', 'HOMEWORK_ALERT', 'daily_homework_notice', $2, 'DELIVERED', NOW());
-    `, [`Class ${params.className} Parents`, msgContent]);
+    // Fetch actual parents of the targeted class
+    const { rows: classStudents } = await client.query(`
+      SELECT s.id, CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) as student_name,
+             COALESCE(s.guardian_phone, s.emergency_contact, s.father_phone, s.mother_phone) as parent_phone,
+             s.campus_id
+      FROM public.students s
+      LEFT JOIN public.classes c ON c.id = s.class_id
+      WHERE (c.grade = $1 OR s.class_id::text = $1)
+        AND COALESCE(s.guardian_phone, s.emergency_contact, s.father_phone, s.mother_phone) IS NOT NULL
+      LIMIT 100;
+    `, [params.className]);
+
+    if (classStudents && classStudents.length > 0) {
+      for (const stu of classStudents) {
+        const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+        const defaultCampusId = campRes.rows[0]?.id || null;
+
+        if (stu.parent_phone) {
+          await client.query(`
+            INSERT INTO public.whatsapp_messages (
+              campus_id, student_id, student_name, parent_phone, message_type,
+              template_name, content, status, dispatched_at
+            ) VALUES ($1, $2, $3, $4, 'HOMEWORK_ALERT', 'daily_homework_notice', $5, 'DELIVERED', NOW());
+          `, [stu.campus_id || defaultCampusId, stu.id, stu.student_name, stu.parent_phone, msgContent]);
+        }
+      }
+    } else {
+      const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+      const defaultCampusId = campRes.rows[0]?.id || null;
+      // General class broadcast queue entry
+      await client.query(`
+        INSERT INTO public.whatsapp_messages (
+          campus_id, student_id, student_name, parent_phone, message_type,
+          template_name, content, status, dispatched_at
+        ) VALUES ($1, NULL, $2, 'CLASS_BROADCAST', 'HOMEWORK_ALERT', 'daily_homework_notice', $3, 'QUEUED', NOW());
+      `, [defaultCampusId, `Class ${params.className} Parents`, msgContent]);
+    }
 
     safeRevalidate('/admin/academic/homework');
     return {

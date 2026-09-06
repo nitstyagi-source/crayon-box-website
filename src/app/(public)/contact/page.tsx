@@ -90,8 +90,8 @@ export default function ContactUs() {
               </div>
               <h3 className="text-2xl font-serif font-bold text-stone-900 mb-4">Call Us</h3>
               <div className="space-y-3 text-stone-600 font-light">
-                <p><strong className="text-stone-900">Main Reception:</strong><br />{globalData.contact?.phone || "+91 98765 43210"}</p>
-                <p><strong className="text-stone-900">Emergency / Transport:</strong><br />{globalData.contact?.phone || "+91 98765 43211"}<br /><span className="text-xs text-stone-400">(Available 6 AM - 6 PM)</span></p>
+                <p><strong className="text-stone-900">Main Reception:</strong><br />{globalData.contact?.phone || "Official Campus Helpdesk"}</p>
+                <p><strong className="text-stone-900">Emergency / Transport:</strong><br />{globalData.contact?.phone || "Campus Transport Helpdesk"}<br /><span className="text-xs text-stone-400">(Available 6 AM - 6 PM)</span></p>
               </div>
             </motion.div>
 
@@ -198,7 +198,7 @@ export default function ContactUs() {
 
                   <motion.div variants={fadeUp}>
                     <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">Phone Number</label>
-                    <input name="phone" required type="tel" className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-stone-700" placeholder="+91 98765 43210" />
+                    <input name="phone" required type="tel" className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-stone-700" placeholder="10-digit Mobile Number" />
                   </motion.div>
 
                   <motion.div variants={fadeUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">

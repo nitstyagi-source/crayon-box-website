@@ -171,32 +171,32 @@ export default function ProfileSwitcherModal() {
                 onClick={() => { loginAsDemo("faculty_parent"); setIsProfileModalOpen(false); }}
                 className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left"
               >
-                <div className="font-bold text-slate-800">Neha Sharma</div>
-                <div className="text-[10px] text-slate-500">Faculty + Parent (2 Kids)</div>
+                <div className="font-bold text-slate-800">Faculty Assessor &amp; Parent</div>
+                <div className="text-[10px] text-slate-500">Dual Faculty &amp; Parent Portal</div>
               </button>
 
               <button 
                 onClick={() => { loginAsDemo("principal"); setIsProfileModalOpen(false); }}
                 className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left"
               >
-                <div className="font-bold text-slate-800">Dr. Sunita Rao</div>
-                <div className="text-[10px] text-slate-500">Principal Operations</div>
+                <div className="font-bold text-slate-800">Principal Operations Desk</div>
+                <div className="text-[10px] text-slate-500">Executive Academic Leadership</div>
               </button>
 
               <button 
                 onClick={() => { loginAsDemo("admin"); setIsProfileModalOpen(false); }}
                 className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left"
               >
-                <div className="font-bold text-slate-800">Dr. Rajesh Malhotra</div>
-                <div className="text-[10px] text-slate-500">Super Admin / Director</div>
+                <div className="font-bold text-slate-800">Super Admin / Director</div>
+                <div className="text-[10px] text-slate-500">Campus Trust Governance</div>
               </button>
 
               <button 
                 onClick={() => { loginAsDemo("student"); setIsProfileModalOpen(false); }}
                 className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left"
               >
-                <div className="font-bold text-slate-800">Aarav Sharma</div>
-                <div className="text-[10px] text-slate-500">Student (Grade 5A)</div>
+                <div className="font-bold text-slate-800">Student Learner Profile</div>
+                <div className="text-[10px] text-slate-500">Enrolled Student Experience</div>
               </button>
             </div>
           </div>

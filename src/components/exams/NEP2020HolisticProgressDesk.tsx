@@ -45,7 +45,7 @@ export function NEP2020HolisticProgressDesk({ studentsList }: NEP2020DeskProps) 
   const [selectedDomain, setSelectedDomain] = useState<'COGNITIVE' | 'AFFECTIVE' | 'PSYCHOMOTOR' | 'SOCIO_EMOTIONAL'>('COGNITIVE');
   const [score, setScore] = useState<number>(3);
   const [evidence, setEvidence] = useState('');
-  const [evaluatorName, setEvaluatorName] = useState('Smt. Sunita Rao (Class Teacher)');
+  const [evaluatorName, setEvaluatorName] = useState('Class Teacher (Faculty Assessor)');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -216,10 +216,10 @@ export function NEP2020HolisticProgressDesk({ studentsList }: NEP2020DeskProps) 
                 key={tab}
                 onClick={() => {
                   setActiveEvaluatorTab(tab);
-                  if (tab === 'TEACHER') setEvaluatorName('Smt. Sunita Rao (Class Teacher)');
-                  if (tab === 'SELF') setEvaluatorName(selectedStudent?.name || 'Self Evaluation');
-                  if (tab === 'PEER') setEvaluatorName('Arjun Sharma (Peer Buddy)');
-                  if (tab === 'PARENT') setEvaluatorName('Parent Guardian Voice');
+                  if (tab === 'TEACHER') setEvaluatorName('Class Teacher (Faculty Assessor)');
+                  if (tab === 'SELF') setEvaluatorName(selectedStudent?.name ? `${selectedStudent.name} (Self)` : 'Self Assessment');
+                  if (tab === 'PEER') setEvaluatorName('Peer Evaluator / Study Buddy');
+                  if (tab === 'PARENT') setEvaluatorName('Parent / Guardian Reflection');
                 }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
                   activeEvaluatorTab === tab

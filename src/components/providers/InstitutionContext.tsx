@@ -60,8 +60,10 @@ const DEFAULT_FALLBACK_INST: DynamicInstitution = {
 const InstitutionContext = createContext<InstitutionContextType | undefined>(undefined);
 
 export function InstitutionProvider({ children }: { children: React.ReactNode }) {
+  const currentYear = new Date().getFullYear();
+  const defaultCurrentSession = `${currentYear}–${currentYear + 1} (Active)`;
   const [currentInstitution, setCurrentInstitutionState] = useState<string>('ALL');
-  const [currentSession, setCurrentSession] = useState<string>('2026–2027 (Active)');
+  const [currentSession, setCurrentSession] = useState<string>(defaultCurrentSession);
   const [currentRole, setCurrentRole] = useState<string>('SUPER_ADMIN');
   const [dbInstitutions, setDbInstitutions] = useState<DynamicInstitution[]>([]);
 
@@ -166,7 +168,7 @@ export function useInstitution() {
       selectedInstitutionObj: DEFAULT_FALLBACK_INST,
       institutionsList: [] as DynamicInstitution[],
       refreshInstitutions: async () => {},
-      currentSession: '2026–2027 (Active)',
+      currentSession: `${new Date().getFullYear()}–${new Date().getFullYear() + 1} (Active)`,
       setSession: () => {},
       currentRole: 'SUPER_ADMIN',
       setRole: () => {},

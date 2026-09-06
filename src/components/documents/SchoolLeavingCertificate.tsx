@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Printer, ShieldCheck, GraduationCap, Edit3, Check, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { updateIssuedTCAction } from '@/app/actions/student-v2-actions';
+import { useInstitution } from '@/components/providers/InstitutionContext';
 
 export interface TCProps {
   tcData: {
@@ -36,6 +37,7 @@ export interface TCProps {
 }
 
 export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
+  const { selectedInstitutionObj } = useInstitution();
   const certificateRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState(tcData);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -192,7 +194,7 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
           </p>
 
           <div className="flex items-center justify-between text-xs font-bold text-slate-700 pt-2 border-t border-slate-200 mt-2">
-            <span>REF NO.: <strong className="font-mono text-slate-900">{data.ref_number || `REF/${schoolInitials}/SLC/2026/0042`}</strong></span>
+            <span>REF NO.: <strong className="font-mono text-slate-900">{data.ref_number || (data.tc_number ? `REF/${data.tc_number.replace('TC-', '')}` : 'REF/SLC/PENDING')}</strong></span>
             <span>TC NO.: <strong className="font-mono text-indigo-700">{data.tc_number}</strong></span>
             <span>DATE: <strong className="font-mono text-slate-900">{formatDate(data.issue_date)}</strong></span>
           </div>
@@ -211,13 +213,13 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">1.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Name of School & I.D:</span>
-            <span className="font-bold text-slate-900 uppercase">{data.school_name} ({data.school_id_number || '1253481'})</span>
+            <span className="font-bold text-slate-900 uppercase">{data.school_name} {data.school_id_number || selectedInstitutionObj?.code ? `(${data.school_id_number || selectedInstitutionObj?.code})` : ''}</span>
           </div>
 
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">2.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">UDISE Code of School:</span>
-            <span className="font-mono font-bold text-slate-900">{data.udise_code || '07124100151'}</span>
+            <span className="font-mono font-bold text-slate-900">{data.udise_code || selectedInstitutionObj?.udise_code || selectedInstitutionObj?.code || 'Pending'}</span>
           </div>
 
           <div className="flex items-baseline">
@@ -253,19 +255,19 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">8.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Class in which admitted:</span>
-            <span className="font-bold text-slate-900">{data.class_admitted || 'Pre-Nursery'}</span>
+            <span className="font-bold text-slate-900">{data.class_admitted || data.class_last_attended || 'N/A'}</span>
           </div>
 
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">9.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Class & Section last attended:</span>
-            <span className="font-bold text-slate-900">{data.class_last_attended} (Section {data.section_last_attended || 'A'})</span>
+            <span className="font-bold text-slate-900">{data.class_last_attended || 'N/A'} (Section {data.section_last_attended || 'N/A'})</span>
           </div>
 
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">10.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Permanent Education Number (PEN):</span>
-            <span className="font-mono font-bold text-slate-900">{data.pen_no || 'PEN-2026-08891'}</span>
+            <span className="font-mono font-bold text-slate-900">{data.pen_no || 'Pending Allocation / Verification'}</span>
           </div>
 
           <div className="flex items-baseline">
@@ -295,19 +297,19 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">15.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Total Attendance during session:</span>
-            <span className="font-bold text-slate-900">{data.total_attendance || 220} Days</span>
+            <span className="font-bold text-slate-900">{data.total_attendance ?? 0} Days</span>
           </div>
 
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">16.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Student Attendance during session:</span>
-            <span className="font-bold text-slate-900">{data.student_attendance || 204} Days</span>
+            <span className="font-bold text-slate-900">{data.student_attendance ?? 0} Days</span>
           </div>
 
           <div className="flex items-baseline">
             <span className="font-bold w-7 shrink-0">17.</span>
             <span className="font-medium text-slate-700 w-72 shrink-0">Result:</span>
-            <span className="font-black text-slate-900 uppercase">{data.annual_result || 'PROMOTED TO HIGHER CLASS'}</span>
+            <span className="font-black text-slate-900 uppercase">{data.annual_result || 'N/A'}</span>
           </div>
 
         </div>
@@ -331,10 +333,14 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
         {/* Official Footer */}
         <div className="mt-6 pt-2 border-t-2 border-slate-900 flex items-center justify-between text-[10px] text-slate-600 font-medium print:mt-3">
           <div>
-            <span>Tel. +91 9811102008</span> • <span>info@crayonboxschool.com</span> • <span>www.crayonboxschool.com</span>
+            {[
+              selectedInstitutionObj?.phone ? `Tel. ${selectedInstitutionObj.phone}` : null,
+              selectedInstitutionObj?.principalEmail || selectedInstitutionObj?.email || null,
+              selectedInstitutionObj?.website || null
+            ].filter(Boolean).join(" • ") || "Official Academic Division • Quality Education Foundation"}
           </div>
-          <div>
-            <span>Kh. No. 6/20, D-Block, Shastri Park Ext. Burari, Delhi-110084</span>
+          <div className="text-right max-w-[50%]">
+            <span>{selectedInstitutionObj?.address || "Main Campus • Recognized Institution"}</span>
           </div>
         </div>
 
@@ -485,8 +491,8 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
                 <label className="block font-bold text-slate-700 mb-1">Total Attendance Days</label>
                 <input
                   type="number"
-                  value={editForm.total_attendance || 220}
-                  onChange={e => setEditForm({ ...editForm, total_attendance: parseInt(e.target.value) || 220 })}
+                  value={editForm.total_attendance ?? 0}
+                  onChange={e => setEditForm({ ...editForm, total_attendance: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
                 />
               </div>
@@ -495,8 +501,8 @@ export function SchoolLeavingCertificate({ tcData, onUpdate }: TCProps) {
                 <label className="block font-bold text-slate-700 mb-1">Student Attendance Days</label>
                 <input
                   type="number"
-                  value={editForm.student_attendance || 204}
-                  onChange={e => setEditForm({ ...editForm, student_attendance: parseInt(e.target.value) || 204 })}
+                  value={editForm.student_attendance ?? 0}
+                  onChange={e => setEditForm({ ...editForm, student_attendance: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
                 />
               </div>

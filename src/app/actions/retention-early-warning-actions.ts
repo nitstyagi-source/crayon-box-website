@@ -3,12 +3,12 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -35,32 +35,49 @@ export async function computeStudentRetentionRisksAction() {
 
     const calculatedAlerts: any[] = [];
 
-    // Realistic multi-signal risk variance
-    const riskScenarios = [
-      {
-        attScore: 85, feeScore: 90, diaryScore: 70, acadScore: 60,
-        driver: 'Repeated Monday Absences & Overdue Q2 Fee (>35 days)',
-        action: 'Schedule pastoral welfare call with Father; offer fee installment plan'
-      },
-      {
-        attScore: 65, feeScore: 20, diaryScore: 80, acadScore: 40,
-        driver: 'Low Parent App Engagement (7 unread diary notices)',
-        action: 'Send WhatsApp direct SMS check-in regarding child academic diary'
-      },
-      {
-        attScore: 20, feeScore: 10, diaryScore: 15, acadScore: 10,
-        driver: 'Healthy Consistent Engagement',
-        action: 'Standard positive reinforcement'
-      }
-    ];
-
     for (let i = 0; i < students.length; i++) {
       const s = students[i];
-      const sc = riskScenarios[i % riskScenarios.length];
+
+      // Query real student attendance
+      const attRes = await client.query(`
+        SELECT count(*) filter (where status = 'ABSENT') as absent_days,
+               count(*) as total_days
+        FROM public.student_attendance_records
+        WHERE student_id = $1;
+      `, [s.id]);
+      const absentDays = Number(attRes.rows[0]?.absent_days || 0);
+      const totalDays = Number(attRes.rows[0]?.total_days || 0);
+      const attScore = totalDays > 0 ? Math.min(100, Math.round((absentDays / totalDays) * 100)) : 10;
+
+      // Query real overdue fee balance
+      const feeRes = await client.query(`
+        SELECT COALESCE(SUM(balance_amount), 0) as overdue_fee
+        FROM public.student_invoices
+        WHERE student_id = $1 AND status != 'PAID';
+      `, [s.id]);
+      const overdueFee = Number(feeRes.rows[0]?.overdue_fee || 0);
+      const feeScore = overdueFee > 10000 ? 90 : (overdueFee > 0 ? 50 : 10);
+
+      const diaryScore = 15;
+      const acadScore = 20;
+
+      let driver = 'Healthy Consistent Engagement';
+      let action = 'Standard positive reinforcement';
+
+      if (attScore >= 50 && feeScore >= 50) {
+        driver = `Consecutive Absences (${absentDays} days) & Overdue Fees (₹${overdueFee})`;
+        action = 'Schedule pastoral welfare call with Father; offer fee installment plan';
+      } else if (attScore >= 50) {
+        driver = `Frequent Unexcused Absences (${absentDays} days recorded)`;
+        action = 'Class teacher check-in with guardian regarding child attendance';
+      } else if (feeScore >= 50) {
+        driver = `Overdue School Fees (₹${overdueFee})`;
+        action = 'Send polite accounts reminder for fee clearance';
+      }
 
       // 4-Signal Weighted Formula:
       // Risk = (0.40 * Att) + (0.25 * Fee) + (0.25 * Diary) + (0.10 * Acad)
-      const composite = Math.round((0.40 * sc.attScore) + (0.25 * sc.feeScore) + (0.25 * sc.diaryScore) + (0.10 * sc.acadScore));
+      const composite = Math.round((0.40 * attScore) + (0.25 * feeScore) + (0.25 * diaryScore) + (0.10 * acadScore));
       const tier = composite >= 75 ? 'CRITICAL' : composite >= 50 ? 'HIGH' : composite >= 30 ? 'MODERATE' : 'LOW';
 
       const { rows: inserted } = await client.query(`
@@ -79,12 +96,12 @@ export async function computeStudentRetentionRisksAction() {
         s.class_name || 'Class 4-B',
         composite,
         tier,
-        sc.attScore,
-        sc.feeScore,
-        sc.diaryScore,
-        sc.acadScore,
-        sc.driver,
-        sc.action
+        attScore,
+        feeScore,
+        diaryScore,
+        acadScore,
+        driver,
+        action
       ]);
 
       if (tier === 'HIGH' || tier === 'CRITICAL') {

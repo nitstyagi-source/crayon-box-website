@@ -61,16 +61,6 @@ export async function POST(req: NextRequest) {
       if (staffRes.rows.length > 0) {
         user = staffRes.rows[0];
         user.username = user.email;
-      } else if (cleanId.toLowerCase().includes('admin') || cleanId.toLowerCase().includes('tyagi') || cleanId === 'nits.tyagi@gmail.com') {
-        user = {
-          id: '11111111-1111-1111-1111-111111111111',
-          username: cleanId,
-          email: cleanId,
-          full_name: 'Super Administrator',
-          phone_number: '+919818000001',
-          primary_role: 'Super Admin',
-          account_status: 'Active'
-        };
       }
     }
 

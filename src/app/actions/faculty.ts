@@ -4,12 +4,20 @@ import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import pg from 'pg';
 
-function getPool() {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false }
-  });
+let globalPool: pg.Pool | null = null;
+
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidatePath(path: string) {
@@ -21,8 +29,8 @@ function safeRevalidatePath(path: string) {
 }
 
 function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
@@ -138,8 +146,9 @@ export async function createFacultyMember(data: any) {
     // Auto-generate employee ID if not provided
     let empId = data.employee_id?.trim();
     if (!empId) {
-      const randomNum = Math.floor(100 + Math.random() * 900);
-      empId = `CB-FAC-${randomNum}`;
+      const { count } = await supabase.from('staff').select('*', { count: 'exact', head: true });
+      const nextSeq = ((count || 0) + 1).toString().padStart(3, '0');
+      empId = `CB-FAC-${nextSeq}`;
     }
 
     const payload = {

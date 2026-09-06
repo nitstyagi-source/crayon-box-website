@@ -14,6 +14,7 @@ import {
   generateIndividualInvoice, 
   generateBulkInvoices,
   getFeeHeads,
+  getFeeStructures,
   saveFeeHead,
   getBulkTargetStudents
 } from "@/app/actions/finance-core";
@@ -28,7 +29,11 @@ export default function GenerateInvoicesPage() {
 
   // Common State
   const [billingPeriod, setBillingPeriod] = useState("Q1 (April-June 2026)");
-  const [dueDate, setDueDate] = useState("2026-04-10");
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    return d.toISOString().split("T")[0];
+  });
   const [notes, setNotes] = useState("Regular term fee invoice");
   const [availableHeads, setAvailableHeads] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -111,37 +116,35 @@ export default function GenerateInvoicesPage() {
   useEffect(() => {
     if (activeTab === "bulk") {
       loadBulkStudents();
-      // Initialize default bulk items based on class
-      let tuition = 6500;
-      let annual = 3000;
-      let activity = 1000;
-      let lab = 1000;
-
-      if (["Nursery", "LKG", "UKG"].includes(selectedClass)) {
-        tuition = 5500; annual = 2500; activity = 1000; lab = 0;
-      } else if (["Grade 3", "Grade 4"].includes(selectedClass)) {
-        tuition = 7000; annual = 3500; activity = 1000; lab = 1000;
-      } else if (selectedClass === "Grade 5") {
-        tuition = 7500; annual = 3500; activity = 1200; lab = 1200;
-      } else if (["Grade 6", "Grade 7", "Grade 8"].includes(selectedClass)) {
-        tuition = 8500; annual = 4000; activity = 1200; lab = 1500;
-      } else if (["Grade 9", "Grade 10"].includes(selectedClass)) {
-        tuition = 9000; annual = 4500; activity = 1500; lab = 1800;
-      } else if (["Grade 11", "Grade 12"].includes(selectedClass)) {
-        tuition = 9500; annual = 5000; activity = 1500; lab = 2000;
-      }
-
-      const items = [
-        { fee_head_id: "", fee_head_name: "Tuition Fee", base_amount: tuition, discount_amount: 0 },
-        { fee_head_id: "", fee_head_name: "Annual Charges", base_amount: annual, discount_amount: 0 },
-        { fee_head_id: "", fee_head_name: "Activity Fee", base_amount: activity, discount_amount: 0 },
-      ];
-      if (lab > 0) {
-        items.push({ fee_head_id: "", fee_head_name: "Computer & AI Fee", base_amount: lab, discount_amount: 0 });
-      }
-      setBulkBatchItems(items);
+      loadBulkStructureItems();
     }
   }, [currentInstitution, selectedClass, selectedSection, activeTab]);
+
+  async function loadBulkStructureItems() {
+    try {
+      const res = await getFeeStructures(currentInstitution);
+      if (res.success && res.data && res.data.length > 0) {
+        const matchingStruct = res.data.find((s: any) => s.class_name === selectedClass) || res.data[0];
+        if (matchingStruct && matchingStruct.fee_structure_items && matchingStruct.fee_structure_items.length > 0) {
+          const items = matchingStruct.fee_structure_items.map((it: any) => ({
+            fee_head_id: it.fee_head_id || "",
+            fee_head_name: it.fee_head_name || "Fee Head",
+            base_amount: Number(it.amount || 0),
+            discount_amount: 0
+          }));
+          setBulkBatchItems(items);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching fee structures for bulk generate:", err);
+    }
+    // Fallback: active fee heads with 0 base amount for administrative input
+    setBulkBatchItems([
+      { fee_head_id: "", fee_head_name: "Tuition Fee", base_amount: 0, discount_amount: 0 },
+      { fee_head_id: "", fee_head_name: "Annual Charges", base_amount: 0, discount_amount: 0 }
+    ]);
+  }
 
   useEffect(() => {
     if (activeTab === "individual") {
@@ -322,8 +325,8 @@ export default function GenerateInvoicesPage() {
       concessionType: st.concessionType || st.concession_type || (st.isEws ? '100% RTE Quota' : 'None'),
       concessionPct: Number(st.concessionPct || st.concession_percentage || 0),
       parentName: st.parentName || 'Guardian',
-      parentMobile: st.parentMobile || '+91 9811102008',
-      outstandingBalance: st.outstandingBalance !== undefined ? st.outstandingBalance : (st.estimated_net || 11500)
+      parentMobile: st.parentMobile || '',
+      outstandingBalance: st.outstandingBalance !== undefined ? st.outstandingBalance : (st.estimated_net || 0)
     };
 
     setSelectedStudent(norm);
@@ -2049,10 +2052,14 @@ export default function GenerateInvoicesPage() {
                       {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
                     </h2>
                     <p className="text-[10px] font-bold text-stone-700">
-                      {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : `School ID: ${selectedInstitutionObj?.code || "1253481"} • UDISE Code: 07124100151`}
+                      {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : (selectedInstitutionObj?.udiseCode ? `UDISE Code: ${selectedInstitutionObj.udiseCode}` : (selectedInstitutionObj?.code ? `School Code: ${selectedInstitutionObj.code}` : "Recognized & Registered Institution"))}
                     </p>
                     <p className="text-[9.5px] text-stone-500">
-                      {selectedInstitutionObj?.address || "Delhi NCR"} • Phone: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "accounts@school.edu.in"}
+                      {[
+                        selectedInstitutionObj?.address,
+                        selectedInstitutionObj?.phone ? `Phone: ${selectedInstitutionObj.phone}` : null,
+                        selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null
+                      ].filter(Boolean).join(" • ") || "Accounts Division • Quality Education Foundation"}
                     </p>
                     <div className="pt-1.5 flex justify-center">
                       <span className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-widest px-3 py-0.5 rounded">

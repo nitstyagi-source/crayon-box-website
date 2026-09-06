@@ -276,19 +276,8 @@ function attributeFeeHeads(
   };
 
   if (!invoiceItems || invoiceItems.length === 0) {
-    // Proportional breakdown across 8 ERP Fee Heads
-    result.tuition_fee = Math.round(paidAmt * 0.50);
-    result.annual_charges = Math.round(paidAmt * 0.15);
-    result.computer_ai_fee = Math.round(paidAmt * 0.10);
-    result.development_fee = Math.round(paidAmt * 0.08);
-    result.examination_fee = Math.round(paidAmt * 0.06);
-    result.activity_fee = Math.round(paidAmt * 0.05);
-    result.school_app_id_card = Math.round(paidAmt * 0.03);
-    result.transport_fee = Math.max(0, paidAmt - (
-      result.tuition_fee + result.annual_charges + result.computer_ai_fee + 
-      result.development_fee + result.examination_fee + result.activity_fee + 
-      result.school_app_id_card
-    ));
+    // When no itemized fee heads are attached, allocate unallocated collections to primary tuition fee
+    result.tuition_fee = paidAmt;
     return result;
   }
 
@@ -411,110 +400,42 @@ export async function getDailyManagementReportAction(params: {
     let transactions: ReportTransactionItem[] = [];
     const rawReceipts = receipts || [];
 
-    if (rawReceipts.length === 0) {
-      // Fallback realistic live data across the 8 ERP Fee Heads
-      const demoStudents = [
-        { name: 'JAIVESH BUMRA', adm: '4479', cls: '3rd', sec: 'C', month: 'May-Jun', paid: 2500, due: 1600, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1250, ann: 375, cmp: 250, dev: 200, exm: 150, act: 125, idc: 75, trn: 75 },
-        { name: 'LAVANIYA', adm: '3254', cls: '8th', sec: 'B', month: 'May-Jun', paid: 2500, due: 1930, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1250, ann: 375, cmp: 250, dev: 200, exm: 150, act: 125, idc: 75, trn: 75 },
-        { name: 'ZENISH SINGARI', adm: '4265', cls: '3rd', sec: 'C', month: 'May-Jun', paid: 2500, due: 600, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1250, ann: 375, cmp: 250, dev: 200, exm: 150, act: 125, idc: 75, trn: 75 },
-        { name: 'Prem Kumar Sagar', adm: '3291', cls: '7th', sec: 'C', month: 'May-Jun', paid: 3320, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1660, ann: 500, cmp: 330, dev: 260, exm: 200, act: 170, idc: 100, trn: 100 },
-        { name: 'KANU PRIYA', adm: '4255', cls: '3rd', sec: 'B', month: 'May-Jun', paid: 3100, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1550, ann: 465, cmp: 310, dev: 250, exm: 185, act: 155, idc: 95, trn: 90 },
-        { name: 'Divyanshi Sinha', adm: '4087', cls: '5th', sec: 'B', month: 'Jun', paid: 1550, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 775, ann: 235, cmp: 155, dev: 125, exm: 90, act: 80, idc: 45, trn: 45 },
-        { name: 'Priyanshi Sinha', adm: '4088', cls: '5th', sec: 'B', month: 'Jun', paid: 1550, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 775, ann: 235, cmp: 155, dev: 125, exm: 90, act: 80, idc: 45, trn: 45 },
-        { name: 'ADITI', adm: '5732', cls: '2nd', sec: 'E', month: 'Apr-Jul', paid: 9900, due: 3300, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 4950, ann: 1485, cmp: 990, dev: 790, exm: 595, act: 495, idc: 295, trn: 300 },
-        { name: 'KHUSHI', adm: '5616', cls: '9th', sec: 'B', month: 'May-Jun', paid: 1000, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 500, ann: 150, cmp: 100, dev: 80, exm: 60, act: 50, idc: 30, trn: 30 },
-        { name: 'ANSH', adm: '5617', cls: '8th', sec: 'B', month: 'Jul', paid: 1660, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 830, ann: 250, cmp: 165, dev: 135, exm: 100, act: 85, idc: 50, trn: 45 },
-        { name: 'AMRIT', adm: '6206', cls: '6th', sec: 'C', month: 'Jun-Jul', paid: 3320, due: 0, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 1660, ann: 500, cmp: 330, dev: 260, exm: 200, act: 170, idc: 100, trn: 100 },
-        { name: 'ANMOL RATAN SHAKY', adm: '6158', cls: '6th', sec: 'A', month: 'Apr-Jul', paid: 9000, due: 0, conc: 4190, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 4500, ann: 1350, cmp: 900, dev: 720, exm: 540, act: 450, idc: 270, trn: 270 },
-        { name: 'KARAN KUMAR', adm: '3912', cls: '8th', sec: 'C', month: 'Apr-Jul', paid: 18000, due: 3760, conc: 0, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 9000, ann: 2700, cmp: 1800, dev: 1440, exm: 1080, act: 900, idc: 540, trn: 540 },
-        { name: 'PIYUSH GUPTA', adm: '6161', cls: 'NUR', sec: 'B', month: 'Apr-Jul', paid: 9000, due: 0, conc: 7650, adv: 0, mode: 'Cash', chq: '-', bank: '-', tuit: 4500, ann: 1350, cmp: 900, dev: 720, exm: 540, act: 450, idc: 270, trn: 270 },
-        
-        // Online Receipts
-        { name: 'Jiya', adm: '4126', cls: '5th', sec: 'B', month: 'May-Aug', paid: 6200, due: 0, conc: 0, adv: 0, mode: 'UPI (QR Scan)', chq: '905640190734', bank: 'HDFC Bank', tuit: 3100, ann: 930, cmp: 620, dev: 500, exm: 370, act: 310, idc: 185, trn: 185 },
-        { name: 'PRACHI', adm: '6055', cls: 'KG', sec: 'A', month: 'May-Aug', paid: 6000, due: 0, conc: 1700, adv: 0, mode: 'UPI (QR Scan)', chq: '905640190734', bank: 'ICICI Bank', tuit: 3000, ann: 900, cmp: 600, dev: 480, exm: 360, act: 300, idc: 180, trn: 180 },
-        { name: 'MOHAMMAD REHAN', adm: '6024', cls: 'KG', sec: 'C', month: 'Jul', paid: 1500, due: 0, conc: 425, adv: 0, mode: 'UPI (QR Scan)', chq: '309536583447', bank: 'SBI Bank', tuit: 750, ann: 225, cmp: 150, dev: 120, exm: 90, act: 75, idc: 45, trn: 45 },
-        { name: 'ABDUL RAHMAN', adm: '5298', cls: '4th', sec: 'C', month: 'Apr-Jun', paid: 11000, due: 7950, conc: 0, adv: 0, mode: 'UPI (QR Scan)', chq: '671867980368', bank: 'Axis Bank', tuit: 5500, ann: 1650, cmp: 1100, dev: 880, exm: 660, act: 550, idc: 330, trn: 330 },
-        { name: 'MAHIRA', adm: '5895', cls: '2nd', sec: 'B', month: 'Apr', paid: 5000, due: 2400, conc: 0, adv: 0, mode: 'UPI (QR Scan)', chq: '435217913051', bank: 'HDFC Bank', tuit: 2500, ann: 750, cmp: 500, dev: 400, exm: 300, act: 250, idc: 150, trn: 150 },
-        { name: 'KAYRAB', adm: '5896', cls: 'KG', sec: 'C', month: 'Apr', paid: 4400, due: 0, conc: 0, adv: 0, mode: 'UPI (QR Scan)', chq: '435217913051', bank: 'HDFC Bank', tuit: 2200, ann: 660, cmp: 440, dev: 350, exm: 265, act: 220, idc: 130, trn: 135 },
-        { name: 'ADITYA', adm: '6157', cls: '9th', sec: 'B', month: 'Apr-Jul', paid: 15380, due: 0, conc: 4960, adv: 0, mode: 'Razorpay Gateway', chq: '618257273829', bank: 'Razorpay Gateway', tuit: 7690, ann: 2300, cmp: 1540, dev: 1230, exm: 920, act: 770, idc: 460, trn: 470 },
-        { name: 'HIMANSHU', adm: '6159', cls: '7th', sec: 'A', month: 'Apr-Jul', paid: 9970, due: 0, conc: 3220, adv: 0, mode: 'Razorpay Gateway', chq: '570683079279', bank: 'Razorpay Gateway', tuit: 4985, ann: 1500, cmp: 1000, dev: 800, exm: 600, act: 500, idc: 300, trn: 285 },
-      ];
+    rawReceipts.forEach((r: any, rIdx: number) => {
+      const student = studentMap[r.student_id] || {};
+      const studentInvs = invoicesMap[r.student_id] || [];
+      const activeInv = studentInvs[0];
+      const invoiceItems = activeInv?.student_invoice_items || [];
 
-      demoStudents.forEach((ds, idx) => {
-        const channel = normalizePaymentChannel(ds.mode);
-        transactions.push({
-          id: `DEMO-TXN-${idx + 1}`,
-          receipt_no: `${1359 + idx}`,
-          receipt_date: fromDate,
-          academic_year: '2026-2027',
-          student_name: ds.name,
-          enrollment_no: `CBS-2026-${ds.adm}`,
-          admission_no: ds.adm,
-          class_name: ds.cls,
-          section_name: ds.sec,
-          class_section: `${ds.cls}-${ds.sec}`,
-          month: ds.month,
-          billing_period: ds.month,
-          payment_mode_raw: ds.mode,
-          payment_channel: channel,
-          amount_paid: ds.paid,
-          balance_due: ds.due,
-          concession_amount: ds.conc,
-          advance_amount: ds.adv,
-          chq_no_ref: ds.chq,
-          bank_name: ds.bank,
-          transaction_ref: ds.chq !== '-' ? ds.chq : `TXN-${1359 + idx}`,
-          collected_by: 'LAXMI (2026-2027)',
-          heads: {
-            tuition_fee: ds.tuit,
-            annual_charges: ds.ann,
-            computer_ai_fee: ds.cmp,
-            development_fee: ds.dev,
-            examination_fee: ds.exm,
-            activity_fee: ds.act,
-            school_app_id_card: ds.idc,
-            transport_fee: ds.trn
-          }
-        });
+      const channel = normalizePaymentChannel(r.payment_mode || 'UPI');
+      const paidAmt = Number(r.net_amount_paid || 0);
+      const heads = attributeFeeHeads(paidAmt, invoiceItems);
+
+      transactions.push({
+        id: r.id || `TXN-${rIdx}`,
+        receipt_no: r.receipt_no || `${1359 + rIdx}`,
+        receipt_date: r.receipt_date || fromDate,
+        academic_year: r.academic_year || '2026-2027',
+        student_name: r.student_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student',
+        enrollment_no: student.enrollment_number || r.admission_no || `CBS-2026-${1000 + rIdx}`,
+        admission_no: r.admission_no || student.admission_no || `${4000 + rIdx}`,
+        class_name: r.class_name || student.grade || '1st',
+        section_name: r.section_name || student.section || 'A',
+        class_section: `${r.class_name || student.grade || '1st'}-${r.section_name || student.section || 'A'}`,
+        month: activeInv?.billing_period || 'Current',
+        billing_period: activeInv?.billing_period || 'Current',
+        payment_mode_raw: r.payment_mode || 'Cash',
+        payment_channel: channel,
+        amount_paid: paidAmt,
+        balance_due: Number(r.remaining_balance || 0),
+        concession_amount: Number(r.discount_amount || activeInv?.discount_amount || 0),
+        advance_amount: Number(r.advance_adjusted || 0),
+        chq_no_ref: r.transaction_ref || r.cheque_number || '-',
+        bank_name: r.bank_name || '-',
+        transaction_ref: r.transaction_ref,
+        collected_by: r.collected_by || 'Accounts Cashier',
+        heads
       });
-    } else {
-      rawReceipts.forEach((r: any, rIdx: number) => {
-        const student = studentMap[r.student_id] || {};
-        const studentInvs = invoicesMap[r.student_id] || [];
-        const activeInv = studentInvs[0];
-        const invoiceItems = activeInv?.student_invoice_items || [];
-
-        const channel = normalizePaymentChannel(r.payment_mode || 'UPI');
-        const paidAmt = Number(r.net_amount_paid || 0);
-        const heads = attributeFeeHeads(paidAmt, invoiceItems);
-
-        transactions.push({
-          id: r.id || `TXN-${rIdx}`,
-          receipt_no: r.receipt_no || `${1359 + rIdx}`,
-          receipt_date: r.receipt_date || fromDate,
-          academic_year: '2026-2027',
-          student_name: r.student_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student',
-          enrollment_no: student.enrollment_number || r.admission_no || `CBS-2026-${1000 + rIdx}`,
-          admission_no: r.admission_no || student.admission_no || `${4000 + rIdx}`,
-          class_name: r.class_name || '1st',
-          section_name: r.section_name || 'A',
-          class_section: `${r.class_name || '1st'}-${r.section_name || 'A'}`,
-          month: activeInv?.billing_period || 'May-Jun',
-          billing_period: activeInv?.billing_period || 'May-Jun',
-          payment_mode_raw: r.payment_mode || 'Cash',
-          payment_channel: channel,
-          amount_paid: paidAmt,
-          balance_due: Number(r.remaining_balance || 0),
-          concession_amount: Number(r.discount_amount || activeInv?.discount_amount || 0),
-          advance_amount: Number(r.advance_adjusted || 0),
-          chq_no_ref: r.transaction_ref || r.cheque_number || '-',
-          bank_name: r.bank_name || '-',
-          transaction_ref: r.transaction_ref,
-          collected_by: r.collected_by || 'LAXMI (2026-2027)',
-          heads
-        });
-      });
-    }
+    });
 
     // Apply Filters
     if (params.className && params.className !== 'All') {
@@ -532,7 +453,7 @@ export async function getDailyManagementReportAction(params: {
     const grandSummary: any = {
       from_date: fromDate,
       to_date: toDate,
-      user_stamp: 'LAXMI (2026-2027)',
+      user_stamp: 'Accounts Cashier',
       ofy_flag: 'YES',
       wocb_flag: 'YES',
       total_receipts: transactions.length,
@@ -637,90 +558,42 @@ export async function getMonthlyManagementReportAction(params: {
     let allTransactions: ReportTransactionItem[] = [];
     const rawReceipts = receipts || [];
 
-    if (rawReceipts.length === 0) {
-      const demoNames = [
-        'JAIVESH BUMRA', 'LAVANIYA', 'ZENISH SINGARI', 'Prem Kumar Sagar', 'KANU PRIYA',
-        'Divyanshi Sinha', 'Priyanshi Sinha', 'ADITI', 'KHUSHI', 'ANSH',
-        'AMRIT', 'ANMOL RATAN SHAKY', 'KARAN KUMAR', 'PIYUSH GUPTA', 'Jiya',
-        'PRACHI', 'MOHAMMAD REHAN', 'ABDUL RAHMAN', 'MAHIRA', 'KAYRAB', 'ADITYA', 'HIMANSHU'
-      ];
+    rawReceipts.forEach((r: any, rIdx: number) => {
+      const student = studentMap[r.student_id] || {};
+      const studentInvs = invoicesMap[r.student_id] || [];
+      const activeInv = studentInvs[0];
+      const invoiceItems = activeInv?.student_invoice_items || [];
 
-      for (let d = 1; d <= Math.min(daysInMonth, 28); d += 2) {
-        const dStr = d < 10 ? `0${d}` : `${d}`;
-        const curDate = `${year}-${monthStr}-${dStr}`;
-        const nameIdx = (d % demoNames.length);
-        const name = demoNames[nameIdx];
-        const paidAmt = 2500 + (d * 350);
-        const balanceAmt = d % 3 === 0 ? 1600 : 0;
-        const concAmt = d % 5 === 0 ? 1700 : 0;
-        const modeRaw = d % 3 === 0 ? 'Cash' : d % 3 === 1 ? 'UPI (QR Scan)' : 'Razorpay Gateway';
-        const channel = normalizePaymentChannel(modeRaw);
-        const heads = attributeFeeHeads(paidAmt, []);
+      const channel = normalizePaymentChannel(r.payment_mode || 'UPI');
+      const paidAmt = Number(r.net_amount_paid || 0);
+      const heads = attributeFeeHeads(paidAmt, invoiceItems);
 
-        allTransactions.push({
-          id: `MON-TXN-${d}`,
-          receipt_no: `${1359 + d}`,
-          receipt_date: curDate,
-          academic_year: '2026-2027',
-          student_name: name,
-          enrollment_no: `CBS-2026-${4000 + d}`,
-          admission_no: `${4000 + d}`,
-          class_name: `${(d % 8) + 1}th`,
-          section_name: d % 2 === 0 ? 'A' : 'B',
-          class_section: `${(d % 8) + 1}th-${d % 2 === 0 ? 'A' : 'B'}`,
-          month: 'May-Jun',
-          billing_period: 'May-Jun',
-          payment_mode_raw: modeRaw,
-          payment_channel: channel,
-          amount_paid: paidAmt,
-          balance_due: balanceAmt,
-          concession_amount: concAmt,
-          advance_amount: 0,
-          chq_no_ref: channel !== 'Cash' ? `90564019${1000 + d}` : '-',
-          bank_name: channel !== 'Cash' ? 'HDFC Bank' : '-',
-          transaction_ref: `REF-${1000 + d}`,
-          collected_by: 'LAXMI (2026-2027)',
-          heads
-        });
-      }
-    } else {
-      rawReceipts.forEach((r: any, rIdx: number) => {
-        const student = studentMap[r.student_id] || {};
-        const studentInvs = invoicesMap[r.student_id] || [];
-        const activeInv = studentInvs[0];
-        const invoiceItems = activeInv?.student_invoice_items || [];
-
-        const channel = normalizePaymentChannel(r.payment_mode || 'UPI');
-        const paidAmt = Number(r.net_amount_paid || 0);
-        const heads = attributeFeeHeads(paidAmt, invoiceItems);
-
-        allTransactions.push({
-          id: r.id || `TXN-${rIdx}`,
-          receipt_no: r.receipt_no || `${1359 + rIdx}`,
-          receipt_date: r.receipt_date || startDate,
-          academic_year: '2026-2027',
-          student_name: r.student_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student',
-          enrollment_no: student.enrollment_number || r.admission_no || `CBS-2026-${1000 + rIdx}`,
-          admission_no: r.admission_no || student.admission_no || `${4000 + rIdx}`,
-          class_name: r.class_name || '1st',
-          section_name: r.section_name || 'A',
-          class_section: `${r.class_name || '1st'}-${r.section_name || 'A'}`,
-          month: activeInv?.billing_period || 'May-Jun',
-          billing_period: activeInv?.billing_period || 'May-Jun',
-          payment_mode_raw: r.payment_mode || 'Cash',
-          payment_channel: channel,
-          amount_paid: paidAmt,
-          balance_due: Number(r.remaining_balance || 0),
-          concession_amount: Number(r.discount_amount || activeInv?.discount_amount || 0),
-          advance_amount: Number(r.advance_adjusted || 0),
-          chq_no_ref: r.transaction_ref || r.cheque_number || '-',
-          bank_name: r.bank_name || '-',
-          transaction_ref: r.transaction_ref,
-          collected_by: r.collected_by || 'LAXMI (2026-2027)',
-          heads
-        });
+      allTransactions.push({
+        id: r.id || `TXN-${rIdx}`,
+        receipt_no: r.receipt_no || `${1359 + rIdx}`,
+        receipt_date: r.receipt_date || startDate,
+        academic_year: r.academic_year || '2026-2027',
+        student_name: r.student_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student',
+        enrollment_no: student.enrollment_number || r.admission_no || `CBS-2026-${1000 + rIdx}`,
+        admission_no: r.admission_no || student.admission_no || `${4000 + rIdx}`,
+        class_name: r.class_name || student.grade || '1st',
+        section_name: r.section_name || student.section || 'A',
+        class_section: `${r.class_name || student.grade || '1st'}-${r.section_name || student.section || 'A'}`,
+        month: activeInv?.billing_period || 'Current',
+        billing_period: activeInv?.billing_period || 'Current',
+        payment_mode_raw: r.payment_mode || 'Cash',
+        payment_channel: channel,
+        amount_paid: paidAmt,
+        balance_due: Number(r.remaining_balance || 0),
+        concession_amount: Number(r.discount_amount || activeInv?.discount_amount || 0),
+        advance_amount: Number(r.advance_adjusted || 0),
+        chq_no_ref: r.transaction_ref || r.cheque_number || '-',
+        bank_name: r.bank_name || '-',
+        transaction_ref: r.transaction_ref,
+        collected_by: r.collected_by || 'Accounts Cashier',
+        heads
       });
-    }
+    });
 
     // Apply Class filter if requested
     if (params.className && params.className !== 'All') {
@@ -815,7 +688,7 @@ export async function getMonthlyManagementReportAction(params: {
         period_label: `${monthNames[month - 1]} ${year}`,
         startDate,
         endDate,
-        user_stamp: 'LAXMI (2026-2027)',
+        user_stamp: 'Accounts Cashier',
         ofy_flag: 'YES',
         wocb_flag: 'YES',
         dailyRollups,

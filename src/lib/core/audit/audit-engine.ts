@@ -30,6 +30,7 @@ export interface AuditRecord {
 
 class AuditEngine {
   private inMemoryLogs: AuditRecord[] = [];
+  private counter = 0;
 
   /**
    * Log an immutable audit entry
@@ -37,7 +38,7 @@ class AuditEngine {
   public log(entry: Omit<AuditRecord, 'id' | 'timestamp'>): AuditRecord {
     const record: AuditRecord = {
       ...entry,
-      id: `AUD-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: `AUD-${Date.now()}-${(++this.counter).toString().padStart(4, '0')}`,
       timestamp: new Date().toISOString(),
     };
 

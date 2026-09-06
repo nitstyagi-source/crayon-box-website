@@ -390,7 +390,7 @@ export function FacultySubstitutionEngineDesk() {
                 OFFICIAL PROXY / SUBSTITUTION SLIP
               </span>
               <p className="text-[11px] text-slate-500">
-                Date: <strong>{selectedDate} ({dayOfWeek})</strong> • Session: 2026–2027
+                Date: <strong>{selectedDate} ({dayOfWeek})</strong> • Session: {new Date().getFullYear()}–{new Date().getFullYear() + 1}
               </p>
             </div>
 

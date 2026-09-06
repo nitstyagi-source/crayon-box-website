@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -331,9 +331,16 @@ export async function getChildLiveTransportTracking(studentId?: string) {
       studentAssignment = first;
     }
 
+    if (!studentAssignment) {
+      return {
+        success: false,
+        message: "No active bus transport allocation found for this student profile."
+      };
+    }
+
     // 2. Fetch Assigned Bus details
     let busInfo: any = null;
-    if (studentAssignment?.registration_number) {
+    if (studentAssignment.registration_number) {
       const { data: bus } = await supabase
         .from("transport_buses")
         .select("*")
@@ -342,38 +349,16 @@ export async function getChildLiveTransportTracking(studentId?: string) {
       busInfo = bus;
     }
 
-    const defaultBus = busInfo || {
-      bus_number: "Bus 01",
-      registration_number: "DL-1VA-8921",
-      driver_name: "Amit Singh",
-      driver_phone: "+91 98765 43210",
-      attendant_name: "Sunita Devi",
-      attendant_phone: "+91 98110 02233",
-      current_location_name: "Near Sant Nagar Chowk",
-      current_speed_kmh: 32,
-      status: "Running",
-      current_lat: 28.7214,
-      current_lng: 77.2012
-    };
-
     return {
       success: true,
       data: {
-        student: studentAssignment || {
-          student_name: "Aarav Sharma",
-          class_name: "Grade 5",
-          section_name: "A",
-          admission_no: "CBS-2026-0129",
-          route_name: "Route R-05 — Burari",
-          pickup_stop_name: "Burari Chowk (Pillar 42)",
-          drop_stop_name: "Burari Chowk (Pillar 42)"
-        },
-        bus: defaultBus,
-        morningPickupTime: "07:20 AM",
-        estimatedArrival: "07:28 AM",
-        liveStatus: "Bus On Route",
-        distanceAway: "1.2 km away",
-        etaMinutes: 4
+        student: studentAssignment,
+        bus: busInfo,
+        morningPickupTime: studentAssignment.pickup_time || "",
+        estimatedArrival: studentAssignment.drop_time || "",
+        liveStatus: busInfo?.status || "Scheduled",
+        distanceAway: busInfo ? "Tracking Live GPS" : "Not In Transit",
+        etaMinutes: busInfo?.current_speed_kmh ? 5 : 0
       }
     };
   } catch (error: any) {

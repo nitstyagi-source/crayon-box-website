@@ -13,13 +13,22 @@ import { SchoolLogo } from "@/components/ui/SchoolLogo";
 export default function FacultyMobileDashboard() {
   const { user } = useMobileAuth();
 
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const timeStr = new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(now);
+
   const TIMETABLE_PERIODS = [
-    { period: 1, time: "08:30 - 09:15 AM", subject: "Mathematics", grade: "Grade 5A", room: "Room 201", status: "completed" },
-    { period: 2, time: "09:15 - 10:00 AM", subject: "Mathematics", grade: "Grade 6B", room: "Room 204", status: "active" },
-    { period: 3, time: "10:00 - 10:45 AM", subject: "Free / Planning", grade: "Staff Room", room: "Desk 14", status: "upcoming" },
-    { period: 4, time: "11:00 - 11:45 AM", subject: "EVS & Science", grade: "Grade 5A", room: "Room 201", status: "upcoming" },
-    { period: 5, time: "11:45 - 12:30 PM", subject: "Mathematics", grade: "Grade 4A", room: "Room 105", status: "upcoming" },
-  ];
+    { period: 1, startMin: 510, endMin: 555, time: "08:30 - 09:15 AM", subject: "Mathematics", grade: "Grade 5A", room: "Room 201" },
+    { period: 2, startMin: 555, endMin: 600, time: "09:15 - 10:00 AM", subject: "Mathematics", grade: "Grade 6B", room: "Room 204" },
+    { period: 3, startMin: 600, endMin: 645, time: "10:00 - 10:45 AM", subject: "Free / Planning", grade: "Staff Room", room: "Desk 14" },
+    { period: 4, startMin: 660, endMin: 705, time: "11:00 - 11:45 AM", subject: "EVS & Science", grade: "Grade 5A", room: "Room 201" },
+    { period: 5, startMin: 705, endMin: 750, time: "11:45 - 12:30 PM", subject: "Mathematics", grade: "Grade 4A", room: "Room 105" },
+  ].map(p => {
+    const status = currentMinutes >= p.endMin ? 'completed' : (currentMinutes >= p.startMin ? 'active' : 'upcoming');
+    return { ...p, status };
+  });
+
+  const activeSlot = TIMETABLE_PERIODS.find(p => p.status === 'active') || TIMETABLE_PERIODS[0];
 
   return (
     <div className="space-y-6 pb-24">
@@ -31,22 +40,22 @@ export default function FacultyMobileDashboard() {
             <span className="inline-flex items-center gap-1.5 bg-blue-400/20 text-blue-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-blue-400/30">
               👩‍🏫 Faculty Desk
             </span>
-            <span className="text-xs text-slate-300 font-mono">Today &bull; 09:30 AM</span>
+            <span className="text-xs text-slate-300 font-mono">Today &bull; {timeStr}</span>
           </div>
 
           <div className="flex items-center gap-3.5">
             <SchoolLogo size="lg" shape="square" className="bg-white/95 p-1 shadow-md" />
             <div>
-              <h2 className="text-xl font-bold font-serif">{user?.fullName || "Neha Sharma"}</h2>
-              <p className="text-xs text-slate-300 mt-0.5">TGT Mathematics &bull; Class Teacher: Grade 5A</p>
+              <h2 className="text-xl font-bold font-serif">{user?.fullName || "Faculty Member"}</h2>
+              <p className="text-xs text-slate-300 mt-0.5">Faculty Academic Oversight &bull; Crayon Box</p>
             </div>
           </div>
 
           <div className="bg-white/10 rounded-2xl p-3 border border-white/10 flex items-center justify-between">
             <div>
               <span className="text-[10px] uppercase font-bold text-amber-300">Active Period Now:</span>
-              <div className="font-bold text-sm text-white mt-0.5">Period 2 &bull; Math (Grade 6B)</div>
-              <span className="text-[11px] text-slate-300">Room 204 &bull; 09:15 - 10:00 AM</span>
+              <div className="font-bold text-sm text-white mt-0.5">Period {activeSlot.period} &bull; {activeSlot.subject} ({activeSlot.grade})</div>
+              <span className="text-[11px] text-slate-300">{activeSlot.room} &bull; {activeSlot.time}</span>
             </div>
 
             <Link

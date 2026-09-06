@@ -22,6 +22,7 @@ import {
   getClassHomeworkListAction,
   HomeworkItem
 } from "@/app/actions/homework-lms-actions";
+import { getHomeworkSubmissionsAction } from "@/app/actions/homework-submission-actions";
 
 import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
 import { getDistinctSubjectsAndChaptersAction } from "@/app/actions/curriculum-radar-actions";
@@ -69,23 +70,36 @@ export function InteractiveHomeworkLMSDesk() {
 
   // Form State
   const [subjectName, setSubjectName] = useState("Mathematics");
-  const [teacherName, setTeacherName] = useState("Ms. Pooja Sharma");
-  const [hwTitle, setHwTitle] = useState("Addition & Number Line Practice");
-  const [hwInstructions, setHwInstructions] = useState("Complete Exercise 4.2 in workbook pages 28-29. Draw number lines neatly and color the jump intervals.");
+  const [teacherName, setTeacherName] = useState("Academic Faculty");
+  const [hwTitle, setHwTitle] = useState("");
+  const [hwInstructions, setHwInstructions] = useState("");
   const [dueDate, setDueDate] = useState(new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]);
   const [estimatedMinutes, setEstimatedMinutes] = useState(30);
 
-  // Simulated Student Submissions
-  const [submissions, setSubmissions] = useState([
-    { id: "SUB-01", studentName: "Aarav Sharma", class: "Class 1-A", status: "GRADED", grade: "A+ / 10/10", feedback: "Excellent neat work, Aarav! ⭐", date: "Today, 04:30 PM" },
-    { id: "SUB-02", studentName: "Ananya Verma", class: "Class 1-A", status: "PENDING_REVIEW", grade: "—", feedback: "Notebook photo attached", date: "Today, 05:15 PM" },
-    { id: "SUB-03", studentName: "Kabir Mehta", class: "Class 1-A", status: "NOT_SUBMITTED", grade: "—", feedback: "Awaiting submission", date: "Due in 2 days" }
-  ]);
-
+  // Dynamic Student Submissions
+  const [submissions, setSubmissions] = useState<any[]>([]);
 
   useEffect(() => {
     loadHomework();
+    loadSubmissions();
   }, [selectedClass]);
+
+  async function loadSubmissions() {
+    try {
+      const res = await getHomeworkSubmissionsAction();
+      if (res.success && res.submissions) {
+        setSubmissions(res.submissions.map((s: any) => ({
+          id: s.id,
+          studentName: s.studentName,
+          class: selectedClass,
+          status: s.status,
+          grade: s.marksObtained != null ? `${s.marksObtained}/10` : '—',
+          feedback: s.teacherFeedback || s.notes || 'Submitted online',
+          date: s.submissionDate ? new Date(s.submissionDate).toLocaleDateString() : 'Recent'
+        })));
+      }
+    } catch (_) {}
+  }
 
   async function loadHomework() {
     setIsLoading(true);
@@ -357,37 +371,46 @@ export function InteractiveHomeworkLMSDesk() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
-                {submissions.map((sub) => (
-                  <tr key={sub.id} className="hover:bg-stone-50/50">
-                    <td className="p-3 font-bold text-stone-900">{sub.studentName}</td>
-                    <td className="p-3">{sub.class}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        sub.status === 'GRADED'
-                          ? 'bg-emerald-100 text-emerald-900'
-                          : sub.status === 'PENDING_REVIEW'
-                          ? 'bg-amber-100 text-amber-900'
-                          : 'bg-stone-100 text-stone-500'
-                      }`}>
-                        {sub.status}
-                      </span>
-                    </td>
-                    <td className="p-3 font-mono font-bold text-teal-800">{sub.grade}</td>
-                    <td className="p-3 text-stone-600">{sub.feedback}</td>
-                    <td className="p-3 text-right">
-                      {sub.status === 'PENDING_REVIEW' ? (
-                        <button
-                          onClick={() => alert(`Graded ${sub.studentName} successfully!`)}
-                          className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[10px] font-bold shadow-xs"
-                        >
-                          Grade Now
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-stone-400 font-mono">{sub.date}</span>
-                      )}
+                {submissions && submissions.length > 0 ? (
+                  submissions.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-stone-50/50">
+                      <td className="p-3 font-bold text-stone-900">{sub.studentName}</td>
+                      <td className="p-3">{sub.class}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          sub.status === 'GRADED'
+                            ? 'bg-emerald-100 text-emerald-900'
+                            : sub.status === 'PENDING_REVIEW'
+                            ? 'bg-amber-100 text-amber-900'
+                            : 'bg-stone-100 text-stone-500'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-teal-800">{sub.grade}</td>
+                      <td className="p-3 text-stone-600">{sub.feedback}</td>
+                      <td className="p-3 text-right">
+                        {sub.status === 'PENDING_REVIEW' ? (
+                          <button
+                            onClick={() => alert(`Graded ${sub.studentName} successfully!`)}
+                            className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[10px] font-bold shadow-xs"
+                          >
+                            Grade Now
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-stone-400 font-mono">{sub.date}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-stone-400">
+                      <div className="font-bold text-xs text-stone-600">No submissions received for {selectedClass} yet</div>
+                      <div className="text-[10px] text-stone-400 mt-0.5">Students can submit homework online or via the mobile parent portal.</div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

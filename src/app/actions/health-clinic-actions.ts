@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -52,8 +50,8 @@ export async function logInfirmaryVisitAction(params: {
   const client = await p.connect();
 
   try {
-    const temp = params.bodyTemperatureF || 98.6;
-    const nurse = params.nurseName || "Nurse Mary (RN)";
+    const temp = params.bodyTemperatureF ?? 98.6;
+    const nurse = params.nurseName?.trim() || "Attending Medical Officer";
 
     const res = await client.query(`
       INSERT INTO public.infirmary_visit_logs (
@@ -72,12 +70,15 @@ export async function logInfirmaryVisitAction(params: {
     // Dispatch WhatsApp Medical Notice to Parent
     const msgContent = `🏥 *Crayon Box School — Infirmary Medical Care Notice*\n\nDear Parent, your ward *${params.studentName}* (${params.className}) visited the school health clinic today:\n\n• *Time*: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n• *Symptoms Reported*: ${params.symptoms}\n• *Temperature*: ${temp}°F\n• *Treatment / Care*: ${params.treatmentGiven}\n• *Medicine Administered*: ${params.medicineAdministered || 'None'}\n• *Status*: ${params.actionStatus.replace(/_/g, ' ')}\n• *Attended by*: ${nurse}\n\n_Your child is being monitored with utmost care._\n_Health Clinic & Infirmary, Crayon Box School_`;
 
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campRes.rows[0]?.id || null;
+
     await client.query(`
       INSERT INTO public.whatsapp_messages (
         campus_id, student_id, student_name, parent_phone, message_type,
         template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, $2, 'HEALTH_ALERT', 'infirmary_visit_notice', $3, 'DELIVERED', NOW());
-    `, [params.studentName, params.parentPhone, msgContent]);
+      ) VALUES ($1, NULL, $2, $3, 'HEALTH_ALERT', 'infirmary_visit_notice', $4, 'DELIVERED', NOW());
+    `, [campusId, params.studentName, params.parentPhone, msgContent]);
 
     safeRevalidate('/admin/health/clinic');
 

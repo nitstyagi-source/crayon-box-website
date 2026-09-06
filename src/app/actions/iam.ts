@@ -1,16 +1,15 @@
 "use server";
 
 import pg from "pg";
+import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ 
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ 
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -69,19 +68,8 @@ export async function authenticateUserLogin(payload: {
           username: u.email,
           email: u.email,
           full_name: u.full_name || u.name,
-          phone_number: '+919818000001',
+          phone_number: u.phone_number || '',
           primary_role: u.role || 'Super Admin',
-          account_status: 'Active'
-        };
-      } else if (cleanId.toLowerCase().includes('admin') || cleanId.toLowerCase().includes('tyagi') || cleanId === 'nits.tyagi@gmail.com') {
-        // Create / retrieve admin user account
-        user = {
-          id: '11111111-1111-1111-1111-111111111111',
-          username: cleanId,
-          email: cleanId,
-          full_name: 'Administrator',
-          phone_number: '+919818000001',
-          primary_role: 'Super Admin',
           account_status: 'Active'
         };
       }
@@ -109,10 +97,9 @@ export async function authenticateUserLogin(payload: {
 
     // 2. Validate Password or OTP
     if (payload.authMethod === "password") {
-      const allowedPass = [
-        user.password_hash, "admin123", "master123", "neha123", "student123", "parent123", "123456", "admin", "password"
-      ];
-      const isValid = allowedPass.includes(payload.password) || !payload.password || payload.password.length >= 4;
+      const provided = payload.password || "";
+      const hashedAttempt = crypto.createHash("sha256").update(provided).digest("hex");
+      const isValid = Boolean(provided) && Boolean(user.password_hash) && (user.password_hash === provided || user.password_hash === hashedAttempt);
       if (!isValid) {
         return { success: false, error: "Invalid password. Please check your credentials." };
       }
@@ -204,16 +191,11 @@ export async function demoQuickLoginAction(role: 'admin' | 'faculty' | 'parent' 
       LIMIT 1;
     `, [`%${queryRole}%`]);
 
-    let user = res.rows[0];
+    const user = res.rows[0];
     if (!user) {
-      user = {
-        id: '11111111-1111-1111-1111-111111111111',
-        username: role === 'admin' ? 'admin@crayonboxschool.com' : `${role}@crayonboxschool.com`,
-        email: role === 'admin' ? 'admin@crayonboxschool.com' : `${role}@crayonboxschool.com`,
-        full_name: role === 'admin' ? 'Super Administrator' : role === 'faculty' ? 'Dr. Sunita Sharma' : 'Nitin Sharma',
-        phone_number: '+919818000001',
-        primary_role: queryRole,
-        account_status: 'Active'
+      return {
+        success: false,
+        error: `No active institutional user account found with role '${queryRole}'. Please invite or register an account via IAM Directory.`
       };
     }
 
@@ -495,10 +477,8 @@ export async function emailBasedLoginAction(payload: {
     }
 
     // Validate Password
-    const allowedPass = [
-      user.password_hash, "admin123", "master123", "neha123", "faculty123", "teacher123", "123456", "admin"
-    ].filter(Boolean);
-    const isValid = allowedPass.includes(providedPassword);
+    const hashedAttempt = crypto.createHash("sha256").update(providedPassword).digest("hex");
+    const isValid = Boolean(providedPassword) && Boolean(user.password_hash) && (user.password_hash === providedPassword || user.password_hash === hashedAttempt);
 
     if (!isValid) {
       return { success: false, error: "Invalid password for this account. Please verify credentials." };
@@ -507,7 +487,7 @@ export async function emailBasedLoginAction(payload: {
     // Set Session Cookies
     try {
       const cookieStore = await cookies();
-      const sessionToken = `cbs_sess_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+      const sessionToken = `cbs_sess_${crypto.randomUUID().replace(/-/g, "")}_${Date.now()}`;
       
       cookieStore.set("cb_auth_token", sessionToken, {
         path: "/",

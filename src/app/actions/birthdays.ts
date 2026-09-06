@@ -26,7 +26,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------

@@ -386,22 +386,34 @@ export default function AdmissionsHub() {
                   Need help with your application? Our Admissions Counselors are here to guide you through every step.
                 </p>
                 <div className="space-y-6">
-                  <a href="tel:+919811102008" className="flex items-center gap-4 group">
-                    <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Phone className="w-5 h-5 text-white" />
+                  {cmsData?.contact?.phone ? (
+                    <a href={`tel:${cmsData.contact.phone.replace(/\s+/g, '')}`} className="flex items-center gap-4 group">
+                      <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Phone className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Call Us</p>
+                        <p className="text-lg font-bold">{cmsData.contact.phone}</p>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center">
+                        <Phone className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Helpline</p>
+                        <p className="text-sm font-bold text-white">Campus Admissions Desk</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Call Us</p>
-                      <p className="text-lg font-bold">+91 98111 02008</p>
-                    </div>
-                  </a>
-                  <a href="mailto:admissions@crayonboxschool.com" className="flex items-center gap-4 group">
+                  )}
+                  <a href={`mailto:${cmsData?.contact?.email || 'admissions@school.edu.in'}`} className="flex items-center gap-4 group">
                     <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Mail className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Email Us</p>
-                      <p className="text-lg font-bold">admissions@crayonboxschool.com</p>
+                      <p className="text-base font-bold">{cmsData?.contact?.email || 'admissions@school.edu.in'}</p>
                     </div>
                   </a>
                 </div>

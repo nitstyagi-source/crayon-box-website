@@ -115,10 +115,10 @@ export default async function VerifyFacultyQrPage({ params }: VerifyFacultyPageP
             <div className="bg-purple-950/40 border border-purple-800/40 p-3 rounded-2xl text-[11px] text-purple-200 space-y-1">
               <div className="flex items-center gap-1.5 font-bold">
                 <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                <span>CRAYON BOX SCHOOL</span>
+                <span>{result.facultyProfile?.schoolName || "CRAYON BOX SCHOOL"}</span>
               </div>
               <p className="text-[10px] text-purple-300/80">
-                Sant Nagar, Main Burari Road, Delhi - 110084 • UDISE: 07124100151
+                {result.facultyProfile?.schoolAddress || result.facultyProfile?.branch || "Delhi NCR"} {result.facultyProfile?.udise ? `• Code: ${result.facultyProfile.udise}` : ''}
               </p>
             </div>
 
@@ -132,7 +132,9 @@ export default async function VerifyFacultyQrPage({ params }: VerifyFacultyPageP
               {result.message || "This credential has been revoked, blocked, or expired."}
             </p>
             <p className="text-[10px] text-stone-400">
-              Please contact the school administrative desk at 9811102008 for assistance.
+              {result.facultyProfile?.schoolContact 
+                ? `Please contact the school administrative desk at ${result.facultyProfile.schoolContact} for assistance.`
+                : "Please contact the issuing school administrative desk for assistance."}
             </p>
           </div>
         )}

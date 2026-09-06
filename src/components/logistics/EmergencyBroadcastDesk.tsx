@@ -56,9 +56,9 @@ export function EmergencyBroadcastDesk() {
     setIsLockdownActive(true);
     erpEventEngine.publish({
       eventType: "EMERGENCY_LOCKDOWN_TRIGGERED",
-      campusId: activeCampusId || "c3d782a9-a50b-4708-a3fc-6b146f456662",
+      campusId: activeCampusId || "",
       actor: { userId: "usr-admin", name: "Principal Desk", role: "Principal" },
-      entity: { type: "CAMPUS", id: activeCampusId || "c3d782a9-a50b-4708-a3fc-6b146f456662" },
+      entity: { type: "CAMPUS", id: activeCampusId || "" },
       metadata: { reason: `${selectedProtocol} Protocol Initiated`, protocol: selectedProtocol },
     });
   };
@@ -68,9 +68,9 @@ export function EmergencyBroadcastDesk() {
     setBroadcastSent(false);
     erpEventEngine.publish({
       eventType: "EMERGENCY_LOCKDOWN_RELEASED",
-      campusId: activeCampusId || "c3d782a9-a50b-4708-a3fc-6b146f456662",
+      campusId: activeCampusId || "",
       actor: { userId: "usr-admin", name: "Principal Desk", role: "Principal" },
-      entity: { type: "CAMPUS", id: activeCampusId || "c3d782a9-a50b-4708-a3fc-6b146f456662" },
+      entity: { type: "CAMPUS", id: activeCampusId || "" },
       metadata: { reason: "All Clear Declared by Incident Commander" },
     });
   };

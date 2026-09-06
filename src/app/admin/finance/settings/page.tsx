@@ -17,16 +17,19 @@ export default function SettingsModule() {
   const [isResetting, setIsResetting] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const currentYear = new Date().getFullYear();
+  const currentSession = `${currentYear}–${currentYear + 1}`;
+
   // Form State
   const [formData, setFormData] = useState({
     institution_name: selectedInstitutionObj?.name || "School Name",
-    school_id: selectedInstitutionObj?.code || "1253481",
-    udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
-    contact_phone: selectedInstitutionObj?.phone || "9811102008",
+    school_id: selectedInstitutionObj?.code || "",
+    udise_code: selectedInstitutionObj?.udiseCode || "",
+    contact_phone: selectedInstitutionObj?.phone || "",
     contact_email: selectedInstitutionObj?.principalEmail || "accounts@school.edu.in",
     address: selectedInstitutionObj?.address || "Main Campus, Delhi NCR",
     receipt_prefix: `${selectedInstitutionObj?.code || "SCH"}-REC-`,
-    invoice_prefix: "INV-2026-",
+    invoice_prefix: `INV-${currentYear}-`,
     default_due_day: 10,
     late_fee_per_day: 25,
     max_late_fee: 500,
@@ -47,13 +50,13 @@ export default function SettingsModule() {
       if (res.success && res.data) {
         setFormData({
           institution_name: res.data.institution_name || selectedInstitutionObj?.name || "School Name",
-          school_id: res.data.school_id || "1253481",
-          udise_code: res.data.udise_code || "07124100151",
-          contact_phone: res.data.contact_phone || "9811102008",
-          contact_email: res.data.contact_email || "crayonboxdelhi@gmail.com",
-          address: res.data.address || "Burari, Sant Nagar, Delhi - 110084",
-          receipt_prefix: res.data.receipt_prefix || "CBS-REC-",
-          invoice_prefix: res.data.invoice_prefix || "INV-2026-",
+          school_id: res.data.school_id || selectedInstitutionObj?.code || "",
+          udise_code: res.data.udise_code || selectedInstitutionObj?.udiseCode || "",
+          contact_phone: res.data.contact_phone || selectedInstitutionObj?.phone || "",
+          contact_email: res.data.contact_email || selectedInstitutionObj?.principalEmail || "accounts@school.edu.in",
+          address: res.data.address || selectedInstitutionObj?.address || "Main Campus, Delhi NCR",
+          receipt_prefix: res.data.receipt_prefix || `${selectedInstitutionObj?.code || "SCH"}-REC-`,
+          invoice_prefix: res.data.invoice_prefix || `INV-${currentYear}-`,
           default_due_day: res.data.default_due_day || 10,
           late_fee_per_day: res.data.late_fee_per_day || 25,
           max_late_fee: res.data.max_late_fee || 500,
@@ -137,7 +140,7 @@ export default function SettingsModule() {
               System Master Settings
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
+            <span className="text-stone-500 text-xs font-bold">Academic Session {currentSession}</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
              <Settings className="w-8 h-8 text-stone-700" />
@@ -234,7 +237,7 @@ export default function SettingsModule() {
                   value={formData.contact_phone}
                   onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-bold text-stone-900"
-                  placeholder="e.g. 9811102008"
+                  placeholder="e.g. +91 98XXXXXXXX"
                   required
                 />
               </div>
@@ -246,7 +249,7 @@ export default function SettingsModule() {
                   value={formData.contact_email}
                   onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold text-stone-900"
-                  placeholder="e.g. crayonboxdelhi@gmail.com"
+                  placeholder="e.g. accounts@school.edu.in"
                   required
                 />
               </div>
@@ -298,7 +301,7 @@ export default function SettingsModule() {
                   value={formData.invoice_prefix}
                   onChange={(e) => setFormData({ ...formData, invoice_prefix: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-mono font-bold text-stone-900"
-                  placeholder="INV-2026-"
+                  placeholder={`INV-${currentYear}-`}
                 />
               </div>
             </div>

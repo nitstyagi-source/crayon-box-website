@@ -55,7 +55,7 @@ export const StreamAuthEngine = {
       };
     }
 
-    const token = `DRM_STREAM_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+    const token = `DRM_STREAM_${Date.now().toString(36)}_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`;
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15-minute short lived token
 
     return {

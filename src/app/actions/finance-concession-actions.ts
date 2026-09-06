@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -34,7 +43,8 @@ export async function scanAndApplySiblingConcessionsAction(params: {
   const client = await pool.connect();
 
   try {
-    const session = params.academicSession || '2026–2027';
+    const curYear = new Date().getFullYear();
+    const session = params.academicSession || `${curYear}–${curYear + 1}`;
 
     // 1. Find all active families with 2 or more active students
     const familiesRes = await client.query(`
@@ -135,9 +145,10 @@ export async function generateQuarterlyFeeDemandsAction(params: {
   const client = await pool.connect();
 
   try {
-    const session = params.academicSession || '2026–2027';
+    const curYear = new Date().getFullYear();
+    const session = params.academicSession || `${curYear}–${curYear + 1}`;
     const quarter = params.quarter || 1;
-    const dueDate = params.dueDate || '2026-09-15';
+    const dueDate = params.dueDate || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
 
     // 1. Fetch Students to invoice
     const studentsRes = await client.query(`
@@ -149,15 +160,16 @@ export async function generateQuarterlyFeeDemandsAction(params: {
     `);
     const students = studentsRes.rows;
 
-    const defaultCampusId = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const defaultCampusId = campRes.rows[0]?.id || null;
 
     // 2. Fetch Fee Heads from DB
     const headsRes = await client.query(`SELECT id, name FROM public.fee_heads;`);
     const allHeads = headsRes.rows;
-    const tuitionHead = allHeads.find((h: any) => h.name === 'Tuition Fee') || { id: '5b904689-4ac9-4fc8-8bf9-b2bddf53acf8' };
-    const annualHead = allHeads.find((h: any) => h.name === 'Annual Charges') || { id: '76abbf0d-54e8-434a-8f19-12d8eb6c2566' };
-    const computerHead = allHeads.find((h: any) => h.name === 'Computer & AI Fee') || { id: '204d4a1e-adbd-4614-9ccf-cc4765e3c000' };
-    const transportHead = allHeads.find((h: any) => h.name === 'Transport Fee') || { id: '4e6007fb-1087-425f-aadd-22ae1c051854' };
+    const tuitionHead = allHeads.find((h: any) => h.name === 'Tuition Fee') || allHeads[0] || null;
+    const annualHead = allHeads.find((h: any) => h.name === 'Annual Charges') || allHeads[1] || tuitionHead;
+    const computerHead = allHeads.find((h: any) => h.name === 'Computer & AI Fee') || allHeads[2] || tuitionHead;
+    const transportHead = allHeads.find((h: any) => h.name === 'Transport Fee') || allHeads[3] || tuitionHead;
 
     // 3. Fetch Active Concessions for this session
     const concessionsRes = await client.query(`
@@ -192,7 +204,7 @@ export async function generateQuarterlyFeeDemandsAction(params: {
       const grossAmount = baseTuition + labFee + annualCharge + transportFee;
       const netAmount = grossAmount - tuitionDiscount;
 
-      const invoiceNum = `INV-${stuInst}-26-Q${quarter}-${String(i + 1).padStart(4, '0')}`;
+      const invoiceNum = `INV-${stuInst}-${curYear.toString().slice(-2)}-Q${quarter}-${String(i + 1).padStart(4, '0')}`;
       const billingPeriod = `Quarter ${quarter} (${session})`;
 
       // Create Invoice with Idempotent Upsert
@@ -220,7 +232,7 @@ export async function generateQuarterlyFeeDemandsAction(params: {
         dueDate,
         stu.class_name || 'Class 1',
         `${stu.first_name} ${stu.last_name}`,
-        stu.admission_no || stu.universal_id || 'CBS-2026-0001',
+        stu.admission_no || stu.universal_id || 'N/A',
         `Quarterly demand generated via Multi-Head Fee Engine`
       ]);
 

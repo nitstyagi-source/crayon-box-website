@@ -20,6 +20,7 @@ import {
   MonthlyGrandTotal
 } from "@/app/actions/finance-management-reports";
 import { getProcurementPurchaseOrdersAction } from "@/app/actions/helpdesk-procurement-actions";
+import { getDefaultersAging } from "@/app/actions/finance-core";
 import { printIsolatedElement } from "@/lib/printUtils";
 
 export default function ManagementReportsModule() {
@@ -161,67 +162,30 @@ export default function ManagementReportsModule() {
   const loadDefaulters = async () => {
     setIsLoadingDefaulters(true);
     try {
-      const demoDefaulters = [
-        {
-          id: "def-1",
-          admissionNo: "CBS-2026-0012",
-          studentName: "Reyansh Gupta",
-          className: "Grade 4",
-          parentName: "Sanjay Gupta",
-          parentMobile: "+91 98112 34567",
-          invoiceNumber: "INV-2026-0089",
-          billingPeriod: "Q1 (April-June 2026)",
-          totalAmount: 24500,
-          amountPaid: 8000,
-          balanceDue: 16500,
-          status: "Overdue (45 Days)"
-        },
-        {
-          id: "def-2",
-          admissionNo: "CBS-2026-0045",
-          studentName: "Ananya Deshmukh",
-          className: "Grade 2",
-          parentName: "Vikram Deshmukh",
-          parentMobile: "+91 98220 98765",
-          invoiceNumber: "INV-2026-0112",
-          billingPeriod: "Q1 (April-June 2026)",
-          totalAmount: 22000,
-          amountPaid: 5000,
-          balanceDue: 17000,
-          status: "Overdue (30 Days)"
-        },
-        {
-          id: "def-3",
-          admissionNo: "CBS-2026-0088",
-          studentName: "Kavya Singhania",
-          className: "Grade 7",
-          parentName: "Rajeev Singhania",
-          parentMobile: "+91 99341 55667",
-          invoiceNumber: "INV-2026-0034",
-          billingPeriod: "Annual Term 2026-27",
-          totalAmount: 58000,
-          amountPaid: 30000,
-          balanceDue: 28000,
-          status: "Overdue (15 Days)"
-        },
-        {
-          id: "def-4",
-          admissionNo: "CBS-2026-0104",
-          studentName: "Devansh Mehra",
-          className: "Grade 9",
-          parentName: "Amit Mehra",
-          parentMobile: "+91 98765 43210",
-          invoiceNumber: "INV-2026-0145",
-          billingPeriod: "Q1 (April-June 2026)",
-          totalAmount: 29000,
+      const res = await getDefaultersAging(currentInstitution);
+      if (res.success && Array.isArray(res.data)) {
+        const curYear = new Date().getFullYear();
+        const liveDefaulters = res.data.map((d: any, idx: number) => ({
+          id: d.studentId || `def-${idx + 1}`,
+          admissionNo: d.admissionNo || `CBS-${curYear}-N/A`,
+          studentName: d.name || "Student",
+          className: d.className || "Grade 1",
+          parentName: d.parentName || "Guardian",
+          parentMobile: d.parentMobile || "-",
+          invoiceNumber: d.admissionNo ? `DEMAND-${d.admissionNo}` : `INV-${curYear}-${idx + 1}`,
+          billingPeriod: `Academic Session ${curYear}-${(curYear + 1).toString().slice(-2)}`,
+          totalAmount: Number(d.totalDue || 0),
           amountPaid: 0,
-          balanceDue: 29000,
-          status: "Overdue (60 Days)"
-        }
-      ];
-      setDefaulters(demoDefaulters);
+          balanceDue: Number(d.totalDue || 0),
+          status: `Overdue (${d.daysOverdue || 30} Days)`
+        }));
+        setDefaulters(liveDefaulters);
+      } else {
+        setDefaulters([]);
+      }
     } catch (err) {
       console.error("Failed to load defaulters:", err);
+      setDefaulters([]);
     } finally {
       setIsLoadingDefaulters(false);
     }
@@ -315,7 +279,7 @@ export default function ManagementReportsModule() {
     const dateRangeLabel = isMonthly 
       ? `From : ${monthlyData.startDate || `01/${monthlyMonth}/${monthlyYear}`}   To : ${monthlyData.endDate || `31/${monthlyMonth}/${monthlyYear}`}`
       : `From : ${dailyFromDate}   To : ${dailyToDate}`;
-    const userStamp = `User : LAXMI (2026-2027)`;
+    const userStamp = `User : ${isMonthly ? (monthlyData.user_stamp || "Accounts Cashier") : (dailyData.summary?.user_stamp || "Accounts Cashier")}`;
     const flags = `OFY : YES   WOCB : YES`;
 
     const metaLines = [
@@ -406,7 +370,7 @@ export default function ManagementReportsModule() {
       `"${affiliation}"`,
       `"OUTSTANDING FEE DEFAULTERS & OVERDUE DUES AUDIT REPORT"`,
       `"Class Filter: ${defaulterClass} | Search: ${defaulterSearch || 'None'}"`,
-      `"Generated On: ${generatedOn} | Academic Session: 2026-2027"`,
+      `"Generated On: ${generatedOn} | Academic Session: ${new Date().getFullYear()}-${new Date().getFullYear() + 1}"`,
       `"SUMMARY: Total Defaulters: ${filteredDefaulters.length} | Total Outstanding Receivables: Rs. ${totalDue}"`,
       ""
     ];
@@ -724,17 +688,21 @@ export default function ManagementReportsModule() {
                 {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Department")}
               </h1>
               <p className="text-[10.5px] font-bold text-stone-700">
-                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
+                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : (selectedInstitutionObj?.udiseCode ? `UDISE Code: ${selectedInstitutionObj.udiseCode}` : (selectedInstitutionObj?.code ? `School Code: ${selectedInstitutionObj.code}` : "Recognized & Registered Institution"))}
               </p>
               <p className="text-[9.5px] text-stone-500">
-                {selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084"} • Tel: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com"}
+                {[
+                  selectedInstitutionObj?.address,
+                  selectedInstitutionObj?.phone ? `Tel: ${selectedInstitutionObj.phone}` : null,
+                  selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null
+                ].filter(Boolean).join(" • ") || "Accounts Division • Quality Education Foundation"}
               </p>
               <div className="pt-2 flex flex-wrap justify-between items-center border-t border-stone-200 text-[11px] font-bold text-stone-900">
                 <span className="bg-stone-900 text-amber-400 font-black px-2 py-0.5 rounded text-[10px] uppercase">
                   📘 DAY BOOK DETAIL REGISTER
                 </span>
                 <span>Date Period: {dailyFromDate} To {dailyToDate}</span>
-                <span>User / In-Charge: LAXMI (2026-2027)</span>
+                <span>User / In-Charge: {dailyData.summary?.user_stamp || "Accounts Cashier"}</span>
                 <span>Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
               </div>
             </div>
@@ -804,7 +772,7 @@ export default function ManagementReportsModule() {
                       From : {dailyFromDate} &nbsp;&nbsp;&nbsp; To : {dailyToDate}
                     </p>
                     <p className="text-[11px] font-semibold text-stone-500">
-                      User : LAXMI (2026-2027) &nbsp;&nbsp;&nbsp;&nbsp; OFY : YES &nbsp;&nbsp;&nbsp; WOCB : YES
+                      User : {dailyData.summary?.user_stamp || "Accounts Cashier"} &nbsp;&nbsp;&nbsp;&nbsp; OFY : YES &nbsp;&nbsp;&nbsp; WOCB : YES
                     </p>
                   </div>
                   <div className="text-right text-xs">
@@ -933,7 +901,7 @@ export default function ManagementReportsModule() {
               <p className="italic">This is an official system-generated Day Book Statement of Accounts.</p>
               <div className="text-right space-y-0.5">
                 <div className="font-bold text-stone-900">Authorised Signatory / Accounts Desk</div>
-                <div className="text-[9px] text-stone-500">LAXMI (2026-2027)</div>
+                <div className="text-[9px] text-stone-500">{dailyData.summary?.user_stamp || "Accounts Cashier"}</div>
               </div>
             </div>
 
@@ -974,9 +942,9 @@ export default function ManagementReportsModule() {
                   onChange={(e) => setMonthlyYear(Number(e.target.value))}
                   className="bg-transparent text-xs font-black text-stone-900 focus:outline-none"
                 >
-                  <option value={2026}>2026</option>
-                  <option value={2025}>2025</option>
-                  <option value={2027}>2027</option>
+                  {[monthlyYear - 1, monthlyYear, monthlyYear + 1].map(yr => (
+                    <option key={yr} value={yr}>{yr}</option>
+                  ))}
                 </select>
               </div>
 
@@ -1085,17 +1053,21 @@ export default function ManagementReportsModule() {
                 {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Department")}
               </h1>
               <p className="text-[10.5px] font-bold text-stone-700">
-                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : "School ID: 1253481 • UDISE Code: 07124100151"}
+                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : (selectedInstitutionObj?.udiseCode ? `UDISE Code: ${selectedInstitutionObj.udiseCode}` : (selectedInstitutionObj?.code ? `School Code: ${selectedInstitutionObj.code}` : "Recognized & Registered Institution"))}
               </p>
               <p className="text-[9.5px] text-stone-500">
-                {selectedInstitutionObj?.address || "Burari, Sant Nagar, Delhi - 110084"} • Tel: {selectedInstitutionObj?.phone || "9811102008"} • Email: {selectedInstitutionObj?.email || "crayonboxdelhi@gmail.com"}
+                {[
+                  selectedInstitutionObj?.address,
+                  selectedInstitutionObj?.phone ? `Tel: ${selectedInstitutionObj.phone}` : null,
+                  selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null
+                ].filter(Boolean).join(" • ") || "Accounts Division • Quality Education Foundation"}
               </p>
               <div className="pt-2 flex flex-wrap justify-between items-center border-t border-stone-200 text-[11px] font-bold text-stone-900">
                 <span className="bg-stone-900 text-amber-400 font-black px-2 py-0.5 rounded text-[10px] uppercase">
                   📘 MONTHLY DAY BOOK &amp; CONSOLIDATED STATEMENT
                 </span>
                 <span>Month: {monthNames[monthlyMonth - 1]} {monthlyYear}</span>
-                <span>User: LAXMI (2026-2027)</span>
+                <span>User: {monthlyData.user_stamp || "Accounts Cashier"}</span>
                 <span>Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
               </div>
             </div>
@@ -1113,7 +1085,7 @@ export default function ManagementReportsModule() {
                         From : {monthlyData.startDate || `01/${monthlyMonth}/${monthlyYear}`} &nbsp;&nbsp;&nbsp; To : {monthlyData.endDate || `31/${monthlyMonth}/${monthlyYear}`}
                       </p>
                       <p className="text-[11px] font-semibold text-stone-500">
-                        User : LAXMI (2026-2027) &nbsp;&nbsp;&nbsp;&nbsp; OFY : YES &nbsp;&nbsp;&nbsp; WOCB : YES
+                        User : {monthlyData.user_stamp || "Accounts Cashier"} &nbsp;&nbsp;&nbsp;&nbsp; OFY : YES &nbsp;&nbsp;&nbsp; WOCB : YES
                       </p>
                     </div>
                     <div className="text-right text-xs">
@@ -1374,7 +1346,7 @@ export default function ManagementReportsModule() {
                   <tbody className="divide-y divide-stone-100 font-medium">
                     {procurementOrders.map((po) => (
                       <tr key={po.id} className="hover:bg-stone-50">
-                        <td className="p-3 font-mono font-bold text-stone-900">{po.po_number || 'PO-2026'}</td>
+                        <td className="p-3 font-mono font-bold text-stone-900">{po.po_number || `PO-${new Date().getFullYear()}`}</td>
                         <td className="p-3 font-mono text-stone-500">{new Date(po.order_date || po.created_at).toLocaleDateString("en-IN")}</td>
                         <td className="p-3 font-bold text-stone-900">{po.vendor_name || 'Standard Supplier'}</td>
                         <td className="p-3 text-stone-600">{po.category || 'General Supplies'}</td>

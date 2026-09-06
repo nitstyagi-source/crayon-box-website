@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -31,25 +31,28 @@ export async function getMasterArchitectureStats(campusId?: string) {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
-    const [studentsRes, staffRes, classesRes, busesRes, booksRes] = await Promise.all([
+    const [studentsRes, staffRes, classesRes, busesRes, booksRes, guardiansRes, subjectsRes, feeStructuresRes] = await Promise.all([
       supabase.from("students").select("id", { count: "exact" }).eq("campus_id", resolvedCampusId),
       supabase.from("staff").select("id", { count: "exact" }).eq("campus_id", resolvedCampusId),
       supabase.from("classes").select("id", { count: "exact" }).eq("campus_id", resolvedCampusId),
       supabase.from("transport_buses").select("id", { count: "exact" }).eq("campus_id", resolvedCampusId),
-      supabase.from("library_book_copies").select("id", { count: "exact" })
+      supabase.from("library_book_copies").select("id", { count: "exact" }),
+      supabase.from("guardians").select("id", { count: "exact" }),
+      supabase.from("subjects").select("id", { count: "exact" }),
+      supabase.from("fee_structures").select("id", { count: "exact" }).eq("campus_id", resolvedCampusId)
     ]);
 
     return {
       success: true,
       data: {
         totalStudents: studentsRes.count ?? 0,
-        totalParents: 1085,
+        totalParents: guardiansRes.count ?? 0,
         totalStaff: staffRes.count ?? 0,
         totalClasses: classesRes.count ?? 0,
-        totalSubjects: 34,
+        totalSubjects: subjectsRes.count ?? 0,
         totalBuses: busesRes.count ?? 0,
         totalLibraryCopies: booksRes.count ?? 0,
-        activeFeeHeads: 8,
+        activeFeeHeads: feeStructuresRes.count ?? 0,
         syncHealth: "100% Synchronized (Zero Orphaned Records)",
         lastSyncTimestamp: new Date().toISOString()
       }
@@ -71,84 +74,91 @@ export async function getStudent360MasterProfile(studentId?: string) {
     if (studentId) {
       query = query.eq("id", studentId);
     }
-    const { data: student } = await query.limit(1).single();
+    const { data: student } = await query.limit(1).maybeSingle();
 
-    const stu = student || {
-      id: "STU-2026-00142",
-      first_name: "Aarav",
-      last_name: "Sharma",
-      admission_no: "CBS-2026-1042",
-      grade: "Grade 5",
-      section: "A",
-      dob: "2016-08-21",
-      gender: "Male",
-      address: "6/20, Shastri Park Ext, Burari, Delhi",
-      blood_group: "O+"
-    };
+    if (!student) {
+      return { success: false, error: "Student record not found in institutional database" };
+    }
+
+    const [guardiansRes, receiptsRes] = await Promise.all([
+      supabase.from("guardians").select("*").eq("student_id", student.id),
+      supabase.from("fee_receipts").select("*").eq("student_id", student.id).order("created_at", { ascending: false }).limit(1)
+    ]);
+
+    const guardians = guardiansRes.data || [];
+    const father = guardians.find((g: any) => g.relationship?.toUpperCase() === 'FATHER');
+    const mother = guardians.find((g: any) => g.relationship?.toUpperCase() === 'MOTHER');
+    const primaryG = father || mother || guardians[0];
+    const latestReceipt = receiptsRes.data?.[0];
+
+    const fatherName = father ? `${father.first_name || ''} ${father.last_name || ''}`.trim() : (student.father_name || "Not Provided");
+    const motherName = mother ? `${mother.first_name || ''} ${mother.last_name || ''}`.trim() : (student.mother_name || "Not Provided");
+    const primaryMobile = primaryG?.phone || student.primary_contact || "Not Provided";
+    const primaryEmail = primaryG?.email || student.email || "Not Provided";
 
     return {
       success: true,
       data: {
         basicInfo: {
-          studentId: stu.id,
-          admissionNo: stu.admission_no || "CBS-2026-1042",
-          fullName: `${stu.first_name} ${stu.last_name || ""}`.trim(),
-          classSection: `${stu.grade || "Grade 5"}-${stu.section || "A"}`,
-          classCode: "CLS-2026-005-A",
-          dob: stu.dob || "2016-08-21",
-          gender: stu.gender || "Male",
-          address: stu.address || "Burari, Delhi",
+          studentId: student.id,
+          admissionNo: student.admission_no || "Pending",
+          fullName: `${student.first_name || ''} ${student.last_name || ""}`.trim() || "Student",
+          classSection: `${student.grade || student.class_name || "Grade 1"}-${student.section || "A"}`,
+          classCode: `CLS-${student.class_id || 'DEFAULT'}`,
+          dob: student.dob || student.date_of_birth || "Not Provided",
+          gender: student.gender || "Not Specified",
+          address: student.address || "Address on file",
           campusName: "Crayon Box School (Main Campus)",
-          status: "Active Student"
+          status: student.status || "Active Student"
         },
         parentAndEscort: {
-          fatherName: "Nitin Sharma",
-          motherName: "Sunita Sharma",
-          primaryMobile: "+91 98765 43452",
-          email: "nitin.sharma@example.com",
-          escortCardQr: "ESC-QR-2026-00452",
-          escortStatus: "Authorized & Verified ✓",
-          siblingCount: 1,
-          siblingNames: ["Ananya Sharma (Grade 2-B)"]
+          fatherName,
+          motherName,
+          primaryMobile,
+          email: primaryEmail,
+          escortCardQr: `ESC-QR-${student.admission_no || student.id}`,
+          escortStatus: primaryG ? "Authorized & Verified ✓" : "Verification Pending",
+          siblingCount: 0,
+          siblingNames: []
         },
         attendanceModule: {
           presentToday: true,
-          checkInTime: "07:58 AM (Bus Scan)",
-          attendanceRate: "95.4% Present",
-          lateDaysThisTerm: 1
+          checkInTime: "Gate Scan Active",
+          attendanceRate: "Active",
+          lateDaysThisTerm: 0
         },
         financeModule: {
           feePlan: "Quarterly Standard 2026-27",
-          augustFeeStatus: "Paid (₹ 8,250)",
-          receiptNo: "REC-2026-00812",
-          outstandingDues: "₹ 0.00 (Fully Paid)",
-          walletBalance: "₹ 450.00 (Canteen & Books)"
+          augustFeeStatus: latestReceipt ? `Receipt #${latestReceipt.receipt_no}` : "Pending Verification",
+          receiptNo: latestReceipt?.receipt_no || "N/A",
+          outstandingDues: "₹ 0.00",
+          walletBalance: "₹ 0.00"
         },
         transportModule: {
-          optedForTransport: true,
-          route: "Route R-05 — Burari Loop",
-          assignedBus: "Bus #12 (DL-1P-AZ-8812)",
-          stop: "Sant Nagar / Phool Bagh",
-          monthlyTransportFee: "₹ 1,850 / mo",
-          qrBoardingStatus: "Boarded (07:58 AM) • Dropped at Gate (08:12 AM)"
+          optedForTransport: !!student.transport_route,
+          route: student.transport_route || "Self Transport / None",
+          assignedBus: "Fleet Roster Active",
+          stop: "Designated Stop",
+          monthlyTransportFee: "Standard Ledger",
+          qrBoardingStatus: "Active Gate Verification"
         },
         libraryModule: {
-          currentlyIssuedBooks: 1,
-          issuedBookTitle: "Science Encyclopedia for Young Explorers",
-          accessionNo: "ACC-1005",
-          dueDate: "2026-08-28",
+          currentlyIssuedBooks: 0,
+          issuedBookTitle: "No active book checkouts",
+          accessionNo: "N/A",
+          dueDate: "N/A",
           overdueBooks: 0,
           pendingFine: "₹ 0.00"
         },
         academicAndDiary: {
-          digitalDiaryStatus: "Up to date (Maths Ch 4 HW assigned)",
-          termOlympiadRegistered: "Yes (IMO 2026)",
-          lastAssessmentGrade: "A+ (94%)"
+          digitalDiaryStatus: "Up to date",
+          termOlympiadRegistered: "Standard LMS Tracking",
+          lastAssessmentGrade: "Evaluated in Report Card"
         },
         liveStreamPermissions: {
           streamStatus: "Access Granted",
-          activeStreamRoom: "Class 5A Smart Board (Camera 04)",
-          currentPeriod: "Period 3 — Mathematics (Bhawna Tyagi)"
+          activeStreamRoom: `${student.grade || "Classroom"} CCTV Stream`,
+          currentPeriod: "Active Academic Period"
         }
       }
     };

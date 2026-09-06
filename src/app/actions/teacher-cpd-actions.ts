@@ -43,134 +43,95 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
       .from('faculty')
       .select('id, first_name, last_name, employee_code, department, designation')
       .order('first_name', { ascending: true })
-      .limit(50);
+      .limit(100);
 
-    // If database has records, enrich them
-    if (!fErr && facultyList && facultyList.length > 0) {
-      // Try to query teacher_cpd_records
-      let cpdDbRecords: any[] = [];
-      try {
-        const { data: cpdData } = await supabase
-          .from('teacher_cpd_records')
-          .select('*')
-          .eq('academic_year', academicYear);
-        if (cpdData) cpdDbRecords = cpdData;
-      } catch (_) {}
-
-      const mapped: TeacherCpdRecord[] = facultyList.map((f, idx) => {
-        const teacherCpd = cpdDbRecords.filter((r) => r.teacher_id === f.id);
-        const externalHours = teacherCpd
-          .filter((w) => w.conducting_agency !== 'INTERNAL')
-          .reduce((sum, w) => sum + Number(w.hours_credited || 0), 0);
-        const internalHours = teacherCpd
-          .filter((w) => w.conducting_agency === 'INTERNAL')
-          .reduce((sum, w) => sum + Number(w.hours_credited || 0), 0);
-
-        // Fallback realistic mock baseline hours if table was freshly created
-        const baseTotal = teacherCpd.length > 0
-          ? externalHours + internalHours
-          : Math.min(50, 15 + ((idx * 7) % 38));
-        const ext = teacherCpd.length > 0 ? externalHours : Math.round(baseTotal * 0.6);
-        const int = teacherCpd.length > 0 ? internalHours : baseTotal - ext;
-
-        const compPct = Math.min(100, Math.round((baseTotal / 50) * 100));
-
-        return {
-          id: f.id,
-          teacher_id: f.id,
-          teacher_name: `${f.first_name || ''} ${f.last_name || ''}`.trim() || 'Teacher',
-          employee_code: f.employee_code || `FAC-${100 + idx}`,
-          department: f.department || 'Academics',
-          designation: f.designation || 'Teacher',
-          academic_year: academicYear,
-          total_hours: baseTotal,
-          cbse_external_hours: ext,
-          internal_school_hours: int,
-          compliance_percentage: compPct,
-          status: compPct >= 100 ? 'COMPLIANT' : compPct >= 50 ? 'IN_PROGRESS' : 'ACTION_REQUIRED',
-          workshops: teacherCpd.length > 0 ? teacherCpd : [
-            {
-              id: `w-${idx}-1`,
-              title: 'Board COE: NEP 2020 Experiential Learning in Classrooms',
-              agency: 'EXTERNAL_BOARD',
-              hours: 10,
-              completion_date: '2026-05-18'
-            },
-            {
-              id: `w-${idx}-2`,
-              title: 'Child Safeguarding, Mental Wellbeing & POCSO Compliance',
-              agency: 'INTERNAL',
-              hours: 5,
-              completion_date: '2026-06-22'
-            }
-          ]
-        };
-      });
-
-      return { success: true, teachers: mapped };
+    if (fErr) {
+      console.error("Error querying faculty for CPD:", fErr);
+      return { success: false, error: fErr.message, teachers: [] };
     }
 
-    // Default mock teachers if database is empty
-    const mockTeachers: TeacherCpdRecord[] = [
-      {
-        id: 't-1',
-        teacher_id: 't-1',
-        teacher_name: 'Dr. Sunita Rao',
-        employee_code: 'FAC-101',
-        department: 'Science & Physics',
-        designation: 'Senior PGT Physics',
-        academic_year: academicYear,
-        total_hours: 52,
-        cbse_external_hours: 32,
-        internal_school_hours: 20,
-        compliance_percentage: 100,
-        status: 'COMPLIANT',
-        workshops: [
-          { id: 'w1', title: 'Board COE: Competency-Based Assessment in Science', agency: 'EXTERNAL_BOARD', hours: 15, completion_date: '2026-05-12' },
-          { id: 'w2', title: 'NCERT National Science Seminar & STEM Pedagogies', agency: 'NCERT', hours: 17, completion_date: '2026-06-19' },
-          { id: 'w3', title: 'Digital Tools in Physics Laboratory Demonstrations', agency: 'INTERNAL', hours: 20, completion_date: '2026-07-04' }
-        ]
-      },
-      {
-        id: 't-2',
-        teacher_id: 't-2',
-        teacher_name: 'Manish Tyagi',
-        employee_code: 'FAC-102',
-        department: 'Mathematics',
-        designation: 'TGT Mathematics',
-        academic_year: academicYear,
-        total_hours: 38,
-        cbse_external_hours: 22,
-        internal_school_hours: 16,
-        compliance_percentage: 76,
-        status: 'IN_PROGRESS',
-        workshops: [
-          { id: 'w4', title: 'Sahodaya Math Lab Hands-on Manipulatives Workshop', agency: 'SAHODAYA', hours: 12, completion_date: '2026-05-28' },
-          { id: 'w5', title: 'Board COE: Remedial Teaching in Secondary Algebra', agency: 'EXTERNAL_BOARD', hours: 10, completion_date: '2026-06-15' },
-          { id: 'w6', title: 'Internal Formative Assessment Diagnostic Matrix', agency: 'INTERNAL', hours: 16, completion_date: '2026-07-10' }
-        ]
-      },
-      {
-        id: 't-3',
-        teacher_id: 't-3',
-        teacher_name: 'Pooja Aggarwal',
-        employee_code: 'FAC-103',
-        department: 'Primary Wing',
-        designation: 'PRT Early Years Lead',
-        academic_year: academicYear,
-        total_hours: 20,
-        cbse_external_hours: 10,
-        internal_school_hours: 10,
-        compliance_percentage: 40,
-        status: 'ACTION_REQUIRED',
-        workshops: [
-          { id: 'w7', title: 'NIPUN Bharat: Foundational Literacy & Numeracy', agency: 'EXTERNAL_BOARD', hours: 10, completion_date: '2026-06-02' },
-          { id: 'w8', title: 'Inclusive Classrooms & Neurodiversity Support', agency: 'INTERNAL', hours: 10, completion_date: '2026-06-25' }
-        ]
-      }
-    ];
+    if (!facultyList || facultyList.length === 0) {
+      return { success: true, teachers: [] };
+    }
 
-    return { success: true, teachers: mockTeachers };
+    // Query teacher_cpd_records
+    const { data: cpdData } = await supabase
+      .from('teacher_cpd_records')
+      .select('*')
+      .eq('academic_year', academicYear);
+
+    // Query staff_trainings for additional logged records
+    const { data: staffTrainings } = await supabase
+      .from('staff_trainings')
+      .select('*');
+
+    const cpdRecords = cpdData || [];
+    const trainings = staffTrainings || [];
+
+    const mapped: TeacherCpdRecord[] = facultyList.map((f, idx) => {
+      const teacherCpd = cpdRecords.filter((r) => r.teacher_id === f.id);
+      const teacherTrainings = trainings.filter((t) => t.staff_id === f.id);
+
+      const workshopsList: Array<{
+        id: string;
+        title: string;
+        agency: string;
+        hours: number;
+        completion_date: string;
+        certificate_url?: string;
+      }> = [];
+
+      teacherCpd.forEach((w) => {
+        workshopsList.push({
+          id: w.id,
+          title: w.workshop_title || 'Professional Workshop',
+          agency: w.conducting_agency || 'EXTERNAL',
+          hours: Number(w.hours_credited) || 0,
+          completion_date: w.completion_date || '',
+          certificate_url: w.certificate_url || undefined
+        });
+      });
+
+      teacherTrainings.forEach((t) => {
+        workshopsList.push({
+          id: t.id,
+          title: t.training_name || 'Staff Training',
+          agency: t.provider || 'INTERNAL',
+          hours: Number(t.duration_hours) || 0,
+          completion_date: t.training_date || '',
+          certificate_url: t.certificate_url || undefined
+        });
+      });
+
+      const externalHours = workshopsList
+        .filter((w) => w.agency.toUpperCase() !== 'INTERNAL')
+        .reduce((sum, w) => sum + w.hours, 0);
+
+      const internalHours = workshopsList
+        .filter((w) => w.agency.toUpperCase() === 'INTERNAL')
+        .reduce((sum, w) => sum + w.hours, 0);
+
+      const totalHours = externalHours + internalHours;
+      const compPct = Math.min(100, Math.round((totalHours / 50) * 100));
+
+      return {
+        id: f.id,
+        teacher_id: f.id,
+        teacher_name: `${f.first_name || ''} ${f.last_name || ''}`.trim() || 'Teacher',
+        employee_code: f.employee_code || `FAC-${100 + idx}`,
+        department: f.department || 'Academics',
+        designation: f.designation || 'Teacher',
+        academic_year: academicYear,
+        total_hours: totalHours,
+        cbse_external_hours: externalHours,
+        internal_school_hours: internalHours,
+        compliance_percentage: compPct,
+        status: compPct >= 100 ? 'COMPLIANT' : compPct >= 50 ? 'IN_PROGRESS' : 'ACTION_REQUIRED',
+        workshops: workshopsList
+      };
+    });
+
+    return { success: true, teachers: mapped };
   } catch (err: any) {
     console.error('getTeacherCpdOverviewAction error:', err);
     return { success: false, error: err.message, teachers: [] };
@@ -199,11 +160,20 @@ export async function logTeacherCpdWorkshopAction(payload: {
       approval_status: 'APPROVED'
     };
 
+    await supabase.from('teacher_cpd_records').insert([record]);
+
+    // Also record into staff_trainings for HR audit compliance
     try {
-      await supabase.from('teacher_cpd_records').insert([record]);
-    } catch (e) {
-      console.warn('teacher_cpd_records insert fallback:', e);
-    }
+      await supabase.from('staff_trainings').insert([{
+        staff_id: payload.teacher_id,
+        training_name: payload.workshop_title,
+        training_type: payload.conducting_agency.toUpperCase() === 'INTERNAL' ? 'Internal' : 'External',
+        provider: payload.conducting_agency,
+        training_date: payload.completion_date,
+        duration_hours: Math.round(payload.hours_credited),
+        certificate_url: payload.certificate_url || null
+      }]);
+    } catch (_) {}
 
     try {
       revalidatePath('/admin/faculty');

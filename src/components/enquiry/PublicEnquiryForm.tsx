@@ -20,14 +20,15 @@ export function PublicEnquiryForm({
   defaultClass = "Class 1",
   onSuccessRedirectUrl
 }: PublicEnquiryFormProps) {
+  const currentYear = new Date().getFullYear();
   const [formData, setFormData] = useState<PublicEnquiryInput>({
-    academicSession: "2026-2027",
+    academicSession: `${currentYear}-${currentYear + 1}`,
     institutionCode: defaultInstitution,
     admissionClass: defaultClass,
     childFirstName: "",
     childMiddleName: "",
     childLastName: "",
-    childDob: "2020-05-15",
+    childDob: "",
     childGender: "Male",
     currentClass: "",
     currentSchool: "",
@@ -38,7 +39,7 @@ export function PublicEnquiryForm({
     primaryGuardianWhatsapp: "",
     primaryGuardianEmail: "",
     localityArea: "",
-    pincode: "110084",
+    pincode: "",
     transportRequired: false,
     visitRequested: false,
     visitDate: "",
@@ -83,14 +84,14 @@ export function PublicEnquiryForm({
   const calculateAge = (dobString: string) => {
     if (!dobString) return null;
     const dob = new Date(dobString);
-    const targetDate = new Date("2026-03-31");
+    const targetDate = new Date(`${currentYear}-03-31`);
     let years = targetDate.getFullYear() - dob.getFullYear();
     let months = targetDate.getMonth() - dob.getMonth();
     if (months < 0) {
       years--;
       months += 12;
     }
-    return { years, months };
+    return { years, months, cutoffYear: targetDate.getFullYear() };
   };
 
   const age = calculateAge(formData.childDob);
@@ -228,7 +229,7 @@ export function PublicEnquiryForm({
       {/* Header Banner */}
       <div className="border-b border-slate-200 pb-5 space-y-1.5">
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Official Online Admission Enquiry 2026-2027
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Official Online Admission Enquiry {formData.academicSession}
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           School Admission &amp; Campus Tour Enquiry
@@ -253,8 +254,8 @@ export function PublicEnquiryForm({
               onChange={e => setFormData({ ...formData, academicSession: e.target.value })}
               className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
             >
-              <option value="2026-2027">Session 2026-2027 (Active)</option>
-              <option value="2027-2028">Session 2027-2028 (Advance)</option>
+              <option value={`${currentYear}-${currentYear + 1}`}>Session {currentYear}–{currentYear + 1} (Active)</option>
+              <option value={`${currentYear + 1}-${currentYear + 2}`}>Session {currentYear + 1}–{currentYear + 2} (Advance)</option>
             </select>
           </div>
 
@@ -336,7 +337,7 @@ export function PublicEnquiryForm({
               <label className="text-xs font-bold text-slate-700">Date of Birth *</label>
               {age && (
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-md border border-emerald-200">
-                  Age: {age.years} yrs {age.months} mos as on 31 Mar 2026
+                  Age: {age.years} yrs {age.months} mos as on 31 Mar {age.cutoffYear || currentYear}
                 </span>
               )}
             </div>
@@ -449,7 +450,7 @@ export function PublicEnquiryForm({
                 maxLength={10}
                 value={formData.primaryGuardianPhone}
                 onChange={e => setFormData({ ...formData, primaryGuardianPhone: e.target.value.replace(/\D/g, '') })}
-                placeholder="9811102008"
+                placeholder="98XXXXXXXX"
                 className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
               />
               {!isOtpVerified && (

@@ -49,15 +49,15 @@ export default function TrustCommandCenterPage() {
     name: 'Vaani Educational Trust',
     code: 'VET',
     registrationNumber: 'VET/REG/2018/DEL-8891',
-    headquarters: 'Shastri Park Ext., Burari, Delhi - 110084',
+    headquarters: 'Central Administration Headquarters, Delhi NCR',
     contactEmail: 'trust@crayonboxschool.com',
-    contactPhone: '+91 9811102008',
+    contactPhone: '',
     website: 'https://crayonboxschool.com',
     logoUrl: '/logo.png',
-    panNumber: 'AAATV1234F',
-    taxExemption80g: '80G/CIT/DEL/2019/8821',
-    chairmanName: 'Nitin Tyagi',
-    trusteeNames: 'Nitin Tyagi, Vaani Tyagi'
+    panNumber: '',
+    taxExemption80g: '',
+    chairmanName: 'Board of Trustees',
+    trusteeNames: 'Board of Trustees'
   });
 
   // Edit Modal State
@@ -81,7 +81,7 @@ export default function TrustCommandCenterPage() {
     validTill: '',
     status: 'VALID',
     documentUrl: '',
-    auditScore: '100%',
+    auditScore: '',
     notes: '',
   });
 
@@ -95,7 +95,7 @@ export default function TrustCommandCenterPage() {
     title: '',
     category: 'GOVERNANCE',
     resolutionDate: '',
-    quorum: '5/5 Present',
+    quorum: '',
     status: 'ENACTED',
     summary: '',
     documentUrl: '',
@@ -548,7 +548,7 @@ export default function TrustCommandCenterPage() {
 
           {/* Campus Breakdown Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {VANI_TRUST_INSTITUTIONS.map((inst) => (
+            {(institutionsList.length > 0 ? institutionsList : VANI_TRUST_INSTITUTIONS).map((inst) => (
               <div key={inst.code} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">

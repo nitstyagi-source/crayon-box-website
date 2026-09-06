@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import pg from "pg";
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
 }
 
 export async function GET(request: NextRequest) {
@@ -64,8 +66,6 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching admissions:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 
@@ -92,10 +92,10 @@ export async function POST(request: NextRequest) {
 
     // Resolve valid campus_id and academic_year_id from DB
     const campusRes = await pool.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || '362d2f45-c1d2-4974-9207-559ac54051a6';
+    const campusId = campusRes.rows[0]?.id || null;
 
     const yearRes = await pool.query(`SELECT id FROM public.academic_years LIMIT 1;`);
-    const yearId = yearRes.rows[0]?.id || '27438acf-7afd-4b12-a6c8-a059ab39b26a';
+    const yearId = yearRes.rows[0]?.id || null;
 
     const tracking_token = `APP-${Date.now().toString().slice(-5)}`;
 
@@ -189,8 +189,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error creating admission enquiry:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 
@@ -280,21 +278,23 @@ export async function PATCH(request: NextRequest) {
         const existingStuRes = await pool.query(`
           SELECT id, admission_no FROM public.students
           WHERE admission_application_id = $1
-             OR (LOWER(TRIM(first_name)) = LOWER(TRIM($2)) AND LOWER(TRIM(last_name)) = LOWER(TRIM($3)) AND dob = $4)
+             OR (LOWER(TRIM(first_name)) = LOWER(TRIM($2)) AND LOWER(TRIM(last_name)) = LOWER(TRIM($3)) AND (dob = $4 OR ($4 IS NULL AND dob IS NULL)))
           LIMIT 1;
         `, [
           id,
           updatedRow.student_first_name || 'Student',
           updatedRow.student_last_name || '',
-          updatedRow.date_of_birth || '2020-01-01'
+          updatedRow.date_of_birth || null
         ]);
 
         let newStudentId = existingStuRes.rows[0]?.id;
         let admissionNo = existingStuRes.rows[0]?.admission_no;
 
         if (!newStudentId) {
-          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-          admissionNo = `ADM-2026-${randomSuffix}`;
+          const currentYear = new Date().getFullYear();
+          const countRes = await pool.query(`SELECT COUNT(*)::int as count FROM public.students;`);
+          const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+          admissionNo = `ADM-${currentYear}-${seq}`;
 
           const studRes = await pool.query(`
             INSERT INTO public.students (
@@ -312,7 +312,7 @@ export async function PATCH(request: NextRequest) {
             admissionNo,
             updatedRow.student_first_name || 'Student',
             updatedRow.student_last_name || '',
-            updatedRow.date_of_birth || '2020-01-01',
+            updatedRow.date_of_birth || null,
             parentFullName
           ]);
           newStudentId = studRes.rows[0]?.id;
@@ -325,16 +325,20 @@ export async function PATCH(request: NextRequest) {
         }
 
         if (newStudentId) {
+          const currentYear = new Date().getFullYear();
+          const dynamicSession = updatedRow.academic_session || `${currentYear}-${currentYear + 1}`;
+          const instCode = updatedRow.institution_code || 'CBS';
+
           await pool.query(`
             INSERT INTO public.student_enrollments (
               student_id, campus_id, institution_code, academic_session, class_name, section_name,
               admission_number, enrollment_status, admission_date, is_current, created_at
             ) VALUES (
-              $1, $2, 'CBS', '2026-2027', $3, 'A',
-              $4, 'ACTIVE', NOW(), true, NOW()
+              $1, $2, $3, $4, $5, 'A',
+              $6, 'ACTIVE', NOW(), true, NOW()
             )
             ON CONFLICT DO NOTHING;
-          `, [newStudentId, campusId, updatedRow.grade_applied || 'Grade 1', admissionNo]);
+          `, [newStudentId, campusId, instCode, dynamicSession, updatedRow.grade_applied || 'Grade 1', admissionNo]);
         }
       } catch (provErr: any) {
         console.error("Student auto-provision note:", provErr.message);
@@ -354,8 +358,6 @@ export async function PATCH(request: NextRequest) {
   } catch (error: any) {
     console.error("Error updating admission enquiry:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 
@@ -378,8 +380,6 @@ export async function DELETE(request: NextRequest) {
   } catch (error: any) {
     console.error("Error deleting admission enquiry:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 

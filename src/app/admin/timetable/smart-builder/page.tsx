@@ -26,6 +26,7 @@ import {
   generateSchoolWideGeneticTimetableAction,
   assignTeacherProxyAction,
   sendTimetableToParentsWhatsAppAction,
+  getAvailableSubstituteTeachersAction,
   TimetablePeriodSlot
 } from "@/app/actions/smart-timetable-actions";
 import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
@@ -36,7 +37,7 @@ export function SmartTimetableBuilderDesk() {
     "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
   ]);
   const [selectedClass, setSelectedClass] = useState("Class 1");
-  const [academicSession, setAcademicSession] = useState("2026–2027");
+  const [academicSession, setAcademicSession] = useState(`${new Date().getFullYear()}–${new Date().getFullYear() + 1}`);
   const [slots, setSlots] = useState<TimetablePeriodSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -52,7 +53,8 @@ export function SmartTimetableBuilderDesk() {
   // Proxy Modal State
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimetablePeriodSlot | null>(null);
-  const [substituteTeacher, setSubstituteTeacher] = useState("Mr. Amit Kumar (Computer Science)");
+  const [substituteTeacher, setSubstituteTeacher] = useState("");
+  const [substituteOptions, setSubstituteOptions] = useState<Array<{ id: string; name: string; displayName: string }>>([]);
 
   useEffect(() => {
     async function loadDynamicClasses() {
@@ -68,7 +70,19 @@ export function SmartTimetableBuilderDesk() {
         console.error('Error fetching dynamic classes for timetable solver:', e);
       }
     }
+    async function loadSubstituteTeachers() {
+      try {
+        const res = await getAvailableSubstituteTeachersAction();
+        if (res.success && res.teachers && res.teachers.length > 0) {
+          setSubstituteOptions(res.teachers);
+          setSubstituteTeacher(res.teachers[0].displayName);
+        }
+      } catch (e) {
+        console.error('Error fetching substitute teachers:', e);
+      }
+    }
     loadDynamicClasses();
+    loadSubstituteTeachers();
   }, []);
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -499,10 +513,15 @@ export function SmartTimetableBuilderDesk() {
                   onChange={(e) => setSubstituteTeacher(e.target.value)}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-bold focus:bg-white"
                 >
-                  <option value="Mr. Amit Kumar (Computer Science)">Mr. Amit Kumar (Computer Science)</option>
-                  <option value="Ms. Ritu Roy (Art & Craft)">Ms. Ritu Roy (Art & Craft)</option>
-                  <option value="Mr. Vikram Singh (Sports)">Mr. Vikram Singh (Sports)</option>
-                  <option value="Mrs. Meenakshi S. (Library)">Mrs. Meenakshi S. (Library)</option>
+                  {substituteOptions.length > 0 ? (
+                    substituteOptions.map((teach) => (
+                      <option key={teach.id} value={teach.displayName}>
+                        {teach.displayName}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No Active Faculty Found</option>
+                  )}
                 </select>
               </div>
 

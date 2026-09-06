@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString });
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -37,7 +35,15 @@ export async function getFleetLiveTelemetryAction() {
   try {
     const busesRes = await client.query(`
       SELECT b.*, 
-             COALESCE((SELECT count(*) FROM public.students s WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number), 18) as onboard_count
+             COALESCE((
+               SELECT count(*) 
+               FROM public.student_transport_assignments a 
+               WHERE a.bus_number = b.bus_number AND a.is_active = true
+             ), (
+               SELECT count(*) 
+               FROM public.students s 
+               WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number
+             ), 0) as onboard_count
       FROM public.transport_buses b
       ORDER BY b.bus_number ASC
     `);
@@ -126,6 +132,9 @@ export async function recordStudentBusScanAction(params: {
     const nowTimeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const shift = scanType === 'BOARDING_MORNING' ? 'Morning Shift' : 'Afternoon Return';
 
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const defaultCampusId = campRes.rows[0]?.id || null;
+
     // Insert Journey Log
     const logRes = await client.query(`
       INSERT INTO public.transport_journey_logs (
@@ -137,7 +146,7 @@ export async function recordStudentBusScanAction(params: {
       )
       RETURNING *
     `, [
-      stu.campus_id || 'c3d782a9-a50b-4708-a3fc-6b146f456662',
+      stu.campus_id || defaultCampusId,
       today,
       shift,
       stu.id,
@@ -331,28 +340,24 @@ export async function getBusLiveTrackingDetailsAction(busNumberOrId: string = 'B
   try {
     const busRes = await client.query(`
       SELECT b.*,
-             COALESCE((SELECT count(*) FROM public.students s WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number), 18) as onboard_count
+             COALESCE((
+               SELECT count(*) 
+               FROM public.student_transport_assignments a 
+               WHERE a.bus_number = b.bus_number AND a.is_active = true
+             ), (
+               SELECT count(*) 
+               FROM public.students s 
+               WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number
+             ), 0) as onboard_count
       FROM public.transport_buses b
       WHERE b.bus_number = $1 OR b.id = $2::uuid
       LIMIT 1;
     `, [busNumberOrId, busNumberOrId.includes('-') ? busNumberOrId : '00000000-0000-0000-0000-000000000000']);
 
-    const bus = busRes.rows[0] || {
-      bus_number: 'Bus 01',
-      registration_number: 'DL-1VA-8921',
-      driver_name: 'Amit Singh',
-      driver_phone: '+919876543210',
-      attendant_name: 'Sunita Devi',
-      attendant_phone: '+919811002233',
-      route_name: 'R-05 — Burari & Sant Nagar',
-      current_lat: 28.7214,
-      current_lng: 77.2012,
-      current_speed_kmh: 34,
-      current_location_name: 'Sant Nagar Main Market',
-      status: 'Running',
-      capacity: 32,
-      onboard_count: 18
-    };
+    const bus = busRes.rows[0];
+    if (!bus) {
+      return { success: false, error: 'Vehicle record not found', bus: null, route: null, stops: [] };
+    }
 
     // Get active route
     const routeRes = await client.query(`
@@ -361,79 +366,33 @@ export async function getBusLiveTrackingDetailsAction(busNumberOrId: string = 'B
       LIMIT 1;
     `, [bus.id, bus.route_name]);
 
-    const route = routeRes.rows[0] || {
-      id: 'af758663-48b3-4c3e-a895-010bf186bedf',
-      route_code: 'R-05',
-      route_name: 'Route R-05 — Burari & Sant Nagar',
-      starting_point: 'School Campus',
-      destination: 'Nathupura via Sant Nagar & Burari Chowk'
-    };
+    const route = routeRes.rows[0] || null;
 
     // Get stops
-    const stopsRes = await client.query(`
-      SELECT * FROM public.transport_stops
-      WHERE route_id = $1
-      ORDER BY sequence_number ASC;
-    `, [route.id]);
+    let stops: any[] = [];
+    if (route?.id) {
+      const stopsRes = await client.query(`
+        SELECT * FROM public.transport_stops
+        WHERE route_id = $1
+        ORDER BY sequence_number ASC;
+      `, [route.id]);
 
-    const defaultStops = [
-      {
-        id: 'stop-1',
-        stop_name: 'Burari Chowk (Pillar 42)',
-        sequence_number: 1,
-        lat: 28.7250,
-        lng: 77.2050,
-        pickup_time: '07:20 AM',
-        drop_time: '02:05 PM',
-        status: 'Active'
-      },
-      {
-        id: 'stop-2',
-        stop_name: 'Sant Nagar Main Market',
-        sequence_number: 2,
-        lat: 28.7214,
-        lng: 77.2012,
-        pickup_time: '07:30 AM',
-        drop_time: '01:55 PM',
-        status: 'Active'
-      },
-      {
-        id: 'stop-3',
-        stop_name: 'Nathupura Bus Stand',
-        sequence_number: 3,
-        lat: 28.7300,
-        lng: 77.1950,
-        pickup_time: '07:40 AM',
-        drop_time: '01:45 PM',
-        status: 'Active'
-      },
-      {
-        id: 'stop-4',
-        stop_name: 'School Campus Main Gate',
-        sequence_number: 4,
-        lat: 28.7185,
-        lng: 77.1995,
-        pickup_time: '07:55 AM',
-        drop_time: '01:30 PM',
-        status: 'Active'
-      }
-    ];
-
-    const stops = stopsRes.rows.length > 0 ? stopsRes.rows.map((s: any) => ({
-      ...s,
-      lat: Number(s.lat),
-      lng: Number(s.lng)
-    })) : defaultStops;
+      stops = stopsRes.rows.map((s: any) => ({
+        ...s,
+        lat: Number(s.lat || 0),
+        lng: Number(s.lng || 0)
+      }));
+    }
 
     return {
       success: true,
       bus: {
         ...bus,
-        current_lat: Number(bus.current_lat || 28.7214),
-        current_lng: Number(bus.current_lng || 77.2012),
+        current_lat: Number(bus.current_lat || 0),
+        current_lng: Number(bus.current_lng || 0),
         current_speed_kmh: Number(bus.current_speed_kmh || 0),
-        onboard_count: Number(bus.onboard_count || 18),
-        capacity: Number(bus.capacity || 32)
+        onboard_count: Number(bus.onboard_count || 0),
+        capacity: Number(bus.capacity || 0)
       },
       route,
       stops
@@ -455,9 +414,17 @@ export async function getFleetGoogleMapsDataAction() {
   try {
     const res = await client.query(`
       SELECT b.*,
-             COALESCE(r.route_code, 'R-05') as route_code,
-             COALESCE(r.route_name, b.route_name, 'Burari & Sant Nagar') as full_route_name,
-             COALESCE((SELECT count(*) FROM public.students s WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number), 18) as onboard_count
+             COALESCE(r.route_code, 'R-01') as route_code,
+             COALESCE(r.route_name, b.route_name, 'Campus Transit') as full_route_name,
+             COALESCE((
+               SELECT count(*) 
+               FROM public.student_transport_assignments a 
+               WHERE a.bus_number = b.bus_number AND a.is_active = true
+             ), (
+               SELECT count(*) 
+               FROM public.students s 
+               WHERE s.transport_mode = 'SCHOOL_BUS' AND s.transport_bus_no = b.bus_number
+             ), 0) as onboard_count
       FROM public.transport_buses b
       LEFT JOIN public.transport_routes r ON r.bus_id = b.id
       ORDER BY b.bus_number ASC;
@@ -468,17 +435,17 @@ export async function getFleetGoogleMapsDataAction() {
       bus_number: b.bus_number,
       registration_number: b.registration_number,
       driver_name: b.driver_name || 'Driver',
-      driver_phone: b.driver_phone || '+91 98765 43210',
+      driver_phone: b.driver_phone || '',
       attendant_name: b.attendant_name || 'Attendant',
-      current_lat: Number(b.current_lat || 28.7214),
-      current_lng: Number(b.current_lng || 77.2012),
+      current_lat: Number(b.current_lat || 0),
+      current_lng: Number(b.current_lng || 0),
       current_speed_kmh: Number(b.current_speed_kmh || 0),
-      current_location_name: b.current_location_name || 'Sant Nagar',
-      status: b.status || 'Running',
+      current_location_name: b.current_location_name || '',
+      status: b.status || 'Active',
       route_code: b.route_code,
       route_name: b.full_route_name,
-      capacity: b.capacity || 32,
-      onboard_count: Number(b.onboard_count || 18),
+      capacity: b.capacity || 0,
+      onboard_count: Number(b.onboard_count || 0),
       isMoving: Number(b.current_speed_kmh || 0) > 0,
       updated_at: b.updated_at
     }));
@@ -490,4 +457,51 @@ export async function getFleetGoogleMapsDataAction() {
     client.release();
   }
 }
+
+// -------------------------------------------------------------
+// 7. GET LIVE BUS PASSENGER MANIFEST (REAL STUDENTS & LOGS)
+// -------------------------------------------------------------
+export async function getBusPassengerManifestAction(busNumber: string) {
+  const pool = getPool();
+  const client = await pool.connect();
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    const { rows } = await client.query(`
+      SELECT 
+        COALESCE(a.student_id::text, s.id::text) as id,
+        COALESCE(a.student_name, CONCAT(s.first_name, ' ', COALESCE(s.last_name, ''))) as name,
+        COALESCE(a.class_name, c.grade, 'Class 1') as class_name,
+        COALESCE(a.section_name, c.section, 'A') as section_name,
+        COALESCE(a.pickup_stop_name, s.transport_stop, 'Campus Station') as stop_name,
+        COALESCE(a.emergency_contact, s.guardian_phone, s.emergency_contact, s.father_phone, '') as phone,
+        l.status as live_status,
+        l.boarded_at
+      FROM public.student_transport_assignments a
+      FULL OUTER JOIN public.students s ON s.id = a.student_id
+      LEFT JOIN public.classes c ON c.id = s.class_id
+      LEFT JOIN public.transport_journey_logs l ON l.student_id = COALESCE(a.student_id, s.id) AND l.log_date = $2
+      WHERE (a.bus_number = $1 OR s.transport_bus_no = $1)
+      ORDER BY name ASC
+      LIMIT 50;
+    `, [busNumber, today]);
+
+    const manifest = rows.map((r: any) => ({
+      id: r.id,
+      name: r.name || 'Student',
+      class: `${r.class_name}-${r.section_name}`,
+      stop: r.stop_name || 'Stop',
+      status: r.live_status === 'BOARDED' ? 'BOARDED' : 'WAITING',
+      phone: r.phone || 'N/A',
+      time: r.boarded_at ? new Date(r.boarded_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Scheduled'
+    }));
+
+    return { success: true, manifest };
+  } catch (error: any) {
+    return { success: false, error: error.message, manifest: [] };
+  } finally {
+    client.release();
+  }
+}
+
 

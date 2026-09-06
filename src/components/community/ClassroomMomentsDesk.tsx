@@ -40,11 +40,9 @@ export function ClassroomMomentsDesk() {
   const [showPostModal, setShowPostModal] = useState(false);
   const [caption, setCaption] = useState('');
   const [postClass, setPostClass] = useState('Class 1-A');
-  const [author, setAuthor] = useState('Pooja Aggarwal (Class Teacher)');
-  const [mediaUrl, setMediaUrl] = useState(
-    'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=800&q=80'
-  );
-  const [tagInput, setTagInput] = useState('Aarav Sharma, Ananya Verma');
+  const [author, setAuthor] = useState('Class Faculty');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 

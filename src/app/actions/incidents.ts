@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -179,7 +179,9 @@ export async function createSchoolIncident(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
 
-    const incidentCode = `CBS-INC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: incCount } = await supabase.from("school_incidents").select("*", { count: "exact", head: true });
+    const nextIncSeq = ((incCount || 0) + 1).toString().padStart(4, '0');
+    const incidentCode = `CBS-INC-2026-${nextIncSeq}`;
 
     const { data, error } = await supabase
       .from("school_incidents")

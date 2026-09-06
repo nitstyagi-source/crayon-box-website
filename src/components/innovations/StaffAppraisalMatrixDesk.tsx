@@ -36,7 +36,8 @@ export const StaffAppraisalMatrixDesk: React.FC = () => {
     setIsComputing(true);
     setNotice(null);
     try {
-      const res = await computeStaffAppraisalScoresAction('2026-2027');
+      const currentSession = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+      const res = await computeStaffAppraisalScoresAction(currentSession);
       if (res.success) {
         setNotice(`✓ Evaluated ${res.totalStaffEvaluated} educators! Trust Average Score: ${res.averageTrustScore}%.`);
         const lRes = await getStaffAppraisalLeaderboardAction();

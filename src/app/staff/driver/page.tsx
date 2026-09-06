@@ -12,12 +12,14 @@ import { Button } from "@/components/ui/Button";
 import {
   updateDriverPhoneLocationAction,
   recordStudentBusScanAction,
-  getBusLiveTrackingDetailsAction
+  getBusLiveTrackingDetailsAction,
+  getFleetLiveTelemetryAction
 } from "@/app/actions/transport-telematics-actions";
 
 export default function DriverMobileCockpitPage() {
+  const [availableBuses, setAvailableBuses] = useState<any[]>([]);
   const [selectedBus, setSelectedBus] = useState<string>("Bus 01");
-  const [driverName, setDriverName] = useState<string>("Amit Singh");
+  const [driverName, setDriverName] = useState<string>("Assigned Driver");
   const [isBroadcasting, setIsBroadcasting] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
 
@@ -27,14 +29,15 @@ export default function DriverMobileCockpitPage() {
   const [currentSpeed, setCurrentSpeed] = useState<number>(0);
   const [currentHeading, setCurrentHeading] = useState<number>(45);
   const [accuracy, setAccuracy] = useState<number>(5);
-  const [locationLabel, setLocationLabel] = useState<string>("Sant Nagar Main Road");
+  const [locationLabel, setLocationLabel] = useState<string>("Campus Terminal");
   const [lastPingTime, setLastPingTime] = useState<string>("");
   const [pingCount, setPingCount] = useState<number>(0);
   const [gpsError, setGpsError] = useState<string | null>(null);
 
   // Active Route & Stops
+  const [stops, setStops] = useState<any[]>([]);
   const [currentStopIndex, setCurrentStopIndex] = useState<number>(0);
-  const [boardedCount, setBoardedCount] = useState<number>(18);
+  const [boardedCount, setBoardedCount] = useState<number>(0);
   const [capacity, setCapacity] = useState<number>(32);
 
   // Scanner State
@@ -46,12 +49,50 @@ export default function DriverMobileCockpitPage() {
   const wakeLockRef = useRef<any>(null);
   const simIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const STOPS = [
-    { name: "Burari Chowk (Pillar 42)", time: "07:20 AM", lat: 28.7250, lng: 77.2050 },
-    { name: "Sant Nagar Main Market", time: "07:30 AM", lat: 28.7214, lng: 77.2012 },
-    { name: "Nathupura Bus Stand", time: "07:40 AM", lat: 28.7300, lng: 77.1950 },
+  const activeStops = stops.length > 0 ? stops : [
+    { name: "Burari Chowk", time: "07:20 AM", lat: 28.7250, lng: 77.2050 },
+    { name: "Main Market Stop", time: "07:35 AM", lat: 28.7214, lng: 77.2012 },
     { name: "School Campus Main Gate", time: "07:55 AM", lat: 28.7185, lng: 77.1995 }
   ];
+
+  // Fetch available buses on mount
+  useEffect(() => {
+    let isMounted = true;
+    getFleetLiveTelemetryAction().then(res => {
+      if (!isMounted) return;
+      if (res.success && res.buses && res.buses.length > 0) {
+        setAvailableBuses(res.buses);
+        if (!res.buses.some((b: any) => b.bus_number === selectedBus)) {
+          setSelectedBus(res.buses[0].bus_number);
+        }
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Fetch bus details & stops whenever selectedBus changes
+  useEffect(() => {
+    let isMounted = true;
+    getBusLiveTrackingDetailsAction(selectedBus).then(res => {
+      if (!isMounted || !res.success || !res.bus) return;
+      const b = res.bus;
+      if (b.driver_name) setDriverName(b.driver_name);
+      if (b.capacity) setCapacity(Number(b.capacity));
+      if (b.onboard_count !== undefined) setBoardedCount(Number(b.onboard_count));
+      if (b.current_location_label || b.location_label) setLocationLabel(b.current_location_label || b.location_label);
+      if (b.current_latitude) setCurrentLat(Number(b.current_latitude));
+      if (b.current_longitude) setCurrentLng(Number(b.current_longitude));
+      if (res.stops && res.stops.length > 0) {
+        setStops(res.stops.map((s: any) => ({
+          name: s.stop_name || s.name,
+          time: s.pickup_time || s.scheduled_time || '07:30 AM',
+          lat: Number(s.latitude || s.lat || 28.7214),
+          lng: Number(s.longitude || s.lng || 77.2012)
+        })));
+      }
+    });
+    return () => { isMounted = false; };
+  }, [selectedBus]);
 
   // Request WakeLock to prevent screen sleep while driving
   const requestWakeLock = async () => {
@@ -199,7 +240,7 @@ export default function DriverMobileCockpitPage() {
     const res = await recordStudentBusScanAction({
       studentQrOrAdmNo: code,
       busNumber: selectedBus,
-      stopName: STOPS[currentStopIndex]?.name || "Sant Nagar Main Market",
+      stopName: activeStops[currentStopIndex]?.name || "Assigned Stop",
       scanType: "BOARDING_MORNING"
     });
 
@@ -235,8 +276,27 @@ export default function DriverMobileCockpitPage() {
             <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold block">
               Driver Mobile Cockpit
             </span>
-            <h1 className="text-lg font-black text-white leading-tight">{selectedBus} — GPS Broadcaster</h1>
-            <p className="text-xs text-slate-400">Driver: <strong>{driverName}</strong></p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {availableBuses.length > 0 ? (
+                <select
+                  value={selectedBus}
+                  onChange={(e) => setSelectedBus(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 text-amber-400 font-black rounded-lg px-2 py-0.5 text-sm outline-none"
+                >
+                  {availableBuses.map((b) => (
+                    <option key={b.id || b.bus_number} value={b.bus_number}>
+                      {b.bus_number} {b.plate_number ? `(${b.plate_number})` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <h1 className="text-lg font-black text-white leading-tight">{selectedBus}</h1>
+              )}
+              <span className="text-xs text-slate-400 font-bold hidden sm:inline">— Broadcaster</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Driver: <strong>{driverName}</strong> | Onboard: <strong>{boardedCount}/{capacity}</strong>
+            </p>
           </div>
         </div>
 
@@ -357,21 +417,21 @@ export default function DriverMobileCockpitPage() {
             Current Bus Stop Milestone
           </span>
           <span className="text-xs font-mono font-bold text-indigo-400">
-            Stop {currentStopIndex + 1} of {STOPS.length}
+            Stop {currentStopIndex + 1} of {activeStops.length}
           </span>
         </div>
 
         <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[10px] text-emerald-400 font-bold uppercase block">Approaching Stop:</span>
-          <h3 className="text-base font-black text-white">{STOPS[currentStopIndex]?.name}</h3>
-          <p className="text-xs text-slate-400 font-mono">Scheduled: {STOPS[currentStopIndex]?.time}</p>
+          <h3 className="text-base font-black text-white">{activeStops[currentStopIndex]?.name}</h3>
+          <p className="text-xs text-slate-400 font-mono">Scheduled: {activeStops[currentStopIndex]?.time}</p>
         </div>
 
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setCurrentStopIndex((prev) => Math.min(STOPS.length - 1, prev + 1))}
-            disabled={currentStopIndex === STOPS.length - 1}
+            onClick={() => setCurrentStopIndex((prev) => Math.min(activeStops.length - 1, prev + 1))}
+            disabled={currentStopIndex === activeStops.length - 1}
             className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition"
           >
             <CheckCircle2 className="w-4 h-4" /> Reached Stop &bull; Next Stop ➔
@@ -412,21 +472,22 @@ export default function DriverMobileCockpitPage() {
           </button>
         </div>
 
-        {/* 1-Tap Quick Passenger Buttons */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        {/* Scanner Quick Shortcuts */}
+        <div className="flex items-center gap-2 text-xs">
           <button
             type="button"
-            onClick={() => handleDriverScan("CBS-2026-0001")}
-            className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left font-bold text-[11px] text-slate-300"
+            onClick={() => setStudentInput("")}
+            className="flex-1 p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-center font-bold text-[11px] text-slate-400 cursor-pointer"
           >
-            + Rohan Verma (CBS-0001)
+            Clear Input
           </button>
           <button
             type="button"
-            onClick={() => handleDriverScan("AS-2026-0143")}
-            className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left font-bold text-[11px] text-slate-300"
+            onClick={() => handleDriverScan(studentInput)}
+            disabled={!studentInput.trim() || isScanning}
+            className="flex-1 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-center font-bold text-[11px] text-amber-300 disabled:opacity-50 cursor-pointer"
           >
-            + Myra Iyer (AS-0143)
+            Confirm Passenger Scan
           </button>
         </div>
 

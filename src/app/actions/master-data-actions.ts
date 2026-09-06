@@ -26,7 +26,11 @@ export interface EnrollStudentInput {
 
 export async function enrollStudentAction(input: EnrollStudentInput) {
   try {
-    const admissionNo = `${input.institutionCode}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: studentCount } = await supabase
+      .from('students')
+      .select('*', { count: 'exact', head: true });
+    const nextSeq = String((studentCount || 0) + 1).padStart(4, '0');
+    const admissionNo = `${input.institutionCode}-2026-${nextSeq}`;
 
     // 1. Insert permanent student master
     const { data: student, error: stuErr } = await supabase

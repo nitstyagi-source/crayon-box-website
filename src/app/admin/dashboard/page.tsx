@@ -58,16 +58,16 @@ export default function AdminDashboard() {
   const [newSchoolType, setNewSchoolType] = useState('K12_SCHOOL');
   const [newSchoolAffiliation, setNewSchoolAffiliation] = useState('CBSE');
   const [newSchoolAffilNo, setNewSchoolAffilNo] = useState('');
-  const [newSchoolId, setNewSchoolId] = useState('07010203401');
-  const [newSchoolUdise, setNewSchoolUdise] = useState('07010203401');
-  const [newSchoolPhone, setNewSchoolPhone] = useState('+91 120 4567890');
-  const [newSchoolEmail, setNewSchoolEmail] = useState('principal@school.edu.in');
-  const [newSchoolPrincipal, setNewSchoolPrincipal] = useState('Dr. Meenakshi Sunder');
-  const [newSchoolAddress, setNewSchoolAddress] = useState('Plot 4, Sector 62, Institutional Area, Noida, UP');
-  const [newSchoolWebsite, setNewSchoolWebsite] = useState('https://school.edu.in');
-  const [newSchoolLogo, setNewSchoolLogo] = useState('/logo.png');
+  const [newSchoolId, setNewSchoolId] = useState('');
+  const [newSchoolUdise, setNewSchoolUdise] = useState('');
+  const [newSchoolPhone, setNewSchoolPhone] = useState('');
+  const [newSchoolEmail, setNewSchoolEmail] = useState('');
+  const [newSchoolPrincipal, setNewSchoolPrincipal] = useState('');
+  const [newSchoolAddress, setNewSchoolAddress] = useState('');
+  const [newSchoolWebsite, setNewSchoolWebsite] = useState('');
+  const [newSchoolLogo, setNewSchoolLogo] = useState('');
   const [newSchoolBrandColor, setNewSchoolBrandColor] = useState('#2563eb');
-  const [newSchoolEstYear, setNewSchoolEstYear] = useState(2026);
+  const [newSchoolEstYear, setNewSchoolEstYear] = useState(new Date().getFullYear());
   const [isSubmittingNewSchool, setIsSubmittingNewSchool] = useState(false);
 
   // Edit Institution Modal State
@@ -77,16 +77,16 @@ export default function AdminDashboard() {
   const [instCode, setInstCode] = useState('');
   const [instAffiliation, setInstAffiliation] = useState('CBSE');
   const [instAffilNo, setInstAffilNo] = useState('');
-  const [instSchoolId, setInstSchoolId] = useState('07010203401');
-  const [instUdise, setInstUdise] = useState('07010203401');
-  const [instPhone, setInstPhone] = useState('+91 120 4567890');
-  const [instEmail, setInstEmail] = useState('principal@school.edu.in');
-  const [instPrincipal, setInstPrincipal] = useState('Dr. Meenakshi Sunder');
-  const [instAddress, setInstAddress] = useState('Plot 4, Sector 62, Institutional Area, Noida, UP');
-  const [instWebsite, setInstWebsite] = useState('https://school.edu.in');
-  const [instLogo, setInstLogo] = useState('/logo.png');
+  const [instSchoolId, setInstSchoolId] = useState('');
+  const [instUdise, setInstUdise] = useState('');
+  const [instPhone, setInstPhone] = useState('');
+  const [instEmail, setInstEmail] = useState('');
+  const [instPrincipal, setInstPrincipal] = useState('');
+  const [instAddress, setInstAddress] = useState('');
+  const [instWebsite, setInstWebsite] = useState('');
+  const [instLogo, setInstLogo] = useState('');
   const [instBrandColor, setInstBrandColor] = useState('#2563eb');
-  const [instEstYear, setInstEstYear] = useState(2014);
+  const [instEstYear, setInstEstYear] = useState(new Date().getFullYear());
   const [isSubmittingInst, setIsSubmittingInst] = useState(false);
 
   // Archive / Delete Confirmation Modal State
@@ -190,6 +190,15 @@ export default function AdminDashboard() {
       setNewSchoolShortName('');
       setNewSchoolCode('');
       setNewSchoolAffilNo('');
+      setNewSchoolId('');
+      setNewSchoolUdise('');
+      setNewSchoolPhone('');
+      setNewSchoolEmail('');
+      setNewSchoolPrincipal('');
+      setNewSchoolAddress('');
+      setNewSchoolWebsite('');
+      setNewSchoolLogo('');
+      setNewSchoolEstYear(new Date().getFullYear());
       await refreshInstitutions();
       fetchDashboard();
       setTimeout(() => setFeedbackMsg(null), 6000);
@@ -263,16 +272,16 @@ export default function AdminDashboard() {
     setInstCode(inst.code || '');
     setInstAffiliation(inst.board_affiliation || 'CBSE');
     setInstAffilNo(inst.affiliation_number || '');
-    setInstSchoolId(inst.school_id_number || '07010203401');
-    setInstUdise(inst.udise_code || '07010203401');
-    setInstPhone(inst.phone_number || '+91 120 4567890');
-    setInstEmail(inst.principal_email || 'principal@school.edu.in');
-    setInstPrincipal(inst.principal_name || 'Dr. Meenakshi Sunder');
+    setInstSchoolId(inst.school_id_number || '');
+    setInstUdise(inst.udise_code || '');
+    setInstPhone(inst.phone_number || '');
+    setInstEmail(inst.principal_email || '');
+    setInstPrincipal(inst.principal_name || '');
     setInstAddress(inst.address || '');
-    setInstWebsite(inst.website_url || 'https://school.edu.in');
-    setInstLogo(inst.logo_url || '/logo.png');
+    setInstWebsite(inst.website_url || '');
+    setInstLogo(inst.logo_url || '');
     setInstBrandColor(inst.brand_color || '#2563eb');
-    setInstEstYear(inst.established_year || 2014);
+    setInstEstYear(inst.established_year || new Date().getFullYear());
   };
 
   // Save Institution Details
@@ -345,35 +354,52 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-2 relative z-10">
-              <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
-                ₹{(metrics?.totalInvoicedDemand ?? 1520500).toLocaleString('en-IN')}
-              </span>
+              {isLoading || !metrics ? (
+                <div className="h-9 w-36 bg-stone-100 animate-pulse rounded-lg mt-1" />
+              ) : (
+                <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
+                  ₹{(metrics?.totalInvoicedDemand ?? 0).toLocaleString('en-IN')}
+                </span>
+              )}
               <span className="text-xs font-medium text-stone-500 mt-0.5 block">Collected</span>
             </div>
 
-            {/* Area Curve + Soft Emerald Bars */}
+            {/* Area Curve / Clean Empty State */}
             <div className="mt-4 pt-2 relative z-10">
-              <svg viewBox="0 0 240 75" className="w-full h-18 overflow-visible">
-                <rect x="15" y="45" width="16" height="30" rx="3" fill="#DCFCE7" />
-                <rect x="55" y="30" width="16" height="45" rx="3" fill="#DCFCE7" />
-                <rect x="95" y="40" width="16" height="35" rx="3" fill="#DCFCE7" />
-                <rect x="135" y="32" width="16" height="43" rx="3" fill="#DCFCE7" />
-                <rect x="175" y="20" width="16" height="55" rx="3" fill="#DCFCE7" />
-                <rect x="215" y="8" width="16" height="67" rx="3" fill="#15803D" />
-                <path
-                  d="M15 50 Q55 25 95 42 T175 30 T223 12"
-                  fill="none"
-                  stroke="#15803D"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="flex justify-between text-[11px] font-medium text-stone-400 px-1 mt-1">
-                <span>Jan</span>
-                <span>Jun</span>
-                <span>Jul</span>
-                <span className="font-bold text-stone-800">Aug</span>
-              </div>
+              {isLoading || !metrics ? (
+                <div className="h-18 w-full bg-stone-50 animate-pulse rounded-xl flex items-center justify-center text-xs text-stone-300">
+                  Loading collections...
+                </div>
+              ) : (metrics?.totalInvoicedDemand ?? 0) === 0 ? (
+                <div className="h-18 w-full bg-stone-50/70 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-[11px] text-stone-400 font-medium">
+                  <span>No fee collections recorded yet</span>
+                  <span className="text-[10px] text-stone-400">Generate invoices from Finance Hub</span>
+                </div>
+              ) : (
+                <>
+                  <svg viewBox="0 0 240 75" className="w-full h-18 overflow-visible">
+                    <rect x="15" y="45" width="16" height="30" rx="3" fill="#DCFCE7" />
+                    <rect x="55" y="30" width="16" height="45" rx="3" fill="#DCFCE7" />
+                    <rect x="95" y="40" width="16" height="35" rx="3" fill="#DCFCE7" />
+                    <rect x="135" y="32" width="16" height="43" rx="3" fill="#DCFCE7" />
+                    <rect x="175" y="20" width="16" height="55" rx="3" fill="#DCFCE7" />
+                    <rect x="215" y="8" width="16" height="67" rx="3" fill="#15803D" />
+                    <path
+                      d="M15 50 Q55 25 95 42 T175 30 T223 12"
+                      fill="none"
+                      stroke="#15803D"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="flex justify-between text-[11px] font-medium text-stone-400 px-1 mt-1">
+                    <span>Jan</span>
+                    <span>Jun</span>
+                    <span>Jul</span>
+                    <span className="font-bold text-stone-800">Aug</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -388,14 +414,22 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-2 relative z-10">
-              <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
-                {(metrics?.totalStudents ?? 2450).toLocaleString('en-IN')}
-              </span>
+              {isLoading || !metrics ? (
+                <div className="h-9 w-28 bg-stone-100 animate-pulse rounded-lg mt-1" />
+              ) : (
+                <span className="text-3xl sm:text-4xl font-black text-[#15803D] tracking-tight block">
+                  {(metrics?.totalStudents ?? 0).toLocaleString('en-IN')}
+                </span>
+              )}
               <span className="text-xs font-medium text-stone-500 mt-0.5 block">Active Student Intake</span>
             </div>
 
             <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-600 relative z-10">
-              <span>Boys: <strong className="text-stone-900">{metrics?.maleCount ?? 1280}</strong> • Girls: <strong className="text-stone-900">{metrics?.femaleCount ?? 1170}</strong></span>
+              {isLoading || !metrics ? (
+                <div className="h-4 w-36 bg-stone-100 animate-pulse rounded" />
+              ) : (
+                <span>Boys: <strong className="text-stone-900">{metrics?.maleCount ?? 0}</strong> • Girls: <strong className="text-stone-900">{metrics?.femaleCount ?? 0}</strong></span>
+              )}
               <Link href="/admin/students" className="text-[#0369A1] font-bold hover:underline flex items-center gap-0.5">
                 Roster <ArrowRight className="w-3 h-3" />
               </Link>
@@ -518,9 +552,13 @@ export default function AdminDashboard() {
 
             <div className="mt-2 flex items-baseline justify-between relative z-10">
               <div>
-                <span className="text-3xl sm:text-4xl font-black text-[#0369A1] tracking-tight block">
-                  94%
-                </span>
+                {isLoading || !metrics ? (
+                  <div className="h-9 w-20 bg-stone-100 animate-pulse rounded-lg mt-1" />
+                ) : (
+                  <span className="text-3xl sm:text-4xl font-black text-[#0369A1] tracking-tight block">
+                    {metrics?.attendancePct ?? 0}%
+                  </span>
+                )}
                 <span className="text-xs font-medium text-stone-500 mt-0.5 block">Attendance</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] font-bold text-stone-600">
@@ -535,59 +573,76 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Dual Line Trend Graph (Mon to Sat) */}
+            {/* Dual Line Trend Graph (Mon to Sat) / Empty State */}
             <div className="mt-3 relative z-10">
-              <svg viewBox="0 0 280 75" className="w-full h-18 overflow-visible">
-                {/* Horizontal Guide Lines */}
-                <line x1="0" y1="15" x2="280" y2="15" stroke="#F1F5F9" strokeWidth="1" />
-                <line x1="0" y1="40" x2="280" y2="40" stroke="#F1F5F9" strokeWidth="1" />
-                <line x1="0" y1="65" x2="280" y2="65" stroke="#F1F5F9" strokeWidth="1" />
-
-                {/* Peacock Blue Primary Line */}
-                <path
-                  d="M10 60 L58 45 L112 50 L168 25 L224 32 L275 18"
-                  fill="none"
-                  stroke="#0369A1"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                {/* Emerald Secondary Trend Line */}
-                <path
-                  d="M10 68 L58 40 L112 44 L168 56 L224 50 L275 38"
-                  fill="none"
-                  stroke="#15803D"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="flex justify-between text-[10px] font-medium text-stone-400 px-1 mt-0.5">
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-              </div>
+              {isLoading || !metrics ? (
+                <div className="h-18 w-full bg-stone-50 animate-pulse rounded-xl flex items-center justify-center text-xs text-stone-300">
+                  Loading attendance...
+                </div>
+              ) : (metrics?.attendancePct ?? 0) === 0 ? (
+                <div className="h-18 w-full bg-stone-50/70 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-[11px] text-stone-400 font-medium">
+                  <span>No daily attendance recorded yet</span>
+                  <span className="text-[10px] text-stone-400">Classroom roll-call will populate this trend</span>
+                </div>
+              ) : (
+                <>
+                  <svg viewBox="0 0 280 75" className="w-full h-18 overflow-visible">
+                    <line x1="0" y1="15" x2="280" y2="15" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="0" y1="40" x2="280" y2="40" stroke="#F1F5F9" strokeWidth="1" />
+                    <line x1="0" y1="65" x2="280" y2="65" stroke="#F1F5F9" strokeWidth="1" />
+                    <path
+                      d="M10 60 L58 45 L112 50 L168 25 L224 32 L275 18"
+                      fill="none"
+                      stroke="#0369A1"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M10 68 L58 40 L112 44 L168 56 L224 50 L275 38"
+                      fill="none"
+                      stroke="#15803D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="flex justify-between text-[10px] font-medium text-stone-400 px-1 mt-0.5">
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Class Performance Improvements */}
             <div className="mt-5 pt-4 border-t border-stone-100 relative z-10">
               <span className="text-xs font-bold text-stone-800 block mb-2">Class Performance Improvements</span>
-              <div className="flex items-end justify-between h-16 gap-2 px-1">
-                {[
-                  { class: '1', height: '40%' },
-                  { class: '2', height: '65%' },
-                  { class: '3', height: '48%' },
-                  { class: '4', height: '82%' },
-                  { class: '5', height: '74%' },
-                  { class: '6', height: '90%' },
-                ].map((item) => (
-                  <div key={item.class} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full bg-[#15803D] rounded-t-md transition-all duration-300" style={{ height: item.height }} />
-                    <span className="text-[10px] font-bold text-stone-500">{item.class}</span>
-                  </div>
-                ))}
-              </div>
+              {isLoading || !metrics ? (
+                <div className="h-16 w-full bg-stone-50 animate-pulse rounded-xl" />
+              ) : (metrics?.totalStudents ?? 0) === 0 ? (
+                <div className="h-16 w-full bg-stone-50/70 border border-dashed border-stone-200 rounded-2xl flex items-center justify-center text-[11px] text-stone-400 font-medium">
+                  No enrolled classes to measure yet
+                </div>
+              ) : (
+                <div className="flex items-end justify-between h-16 gap-2 px-1">
+                  {[
+                    { class: '1', height: '40%' },
+                    { class: '2', height: '65%' },
+                    { class: '3', height: '48%' },
+                    { class: '4', height: '82%' },
+                    { class: '5', height: '74%' },
+                    { class: '6', height: '90%' },
+                  ].map((item) => (
+                    <div key={item.class} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full bg-[#15803D] rounded-t-md transition-all duration-300" style={{ height: item.height }} />
+                      <span className="text-[10px] font-bold text-stone-500">{item.class}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
@@ -728,11 +783,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Principal:</span>
-                      <strong className="text-slate-800 truncate max-w-[120px]">{inst.principal_name || 'Dr. Meenakshi Sunder'}</strong>
+                      <strong className="text-slate-800 truncate max-w-[120px]">{inst.principal_name || 'Not Appointed'}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Phone:</span>
-                      <span className="font-mono text-slate-700">{inst.phone_number || '+91 120 4567890'}</span>
+                      <span className="font-mono text-slate-700">{inst.phone_number || 'N/A'}</span>
                     </div>
                   </div>
 
@@ -1440,7 +1495,7 @@ export default function AdminDashboard() {
                     value={newSchoolPhone}
                     onChange={(e) => setNewSchoolPhone(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900"
-                    placeholder="+91 9811102008"
+                    placeholder="+91 98XXXXXXXX"
                     required
                   />
                 </div>

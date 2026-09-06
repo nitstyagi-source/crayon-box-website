@@ -30,15 +30,17 @@ export interface CalendarEventEntry {
   isFeeLateFinePaused: boolean;
 }
 
-// Seeded Calendar Events for Session 2026-2027
+const curCalYear = new Date().getFullYear();
+
+// Seeded Calendar Events for Current Academic Session
 const SEEDED_CALENDAR_EVENTS: CalendarEventEntry[] = [
   // Trust-Wide Holidays
   {
     id: 'CAL-TR-01',
     scope: 'TRUST',
     title: 'Independence Day National Holiday',
-    startDate: '2026-08-15',
-    endDate: '2026-08-15',
+    startDate: `${curCalYear}-08-15`,
+    endDate: `${curCalYear}-08-15`,
     dayType: 'GAZETTED_HOLIDAY',
     description: 'National holiday across all Vani Educational Trust institutions',
     isAttendanceDisabled: true,
@@ -49,8 +51,8 @@ const SEEDED_CALENDAR_EVENTS: CalendarEventEntry[] = [
     id: 'CAL-TR-02',
     scope: 'TRUST',
     title: 'Diwali & Autumn Festive Break',
-    startDate: '2026-10-30',
-    endDate: '2026-11-04',
+    startDate: `${curCalYear}-10-30`,
+    endDate: `${curCalYear}-11-04`,
     dayType: 'VACATION_BREAK',
     description: 'Trust-wide festive break for all 4 member schools',
     isAttendanceDisabled: true,
@@ -64,8 +66,8 @@ const SEEDED_CALENDAR_EVENTS: CalendarEventEntry[] = [
     scope: 'INSTITUTION',
     institutionId: 'ins-cbs',
     title: 'Crayon Box School Annual STEM & Sports Carnival',
-    startDate: '2026-11-20',
-    endDate: '2026-11-21',
+    startDate: `${curCalYear}-11-20`,
+    endDate: `${curCalYear}-11-21`,
     dayType: 'SPORTS_OR_ANNUAL_EVENT_DAY',
     description: 'Special scholastic event for CBS Shastri Park campus',
     isAttendanceDisabled: false,
@@ -77,8 +79,8 @@ const SEEDED_CALENDAR_EVENTS: CalendarEventEntry[] = [
     scope: 'INSTITUTION',
     institutionId: 'ins-cbps',
     title: 'Montessori Toddler Grandparents Discovery Morning',
-    startDate: '2026-09-18',
-    endDate: '2026-09-18',
+    startDate: `${curCalYear}-09-18`,
+    endDate: `${curCalYear}-09-18`,
     dayType: 'REGULAR_INSTRUCTIONAL_DAY',
     description: 'Early childhood sensory discovery session at CBPS',
     isAttendanceDisabled: false,

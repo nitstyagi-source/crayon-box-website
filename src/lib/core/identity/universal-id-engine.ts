@@ -94,9 +94,10 @@ export class UniversalIdentityEngine {
     };
 
     // Create new enrollment under target institution
-    const newAdmissionNumber = `${params.targetInstitutionCode}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const currentYear = new Date().getFullYear();
+    const newAdmissionNumber = `${params.targetInstitutionCode}-${currentYear}-${Date.now().toString().slice(-4)}`;
     const newEnrollment: StudentEnrollment = {
-      id: `ENR-${Date.now().toString().slice(-6)}`,
+      id: `ENR-${currentYear}-${Date.now().toString().slice(-6)}`,
       studentUuid: params.studentUuid,
       legalEntityId: 'leg-vet-main',
       institutionId: params.targetInstitutionId,

@@ -76,6 +76,9 @@ function MasterTimetableContent() {
     tabParam === 'settings' ? 'SETTINGS' : 'GRID'
   );
 
+  const currentYear = new Date().getFullYear();
+  const currentSession = `${currentYear}–${currentYear + 1}`;
+
   const [dynamicGrades, setDynamicGrades] = useState<string[]>(ALL_GRADES);
 
   useEffect(() => {
@@ -547,7 +550,7 @@ function MasterTimetableContent() {
       <VastuModuleBanner
         badgeText="Statutory Institutional Schedule"
         badgeIcon={<Clock className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText={`Campus: ${activeInst} • ${workingDays.length}-Day Week • Session 2026–2027`}
+        institutionText={`Campus: ${activeInst} • ${workingDays.length}-Day Week • Session ${currentSession}`}
         title="Timetable, Smart Solver & Substitutions Hub"
         titleIcon={<Clock className="w-7 h-7 text-[#D97706]" />}
         description="Master timetable command center uniting Class & Room Schedule Grids, AI Conflict-Free Solver, Morning Absent Teacher Proxy Substitutions, and Bell Timings."

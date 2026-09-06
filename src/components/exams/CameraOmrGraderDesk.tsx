@@ -33,12 +33,13 @@ import {
 
 export function CameraOmrGraderDesk() {
   const [answerKeys, setAnswerKeys] = useState<OmrAnswerKey[]>([]);
-  const [selectedKeyId, setSelectedKeyId] = useState<string>('key-sci-pt1');
+  const [selectedKeyId, setSelectedKeyId] = useState<string>('');
   const [activeKey, setActiveKey] = useState<OmrAnswerKey | null>(null);
+  const [markedBubbles, setMarkedBubbles] = useState<Record<number, string>>({});
 
   // Student selection
-  const [studentName, setStudentName] = useState('Aarav Sharma');
-  const [rollNo, setRollNo] = useState('10-A-01');
+  const [studentName, setStudentName] = useState('');
+  const [rollNo, setRollNo] = useState('');
 
   // Camera & Detection States
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -113,18 +114,13 @@ export function CameraOmrGraderDesk() {
     let correctCount = 0;
     let attemptedCount = 0;
 
-    const choices = ['A', 'B', 'C', 'D'];
     for (let q = 1; q <= totalQ; q++) {
       const correctAns = activeKey.keys[q] || 'A';
-      // High probability of correct answer for realistic grading
-      const isCorrectRandom = Math.random() > 0.15;
-      const markedAns = isCorrectRandom
-        ? correctAns
-        : choices[Math.floor(Math.random() * choices.length)];
+      const markedAns = markedBubbles[q] || '';
 
-      const isMatch = markedAns === correctAns;
+      const isMatch = markedAns !== '' && markedAns.toUpperCase() === correctAns.toUpperCase();
+      if (markedAns !== '') attemptedCount++;
       if (isMatch) correctCount++;
-      attemptedCount++;
 
       answersRecord[q] = {
         marked: markedAns,
@@ -134,7 +130,7 @@ export function CameraOmrGraderDesk() {
     }
 
     const totalScore = correctCount * activeKey.marks_per_question;
-    const percentage = (totalScore / (totalQ * activeKey.marks_per_question)) * 100;
+    const percentage = totalQ > 0 ? (totalScore / (totalQ * activeKey.marks_per_question)) * 100 : 0;
 
     const res = await saveOmrBatchGradesAction({
       student_name: studentName,
@@ -237,6 +233,7 @@ export function CameraOmrGraderDesk() {
             type="text"
             value={studentName}
             onChange={(e) => setStudentName(e.target.value)}
+            placeholder="e.g. Student Name (from OMR sheet)"
             className="w-full text-xs border border-[#E8DFC8] rounded-lg p-2 bg-white text-stone-800 focus:outline-none focus:border-[#D97706]"
           />
         </div>
@@ -249,6 +246,7 @@ export function CameraOmrGraderDesk() {
             type="text"
             value={rollNo}
             onChange={(e) => setRollNo(e.target.value)}
+            placeholder="e.g. Roll No or Admission No"
             className="w-full text-xs border border-[#E8DFC8] rounded-lg p-2 bg-white text-stone-800 focus:outline-none focus:border-[#D97706]"
           />
         </div>
@@ -425,12 +423,50 @@ export function CameraOmrGraderDesk() {
                 </div>
               </div>
             ) : (
-              <div className="py-16 text-center text-stone-400 space-y-2">
-                <FileText className="w-10 h-10 mx-auto text-stone-300" />
-                <p className="text-xs">No sheet scanned yet.</p>
-                <p className="text-[11px] text-stone-400">
-                  Click "Scan & Grade Sheet" to evaluate student bubbles.
-                </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-stone-600 pb-2 border-b border-[#E8DFC8]">
+                  <span className="font-semibold">Interactive Bubble Input:</span>
+                  <button
+                    type="button"
+                    onClick={() => setMarkedBubbles({})}
+                    className="text-[11px] text-amber-700 hover:underline cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                {activeKey ? (
+                  <div className="max-h-[300px] overflow-y-auto pr-1 divide-y divide-[#E8DFC8] text-xs">
+                    {Array.from({ length: activeKey.total_questions }, (_, i) => i + 1).map((qNum) => (
+                      <div key={qNum} className="py-1.5 flex items-center justify-between">
+                        <span className="w-8 font-mono text-stone-500 font-semibold">Q{qNum}</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          {['A', 'B', 'C', 'D'].map((ch) => (
+                            <button
+                              key={ch}
+                              type="button"
+                              onClick={() => setMarkedBubbles((prev) => ({
+                                ...prev,
+                                [qNum]: prev[qNum] === ch ? '' : ch
+                              }))}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition cursor-pointer ${
+                                markedBubbles[qNum] === ch
+                                  ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                                  : 'border-stone-300 text-stone-600 hover:border-amber-500 hover:bg-amber-50'
+                              }`}
+                            >
+                              {ch}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-16 text-center text-stone-400 space-y-2">
+                    <FileText className="w-10 h-10 mx-auto text-stone-300" />
+                    <p className="text-xs">No answer key template selected.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

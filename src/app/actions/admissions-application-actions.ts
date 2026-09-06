@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -133,7 +131,12 @@ export async function saveMasterAdmissionApplicationAction(data: any) {
   const p = getPool();
   const client = await p.connect();
   try {
-    const appNo = data.application_no || `APP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    let appNo = data.application_no;
+    if (!appNo) {
+      const countRes = await client.query(`SELECT count(*)::int as count FROM public.admission_applications;`);
+      const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+      appNo = `APP-2026-${nextSeq}`;
+    }
     const fullName = `${data.first_name || ''} ${data.middle_name || ''} ${data.last_name || ''}`.trim().replace(/\s+/g, ' ');
 
     const { rows } = await client.query(`
@@ -291,7 +294,9 @@ export async function approveAdmissionAndCreateStudentMasterAction(params: {
     if (apps.length === 0) return { success: false, error: 'Application not found.' };
 
     const app = apps[0];
-    const admNo = `ADM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const stdCountRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
+    const nextStdSeq = String((stdCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+    const admNo = `ADM-2026-${nextStdSeq}`;
 
     // 2. Commit into public.students (The Single System of Record)
     const { rows: studentRows } = await client.query(`

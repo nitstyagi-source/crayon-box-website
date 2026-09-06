@@ -43,8 +43,8 @@ export default function OfficialReceiptsHubPage() {
     institution_name: selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION",
     affiliation_number: selectedInstitutionObj?.affiliationNumber || "AFF/REG",
     school_id: selectedInstitutionObj?.code || "SCH-01",
-    udise_code: selectedInstitutionObj?.udiseCode || "07124100151",
-    contact_phone: selectedInstitutionObj?.phone || "9811102008",
+    udise_code: selectedInstitutionObj?.udiseCode || "",
+    contact_phone: selectedInstitutionObj?.phone || "",
     contact_email: selectedInstitutionObj?.principalEmail || "accounts@school.edu.in",
     address: selectedInstitutionObj?.address || "Main Campus, Delhi NCR",
     receipt_title: "FEE RECEIPT",
@@ -113,7 +113,7 @@ export default function OfficialReceiptsHubPage() {
       payment_mode: r.payment_mode || "Cash",
       transaction_ref: r.transaction_ref || "",
       bank_name: r.bank_name || "",
-      collected_by: r.collected_by || templateSettings.default_signatory || "LAXMI (2026-2027)",
+      collected_by: r.collected_by || templateSettings.default_signatory || "Accounts Counter",
       total_amount_due: Number(r.total_amount_due || 0),
       concession_amount: Number(r.concession_amount || r.discount_amount || 0),
       late_fee_amount: Number(r.late_fee_amount || 0),
@@ -762,16 +762,16 @@ export default function OfficialReceiptsHubPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="font-bold text-stone-700 block mb-1">Cashier / Staff In-Charge Name</label>
-                    <input
-                      type="text"
-                      value={editFormData.collected_by}
-                      onChange={(e) => setEditFormData({ ...editFormData, collected_by: e.target.value })}
-                      placeholder="e.g. LAXMI (2026-2027)"
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="font-bold text-stone-700 block mb-1">Cashier / Staff In-Charge Name</label>
+                      <input
+                        type="text"
+                        value={editFormData.collected_by}
+                        onChange={(e) => setEditFormData({ ...editFormData, collected_by: e.target.value })}
+                        placeholder="e.g. Accounts Counter / Cashier"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none"
+                      />
+                    </div>
                 </div>
               )}
 

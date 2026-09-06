@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 /**
@@ -63,7 +72,7 @@ export async function generateUdisePlusProfileReportAction(institutionCode?: str
 
   try {
     const matched = VANI_TRUST_INSTITUTIONS.find(i => i.code === institutionCode || i.id === institutionCode) || VANI_TRUST_INSTITUTIONS[0];
-    const [stuRes, staffRes] = await Promise.all([
+    const [stuRes, staffRes, roomsRes, instRes] = await Promise.all([
       client.query(`
         SELECT 
           count(*) as total_enrolled,
@@ -76,21 +85,29 @@ export async function generateUdisePlusProfileReportAction(institutionCode?: str
           count(*) as total_teachers,
           count(*) FILTER (WHERE designation ILIKE '%TGT%' OR designation ILIKE '%PRT%' OR designation ILIKE '%PGT%') as certified_teachers
         FROM public.staff;
-      `)
+      `),
+      client.query(`SELECT count(*)::int as total_classes FROM public.classes;`),
+      client.query(`SELECT * FROM public.institutions WHERE code = $1 OR status = 'ACTIVE' LIMIT 1;`, [matched.code]).catch(() => ({ rows: [] }))
     ]);
 
     const stats = stuRes.rows[0];
     const staff = staffRes.rows[0];
+    const totalClassrooms = Number(roomsRes.rows[0]?.total_classes || 0);
+    const instDb = instRes.rows[0];
+    const udiseSchoolCode = instDb?.udise_code || (matched as any).udiseCode || (matched as any).schoolIdNumber || '07010203401';
+    const address = instDb?.address || (matched as any).address || '';
+    const state = address.includes('Delhi') ? 'Delhi' : address.includes('Haryana') ? 'Haryana' : 'Uttar Pradesh';
+    const district = address.includes('Noida') || address.includes('Gautam') ? 'Gautam Buddha Nagar' : address.includes('Delhi') ? 'South Delhi' : 'Ghaziabad';
 
     const udiseData = {
-      udiseSchoolCode: '09020304501',
-      academicSession: '2026-2027',
-      schoolName: matched.name,
-      district: 'Gautam Buddha Nagar',
-      state: 'Uttar Pradesh',
+      udiseSchoolCode,
+      academicSession: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+      schoolName: instDb?.name || matched.name,
+      district,
+      state,
       schoolCategory: '1 - Primary with Upper Primary & Secondary',
       managementType: '5 - Private Unaided (Independent)',
-      totalClassrooms: 24,
+      totalClassrooms,
       drinkingWaterAvailable: true,
       separateToiletsBoysGirls: true,
       electricityAvailable: true,
@@ -129,7 +146,7 @@ export async function generateCbseOasisSchoolProfileReportAction(institutionCode
                count(*) FILTER (WHERE designation ILIKE '%PRT%') as prt
         FROM public.staff;
       `),
-      client.query(`SELECT count(*) as total_classes FROM public.classes;`)
+      client.query(`SELECT count(*)::int as total_classes FROM public.classes;`)
     ]);
 
     const fac = facultyRes.rows[0];
@@ -145,13 +162,13 @@ export async function generateCbseOasisSchoolProfileReportAction(institutionCode
       trustName: 'Vaani Educational Trust',
       campusAreaSqMtr: '8093.71 (2.00 Acres)',
       builtUpAreaSqMtr: '4250.00',
-      totalClassrooms: Number(classes.total_classes) || 24,
+      totalClassrooms: Number(classes.total_classes) || 0,
       compositeScienceLab: 'Yes (Equipped with NCERT Kits)',
       computerLabCount: '2 (60 Connected Terminals)',
       broadbandConnectivitySpeed: '1 Gbps Dedicated Leased Line',
-      staffCountPGT: Number(fac.pgt) || 6,
-      staffCountTGT: Number(fac.tgt) || 12,
-      staffCountPRT: Number(fac.prt) || 10,
+      staffCountPGT: Number(fac.pgt) || 0,
+      staffCountTGT: Number(fac.tgt) || 0,
+      staffCountPRT: Number(fac.prt) || 0,
       wellnessTeacherCounselorAppointed: 'Yes (RCI Registered)',
       specialEducatorAppointed: 'Yes',
       mandatoryPublicDisclosureUrl: `${matched.website || 'https://school.edu.in'}/compliance/board-oasis`

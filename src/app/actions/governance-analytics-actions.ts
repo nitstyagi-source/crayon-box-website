@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -102,6 +111,22 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
     `);
     const incCounts = incRes.rows[0];
 
+    // Attendance Metrics
+    let attendancePct = 0;
+    try {
+      const attRes = await client.query(`
+        SELECT 
+          count(*) as total_records,
+          count(CASE WHEN status ILIKE 'present' THEN 1 END) as present_records
+        FROM public.student_attendance_records
+      `);
+      const totalAtt = Number(attRes.rows[0]?.total_records || 0);
+      const presentAtt = Number(attRes.rows[0]?.present_records || 0);
+      attendancePct = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 0;
+    } catch (attErr) {
+      console.warn('Notice querying attendance records:', attErr);
+    }
+
     // 8. Institutional Breakdown dynamically from PostgreSQL with live counts
     const instDbRes = await client.query(`
       SELECT id, code, name, short_name, board_affiliation, affiliation_number,
@@ -176,6 +201,7 @@ export async function getTrustExecutiveGovernanceMetricsAction(params?: {
         totalIncidents: Number(incCounts.total_incidents ?? 0),
         openIncidentCases: Number(incCounts.open_cases ?? 0),
         pocsoCases: Number(incCounts.pocso_cases ?? 0),
+        attendancePct: attendancePct,
         dataIntegrityScore: 100.0
       },
       institutions,
@@ -202,50 +228,117 @@ export async function getDataQualityAuditAction() {
   const client = await pool.connect();
 
   try {
+    // 1. Student Identity Master Check
+    const stuRes = await client.query(`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN first_name IS NOT NULL AND (admission_no IS NOT NULL OR universal_id IS NOT NULL) THEN 1 END)::int as compliant
+      FROM public.students;
+    `);
+    const stuTotal = stuRes.rows[0]?.total || 0;
+    const stuCompliant = stuRes.rows[0]?.compliant || 0;
+    const stuRate = stuTotal > 0 ? Math.round((stuCompliant / stuTotal) * 100) : 100;
+
+    // 2. Staff HR & Statutory Assignment Check
+    const staffRes = await client.query(`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN first_name IS NOT NULL AND email IS NOT NULL THEN 1 END)::int as compliant
+      FROM public.staff;
+    `);
+    const staffTotal = staffRes.rows[0]?.total || 0;
+    const staffCompliant = staffRes.rows[0]?.compliant || 0;
+    const staffRate = staffTotal > 0 ? Math.round((staffCompliant / staffTotal) * 100) : 100;
+
+    // 3. Timetable Allocation Integrity
+    let ttTotal = 0;
+    let ttCompliant = 0;
+    try {
+      const ttRes = await client.query(`
+        SELECT 
+          COUNT(*)::int as total,
+          COUNT(CASE WHEN subject_id IS NOT NULL OR teacher_id IS NOT NULL THEN 1 END)::int as compliant
+        FROM public.timetable_periods;
+      `);
+      ttTotal = ttRes.rows[0]?.total || 0;
+      ttCompliant = ttRes.rows[0]?.compliant || 0;
+    } catch (_) {
+      // Table may not have period entries yet
+    }
+    const ttRate = ttTotal > 0 ? Math.round((ttCompliant / ttTotal) * 100) : 100;
+
+    // 4. Student PVC ID / Universal Identifier Check
+    const idRes = await client.query(`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN universal_id IS NOT NULL AND universal_id <> '' THEN 1 END)::int as compliant
+      FROM public.students;
+    `);
+    const idTotal = idRes.rows[0]?.total || 0;
+    const idCompliant = idRes.rows[0]?.compliant || 0;
+    const idRate = idTotal > 0 ? Math.round((idCompliant / idTotal) * 100) : 100;
+
+    // 5. Finance Invoicing & Ledger Consistency
+    let finTotal = 0;
+    let finCompliant = 0;
+    try {
+      const finRes = await client.query(`
+        SELECT 
+          COUNT(*)::int as total,
+          COUNT(CASE WHEN total_amount >= 0 AND student_id IS NOT NULL THEN 1 END)::int as compliant
+        FROM public.student_invoices;
+      `);
+      finTotal = finRes.rows[0]?.total || 0;
+      finCompliant = finRes.rows[0]?.compliant || 0;
+    } catch (_) {}
+    const finRate = finTotal > 0 ? Math.round((finCompliant / finTotal) * 100) : 100;
+
     const checks = [
       {
         rule: 'Student Family 360° Household Linkage',
         category: 'Identity Master',
-        testedCount: 220,
-        compliantCount: 220,
-        passRate: 100,
-        status: 'PASSED'
+        testedCount: stuTotal,
+        compliantCount: stuCompliant,
+        passRate: stuRate,
+        status: stuRate >= 95 ? 'PASSED' : stuRate >= 80 ? 'WARNING' : 'FAILED'
       },
       {
-        rule: 'Staff Compensation & Statutory EPF Structure',
+        rule: 'Staff Compensation & Statutory Assignment',
         category: 'HR & Payroll',
-        testedCount: 110,
-        compliantCount: 110,
-        passRate: 100,
-        status: 'PASSED'
+        testedCount: staffTotal,
+        compliantCount: staffCompliant,
+        passRate: staffRate,
+        status: staffRate >= 95 ? 'PASSED' : staffRate >= 80 ? 'WARNING' : 'FAILED'
       },
       {
         rule: 'Class Timetable Period Allocation & Conflict Check',
         category: 'Academics',
-        testedCount: 836,
-        compliantCount: 836,
-        passRate: 100,
-        status: 'PASSED'
+        testedCount: ttTotal,
+        compliantCount: ttCompliant,
+        passRate: ttRate,
+        status: ttRate >= 95 ? 'PASSED' : ttRate >= 80 ? 'WARNING' : 'FAILED'
       },
       {
         rule: 'Student PVC ID Card & QR Signature Validity',
         category: 'Security & Logistics',
-        testedCount: 220,
-        compliantCount: 220,
-        passRate: 100,
-        status: 'PASSED'
+        testedCount: idTotal,
+        compliantCount: idCompliant,
+        passRate: idRate,
+        status: idRate >= 95 ? 'PASSED' : idRate >= 80 ? 'WARNING' : 'FAILED'
       },
       {
         rule: 'Quarterly Invoicing Double-Entry Ledger Posting',
         category: 'Finance',
-        testedCount: 220,
-        compliantCount: 220,
-        passRate: 100,
-        status: 'PASSED'
+        testedCount: finTotal,
+        compliantCount: finCompliant,
+        passRate: finRate,
+        status: finRate >= 95 ? 'PASSED' : finRate >= 80 ? 'WARNING' : 'FAILED'
       }
     ];
 
-    const overallIntegrity = 100;
+    const totalTested = stuTotal + staffTotal + ttTotal + idTotal + finTotal;
+    const totalCompliant = stuCompliant + staffCompliant + ttCompliant + idCompliant + finCompliant;
+    const overallIntegrity = totalTested > 0 ? Math.round((totalCompliant / totalTested) * 100) : 100;
 
     return {
       success: true,
@@ -332,14 +425,17 @@ export async function createAcademicSessionAction(params: {
       `, [instId, name, startDate, endDate, calendarModel, isCurrent]);
     }
 
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campRes.rows[0]?.id || null;
+
     // Also sync to academic_years
     await client.query(`
       INSERT INTO public.academic_years (
         campus_id, name, start_date, end_date, is_active
       ) VALUES (
-        'c3d782a9-a50b-4708-a3fc-6b146f456662', $1, $2, $3, $4
+        $1, $2, $3, $4, $5
       )
-    `, [name, startDate, endDate, isCurrent]);
+    `, [campusId, name, startDate, endDate, isCurrent]);
 
     safeRevalidate('/admin/dashboard');
 
@@ -446,16 +542,16 @@ export async function updateInstitutionDetailsAction(params: {
       code,
       boardAffiliation || 'CBSE',
       affiliationNumber || null,
-      schoolIdNumber || '07010203401',
-      udiseCode || '07010203401',
-      phoneNumber || '+91 120 4567890',
-      principalEmail || 'principal@school.edu.in',
-      principalName || 'Principal Office',
-      address || 'Campus Address',
-      websiteUrl || 'https://school.edu.in',
+      schoolIdNumber || null,
+      udiseCode || null,
+      phoneNumber || '',
+      principalEmail || '',
+      principalName || '',
+      address || '',
+      websiteUrl || '',
       logoUrl || '/logo.png',
       brandColor || '#2563eb',
-      establishedYear || 2014,
+      establishedYear || new Date().getFullYear(),
       id
     ]);
 
@@ -520,16 +616,16 @@ export async function createInstitutionAction(params: {
       academicFramework = 'CBSE',
       boardAffiliation = 'CBSE',
       affiliationNumber,
-      schoolIdNumber = '07010203401',
-      udiseCode = '07010203401',
-      phoneNumber = '+91 120 4567890',
-      principalEmail = 'principal@school.edu.in',
-      principalName = 'Principal Office',
-      address = 'Campus Address',
-      websiteUrl = 'https://school.edu.in',
+      schoolIdNumber = '',
+      udiseCode = '',
+      phoneNumber = '',
+      principalEmail = '',
+      principalName = '',
+      address = '',
+      websiteUrl = '',
       logoUrl = '/logo.png',
       brandColor = '#2563eb',
-      establishedYear = 2026
+      establishedYear = new Date().getFullYear()
     } = params;
 
     const cleanCode = code.trim().toUpperCase();
@@ -809,15 +905,15 @@ export async function getTrustDetailsAction() {
           code: 'VET',
           name: 'Vaani Educational Trust',
           registrationNumber: 'VET/REG/2018/DEL-8891',
-          headquarters: 'Shastri Park Ext., Burari, Delhi - 110084',
+          headquarters: 'Central Administration Headquarters, Delhi NCR',
           contactEmail: 'trust@crayonboxschool.com',
-          contactPhone: '+91 9811102008',
+          contactPhone: '',
           website: 'https://crayonboxschool.com',
           logoUrl: '/logo.png',
-          panNumber: 'AAATV1234F',
-          taxExemption80g: '80G/CIT/DEL/2019/8821',
-          chairmanName: 'Nitin Tyagi',
-          trusteeNames: 'Nitin Tyagi, Vaani Tyagi'
+          panNumber: '',
+          taxExemption80g: '',
+          chairmanName: 'Board of Trustees',
+          trusteeNames: 'Board of Trustees'
         }
       };
     }
@@ -833,11 +929,11 @@ export async function getTrustDetailsAction() {
         contactEmail: t.contact_email,
         contactPhone: t.contact_phone,
         website: t.website,
-        logoUrl: t.logo_url || '/logo.png',
-        panNumber: t.pan_number || 'AAATV1234F',
-        taxExemption80g: t.tax_exemption_80g || '80G/CIT/DEL/2019/8821',
-        chairmanName: t.chairman_name || 'Nitin Tyagi',
-        trusteeNames: t.trustee_names || 'Nitin Tyagi, Vaani Tyagi'
+        logoUrl: t.logo_url || '',
+        panNumber: t.pan_number || '',
+        taxExemption80g: t.tax_exemption_80g || '',
+        chairmanName: t.chairman_name || '',
+        trusteeNames: t.trustee_names || ''
       }
     };
   } catch (error: any) {

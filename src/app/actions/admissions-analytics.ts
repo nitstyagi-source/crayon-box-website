@@ -3,11 +3,13 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-  return new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
+  return pool;
 }
 
 export interface AnalyticsFilterParams {
@@ -248,19 +250,12 @@ export async function getAdmissionsPerformanceAnalyticsAction(filters: Analytics
       classDemand,
       counsellorScorecard,
       lostReasons,
-      trustBenchmark: trustBenchmark.length > 0 ? trustBenchmark : [
-        { code: 'CBS', name: 'Crayon Box School (Main Campus)', enquiries: 0, applications: 0, admissions: 0, conversion: 0, capacity: 180, utilization: 0 },
-        { code: 'CBPS', name: 'Crayon Box Pre-School (Montessori)', enquiries: 0, applications: 0, admissions: 0, conversion: 0, capacity: 100, utilization: 0 },
-        { code: 'AS', name: 'Avinya School (Burari Campus)', enquiries: 0, applications: 0, admissions: 0, conversion: 0, capacity: 120, utilization: 0 },
-        { code: 'AVM', name: 'Avinya Vidya Mandir (Burari)', enquiries: 0, applications: 0, admissions: 0, conversion: 0, capacity: 100, utilization: 0 },
-      ],
+      trustBenchmark,
       managementInsights
     };
   } catch (error: any) {
     console.error('Error fetching admissions performance analytics:', error);
     return { success: false, error: error.message };
-  } finally {
-    await pool.end();
   }
 }
 
@@ -283,12 +278,16 @@ export async function importLegacyAdmissionsAction(legacyData: Array<{
     
     // Resolve campus
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const campusId = campusRes.rows[0]?.id || '362d2f45-c1d2-4974-9207-559ac54051a6';
+    const campusId = campusRes.rows[0]?.id || '';
 
     let importedCount = 0;
+    const tokenCountRes = await client.query(`SELECT count(*)::int as count FROM public.admissions_applications;`);
+    let seq = Number(tokenCountRes.rows[0]?.count || 0);
+
     for (const item of legacyData) {
       if (item.studentName && item.grade) {
-        const token = `LEGACY-${item.academicSession?.replace('-', '') || 'HIST'}-${Math.floor(1000 + Math.random() * 9000)}`;
+        seq += 1;
+        const token = `LEGACY-${item.academicSession?.replace('-', '') || 'HIST'}-${seq.toString().padStart(4, '0')}`;
         await client.query(`
           INSERT INTO public.admissions_applications (
             campus_id,
@@ -308,7 +307,7 @@ export async function importLegacyAdmissionsAction(legacyData: Array<{
             parent_phone: item.parentPhone || '',
             submission_channel: item.source || 'Legacy Import',
             data_source: 'LEGACY_IMPORT',
-            academic_session: item.academicSession || '2024-2025',
+            academic_session: item.academicSession || `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
             lost_reason: item.lostReason || null,
             imported_at: new Date().toISOString()
           }),
@@ -330,7 +329,5 @@ export async function importLegacyAdmissionsAction(legacyData: Array<{
   } catch (error: any) {
     console.error('Error importing legacy admissions:', error);
     return { success: false, error: error.message };
-  } finally {
-    await pool.end();
   }
 }

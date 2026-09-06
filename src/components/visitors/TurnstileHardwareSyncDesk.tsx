@@ -46,7 +46,7 @@ export function TurnstileHardwareSyncDesk() {
 
   // Simulation State
   const [selectedDeviceId, setSelectedDeviceId] = useState('dev-turnstile-01');
-  const [selectedUserName, setSelectedUserName] = useState('Aarav Sharma');
+  const [selectedUserName, setSelectedUserName] = useState('Student RFID Badge');
   const [selectedUserType, setSelectedUserType] = useState<'STUDENT' | 'STAFF' | 'VISITOR'>('STUDENT');
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<'UHF_RFID_TAP' | 'FACE_BIOMETRIC' | 'QR_PASS'>('UHF_RFID_TAP');
   const [selectedDirection, setSelectedDirection] = useState<'IN' | 'OUT'>('IN');
@@ -425,15 +425,15 @@ export function TurnstileHardwareSyncDesk() {
                   const val = e.target.value;
                   setSelectedUserName(val);
                   if (val.includes('Student')) setSelectedUserType('STUDENT');
-                  else if (val.includes('Teacher') || val.includes('Staff')) setSelectedUserType('STAFF');
+                  else if (val.includes('Faculty') || val.includes('Staff') || val.includes('Teacher')) setSelectedUserType('STAFF');
                   else setSelectedUserType('VISITOR');
                 }}
                 className="w-full text-xs font-semibold text-stone-800 px-3 py-2 rounded-xl bg-stone-50 border border-[#E8DFC8] focus:outline-none focus:ring-1 focus:ring-amber-500"
               >
-                <option value="Aarav Sharma (Student - Class 10)">Aarav Sharma (Student - Class 10)</option>
-                <option value="Smt. Priya Sharma (Teacher - Science)">Smt. Priya Sharma (Teacher - Science)</option>
-                <option value="Nitin Tyagi (Admin / Trustee)">Nitin Tyagi (Admin / Trustee)</option>
-                <option value="Dr. Rajesh Khanna (Parent Visitor #401)">Dr. Rajesh Khanna (Parent Visitor #401)</option>
+                <option value="Student RFID Badge (Class 10-A)">Student RFID Badge (Class 10-A)</option>
+                <option value="Faculty Smart ID (Science Dept)">Faculty Smart ID (Science Dept)</option>
+                <option value="Campus Administrator / Security">Campus Administrator / Security</option>
+                <option value="Registered Guardian Visitor Pass">Registered Guardian Visitor Pass</option>
               </select>
             </div>
 

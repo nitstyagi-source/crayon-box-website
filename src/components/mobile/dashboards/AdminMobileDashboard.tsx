@@ -12,6 +12,7 @@ import { SchoolLogo } from "@/components/ui/SchoolLogo";
 
 export default function AdminMobileDashboard() {
   const { user } = useMobileAuth();
+  const dateStr = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date());
 
   return (
     <div className="space-y-6 pb-24">
@@ -24,7 +25,7 @@ export default function AdminMobileDashboard() {
             <span className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-400/30">
               <Shield className="w-3 h-3" /> Executive Management
             </span>
-            <span className="text-xs text-slate-400 font-mono">22 Aug 2026</span>
+            <span className="text-xs text-slate-400 font-mono">{dateStr}</span>
           </div>
 
           <div className="flex items-center gap-3.5">
@@ -38,17 +39,17 @@ export default function AdminMobileDashboard() {
           {/* Quick Stat Pill Grid */}
           <div className="grid grid-cols-2 gap-2 pt-2">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-              <span className="text-[11px] text-slate-300 font-medium">Today's Collection</span>
-              <div className="text-lg font-bold text-emerald-400 mt-0.5">₹1,84,500</div>
+              <span className="text-[11px] text-slate-300 font-medium">Daily Fee Ledger</span>
+              <div className="text-lg font-bold text-emerald-400 mt-0.5">Active</div>
               <span className="text-[10px] text-emerald-300/80 flex items-center gap-0.5">
-                <TrendingUp className="w-2.5 h-2.5" /> +14.2% vs yesterday
+                <TrendingUp className="w-2.5 h-2.5" /> Real-time Reconciliation
               </span>
             </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
               <span className="text-[11px] text-slate-300 font-medium">Student Attendance</span>
-              <div className="text-lg font-bold text-amber-300 mt-0.5">94.8%</div>
-              <span className="text-[10px] text-slate-300">1,185 / 1,250 Present</span>
+              <div className="text-lg font-bold text-amber-300 mt-0.5">Online</div>
+              <span className="text-[10px] text-slate-300">Biometric &amp; App Sync</span>
             </div>
           </div>
         </div>

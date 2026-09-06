@@ -16,11 +16,11 @@ export const ParentAssessmentBookingDesk: React.FC = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingNotice, setBookingNotice] = useState<string | null>(null);
 
-  // Form input state for demo booking
-  const [applicationNo, setApplicationNo] = useState('APP-2026-7983');
-  const [candidateName, setCandidateName] = useState('Viraj Tyagi');
-  const [classApplied, setClassApplied] = useState('Grade 4');
-  const [parentPhone, setParentPhone] = useState('+91 9911102027');
+  // Form input state
+  const [applicationNo, setApplicationNo] = useState('');
+  const [candidateName, setCandidateName] = useState('');
+  const [classApplied, setClassApplied] = useState('Grade 1');
+  const [parentPhone, setParentPhone] = useState('');
 
   useEffect(() => {
     loadData();
@@ -41,6 +41,10 @@ export const ParentAssessmentBookingDesk: React.FC = () => {
   }
 
   const handleConfirmBooking = async (slotId: string) => {
+    if (!applicationNo.trim() || !candidateName.trim() || !parentPhone.trim()) {
+      alert('Please provide Candidate Name, Application Number, and Parent Phone before booking.');
+      return;
+    }
     setIsBooking(true);
     setBookingNotice(null);
     try {

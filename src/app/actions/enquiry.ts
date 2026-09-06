@@ -3,15 +3,11 @@
 import pg from "pg";
 import { revalidatePath } from "next/cache";
 
-const { Pool } = pg;
-const connectionString =
-  process.env.DATABASE_URL ||
-  "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -361,7 +357,7 @@ export async function createPublicEnquiryAction(input: PublicEnquiryInput) {
       RETURNING id, enquiry_number;`,
       [
         enquiryNumber,
-        input.academicSession || '2026-2027',
+        input.academicSession || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         input.institutionCode || 'CBS',
         input.hasSibling && linkedSiblingId ? 'SIBLING' : 'NEW',
         input.visitRequested ? 'HOT' : 'WARM',
@@ -486,7 +482,7 @@ export async function createInternalEnquiryAction(input: InternalEnquiryInput) {
       ) RETURNING id, enquiry_number;`,
       [
         enquiryNumber,
-        input.academicSession || '2026-2027',
+        input.academicSession || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         input.institutionCode || 'CBS',
         input.admissionType || 'NEW',
         input.leadPriority || 'WARM',
@@ -688,8 +684,9 @@ export async function convertEnquiryToApplicationAction(enquiryId: string) {
       };
     }
 
-    // Generate Application Number
-    const appSeq = Math.floor(1000 + Math.random() * 9000);
+    // Generate Application Number based on sequential count
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.admissions_applications;`);
+    const appSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
     const appNo = `APP-2026-${appSeq}`;
 
     const appInsert = await client.query(
@@ -710,10 +707,10 @@ export async function convertEnquiryToApplicationAction(enquiryId: string) {
         enq.child_name || `${enq.child_first_name} ${enq.child_last_name}`,
         enq.child_first_name || enq.child_name?.split(' ')[0] || 'Student',
         enq.child_last_name || enq.child_name?.split(' ').slice(1).join(' ') || '',
-        enq.child_dob || '2020-01-01',
+        enq.child_dob || null,
         enq.child_gender || 'Male',
         enq.admission_class || enq.grade_interested || 'Class 1',
-        enq.academic_session || '2026-2027',
+        enq.academic_session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         enq.primary_guardian_name || enq.parent_name,
         enq.primary_guardian_phone || enq.parent_phone,
         enq.primary_guardian_email || enq.parent_email,
@@ -800,22 +797,24 @@ export async function updateEnquiryStatusAction(enquiryId: string, status: strin
 // 9. BACKWARD COMPATIBILITY ALIASES
 // -------------------------------------------------------------
 export async function createAdmissionEnquiry(data: any) {
+  const currentYear = new Date().getFullYear();
+  const dynamicSession = `${currentYear}-${currentYear + 1}`;
   const res = await createInternalEnquiryAction({
-    academicSession: data.academic_session || "2026-2027",
+    academicSession: data.academic_session || dynamicSession,
     institutionCode: data.institution_code || "CBS",
     admissionClass: data.class_applying_for || data.grade_interested || "Class 1",
     childFirstName: data.first_name || data.child_name?.split(' ')[0] || "Child",
     childMiddleName: data.middle_name || "",
     childLastName: data.last_name || data.child_name?.split(' ').slice(1).join(' ') || "Student",
-    childDob: data.dob || "2020-01-01",
+    childDob: data.dob || "",
     childGender: data.gender || "Male",
     primaryGuardianName: data.father_name || data.parent_name || data.mother_name || "Parent",
     primaryGuardianRelation: data.primary_contact?.toUpperCase() || "FATHER",
-    primaryGuardianPhone: data.father_mobile || data.parent_phone || data.mother_mobile || "9811102008",
-    primaryGuardianWhatsapp: data.father_whatsapp || data.mother_whatsapp,
-    primaryGuardianEmail: data.father_email || data.parent_email || data.mother_email || "parent@gmail.com",
-    localityArea: data.locality || data.address || "Delhi",
-    pincode: data.pincode || "110084",
+    primaryGuardianPhone: data.father_mobile || data.parent_phone || data.mother_mobile || "",
+    primaryGuardianWhatsapp: data.father_whatsapp || data.mother_whatsapp || "",
+    primaryGuardianEmail: data.father_email || data.parent_email || data.mother_email || "",
+    localityArea: data.locality || data.address || "",
+    pincode: data.pincode || "",
     enquirySource: data.source || "Walk-in",
     counsellorNotes: data.counselling_notes || data.notes || ""
   });
@@ -833,20 +832,22 @@ export async function createAdmissionEnquiry(data: any) {
 }
 
 export async function submitPublicEnquiry(data: any) {
+  const currentYear = new Date().getFullYear();
+  const dynamicSession = `${currentYear}-${currentYear + 1}`;
   return createPublicEnquiryAction({
-    academicSession: data.academic_session || "2026-2027",
+    academicSession: data.academic_session || dynamicSession,
     institutionCode: data.campus || data.institution_code || "CBS",
     admissionClass: data.grade_interested || data.admissionClass || "Class 1",
     childFirstName: data.child_name?.split(' ')[0] || "Student",
     childLastName: data.child_name?.split(' ').slice(1).join(' ') || "",
-    childDob: data.dob || "2020-01-01",
+    childDob: data.dob || "",
     childGender: data.gender || "Male",
     primaryGuardianName: data.parent_name || "Parent",
     primaryGuardianRelation: "FATHER",
-    primaryGuardianPhone: data.parent_phone || "9811102008",
-    primaryGuardianEmail: data.parent_email || "parent@gmail.com",
-    localityArea: data.locality || "Delhi",
-    pincode: "110084",
+    primaryGuardianPhone: data.parent_phone || "",
+    primaryGuardianEmail: data.parent_email || "",
+    localityArea: data.locality || "",
+    pincode: data.pincode || "",
     enquirySource: data.source || "Website",
     parentMessage: data.notes || ""
   });

@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -124,7 +122,11 @@ export async function askVaniReceptionistAction(params: {
     let detectedIntent = 'GENERAL_ENQUIRY';
     let aiResponse = '';
     let escalationLevel = 1;
-    let confidenceScore = 0.95;
+
+    // Dynamic Academic Session & Confidence Initializer
+    const currentCalYear = new Date().getFullYear();
+    const activeAcademicSession = `${currentCalYear}–${currentCalYear + 1}`;
+    let confidenceScore = 0.5;
 
     // Entity Extraction from User Text
     // A. Detect Grade
@@ -199,14 +201,17 @@ export async function askVaniReceptionistAction(params: {
 
     if (isDiscountDemand) {
       escalationLevel = 2;
+      confidenceScore = 0.92;
       intentTags.push('DISCOUNT_REQUEST');
       aiResponse = `Namaste! As per official school policy, our fee structure is uniform and transparent for all students. We offer standard **Sibling Concessions (10% on the 2nd child)** and merit-cum-means assistance as per trust regulations.\n\nAny special fee concession requests must be reviewed directly by the Admissions Committee. Would you like me to note this in your enquiry for the Principal's review?`;
     } else if (isGuaranteeDemand) {
       escalationLevel = 3;
+      confidenceScore = 0.95;
       intentTags.push('GUARANTEE_REQUEST');
       aiResponse = `Admissions at our institutions follow a transparent, merit-cum-eligibility process adhering to NEP 2020 guidelines and seat capacity. While I cannot guarantee seats without formal verification, I will gladly register your priority enquiry and schedule a personal meeting with our Admissions Dean.`;
     } else if (isPrivateDataProbe) {
       escalationLevel = 4;
+      confidenceScore = 0.98;
       aiResponse = `To protect the privacy and safety of all our students and staff, individual student records and personal financial details cannot be shared. I am happy to share our official institutional fee structure and prospectus with you.`;
     } 
     // -------------------------------------------------------------------
@@ -215,6 +220,7 @@ export async function askVaniReceptionistAction(params: {
     else if (query.includes('fee') || query.includes('fees') || query.includes('cost') || query.includes('quarterly') || query.includes('annual charge')) {
       intentTags.push('FEE_STRUCTURE');
       detectedIntent = 'FEE_QUERY';
+      confidenceScore = 0.88;
 
       const targetG = state.targetGrade || 'NURSERY';
       // Find matching live fee records
@@ -224,6 +230,7 @@ export async function askVaniReceptionistAction(params: {
       });
 
       if (matchingFees.length > 0) {
+        confidenceScore = 0.94;
         const feeSummary = matchingFees.map((f: any) => {
           const type = f.name || f.fee_type || 'Tuition Fee';
           const amt = Number(f.amount || f.total_annual_amount || 0).toLocaleString('en-IN');
@@ -231,13 +238,15 @@ export async function askVaniReceptionistAction(params: {
           return `• **${type}**: ₹${amt} (${freq})`;
         }).join('\n');
 
-        aiResponse = `Here is the current approved fee breakdown for **${targetG}** for Academic Session 2026–2027:\n\n${feeSummary}\n\n• **Payment Modes**: 1-Click Online UPI, Net Banking, Debit/Credit Card, or Demand Draft.\n• **Sibling Benefit**: 10% concession on tuition fees for the younger sibling.\n\nWould you like me to send the complete prospectus and fee schedule to your WhatsApp?`;
+        aiResponse = `Here is the current approved fee breakdown for **${targetG}** for Academic Session ${activeAcademicSession}:\n\n${feeSummary}\n\n• **Payment Modes**: 1-Click Online UPI, Net Banking, Debit/Credit Card, or Demand Draft.\n• **Sibling Benefit**: 10% concession on tuition fees for the younger sibling.\n\nWould you like me to send the complete prospectus and fee schedule to your WhatsApp?`;
       } else if (dbFees.length > 0) {
+        confidenceScore = 0.82;
         const sampleFee = dbFees[0];
         const amt = Number(sampleFee.amount || sampleFee.total_annual_amount || 13500).toLocaleString('en-IN');
-        aiResponse = `The approved fee structure for Session 2026–2027 is structured transparently across quarterly installments:\n\n• **Quarterly Composite Tuition Fee**: ₹${amt} per quarter\n• **Annual Activity & Digital LMS**: Included with zero hidden development charges.\n• **Sibling Concession**: 10% on tuition fee for the second child.\n\nMay I know which specific class you are seeking admission for so I can provide the exact schedule?`;
+        aiResponse = `The approved fee structure for Session ${activeAcademicSession} is structured transparently across quarterly installments:\n\n• **Quarterly Composite Tuition Fee**: ₹${amt} per quarter\n• **Annual Activity & Digital LMS**: Included with zero hidden development charges.\n• **Sibling Concession**: 10% on tuition fee for the second child.\n\nMay I know which specific class you are seeking admission for so I can provide the exact schedule?`;
       } else {
-        aiResponse = `Our admissions fee schedule for Academic Session 2026–2027 is currently undergoing annual regulatory committee review. I can connect you directly with our Admissions Counsellor to share the official fee schedule. May I have your WhatsApp number?`;
+        confidenceScore = 0.70;
+        aiResponse = `Our admissions fee schedule for Academic Session ${activeAcademicSession} is currently undergoing annual regulatory committee review. I can connect you directly with our Admissions Counsellor to share the official fee schedule. May I have your WhatsApp number?`;
       }
     }
     // -------------------------------------------------------------------
@@ -246,6 +255,7 @@ export async function askVaniReceptionistAction(params: {
     else if (query.includes('seat') || query.includes('seats') || query.includes('capacity') || query.includes('available seat') || query.includes('waiting list')) {
       intentTags.push('SEAT_AVAILABILITY');
       detectedIntent = 'SEAT_QUERY';
+      confidenceScore = 0.86;
 
       const targetG = state.targetGrade || 'Class 5';
       const { rows: studentCount } = await client.query(`
@@ -256,8 +266,10 @@ export async function askVaniReceptionistAction(params: {
       const availableSeats = Math.max(3, 40 - (totalEnrolled % 35));
 
       if (availableSeats > 0) {
-        aiResponse = `According to our live classroom allocation, **${targetG}** currently has **${availableSeats} available seats** for Academic Session 2026–2027 at our Burari Campus.\n\nDue to high admissions velocity, seats are allocated on a first-verified basis. Would you like me to reserve a priority enquiry for your child?`;
+        confidenceScore = 0.91;
+        aiResponse = `According to our live classroom allocation, **${targetG}** currently has **${availableSeats} available seats** for Academic Session ${activeAcademicSession} at our Burari Campus.\n\nDue to high admissions velocity, seats are allocated on a first-verified basis. Would you like me to reserve a priority enquiry for your child?`;
       } else {
+        confidenceScore = 0.85;
         aiResponse = `**${targetG}** is currently operating at approved capacity. However, our admissions committee maintains a **Priority Waiting List** for mid-term transfers and withdrawals.\n\nWould you like me to register your child on our official waiting list?`;
       }
     }
@@ -304,7 +316,7 @@ export async function askVaniReceptionistAction(params: {
       } else {
         // Conversational Fallback / Intake Follow-up
         if (!state.childName) {
-          aiResponse = `Namaste and welcome to Crayon Box School! 😊 I would be delighted to assist you with admissions for Academic Session 2026–2027.\n\nMay I know your child's name and which class you are looking for?`;
+          aiResponse = `Namaste and welcome to Crayon Box School! 😊 I would be delighted to assist you with admissions for Academic Session ${activeAcademicSession}.\n\nMay I know your child's name and which class you are looking for?`;
         } else if (!state.targetGrade) {
           aiResponse = `Wonderful! And which grade or class are you planning for **${state.childName}**?`;
         } else if (!state.parentPhone) {
@@ -340,11 +352,23 @@ export async function askVaniReceptionistAction(params: {
 
     // Create / Update CRM Enquiry when Phone or Child is known
     if (state.parentPhone || state.childName) {
-      const generatedEnqNo = `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const enqCountRes = await client.query(`SELECT count(*)::int as count FROM public.enquiries;`);
+      const nextSeq = ((enqCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+      const generatedEnqNo = `ENQ-${currentCalYear}-${nextSeq}`;
       const pName = state.parentName || (state.childName ? `Parent of ${state.childName}` : 'Prospective Parent');
       const pPhone = state.parentPhone || '+91 9999999999';
       const cName = state.childName || 'Applicant';
       const grade = state.targetGrade || 'Nursery';
+
+      // Dynamically resolve admissions counsellor from staff table
+      const counsellorRes = await client.query(`
+        SELECT first_name, last_name FROM public.staff
+        WHERE designation ILIKE '%counsel%' OR designation ILIKE '%admission%' OR department ILIKE '%admission%'
+        LIMIT 1;
+      `);
+      const counsellorName = counsellorRes.rows[0]
+        ? `${counsellorRes.rows[0].first_name} ${counsellorRes.rows[0].last_name || ''}`.trim()
+        : 'Admissions Desk';
 
       const summaryText = `AIRA/VANI AI Intake Dossier:\n• Target Grade: ${grade}\n• Child: ${cName}\n• Parent: ${pName} (${pPhone})\n• Locality: ${state.locality || 'Not specified'}\n• Transport Required: ${state.transportRequired ? 'YES' : 'NO'}\n• Campus Visit: ${state.campusVisitDate ? `${state.campusVisitDate} at ${state.campusVisitTime || '11:00 AM'}` : 'Not scheduled'}\n• Lead Score: ${calculatedScore}/100`;
 
@@ -357,13 +381,13 @@ export async function askVaniReceptionistAction(params: {
             counsellor_name, remarks
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-            'AI_RECEPTIONIST_VANI', 'HOT_LEAD', $12, 'Rushali Chauhan', $13
+            'AI_RECEPTIONIST_VANI', 'HOT_LEAD', $12, $13, $14
           ) RETURNING id, enquiry_no;
         `, [
           generatedEnqNo, pName, pPhone, state.parentEmail || null, cName,
           grade, state.locality || null, Boolean(state.transportRequired),
           Boolean(state.campusVisitDate), state.campusVisitDate || null, state.campusVisitTime || null,
-          calculatedScore >= 75 ? 'HIGH' : 'MEDIUM', summaryText
+          calculatedScore >= 75 ? 'HIGH' : 'MEDIUM', counsellorName, summaryText
         ]);
 
         if (enqRows.length > 0) {

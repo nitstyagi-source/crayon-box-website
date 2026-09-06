@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString });
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -133,8 +131,13 @@ export async function registerNewFixedAssetAction(params: {
       condition = 'EXCELLENT'
     } = params;
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const skuCode = `AST-${category.slice(0, 3).toUpperCase()}-2026-${randomSuffix}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.assets;`);
+    const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const skuCode = `AST-${category.slice(0, 3).toUpperCase()}-2026-${seq}`;
+
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campRes.rows[0]?.id || null;
+
     const today = new Date().toISOString().split('T')[0];
     const initialDep = Math.round((purchaseCost - salvageValue) / usefulLifeYears * 0.5);
     const initialBook = purchaseCost - initialDep;
@@ -147,14 +150,14 @@ export async function registerNewFixedAssetAction(params: {
         accumulated_depreciation, current_book_value, vendor_name,
         created_at
       ) VALUES (
-        'c3d782a9-a50b-4708-a3fc-6b146f456662', $1, $2, $3, $3,
-        $4, $5, true, $6,
-        $7, $8, $9,
-        $10, $11, $12, NOW()
+        $1, $2, $3, $4, $4,
+        $5, $6, true, $7,
+        $8, $9, $10,
+        $11, $12, $13, NOW()
       )
       RETURNING *
     `, [
-      category, name, skuCode, condition, location,
+      campusId, category, name, skuCode, condition, location,
       today, purchaseCost, usefulLifeYears, salvageValue,
       initialDep, initialBook, vendorName
     ]);

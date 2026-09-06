@@ -52,7 +52,7 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
   // Settings form state
   const [settingsForm, setSettingsForm] = useState({
     provider: "meta_cloud",
-    sender_phone: "+919876543210",
+    sender_phone: "",
     upi_vpa: "campusfee@upi",
     upi_payee_name: selectedInstitutionObj?.name || "School Fee Collection",
     auto_absent_alert_enabled: true,
@@ -337,8 +337,8 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8] text-[11px] leading-relaxed">
                   💳 <strong>{selectedInstitutionObj?.name || "School"} — Fee Due Reminder</strong><br /><br />
-                  Dear Parent, term fee for <strong>Aarav Sharma (Class 1-B)</strong> is due:<br />
-                  • <strong>Amount Due</strong>: ₹4,500<br />
+                  Dear Parent, term fee for <strong>{"{{student_name}} ({{class_section}})"}</strong> is due:<br />
+                  • <strong>Amount Due</strong>: {"₹{{amount_due}}"}<br />
                   • <strong>Due Date</strong>: 10th of this Month<br /><br />
                   ⚡ <strong>1-Click Instant UPI Payment</strong>:<br />
                   <span className="text-purple-600 underline">https://portal.vanierp.com/fees/pay?id=...</span>

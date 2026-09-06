@@ -2,10 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { getCampuses } from "@/app/actions/campus";
+import { useInstitution } from "./InstitutionContext";
 
 export type Campus = {
   id: string;
   name: string;
+  code?: string;
 };
 
 type CampusContextType = {
@@ -19,6 +21,7 @@ type CampusContextType = {
 const CampusContext = createContext<CampusContextType | undefined>(undefined);
 
 export function CampusProvider({ children }: { children: ReactNode }) {
+  const { currentInstitution } = useInstitution();
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [activeCampusId, setActiveCampusId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -28,14 +31,29 @@ export function CampusProvider({ children }: { children: ReactNode }) {
       const res = await getCampuses();
       if (res.success && res.data.length > 0) {
         setCampuses(res.data);
-        setActiveCampusId(res.data[0].id); // Always use first real campus UUID
+        // If currentInstitution matches one of the campuses, use it; otherwise use the first
+        const matched = res.data.find(
+          (c: any) => c.code === currentInstitution || c.id === currentInstitution
+        );
+        setActiveCampusId(matched ? matched.id : res.data[0].id);
       }
       setIsLoading(false);
     }
     loadCampuses();
-  }, []);
+  }, [currentInstitution]);
 
-  const activeCampus = campuses.find(c => c.id === activeCampusId) || null;
+  useEffect(() => {
+    if (campuses.length > 0 && currentInstitution && currentInstitution !== 'ALL') {
+      const matched = campuses.find(
+        (c: any) => c.code === currentInstitution || c.id === currentInstitution
+      );
+      if (matched && matched.id !== activeCampusId) {
+        setActiveCampusId(matched.id);
+      }
+    }
+  }, [currentInstitution, campuses]);
+
+  const activeCampus = campuses.find(c => c.id === activeCampusId) || campuses[0] || null;
 
   return (
     <CampusContext.Provider value={{ campuses, activeCampusId, setActiveCampusId, activeCampus, isLoading }}>
@@ -45,10 +63,10 @@ export function CampusProvider({ children }: { children: ReactNode }) {
 }
 
 const defaultFallback: CampusContextType = {
-  campuses: [{ id: 'c3d782a9-a50b-4708-a3fc-6b146f456662', name: 'Crayon Box Main Campus' }],
-  activeCampusId: 'c3d782a9-a50b-4708-a3fc-6b146f456662',
+  campuses: [],
+  activeCampusId: '',
   setActiveCampusId: () => {},
-  activeCampus: { id: 'c3d782a9-a50b-4708-a3fc-6b146f456662', name: 'Crayon Box Main Campus' },
+  activeCampus: null,
   isLoading: false
 };
 

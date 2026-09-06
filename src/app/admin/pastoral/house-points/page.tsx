@@ -44,10 +44,10 @@ export default function PbisHouseCupPastoralPage() {
   // Award Points Modal State
   const [awardModalOpen, setAwardModalOpen] = useState(false);
   const [studentName, setStudentName] = useState("");
-  const [studentHouse, setStudentHouse] = useState("DRAGON");
+  const [studentHouse, setStudentHouse] = useState("");
   const [selectedMeritId, setSelectedMeritId] = useState("");
   const [customReason, setCustomReason] = useState("");
-  const [teacherName, setTeacherName] = useState("Ms. Pooja Sharma");
+  const [teacherName, setTeacherName] = useState("Academic Faculty");
   const [submitting, setSubmitting] = useState(false);
 
   // MTSS Intervention Modal State
@@ -55,7 +55,7 @@ export default function PbisHouseCupPastoralPage() {
   const [intStudentName, setIntStudentName] = useState("");
   const [intTier, setIntTier] = useState<"TIER_1" | "TIER_2" | "TIER_3">("TIER_2");
   const [intTrigger, setIntTrigger] = useState("");
-  const [intCounselor, setIntCounselor] = useState("Dr. Sunita Rao (School Counselor)");
+  const [intCounselor, setIntCounselor] = useState("Pastoral Counselor / Specialist");
   const [intStrategy, setIntStrategy] = useState("");
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export default function PbisHouseCupPastoralPage() {
   }, []);
 
   async function loadData() {
-    setLoading(false);
+    setLoading(true);
     try {
       const [hRes, mRes, fRes, iRes] = await Promise.all([
         getHouseLeaderboardAction(),
@@ -72,7 +72,12 @@ export default function PbisHouseCupPastoralPage() {
         getPastoralInterventionsAction()
       ]);
 
-      if (hRes.success) setHouses(hRes.houses);
+      if (hRes.success && hRes.houses) {
+        setHouses(hRes.houses);
+        if (hRes.houses.length > 0) {
+          setStudentHouse(hRes.houses[0].code);
+        }
+      }
       if (mRes.success) {
         setMeritTypes(mRes.meritTypes);
         if (mRes.meritTypes.length > 0) setSelectedMeritId(mRes.meritTypes[0].id);
@@ -81,6 +86,8 @@ export default function PbisHouseCupPastoralPage() {
       if (iRes.success) setInterventions(iRes.interventions);
     } catch (e) {
       console.error("Error loading PBIS pastoral data:", e);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -96,7 +103,7 @@ export default function PbisHouseCupPastoralPage() {
 
     try {
       const res = await awardHousePointsAction({
-        studentId: "00000000-0000-0000-0000-000000000001",
+        studentId: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : "10000000-0000-0000-0000-000000000001",
         studentName,
         className: "Class 9B",
         houseCode: studentHouse,
@@ -131,7 +138,7 @@ export default function PbisHouseCupPastoralPage() {
     setSubmitting(true);
     try {
       const res = await createPastoralInterventionAction({
-        studentId: "00000000-0000-0000-0000-000000000001",
+        studentId: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : "10000000-0000-0000-0000-000000000001",
         studentName: intStudentName,
         className: "Class 8A",
         tier: intTier,

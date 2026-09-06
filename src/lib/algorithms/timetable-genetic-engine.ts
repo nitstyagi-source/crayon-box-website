@@ -36,17 +36,19 @@ export interface GeneticGeneratorParams {
   maxGenerations?: number;
   consecutivePenaltyWeight?: number;
   labConstraintWeight?: number;
+  seed?: number;
 }
 
 export class TimetableGeneticEngine {
   private classes: TimetableClassConfig[];
-  private teachers: TimetableTeacherConfig[];
+  teachers: TimetableTeacherConfig[];
   private workingDays: string[];
   private periodsPerDay: number;
   private populationSize: number;
   private maxGenerations: number;
   private consecutivePenaltyWeight: number;
   private labConstraintWeight: number;
+  private rng: () => number;
 
   constructor(params: GeneticGeneratorParams) {
     this.classes = params.classes;
@@ -57,6 +59,20 @@ export class TimetableGeneticEngine {
     this.maxGenerations = params.maxGenerations || 120;
     this.consecutivePenaltyWeight = params.consecutivePenaltyWeight ?? 15;
     this.labConstraintWeight = params.labConstraintWeight ?? 40;
+
+    if (params.seed !== undefined) {
+      let s = params.seed >>> 0;
+      this.rng = () => {
+        // Mulberry32 PRNG for deterministic timetable reproduction
+        s |= 0;
+        s = (s + 0x6d2b79f5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    } else {
+      this.rng = () => Math.random();
+    }
   }
 
   /**
@@ -121,7 +137,7 @@ export class TimetableGeneticEngine {
         const child = this.crossover(parent1, parent2);
 
         // Mutation (25% chance to swap period slots)
-        if (Math.random() < 0.25) {
+        if (this.rng() < 0.25) {
           this.mutate(child);
         }
 
@@ -254,7 +270,7 @@ export class TimetableGeneticEngine {
 
       // Shuffle queue randomly
       for (let i = queue.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(this.rng() * (i + 1));
         [queue[i], queue[j]] = [queue[j], queue[i]];
       }
 
@@ -399,8 +415,8 @@ export class TimetableGeneticEngine {
   }
 
   private tournamentSelect(scoredPop: { candidate: TimetablePeriodSlot[]; fitness: number }[]): TimetablePeriodSlot[] {
-    const i1 = Math.floor(Math.random() * scoredPop.length);
-    const i2 = Math.floor(Math.random() * scoredPop.length);
+    const i1 = Math.floor(this.rng() * scoredPop.length);
+    const i2 = Math.floor(this.rng() * scoredPop.length);
     return scoredPop[i1].fitness >= scoredPop[i2].fitness ? scoredPop[i1].candidate : scoredPop[i2].candidate;
   }
 
@@ -411,8 +427,8 @@ export class TimetableGeneticEngine {
 
   private mutate(candidate: TimetablePeriodSlot[]): void {
     if (candidate.length < 2) return;
-    const idx1 = Math.floor(Math.random() * candidate.length);
-    const idx2 = Math.floor(Math.random() * candidate.length);
+    const idx1 = Math.floor(this.rng() * candidate.length);
+    const idx2 = Math.floor(this.rng() * candidate.length);
 
     // Swap subjects and teachers between two periods
     const tempSubj = candidate[idx1].subjectName;

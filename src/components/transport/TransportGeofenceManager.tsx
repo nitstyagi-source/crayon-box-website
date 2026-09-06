@@ -67,8 +67,8 @@ export function TransportGeofenceManager() {
       const res = await simulateBusProximityTriggerAction({
         bus_number: 'Bus 01 (DL-1PC-4501)',
         stop_name: selectedStopName,
-        student_name: 'Aarav Sharma (Class 5-A)',
-        parent_phone: '+91 98112 34567',
+        student_name: `Assigned Passengers (${selectedStopName})`,
+        parent_phone: 'Registered Route Contacts',
         distance_km: Number(simDistance),
         eta_minutes: Number(simEta)
       });

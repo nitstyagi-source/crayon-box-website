@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -48,20 +48,24 @@ export async function getSurveyDashboardStats(campusId?: string) {
     const active = allForms.filter(f => f.status === "Active").length;
     const drafts = allForms.filter(f => f.status === "Draft").length;
     const closed = allForms.filter(f => f.status === "Closed").length;
-    const lowRatingAlerts = allResp.filter(r => (r.overall_rating && r.overall_rating <= 2)).length;
+    const lowRatingAlerts = allResp.filter(r => (r.overall_rating && Number(r.overall_rating) <= 2)).length;
+
+    const avgRatingNum = allResp.length > 0
+      ? (allResp.reduce((acc, r) => acc + (Number(r.overall_rating) || 5), 0) / allResp.length).toFixed(1)
+      : null;
 
     return {
       success: true,
       data: {
-        activeForms: active || 4,
-        draftForms: drafts || 2,
-        scheduledForms: 1,
-        closedForms: closed || 8,
-        totalResponses: allResp.length ?? 0,
-        responseRate: "86.4%",
-        pendingResponses: 102,
-        averageRating: "4.7 / 5.0",
-        lowRatingAlerts: lowRatingAlerts || 2
+        activeForms: active,
+        draftForms: drafts,
+        scheduledForms: 0,
+        closedForms: closed,
+        totalResponses: allResp.length,
+        responseRate: allResp.length > 0 ? "100%" : "0%",
+        pendingResponses: 0,
+        averageRating: avgRatingNum ? `${avgRatingNum} / 5.0` : "N/A",
+        lowRatingAlerts: lowRatingAlerts
       }
     };
   } catch (error: any) {
@@ -125,7 +129,9 @@ export async function createSurveyForm(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
 
-    const formCode = `SURV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: formCount } = await supabase.from("survey_forms").select("*", { count: "exact", head: true });
+    const nextFormSeq = ((formCount || 0) + 1).toString().padStart(4, '0');
+    const formCode = `SURV-2026-${nextFormSeq}`;
     const qrToken = `QR-${formCode}-${Date.now().toString().slice(-4)}`;
 
     const { data, error } = await supabase
@@ -231,7 +237,8 @@ export async function submitSurveyResponse(payload: {
     let ticketNum: string | null = null;
 
     if (isLowRating) {
-      ticketNum = `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+      const { count } = await supabase.from("survey_responses").select("id", { count: "exact", head: true });
+      ticketNum = `TKT-2026-${((count || 0) + 1).toString().padStart(5, '0')}`;
     }
 
     const { data: resp, error: rErr } = await supabase
@@ -315,6 +322,36 @@ export async function getSurveyTemplates() {
     if (error) throw error;
     return { success: true, data: data || [] };
   } catch (error: any) {
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
+// -------------------------------------------------------------
+// 8. GET FEEDBACK ACTION DESK ITEMS (REAL PARENT FEEDBACK)
+// -------------------------------------------------------------
+export async function getFeedbackActionDeskItems(campusId?: string) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const resolvedCampusId = await resolveCampusId(supabase, campusId);
+
+    const { data: forms } = await supabase
+      .from("survey_forms")
+      .select("id")
+      .eq("campus_id", resolvedCampusId);
+
+    const formIds = (forms || []).map(f => f.id);
+    if (formIds.length === 0) return { success: true, data: [] };
+
+    const { data: responses, error } = await supabase
+      .from("survey_responses")
+      .select("*")
+      .in("form_id", formIds)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return { success: true, data: responses || [] };
+  } catch (error: any) {
+    console.error("Error in getFeedbackActionDeskItems:", error);
     return { success: false, error: error.message, data: [] };
   }
 }

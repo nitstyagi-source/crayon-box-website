@@ -24,7 +24,15 @@ import { useInstitution } from "@/components/providers/InstitutionContext";
 
 export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean }) {
   const { selectedInstitutionObj, isAllInstitutions } = useInstitution();
-  const [selectedMonth, setSelectedMonth] = useState("September 2026");
+  
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dynamicMonths = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  });
+
+  const [selectedMonth, setSelectedMonth] = useState(dynamicMonths[0]);
   const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,9 +100,9 @@ export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean 
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="bg-indigo-900 border border-indigo-700 text-white font-bold rounded-xl px-3 py-1.5 focus:bg-indigo-800"
           >
-            <option value="September 2026">September 2026</option>
-            <option value="August 2026">August 2026</option>
-            <option value="July 2026">July 2026</option>
+            {dynamicMonths.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -118,7 +126,7 @@ export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean 
             Total Gross Payroll
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-600">
-            ₹{stats?.totalGrossPayroll?.toLocaleString('en-IN') || "1,60,000"}
+            ₹{stats?.totalGrossPayroll !== undefined ? stats.totalGrossPayroll.toLocaleString('en-IN') : "0"}
           </div>
           <div className="text-[10px] text-stone-500 font-bold">Pre-Deductions</div>
         </div>
@@ -129,7 +137,7 @@ export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean 
             EPF &amp; Statutory Deductions
           </div>
           <div className="text-2xl sm:text-3xl font-black text-purple-600">
-            ₹{stats?.totalEpfDeduction?.toLocaleString('en-IN') || "12,000"}
+            ₹{stats?.totalEpfDeduction !== undefined ? stats.totalEpfDeduction.toLocaleString('en-IN') : "0"}
           </div>
           <div className="text-[10px] text-purple-700 font-bold">12% EPF + ESI</div>
         </div>
@@ -140,7 +148,7 @@ export function StaffSalarySlipsDesk({ embedded = false }: { embedded?: boolean 
             Net Disbursed
           </div>
           <div className="text-2xl sm:text-3xl font-black text-blue-950">
-            ₹{stats?.totalNetDisbursed?.toLocaleString('en-IN') || "1,46,800"}
+            ₹{stats?.totalNetDisbursed !== undefined ? stats.totalNetDisbursed.toLocaleString('en-IN') : "0"}
           </div>
           <div className="text-[10px] text-emerald-700 font-bold">Direct Bank Transfer</div>
         </div>

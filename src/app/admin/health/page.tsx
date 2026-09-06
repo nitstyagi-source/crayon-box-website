@@ -36,17 +36,9 @@ function StudentHealthHubContent() {
   const [counts, setCounts] = useState({ totalVisits: 0, resolvedVisits: 0, referredVisits: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Sample Student Medical 360 Profiles
-  const sampleMedicalProfiles = [
-    { name: "Aarav Sharma", class: "Grade 5-A", blood: "O+ve", allergies: "Peanuts, Dust Mites", chronic: "Mild Pediatric Asthma", abha: "91-4501-2291-8841", vax: "Complete (DTaP, MMR, HepB)" },
-    { name: "Ananya Verma", class: "Grade 3-B", blood: "B+ve", allergies: "Penicillin", chronic: "None", abha: "91-8821-4402-1190", vax: "Complete (Verified)" },
-    { name: "Kabir Mehta", class: "Grade 8-A", blood: "AB+ve", allergies: "None", chronic: "None", abha: "91-1049-7721-3312", vax: "Complete (Tetanus booster 2025)" },
-    { name: "Riya Kapoor", class: "Grade 2-C", blood: "A+ve", allergies: "Lactose Intolerance", chronic: "None", abha: "91-6623-8890-4412", vax: "Complete" },
-  ];
-
   const fetchHealthLogs = async () => {
     setIsLoading(true);
-    const res = await getStudentHealthMedicalDashboardAction();
+    const res = await getStudentHealthMedicalDashboardAction(currentInstitution);
     if (res.success) {
       setLogs(res.logs || []);
       setCounts(res.counts || { totalVisits: 0, resolvedVisits: 0, referredVisits: 0 });
@@ -56,7 +48,7 @@ function StudentHealthHubContent() {
 
   useEffect(() => {
     fetchHealthLogs();
-  }, []);
+  }, [currentInstitution]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
@@ -209,39 +201,49 @@ function StudentHealthHubContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8DFC8]">
-                  {sampleMedicalProfiles.map((p, i) => (
-                    <tr key={i} className="hover:bg-[#FDFBF7] transition">
-                      <td className="py-3.5 px-4">
-                        <strong className="text-[#2D2319] block font-bold">{p.name}</strong>
-                        <span className="text-[10px] text-stone-500 font-bold">{p.class}</span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-md font-mono font-black text-rose-800 bg-rose-50 border border-rose-200">
-                          {p.blood}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {p.allergies !== "None" ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 w-fit">
-                            <AlertTriangle className="w-3 h-3 text-amber-600" /> {p.allergies}
-                          </span>
-                        ) : (
-                          <span className="text-stone-400 font-medium">None Recorded</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-stone-700 font-medium">
-                        {p.chronic}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-stone-600">
-                        {p.abha}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 flex items-center gap-1 w-fit">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {p.vax}
-                        </span>
+                  {logs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-xs text-stone-500 font-medium">
+                        <HeartPulse className="w-8 h-8 text-rose-500/80 mx-auto mb-2" />
+                        <span className="font-bold text-stone-800 block text-sm">No Student Health Records Logged</span>
+                        <span className="text-stone-400 text-[11px] block mt-0.5">Use "Log Clinical Visit" to create medical and allergy profiles.</span>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    logs.map((p, i) => (
+                      <tr key={i} className="hover:bg-[#FDFBF7] transition">
+                        <td className="py-3.5 px-4">
+                          <strong className="text-[#2D2319] block font-bold">{p.student_name}</strong>
+                          <span className="text-[10px] text-stone-500 font-bold">{p.class_name}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2.5 py-0.5 rounded-md font-mono font-black text-rose-800 bg-rose-50 border border-rose-200">
+                            {p.blood_group || 'O+'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          {p.allergies && p.allergies !== "None" ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 w-fit">
+                              <AlertTriangle className="w-3 h-3 text-amber-600" /> {p.allergies}
+                            </span>
+                          ) : (
+                            <span className="text-stone-400 font-medium">None Recorded</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-stone-700 font-medium">
+                          {p.diagnosis || p.chief_complaint || 'None'}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-stone-600">
+                          {p.abha_id || 'Not Linked'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 flex items-center gap-1 w-fit">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

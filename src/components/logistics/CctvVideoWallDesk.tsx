@@ -1090,7 +1090,7 @@ export function CctvVideoWallDesk({
                             <strong className="text-stone-900 text-sm block">
                               {stu.first_name} {stu.last_name || ""}
                             </strong>
-                            <span className="text-[10px] font-mono text-stone-400">Adm No: {stu.admission_no || "CB-2026-X"}</span>
+                            <span className="text-[10px] font-mono text-stone-400">Adm No: {stu.admission_no || "N/A"}</span>
                           </td>
 
                           <td className="p-3.5 font-bold text-stone-800">

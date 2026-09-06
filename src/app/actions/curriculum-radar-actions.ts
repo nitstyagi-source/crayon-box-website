@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -183,10 +192,9 @@ function getChaptersForSubject(subjectName: string): string[] {
   ];
 }
 
-// -------------------------------------------------------------
-// 1. GET & SAVE CURRICULUM TERMS (FA-1..4 & SA-1..2)
-// -------------------------------------------------------------
-export async function getCurriculumTermsAction(institutionCode = 'CBS', session = '2026-2027', className?: string) {
+export async function getCurriculumTermsAction(institutionCode = 'CBS', session?: string, className?: string) {
+  const currentYear = new Date().getFullYear();
+  const activeSession = session || `${currentYear}-${currentYear + 1}`;
   const pool = getPool();
   const client = await pool.connect();
   try {
@@ -195,7 +203,7 @@ export async function getCurriculumTermsAction(institutionCode = 'CBS', session 
       WHERE (institution_code = $1 OR institution_code = 'ALL')
         AND academic_session = $2
       ORDER BY start_date ASC, created_at ASC;
-    `, [institutionCode, session]);
+    `, [institutionCode, activeSession]);
 
     let classOverrides: Record<string, boolean> = {};
     if (className && className !== 'All') {
@@ -257,10 +265,11 @@ export async function saveCurriculumTermAction(payload: {
   const pool = getPool();
   const client = await pool.connect();
   try {
+    const curYear = new Date().getFullYear();
     const {
       id,
       institutionCode = 'CBS',
-      academicSession = '2026-2027',
+      academicSession = `${curYear}-${curYear + 1}`,
       termName,
       termCode,
       assessmentType,
@@ -329,9 +338,10 @@ export async function toggleClassTermStatusAction(payload: {
   const pool = getPool();
   const client = await pool.connect();
   try {
+    const curYear = new Date().getFullYear();
     const {
       institutionCode = 'CBS',
-      session = '2026-2027',
+      session = `${curYear}-${curYear + 1}`,
       className,
       termCode,
       termName = termCode,
@@ -400,7 +410,9 @@ export async function toggleClassTermStatusAction(payload: {
 // -------------------------------------------------------------
 // 1C. GET CLASS TERM OVERRIDES MATRIX
 // -------------------------------------------------------------
-export async function getClassTermOverridesAction(institutionCode = 'CBS', session = '2026-2027', className?: string) {
+export async function getClassTermOverridesAction(institutionCode = 'CBS', session?: string, className?: string) {
+  const currentYear = new Date().getFullYear();
+  const activeSession = session || `${currentYear}-${currentYear + 1}`;
   const pool = getPool();
   const client = await pool.connect();
   try {
@@ -409,7 +421,7 @@ export async function getClassTermOverridesAction(institutionCode = 'CBS', sessi
       WHERE (institution_code = $1 OR institution_code = 'ALL')
         AND academic_session = $2
     `;
-    const params: any[] = [institutionCode, session];
+    const params: any[] = [institutionCode, activeSession];
 
     if (className && className !== 'All') {
       params.push(className);
@@ -770,7 +782,8 @@ export async function createOrUpdateChapterAction(payload: {
     } = payload;
 
     const subjRes = await client.query(`SELECT campus_id FROM public.academic_subjects WHERE id = $1;`, [subjectId]);
-    const campusId = subjRes.rows[0]?.campus_id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = subjRes.rows[0]?.campus_id || campRes.rows[0]?.id || null;
 
     if (id) {
       await client.query(`
@@ -1015,7 +1028,7 @@ export async function saveTeacherLessonDiaryEntryAction(payload: {
       subjectId,
       chapterId,
       periodNumber = 1,
-      teacherName = 'Dr. Sunita Sharma',
+      teacherName = 'Faculty Assessor',
       topicTitle,
       learningObjectives,
       teachingPedagogy = 'Smartboard & Concept Discussion',
@@ -1051,7 +1064,8 @@ export async function saveTeacherLessonDiaryEntryAction(payload: {
       WHERE sc.id = $1;
     `, [chapterId]);
 
-    let campusId = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    let campusId = campRes.rows[0]?.id || null;
 
     if (chapRes.rows.length > 0) {
       const c = chapRes.rows[0];
@@ -1232,7 +1246,7 @@ export async function seedComprehensiveCurriculumUnitsAction() {
     `);
 
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const defaultCampusId = campusRes.rows[0]?.id || 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const defaultCampusId = campusRes.rows[0]?.id || null;
 
     const values: any[] = [];
     const valuePlaceholders: string[] = [];

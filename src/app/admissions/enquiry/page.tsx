@@ -24,10 +24,11 @@ export default function PublicEnquiryPage() {
           </div>
 
           <div className="flex items-center gap-3 font-semibold">
-            <span className="hidden sm:inline">Admissions Helpline:</span>
-            <a href="tel:+919811102008" className="font-mono font-black text-blue-900 hover:underline">
-              📞 +91 98111 02008
-            </a>
+            <span className="hidden sm:inline">Admissions Support:</span>
+            <Link href="/contact" className="font-semibold text-blue-900 hover:underline flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5" />
+              <span>Campus Helpdesk</span>
+            </Link>
           </div>
         </div>
 

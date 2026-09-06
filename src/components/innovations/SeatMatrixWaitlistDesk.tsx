@@ -18,10 +18,14 @@ export const SeatMatrixWaitlistDesk: React.FC = () => {
     loadData();
   }, []);
 
+  const curYear = new Date().getFullYear();
+  const currentSessionCode = `${curYear}-${curYear + 1}`;
+  const currentSessionShort = `${curYear}-${(curYear + 1).toString().slice(-2)}`;
+
   async function loadData() {
     setIsLoading(true);
     try {
-      const res = await getSeatInventoryMatrixAction('2026-2027');
+      const res = await getSeatInventoryMatrixAction(currentSessionCode);
       if (res.success) setData(res);
     } finally {
       setIsLoading(false);
@@ -79,7 +83,7 @@ export const SeatMatrixWaitlistDesk: React.FC = () => {
         {/* Left 2 Cols: Quotas Table */}
         <div className="lg:col-span-2 bg-white border border-stone-200/90 rounded-2xl p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-            <h3 className="text-sm font-bold text-stone-900">Seat Inventory Status (Session 2026-27)</h3>
+            <h3 className="text-sm font-bold text-stone-900">Seat Inventory Status (Session {currentSessionShort})</h3>
             <span className="text-[11px] text-stone-400">Auto-locks when filled</span>
           </div>
 

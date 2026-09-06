@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -254,9 +254,12 @@ export async function saveSimpleDiaryEntry(payload: {
       type: "PDF"
     }] : [];
 
+    const currentYear = new Date().getFullYear();
+    const dynamicSession = `${currentYear}-${currentYear + 1}`;
+
     const diaryData = {
       campus_id: resolvedCampusId,
-      academic_session: "2026-2027",
+      academic_session: (payload as any).academicSession || (payload as any).academic_session || dynamicSession,
       date: payload.date,
       day_of_week: dayOfWeek,
       period_number: period,
@@ -347,9 +350,12 @@ export async function saveDailyDiaryPeriodEntry(payload: {
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayOfWeek = dayNames[new Date(payload.date).getDay()] || "Monday";
 
+    const currentYear = new Date().getFullYear();
+    const dynamicSession = `${currentYear}-${currentYear + 1}`;
+
     const diaryData = {
       campus_id: resolvedCampusId,
-      academic_session: "2026-2027",
+      academic_session: (payload as any).academicSession || (payload as any).academic_session || dynamicSession,
       date: payload.date,
       day_of_week: dayOfWeek,
       period_number: payload.periodNumber,

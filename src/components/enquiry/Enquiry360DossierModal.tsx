@@ -40,7 +40,7 @@ export function Enquiry360DossierModal({
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
   const [isSubmittingFollowup, setIsSubmittingFollowup] = useState(false);
   const [followupForm, setFollowupForm] = useState({
-    counsellorName: "Pooja Verma (Admissions Lead)",
+    counsellorName: "",
     channel: "PHONE",
     contactedPerson: "Father",
     outcome: "CONNECTED",
@@ -66,6 +66,9 @@ export function Enquiry360DossierModal({
     const res = await getEnquiryDetails(enquiryId);
     if (res.success) {
       setEnquiry(res.data);
+      if (res.data?.assigned_counsellor_name) {
+        setFollowupForm(prev => ({ ...prev, counsellorName: res.data.assigned_counsellor_name }));
+      }
     }
     setIsLoading(false);
   };
@@ -279,7 +282,7 @@ export function Enquiry360DossierModal({
                     </div>
                     <div>
                       <span className="text-slate-400 font-bold block">Academic Session</span>
-                      <strong className="text-slate-800 font-bold">{enquiry.academic_session || "2026-2027"}</strong>
+                      <strong className="text-slate-800 font-bold">{enquiry.academic_session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`}</strong>
                     </div>
                     <div>
                       <span className="text-slate-400 font-bold block">Admission Type</span>
@@ -508,6 +511,7 @@ export function Enquiry360DossierModal({
                         required
                         value={followupForm.counsellorName}
                         onChange={e => setFollowupForm({ ...followupForm, counsellorName: e.target.value })}
+                        placeholder="e.g. Counsellor Full Name"
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
                       />
                     </div>

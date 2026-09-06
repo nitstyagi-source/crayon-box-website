@@ -14,7 +14,10 @@ export default function TemplatesModule() {
   
   const [isAdding, setIsAdding] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
-  const [newAcademicYear, setNewAcademicYear] = useState("2026-2027");
+  const [newAcademicYear, setNewAcademicYear] = useState(() => {
+    const y = new Date().getFullYear();
+    return `${y}-${y + 1}`;
+  });
   const [selectedHeads, setSelectedHeads] = useState<any[]>([]);
 
   useEffect(() => {

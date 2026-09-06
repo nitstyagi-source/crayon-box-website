@@ -8,10 +8,19 @@ import {
 } from '@/app/actions/whatsapp-upi-actions';
 
 export const WhatsAppInvoicingCenter: React.FC = () => {
+  const curYear = new Date().getFullYear();
+  const curYearShort = (curYear + 1).toString().slice(-2);
+  const quarterOptions = [
+    { value: `Q1 ${curYear}-${curYearShort}`, label: `Q1 ${curYear}-${curYearShort} (Apr - Jun)` },
+    { value: `Q2 ${curYear}-${curYearShort}`, label: `Q2 ${curYear}-${curYearShort} (Jul - Sep)` },
+    { value: `Q3 ${curYear}-${curYearShort}`, label: `Q3 ${curYear}-${curYearShort} (Oct - Dec)` },
+    { value: `Q4 ${curYear}-${curYearShort}`, label: `Q4 ${curYear}-${curYearShort} (Jan - Mar)` },
+  ];
+
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
-  const [quarterName, setQuarterName] = useState('Q2 2026-27');
+  const [quarterName, setQuarterName] = useState(quarterOptions[1].value);
   const [dispatchNotice, setDispatchNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,10 +99,9 @@ export const WhatsAppInvoicingCenter: React.FC = () => {
                 onChange={(e) => setQuarterName(e.target.value)}
                 className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800"
               >
-                <option value="Q1 2026-27">Q1 2026-27 (Apr - Jun)</option>
-                <option value="Q2 2026-27">Q2 2026-27 (Jul - Sep)</option>
-                <option value="Q3 2026-27">Q3 2026-27 (Oct - Dec)</option>
-                <option value="Q4 2026-27">Q4 2026-27 (Jan - Mar)</option>
+                {quarterOptions.map(q => (
+                  <option key={q.value} value={q.value}>{q.label}</option>
+                ))}
               </select>
             </div>
 

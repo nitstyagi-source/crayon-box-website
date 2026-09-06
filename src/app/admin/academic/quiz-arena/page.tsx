@@ -19,6 +19,7 @@ import {
 import {
   createAiChapterQuizAction,
   getStudentQuizListAction,
+  getQuizLeaderboardAction,
   QuizItem
 } from "@/app/actions/quiz-arena-actions";
 
@@ -43,16 +44,21 @@ export default function InteractiveQuizArenaPage() {
   const [createChapter, setCreateChapter] = useState("Solar System & Planetary Motion");
 
   // Leaderboard Roster
-  const leaderboard = [
-    { rank: 1, name: "Aarav Sharma", score: "980 pts", badge: "🏆 Math Wizard", accuracy: "98%" },
-    { rank: 2, name: "Ananya Verma", score: "940 pts", badge: "🌟 Science Prodigy", accuracy: "94%" },
-    { rank: 3, name: "Kabir Mehta", score: "890 pts", badge: "🚀 Fast Thinker", accuracy: "89%" },
-    { rank: 4, name: "Riya Kapoor", score: "850 pts", badge: "⭐ Rising Star", accuracy: "85%" }
-  ];
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   useEffect(() => {
     loadQuizzes();
+    loadLeaderboard();
   }, [selectedClass]);
+
+  async function loadLeaderboard() {
+    try {
+      const res = await getQuizLeaderboardAction(selectedClass);
+      if (res.success) {
+        setLeaderboard(res.leaderboard);
+      }
+    } catch (_) {}
+  }
 
   async function loadQuizzes() {
     setIsLoading(true);

@@ -136,6 +136,8 @@ export const VANI_TRUST_LEGAL_ENTITIES: LegalEntityMaster[] = [
   },
 ];
 
+const curTrustYear = new Date().getFullYear();
+
 export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
   {
     id: 'ins-cbs',
@@ -160,20 +162,20 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     totalStaff: 0,
     config: {
       billingIdentity: {
-        receiptPrefix: 'CBS-REC-2026',
-        invoicePrefix: 'CBS-INV-2026',
+        receiptPrefix: `CBS-REC-${curTrustYear}`,
+        invoicePrefix: `CBS-INV-${curTrustYear}`,
         primaryBankAccountId: 'bnk-cbs-fee',
       },
       schoolTimings: { start: '08:00', end: '15:30' },
       cctvParentStreamDurationMins: 15,
       dailyLateFeeAmount: 100,
       lateFeeGracePeriodDays: 5,
-      effectiveFrom: '2026-04-01',
-      effectiveTo: '2027-03-31',
+      effectiveFrom: `${curTrustYear}-04-01`,
+      effectiveTo: `${curTrustYear + 1}-03-31`,
       versionNumber: 1,
       approvalStatus: 'EFFECTIVE',
       approvedBy: 'Trustee Board',
-      approvedAt: '2026-03-15T10:00:00Z',
+      approvedAt: `${curTrustYear}-03-15T10:00:00Z`,
     },
   },
   {
@@ -198,20 +200,20 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     totalStaff: 0,
     config: {
       billingIdentity: {
-        receiptPrefix: 'CBPS-REC-2026',
-        invoicePrefix: 'CBPS-INV-2026',
+        receiptPrefix: `CBPS-REC-${curTrustYear}`,
+        invoicePrefix: `CBPS-INV-${curTrustYear}`,
         primaryBankAccountId: 'bnk-cbps-fee',
       },
       schoolTimings: { start: '09:00', end: '13:00' },
       cctvParentStreamDurationMins: 20,
       dailyLateFeeAmount: 50,
       lateFeeGracePeriodDays: 7,
-      effectiveFrom: '2026-04-01',
-      effectiveTo: '2027-03-31',
+      effectiveFrom: `${curTrustYear}-04-01`,
+      effectiveTo: `${curTrustYear + 1}-03-31`,
       versionNumber: 1,
       approvalStatus: 'EFFECTIVE',
       approvedBy: 'Trustee Board',
-      approvedAt: '2026-03-15T10:00:00Z',
+      approvedAt: `${curTrustYear}-03-15T10:00:00Z`,
     },
   },
   {
@@ -236,20 +238,20 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     totalStaff: 0,
     config: {
       billingIdentity: {
-        receiptPrefix: 'AS-REC-2026',
-        invoicePrefix: 'AS-INV-2026',
+        receiptPrefix: `AS-REC-${curTrustYear}`,
+        invoicePrefix: `AS-INV-${curTrustYear}`,
         primaryBankAccountId: 'bnk-as-fee',
       },
       schoolTimings: { start: '09:00', end: '13:00' },
       cctvParentStreamDurationMins: 20,
       dailyLateFeeAmount: 50,
       lateFeeGracePeriodDays: 7,
-      effectiveFrom: '2026-04-01',
-      effectiveTo: '2027-03-31',
+      effectiveFrom: `${curTrustYear}-04-01`,
+      effectiveTo: `${curTrustYear + 1}-03-31`,
       versionNumber: 1,
       approvalStatus: 'EFFECTIVE',
       approvedBy: 'Trustee Board',
-      approvedAt: '2026-03-15T10:00:00Z',
+      approvedAt: `${curTrustYear}-03-15T10:00:00Z`,
     },
   },
   {
@@ -275,20 +277,20 @@ export const VANI_TRUST_INSTITUTIONS: InstitutionMaster[] = [
     totalStaff: 0,
     config: {
       billingIdentity: {
-        receiptPrefix: 'AVM-REC-2026',
-        invoicePrefix: 'AVM-INV-2026',
+        receiptPrefix: `AVM-REC-${curTrustYear}`,
+        invoicePrefix: `AVM-INV-${curTrustYear}`,
         primaryBankAccountId: 'bnk-avm-fee',
       },
       schoolTimings: { start: '07:45', end: '14:45' },
       cctvParentStreamDurationMins: 15,
       dailyLateFeeAmount: 50,
       lateFeeGracePeriodDays: 10,
-      effectiveFrom: '2026-04-01',
-      effectiveTo: '2027-03-31',
+      effectiveFrom: `${curTrustYear}-04-01`,
+      effectiveTo: `${curTrustYear + 1}-03-31`,
       versionNumber: 1,
       approvalStatus: 'EFFECTIVE',
       approvedBy: 'Trustee Board',
-      approvedAt: '2026-03-15T10:00:00Z',
+      approvedAt: `${curTrustYear}-03-15T10:00:00Z`,
     },
   },
 ];

@@ -51,9 +51,9 @@ export function SchoolCalendarDesk() {
   >("school_calendar");
 
   // Date Navigation State
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(8); // August (1-indexed)
-  const [selectedDay, setSelectedDay] = useState<number | null>(24);
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1); // 1-indexed
+  const [selectedDay, setSelectedDay] = useState<number | null>(() => new Date().getDate());
 
   // Filters
   const [selectedClass, setSelectedClass] = useState("Grade 5");
@@ -311,11 +311,11 @@ export function SchoolCalendarDesk() {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
 
-    setIsSaving(true);
     try {
+      const y = new Date().getFullYear();
       const res = await createCalendarEvent({
         campusId: activeCampusId,
-        academicSession: "2026-2027",
+        academicSession: `${y}-${y + 1}`,
         title: newEvent.title,
         eventType: newEvent.eventType,
         startDate: newEvent.startDate,

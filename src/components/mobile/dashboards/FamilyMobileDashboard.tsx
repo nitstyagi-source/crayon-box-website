@@ -13,10 +13,10 @@ import { SchoolLogo } from "@/components/ui/SchoolLogo";
 export default function FamilyMobileDashboard() {
   const { user, activeChild, setIsProfileModalOpen } = useMobileAuth();
 
-  const childName = activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : "Aarav Sharma";
-  const grade = activeChild ? `${activeChild.grade} - Section ${activeChild.section}` : "Grade 5 - Section A";
+  const childName = activeChild ? `${activeChild.firstName} ${activeChild.lastName}` : (user?.fullName ? `${user.fullName}'s Ward` : "Student Profile");
+  const grade = activeChild ? `${activeChild.grade} - Section ${activeChild.section}` : "Class Assignment Pending";
   const pendingFee = activeChild?.pendingFee || 0;
-  const attendance = activeChild?.attendancePercent || 94.2;
+  const attendance = activeChild?.attendancePercent ?? 0;
 
   return (
     <div className="space-y-6 pb-24">

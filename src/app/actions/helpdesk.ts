@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -145,7 +145,9 @@ export async function createHelpdeskTicket(payload: {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
 
-    const ticketNumber = `TKT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const { count: ticketCount } = await supabase.from("helpdesk_tickets").select("*", { count: "exact", head: true });
+    const nextTicketSeq = ((ticketCount || 0) + 1).toString().padStart(4, '0');
+    const ticketNumber = `TKT-${new Date().getFullYear()}-${nextTicketSeq}`;
 
     // Automatic Department Assignment Logic:
     let autoDept = "Help Desk";

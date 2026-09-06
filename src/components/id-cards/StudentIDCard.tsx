@@ -148,23 +148,23 @@ export function StudentIDCard({
   const shouldRenderBack = isBack || layoutMode === 'BACK_ONLY' || layoutMode === 'back';
 
   // Dynamic ERP Data Binding
-  const rawName = (s.name || `${s.first_name || ''} ${s.last_name || ''}`).trim() || 'AARAV SHARMA';
+  const rawName = (s.name || `${s.first_name || ''} ${s.last_name || ''}`).trim() || 'STUDENT NAME';
   const nameParts = rawName.split(' ');
   const firstName = (s.first_name || nameParts[0] || 'STUDENT').toUpperCase();
   const lastName = (s.last_name || nameParts.slice(1).join(' ') || 'NAME').toUpperCase();
 
-  const className = s.class_name || s.grade || s.classSection || '5-A';
-  const dob = s.dob || s.birth_date || '15 May 2015';
-  const admissionNo = s.admission_number || s.admission_no || s.admNo || 'CBS/2026/0412';
-  const attendanceBarcodeId = s.id || s.barcode_id || 'CBS20260412';
-  const bloodGroup = s.blood_group || s.bloodGroup || 'O+';
-  const rollNo = s.roll_no || s.rollNo || '04';
+  const className = s.class_name || s.grade || s.classSection || 'N/A';
+  const dob = s.dob || s.birth_date || 'N/A';
+  const admissionNo = s.admission_number || s.admission_no || s.admNo || 'CBS/ADM/PENDING';
+  const attendanceBarcodeId = s.id || s.barcode_id || s.admission_number || 'CBS2026';
+  const bloodGroup = s.blood_group || s.bloodGroup || 'N/A';
+  const rollNo = s.roll_no || s.rollNo || '-';
 
   // Back Face Vitals
-  const fatherName = s.father_name || s.fatherName || s.guardian_name || 'Rajesh Sharma';
-  const motherName = s.mother_name || s.motherName || 'Sunita Sharma';
-  const address = s.address || s.residential_address || 'B-402, Royal Residency,\nBurari, Delhi - 110084';
-  const busRoute = s.bus_route_no || s.route_name || s.busRoute || 'Route 04 (Burari)';
+  const fatherName = s.father_name || s.fatherName || s.guardian_name || 'Parent / Guardian';
+  const motherName = s.mother_name || s.motherName || 'Parent / Guardian';
+  const address = s.address || s.residential_address || 'Address On Record';
+  const busRoute = s.bus_route_no || s.route_name || s.busRoute || 'Own Transport';
   const validUpto = cfg.validUptoText || s.valid_upto || s.validUpto || '31 Mar 2027';
 
   // School Information (with custom overrides from cfg, NO CBSE default)

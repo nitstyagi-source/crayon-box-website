@@ -32,17 +32,19 @@ export function AiCommsStudioDesk() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const curYear = new Date().getFullYear();
+
   // Circular Drafter State
-  const [circularTopic, setCircularTopic] = useState("Annual Sports Meet & Athletic Carnival 2026");
+  const [circularTopic, setCircularTopic] = useState(`Annual Sports Meet & Athletic Carnival ${curYear}`);
   const [targetAudience, setTargetAudience] = useState("All Parents (Nursery to Class 10)");
-  const [eventDate, setEventDate] = useState("Saturday, 14th November 2026");
+  const [eventDate, setEventDate] = useState(`Saturday, 14th November ${curYear}`);
   const [keyPoints, setKeyPoints] = useState("Reporting time for students is strictly 08:00 AM in proper sports uniform.\nParents are cordially invited to attend the opening march-past ceremony at 09:30 AM.\nSchool transport will ply in the morning as per regular routes; evening drop-off will be at 02:30 PM.\nRefreshments and lunch packets will be provided by the school.\nStudents must carry their water bottles and school ID cards.");
   const [generatedCircular, setGeneratedCircular] = useState<any>(null);
 
   // Reply Enhancer State
-  const [studentName, setStudentName] = useState("Aarav Sharma");
-  const [parentName, setParentName] = useState("Mr. Sharma");
-  const [rawNotes, setRawNotes] = useState("aarav is getting distracted in math class and talking to his benchmate during geometry lecture. please tell him to do homework daily and submit practice notebook.");
+  const [studentName, setStudentName] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [rawNotes, setRawNotes] = useState("");
   const [selectedTone, setSelectedTone] = useState<"EMPATHETIC" | "FORMAL" | "BILINGUAL" | "FIRM_CONSTRUCTIVE">("EMPATHETIC");
   const [enhancedReply, setEnhancedReply] = useState<any>(null);
 
@@ -307,6 +309,7 @@ export function AiCommsStudioDesk() {
                     type="text"
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
+                    placeholder="e.g. Student Name"
                     className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                     required
                   />
@@ -318,6 +321,7 @@ export function AiCommsStudioDesk() {
                     type="text"
                     value={parentName}
                     onChange={(e) => setParentName(e.target.value)}
+                    placeholder="e.g. Mr. & Mrs. Sharma"
                     className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                     required
                   />

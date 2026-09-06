@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import pg from "pg";
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -68,26 +66,33 @@ export async function POST(request: Request) {
       first_name,
       last_name = "",
       middle_name = "",
-      role = "Teacher",
-      designation = "PRT Teacher",
-      department = "Sciences & Robotics",
-      wing = "Primary (1-5)",
+      role = "Faculty",
+      designation = "",
+      department = "",
+      wing = "",
       phone_number = "",
       email = "",
-      qualification = "B.Ed, Graduate",
-      experience_years = "2 Years",
-      gender = "Female",
-      blood_group = "O+",
-      employee_id = "CB-EMP-" + Math.floor(1000 + Math.random() * 9000),
+      qualification = "",
+      experience_years = "",
+      gender = "",
+      blood_group = "",
+      employee_id,
       status = "Active",
       is_active = true,
-      police_verification_status = "VERIFIED",
+      police_verification_status = "PENDING",
       emergency_contact = "",
       bio = "",
     } = body;
 
     if (!first_name) {
       return NextResponse.json({ success: false, error: "First name is required" }, { status: 400 });
+    }
+
+    let finalEmpId = employee_id;
+    if (!finalEmpId) {
+      const staffCount = await pool.query(`SELECT count(*)::int as count FROM public.staff;`);
+      const seq = ((staffCount.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+      finalEmpId = `CB-EMP-${seq}`;
     }
 
     const insertQuery = `
@@ -118,7 +123,7 @@ export async function POST(request: Request) {
       experience_years,
       gender,
       blood_group,
-      employee_id,
+      finalEmpId,
       status,
       is_active,
       police_verification_status,

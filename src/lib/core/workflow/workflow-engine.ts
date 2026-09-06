@@ -91,8 +91,10 @@ class WorkflowEngine {
     requestedBy: { userId: string; name: string; role: string };
     payload: Record<string, any>;
   }): WorkflowItem {
-    const itemId = `WF-${Date.now().toString().slice(-6)}`;
-    const referenceNo = `${params.workflowType.substring(0, 3)}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const seq = String(this.items.size + 1).padStart(4, '0');
+    const itemId = `WF-${Date.now().toString().slice(-6)}-${seq}`;
+    const currentYear = new Date().getFullYear();
+    const referenceNo = `${params.workflowType.substring(0, 3)}-${currentYear}-${seq}`;
     
     // Determine applicable rules
     const applicableRules = this.rules

@@ -35,12 +35,13 @@ class IntegrationHub {
   ]);
 
   private queue: Map<string, QueuedJob> = new Map();
+  private counter = 0;
 
   /**
    * Queue a failed or asynchronous outbound operation
    */
   public enqueue(serviceId: string, action: string, payload: Record<string, any>): QueuedJob {
-    const id = `JOB-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+    const id = `JOB-${Date.now()}-${(++this.counter).toString().padStart(4, '0')}`;
     const job: QueuedJob = {
       id,
       serviceId,

@@ -78,18 +78,18 @@ export default function ExpensesManagerPage() {
     expenseDate: new Date().toISOString().split("T")[0],
     department: "Academics",
     category: "Stationery",
-    expenseHead: "Class Notebooks & Examination Paper",
-    vendorPayee: "ABC Stationers & Book Depot",
-    description: "Purchase of examination stationery & class registers",
-    particularsText: "Class Notebooks (Pack of 50): 4500\nTeacher Attendance Registers: 1500",
-    amount: 6000,
+    expenseHead: "",
+    vendorPayee: "",
+    description: "",
+    particularsText: "",
+    amount: 0,
     paymentMode: "Cash",
     paymentRefNo: "",
-    billNo: "INV-2548",
+    billNo: "",
     billDate: new Date().toISOString().split("T")[0],
-    bankName: "HDFC Bank",
+    bankName: "",
     chequeNo: "",
-    remarks: "Authorized for Primary Wing."
+    remarks: ""
   });
 
   // New Vendor Form State
@@ -779,7 +779,7 @@ export default function ExpensesManagerPage() {
       {activeTab === "budgets" && (
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-4 text-xs">
           <div className="border-b border-stone-100 pb-3">
-            <h3 className="text-base font-black text-stone-900">Academic Year 2026–2027 Budget vs Actual</h3>
+            <h3 className="text-base font-black text-stone-900">Academic Year {new Date().getFullYear()}–{new Date().getFullYear() + 1} Budget vs Actual</h3>
             <p className="text-xs text-stone-500">Monitor budget utilization thresholds with automated expenditure alerts.</p>
           </div>
 

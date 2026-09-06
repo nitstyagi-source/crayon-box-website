@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -76,6 +74,14 @@ export async function POST(request: Request) {
       LIMIT 1;
     `, [studentId]);
     const stu = stuRes.rows[0];
+    if (!stu) {
+      return NextResponse.json({
+        success: false,
+        error: `Enrolled student record '${studentId}' was not found in institutional SIS.`
+      }, { status: 404 });
+    }
+
+    const studentFullName = `${stu.first_name || ''} ${stu.last_name || ''}`.trim() || 'Student';
 
     await client.query(`
       INSERT INTO public.fee_receipts (
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
         $5, $6, $7, 0, 0,
         $7, 0, $8, 'Completed', NOW()
       );
-    `, [receiptNo, stu?.id || null, stu?.admission_no || 'CBS-2026-0001', `${stu?.first_name || 'Aarav'} ${stu?.last_name || 'Sharma'}`, stu?.grade || className, stu?.section || sectionName, payAmount, paymentMode]);
+    `, [receiptNo, stu.id, stu.admission_no, studentFullName, stu.grade || className, stu.section || sectionName, payAmount, paymentMode]);
 
     return NextResponse.json({
       success: true,

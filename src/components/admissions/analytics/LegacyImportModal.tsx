@@ -11,13 +11,14 @@ interface LegacyImportModalProps {
 }
 
 export const LegacyImportModal: React.FC<LegacyImportModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [session, setSession] = useState('2024-2025');
+  const currentYear = new Date().getFullYear();
+  const pastSessions = Array.from({ length: 5 }, (_, i) => {
+    const start = currentYear - (i + 1);
+    return `${start}-${start + 1}`;
+  });
+  const [session, setSession] = useState(pastSessions[0] || `${currentYear - 1}-${currentYear}`);
   const [csvText, setCsvText] = useState(
-`Academic Session,Student Name,Grade,Parent Name,Parent Phone,Status,Source,Lost Reason
-2024-2025,Aarav Malhotra,Class 1,Vikram Malhotra,+91 98110 11223,ENROLLED,Website,
-2024-2025,Ananya Sen,Nursery,Debashish Sen,+91 98220 33445,ENROLLED,Referral,
-2024-2025,Kabir Joshi,Class 2,Rohit Joshi,+91 98330 55667,LOST,Google Ads,Fee Objection
-2024-2025,Saanvi Rastogi,UKG,Amit Rastogi,+91 98440 77889,ENROLLED,Walk-in,`
+    'Academic Session,Student Name,Grade,Parent Name,Parent Phone,Status,Source,Lost Reason\n'
   );
   const [isImporting, setIsImporting] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
@@ -94,11 +95,11 @@ export const LegacyImportModal: React.FC<LegacyImportModalProps> = ({ isOpen, on
               onChange={(e) => setSession(e.target.value)}
               className="w-full text-xs px-3 py-2 border border-stone-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
             >
-              <option value="2025-2026">2025–2026 (Previous Year)</option>
-              <option value="2024-2025">2024–2025</option>
-              <option value="2023-2024">2023–2024</option>
-              <option value="2022-2023">2022–2023</option>
-              <option value="2021-2022">2021–2022</option>
+              {pastSessions.map((sess, idx) => (
+                <option key={sess} value={sess}>
+                  {sess.replace('-', '–')}{idx === 0 ? ' (Previous Year)' : ''}
+                </option>
+              ))}
             </select>
           </div>
 

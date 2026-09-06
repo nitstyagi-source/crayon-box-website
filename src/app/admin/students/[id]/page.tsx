@@ -63,15 +63,18 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
   const [isReadmitModalOpen, setIsReadmitModalOpen] = useState(false);
   const [isSubmittingReadmit, setIsSubmittingReadmit] = useState(false);
   const [readmitMsg, setReadmitMsg] = useState<string | null>(null);
-  const [readmitForm, setReadmitForm] = useState({
-    institutionCode: 'CBS',
-    academicSession: '2026-2027',
-    className: 'Class 3',
-    sectionName: 'A',
-    academicStage: 'PRIMARY',
-    admissionNumber: '',
-    admissionDate: new Date().toISOString().split('T')[0],
-    remarks: 'Student returning / re-admitted after previous departure period.'
+  const [readmitForm, setReadmitForm] = useState(() => {
+    const y = new Date().getFullYear();
+    return {
+      institutionCode: 'CBS',
+      academicSession: `${y}-${y + 1}`,
+      className: 'Class 3',
+      sectionName: 'A',
+      academicStage: 'PRIMARY',
+      admissionNumber: '',
+      admissionDate: new Date().toISOString().split('T')[0],
+      remarks: 'Student returning / re-admitted after previous departure period.'
+    };
   });
 
   // --- Modals State ---
@@ -92,9 +95,9 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
     documentType: 'BIRTH_CERTIFICATE',
     documentTitle: 'Birth Certificate',
     documentNo: '',
-    fileName: 'birth_certificate.pdf',
-    fileSize: '1.4 MB',
-    fileUrl: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&auto=format&fit=crop&q=60'
+    fileName: '',
+    fileSize: '',
+    fileUrl: ''
   });
   const [tempPhotoUrl, setTempPhotoUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +120,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
         firstName: stu.first_name || '',
         middleName: stu.middle_name || '',
         lastName: stu.last_name || '',
-        dob: stu.dob ? stu.dob.split('T')[0] : '2016-04-14',
+        dob: stu.dob ? stu.dob.split('T')[0] : '',
         gender: stu.gender || 'Male',
         bloodGroup: stu.blood_group || 'O+',
         nationality: stu.nationality || 'Indian',
@@ -126,12 +129,12 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
         penNo: stu.pen_no || '',
         status: stu.status || 'ACTIVE',
         admissionNo: stu.admission_no || '',
-        transportMode: stu.transport_mode || 'SCHOOL_BUS',
-        transportBusNo: stu.transport_bus_no || 'Bus #04 (DL-1PA-8891)',
-        transportRoute: stu.transport_route || 'Shastri Park Extn. Express',
-        transportStop: stu.transport_stop || 'Shastri Park Main Gate',
-        transportDriverName: stu.transport_driver_name || 'Mr. Ram Singh',
-        transportDriverPhone: stu.transport_driver_phone || '9811009988',
+        transportMode: stu.transport_mode || 'NOT_ASSIGNED',
+        transportBusNo: stu.transport_bus_no || '',
+        transportRoute: stu.transport_route || '',
+        transportStop: stu.transport_stop || '',
+        transportDriverName: stu.transport_driver_name || '',
+        transportDriverPhone: stu.transport_driver_phone || '',
       });
 
       // 2. Fetch Multi-Institution Enrollments History & Periods
@@ -301,17 +304,29 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
 
   const handleUploadDocument = async () => {
     if (!student) return;
+    if (!docForm.fileName) {
+      alert('Please select a document file to upload.');
+      return;
+    }
     const res = await uploadStudentDocumentAction({
       studentId: student.id,
       documentType: docForm.documentType,
       documentTitle: docForm.documentTitle,
-      documentNo: docForm.documentNo || `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
-      fileUrl: docForm.fileUrl,
+      documentNo: docForm.documentNo ? docForm.documentNo.trim() : (student.admission_no ? `DOC-${student.admission_no}-${docForm.documentType}` : undefined),
+      fileUrl: docForm.fileUrl || `/docs/${docForm.fileName}`,
       fileName: docForm.fileName,
-      fileSize: docForm.fileSize,
+      fileSize: docForm.fileSize || '1.0 MB',
     });
     if (res.success) {
       setIsUploadDocModalOpen(false);
+      setDocForm({
+        documentType: 'BIRTH_CERTIFICATE',
+        documentTitle: 'Birth Certificate',
+        documentNo: '',
+        fileName: '',
+        fileSize: '',
+        fileUrl: ''
+      });
       fetchStudentDossier();
     } else {
       alert(`Error uploading document: ${res.error}`);
@@ -490,7 +505,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
               Current / Latest Enrollment: <strong className="text-slate-900">{currentEnr?.institution_code} • {currentEnr?.class_name} ({currentEnr?.section_name})</strong> • Session: <strong className="text-slate-900">{currentEnr?.academic_session || '2026-2027'}</strong> • Admission No: <span className="font-mono font-bold text-slate-700">{student.admission_no || currentEnr?.admission_number}</span>
             </p>
             <div className="flex items-center gap-3 text-xs text-slate-500 pt-1">
-              <span>PEN: <strong className="font-mono text-slate-800">{student.pen_no || '07124100151/2026'}</strong></span>
+              <span>PEN: <strong className="font-mono text-slate-800">{student.pen_no || 'Not Assigned'}</strong></span>
               <span>•</span>
               <span>Blood Group: <strong className="text-rose-600">{student.blood_group || 'O+'}</strong></span>
               <span>•</span>
@@ -597,7 +612,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-1.5">
                 <span className="text-slate-400 font-medium">PEN Number</span>
-                <span className="font-mono font-bold">{student.pen_no || 'PEN-07124100151/2026'}</span>
+                <span className="font-mono font-bold">{student.pen_no || 'Not Assigned'}</span>
               </div>
             </div>
           </Card>
@@ -606,21 +621,21 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
           <Card header={<h3 className="font-bold text-slate-900 text-sm">Transport Summary</h3>}>
             <div className="space-y-3 text-xs text-slate-700">
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
-                <span className="font-bold text-amber-900 block text-xs">
-                  🚌 Mode: {student.transport_mode ? student.transport_mode.replace('_', ' ') : 'SCHOOL BUS'}
+                <span className="font-extrabold text-amber-950 block">
+                  🚌 Mode: {student.transport_mode ? student.transport_mode.replace('_', ' ') : 'NOT ASSIGNED'}
                 </span>
                 <span className="text-amber-800 text-[11px] block mt-0.5">
-                  Route: {student.transport_route || 'Shastri Park Extn. Express'} • Stop: {student.transport_stop || 'Main Gate'}
+                  Route: {student.transport_route || 'Unassigned'} • Stop: {student.transport_stop || 'Campus Gate'}
                 </span>
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between">
                   <span className="text-slate-400 font-medium">Assigned Bus</span>
-                  <span className="font-bold">{student.transport_bus_no || 'Bus #04 (DL-1PA-8891)'}</span>
+                  <span className="font-bold">{student.transport_bus_no || 'Not Allocated'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400 font-medium">Driver & Contact</span>
-                  <span className="font-bold">{student.transport_driver_name || 'Mr. Ram Singh'} (📞 {student.transport_driver_phone || '9811009988'})</span>
+                  <span className="font-bold">{student.transport_driver_name || 'Transport Desk'} {student.transport_driver_phone ? `(📞 ${student.transport_driver_phone})` : ''}</span>
                 </div>
               </div>
             </div>
@@ -969,49 +984,37 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
           <Card header={<h3 className="font-bold text-slate-900 text-sm">Year-wise Academic Progression & Promotion History</h3>}>
             <div className="space-y-4">
               <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-indigo-200">
-                
-                {/* 2024-25 */}
-                <div className="relative space-y-1">
-                  <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-indigo-700 block">Session 2024–2025</span>
-                      <h4 className="text-sm font-bold text-slate-900">
-                        {selectedInstitutionObj?.name || 'Academic Campus'} • Class 2 (Section A)
-                      </h4>
-                      <p className="text-xs text-slate-500">Admission No: {student?.admission_no || 'ADM-0042'} • Class Teacher: Mrs. Kavita Deshmukh</p>
+                {progression && progression.length > 0 ? (
+                  progression.map((item: any, idx: number) => (
+                    <div key={item.id || idx} className="relative space-y-1">
+                      <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-indigo-700 block">Session {item.academic_session}</span>
+                          <h4 className="text-sm font-bold text-slate-900">
+                            {item.institution_code || selectedInstitutionObj?.name || 'Academic Campus'} • {item.class_name} {item.section_name ? `(${item.section_name})` : ''}
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            Admission No: {item.admission_number || student?.admission_no || 'N/A'}
+                            {item.class_teacher_name ? ` • Class Teacher: ${item.class_teacher_name}` : ''}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-xl text-xs font-black ${item.promoted_to_next_grade !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {item.promoted_to_next_grade !== false ? 'PROMOTED' : 'RETAINED'} {item.final_percentage ? `(Result: ${item.final_percentage}%)` : item.final_grade ? `(Grade: ${item.final_grade})` : ''}
+                        </span>
+                      </div>
                     </div>
-                    <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black">
-                      PROMOTED (Result: 94.2%)
-                    </span>
-                  </div>
-                </div>
+                  ))
+                ) : null}
 
-                {/* 2025-26 */}
-                <div className="relative space-y-1">
-                  <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-indigo-700 block">Session 2025–2026</span>
-                      <h4 className="text-sm font-bold text-slate-900">
-                        {selectedInstitutionObj?.name || 'Academic Campus'} • Class 3 (Section A)
-                      </h4>
-                      <p className="text-xs text-slate-500">Admission No: {student?.admission_no || 'ADM-0042'} • Class Teacher: Ms. Pooja Mishra</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-black">
-                      PROMOTED (Result: 91.8%)
-                    </span>
-                  </div>
-                </div>
-
-                {/* 2026-27 (Current or Re-admitted) */}
+                {/* Current Enrollment Period */}
                 <div className="relative space-y-1">
                   <span className={`absolute -left-6 top-1 w-4 h-4 rounded-full border-2 border-white ${student.status === 'ACTIVE' ? 'bg-indigo-600 ring-4 ring-indigo-100' : 'bg-amber-500'}`} />
                   <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200 flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-indigo-700 block">Session {currentEnr?.academic_session || '2026–2027'} (Enrollment Period #{enrollmentPeriods.length || 1})</span>
-                      <h4 className="text-sm font-bold text-slate-900">{currentEnr?.institution_code} • {currentEnr?.class_name} ({currentEnr?.section_name})</h4>
-                      <p className="text-xs text-slate-500">Admission No: {student.admission_no || currentEnr?.admission_number} • Current Attendance: 92.5%</p>
+                      <span className="text-xs font-bold text-indigo-700 block">Session {currentEnr?.academic_session || 'Current Academic Year'} (Enrollment Period #{enrollmentPeriods.length || 1})</span>
+                      <h4 className="text-sm font-bold text-slate-900">{currentEnr?.institution_code || selectedInstitutionObj?.name || 'Academic Campus'} • {currentEnr?.class_name || 'Assigned Grade'} ({currentEnr?.section_name || 'Standard'})</h4>
+                      <p className="text-xs text-slate-500">Admission No: {student.admission_no || currentEnr?.admission_number || 'N/A'} • Status: {student.status}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-xl text-xs font-black ${student.status === 'ACTIVE' ? 'bg-indigo-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
                       {student.status === 'ACTIVE' ? 'CURRENTLY ENROLLED' : student.status}
@@ -1032,41 +1035,41 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
             <div className="space-y-3">
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 space-y-2">
                 <span className="text-xs font-bold uppercase text-amber-900 block">Primary Transport Arrangement</span>
-                <h4 className="text-base font-extrabold text-amber-950">🚌 Mode: {student.transport_mode ? student.transport_mode.replace('_', ' ') : 'SCHOOL BUS'}</h4>
-                <p className="text-amber-800">Assigned Bus: <strong>{student.transport_bus_no || 'Bus #04 (DL-1PA-8891)'}</strong> • Route: <strong>{student.transport_route || 'Shastri Park Extn. Express'}</strong></p>
+                <h4 className="text-base font-extrabold text-amber-950">🚌 Mode: {student.transport_mode ? student.transport_mode.replace('_', ' ') : 'NOT ASSIGNED'}</h4>
+                <p className="text-amber-800">Assigned Bus: <strong>{student.transport_bus_no || 'Unassigned'}</strong> • Route: <strong>{student.transport_route || 'Standard Transport'}</strong></p>
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                <span className="font-bold text-slate-900 block">Designated Stop & Timing</span>
+                <span className="font-bold text-slate-900 block">Designated Stop & Route Details</span>
                 <div className="flex justify-between border-b border-slate-200 pb-1">
                   <span className="text-slate-500">Boarding Stop</span>
-                  <span className="font-bold">{student.transport_stop || 'Shastri Park Main Gate'}</span>
+                  <span className="font-bold">{student.transport_stop || 'Main Campus Gate'}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-200 pb-1">
-                  <span className="text-slate-500">Morning Pickup</span>
-                  <span className="font-bold">07:45 AM</span>
+                  <span className="text-slate-500">Route Type</span>
+                  <span className="font-bold">{student.transport_route ? 'Allocated Transit Line' : 'Campus Standard'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Afternoon Drop</span>
-                  <span className="font-bold">02:15 PM</span>
+                  <span className="text-slate-500">Transit Status</span>
+                  <span className="font-bold">{student.transport_mode && student.transport_mode !== 'NOT_ASSIGNED' ? 'Active Bus Transit' : 'Self Transit / Private'}</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                <span className="font-bold text-slate-900 block">Bus Staff & Emergency Contacts</span>
+                <span className="font-bold text-slate-900 block">Bus Staff & Contact Information</span>
                 <div className="flex justify-between border-b border-slate-200 pb-1">
                   <span className="text-slate-500">Driver</span>
-                  <span className="font-bold">{student.transport_driver_name || 'Mr. Ram Singh'} (📞 {student.transport_driver_phone || '9811009988'})</span>
+                  <span className="font-bold">{student.transport_driver_name || 'Designated Route Driver'} {student.transport_driver_phone ? `(📞 ${student.transport_driver_phone})` : ''}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-200 pb-1">
-                  <span className="text-slate-500">Conductor</span>
-                  <span className="font-bold">Mr. Sunil Yadav (📞 9811009977)</span>
+                  <span className="text-slate-500">Operations Control</span>
+                  <span className="font-bold">Campus Transport Desk</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Transport Supervisor</span>
-                  <span className="font-bold">Mr. Prakash Singh (📞 9811000014)</span>
+                  <span className="text-slate-500">Tracking Support</span>
+                  <span className="font-bold">Active Telematics Dispatch</span>
                 </div>
               </div>
 
@@ -1599,9 +1602,9 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                     required
                   >
-                    <option value="2026-2027">2026–2027 (Active Master Session)</option>
-                    <option value="2027-2028">2027–2028 (Upcoming Session)</option>
-                    <option value="2025-2026">2025–2026 (Past Session)</option>
+                    <option value={`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`}>{`${new Date().getFullYear()}–${new Date().getFullYear() + 1}`} (Active Master Session)</option>
+                    <option value={`${new Date().getFullYear() + 1}-${new Date().getFullYear() + 2}`}>{`${new Date().getFullYear() + 1}–${new Date().getFullYear() + 2}`} (Upcoming Session)</option>
+                    <option value={`${new Date().getFullYear() - 1}-${new Date().getFullYear()}`}>{`${new Date().getFullYear() - 1}–${new Date().getFullYear()}`} (Past Session)</option>
                   </select>
                 </div>
               </div>

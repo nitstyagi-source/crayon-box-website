@@ -3,15 +3,12 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const DB_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const DB_CONNECTION_STRING = process.env.DATABASE_URL || '';
 
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString: DB_CONNECTION_STRING });
+    globalPool = new pg.Pool({ connectionString: DB_CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -172,10 +169,14 @@ export async function enrollUniversalStudentTransactionalAction(input: Universal
     const universalId = `STU-VET-${stuSeq}`;
 
     // 4. Admission Number (Manual or Auto-generated)
-    const admissionNo =
-      input.admissionNumber && input.admissionNumber.trim() !== ''
-        ? input.admissionNumber.trim()
-        : `${input.institutionCode}-${input.academicSession.split('-')[0]}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let admissionNo = input.admissionNumber && input.admissionNumber.trim() !== ''
+      ? input.admissionNumber.trim()
+      : null;
+    if (!admissionNo) {
+      const stdCountRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
+      const nextStdSeq = String((stdCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+      admissionNo = `${input.institutionCode}-${input.academicSession.split('-')[0]}-${nextStdSeq}`;
+    }
 
     // 5. Insert Permanent Student Master
     const newStuRes = await client.query(`
@@ -561,7 +562,12 @@ export async function readmitStudentAction(params: {
     }
 
     const student = stuRes.rows[0];
-    const finalAdmissionNo = admissionNumber?.trim() || student.admission_no || `${institutionCode}-${academicSession.slice(0, 4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    let finalAdmissionNo = admissionNumber?.trim() || student.admission_no;
+    if (!finalAdmissionNo) {
+      const stdCountRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
+      const nextStdSeq = String((stdCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
+      finalAdmissionNo = `${institutionCode}-${academicSession.slice(0, 4)}-${nextStdSeq}`;
+    }
 
     // 2. Mark all existing enrollment records for this student as historical (is_current = false)
     await client.query(`

@@ -4,13 +4,11 @@ import pg from 'pg';
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -155,7 +153,7 @@ export async function requestUniversalOtpAction(params: {
     }
 
     // Generate 6-Digit TOTP & Cryptographic Hash
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
@@ -265,7 +263,7 @@ export async function requestUniversalOtpAction(params: {
                             <tr>
                               <td style="background-color: #FAF7F2; border-top: 1px solid #EFE8DC; padding: 20px 24px; text-align: center;">
                                 <p style="margin: 0 0 4px 0; font-size: 12px; color: #64748B;">
-                                  Front Desk Assistance: <strong style="color: #0B1B30;">+91 98111 02008</strong>
+                                  Front Desk Assistance: <strong style="color: #0B1B30;">Campus Administrative Office</strong>
                                 </p>
                                 <p style="margin: 0; font-size: 10px; color: #94A3B8;">
                                   © 2026 Vaani Educational Trust • 256-Bit Encrypted Multi-Channel Authentication
@@ -581,7 +579,7 @@ export async function verifyUniversalOtpAction(params: {
         faculty: staffProfile,
         parent: parentProfile,
         children,
-        token: `cb_auth_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+        token: `cb_auth_${Date.now()}_${crypto.randomUUID().replace(/-/g, '')}`
       },
       message: "✓ Identity Verified Successfully!"
     };
@@ -733,7 +731,7 @@ export async function generateStudentEmergencyPinAction(studentId: string) {
   const client = await getPool().connect();
   try {
     // Generate 6-char PIN (e.g. CB-8492)
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const randomNum = crypto.randomInt(1000, 10000);
     const pin = `CB-${randomNum}`;
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 

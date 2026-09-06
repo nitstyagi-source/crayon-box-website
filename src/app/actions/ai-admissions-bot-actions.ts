@@ -4,11 +4,11 @@ import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
 const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let pool: pg.Pool | null = null;
 function getPool() {
   if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
     pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
@@ -47,7 +47,7 @@ export async function askAdmissionsAiBotAction(params: {
   try {
     const query = params.userQuery.toLowerCase();
     const parentName = params.parentName || "Valued Parent";
-    const phone = params.parentPhone || "+919876500000";
+    const phone = params.parentPhone || "";
     const grade = params.targetGrade || "Nursery";
 
     let aiResponse = "";

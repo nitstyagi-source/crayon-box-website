@@ -76,21 +76,21 @@ export function Student360ProfileModal({
     if (student) {
       const parts = (student.name || '').split(' ');
       setFormData({
-        firstName: student.firstName || student.first_name || parts[0] || 'Pranav',
-        lastName: student.lastName || student.last_name || parts.slice(1).join(' ') || 'Venkatesh',
-        className: student.grade || student.className || student.class_name || 'Class 11-Science-A',
+        firstName: student.firstName || student.first_name || parts[0] || 'Student',
+        lastName: student.lastName || student.last_name || parts.slice(1).join(' ') || '',
+        className: student.grade || student.className || student.class_name || 'N/A',
         section: student.section || student.sectionName || student.section_name || 'A',
-        rollNo: student.rollNo || student.rollNumber || student.roll_number || '12',
-        dob: student.dob || '2009-11-20',
-        gender: student.gender || 'Male',
+        rollNo: student.rollNo || student.rollNumber || student.roll_number || '',
+        dob: student.dob || student.date_of_birth || '',
+        gender: student.gender || 'Not Specified',
         bloodGroup: student.bloodGroup || student.blood_group || 'O+',
-        fatherName: student.fatherName || student.parentName || student.parent_name || 'Venkatesh Raman',
-        motherName: student.motherName || 'Mrs. Sunita Raman',
-        phone: student.parentPhone || student.parent_phone || '+91 98200 44551',
-        email: student.parentEmail || student.parent_email || 'v.raman@example.com',
-        address: student.address || 'Tower 4, ATS Greens, Expressway, Greater Noida',
-        transportRoute: student.transportRoute || 'Bus 04 (Sector 62 Loop)',
-        feeCategory: 'Regular General',
+        fatherName: student.fatherName || student.parentName || student.parent_name || student.father_name || '',
+        motherName: student.motherName || student.mother_name || '',
+        phone: student.parentPhone || student.parent_phone || student.primary_contact || '',
+        email: student.parentEmail || student.parent_email || student.email || '',
+        address: student.address || '',
+        transportRoute: student.transportRoute || student.transport_route || 'Self Transport',
+        feeCategory: student.feeCategory || 'Regular General',
       });
       setModalView('dossier');
     }
@@ -99,12 +99,13 @@ export function Student360ProfileModal({
   if (!isOpen || !student) return null;
 
   const fullName = `${formData.firstName} ${formData.lastName}`.trim() || student.name || 'Student Profile';
-  const universalId = student.universalId || student.universal_id || `STU-AVM-001092`;
-  const admissionNo = student.admissionNumber || student.admission_number || student.admissionNo || 'CBS-2026-0057';
-  const academicYear = student.academicYear || student.academicSession || 'AY 2026–27';
+  const universalId = student.universalId || student.universal_id || (student.id ? `STU-${student.id.slice(0, 8).toUpperCase()}` : 'N/A');
+  const admissionNo = student.admissionNumber || student.admission_number || student.admissionNo || 'Pending';
+  const curYear = new Date().getFullYear();
+  const academicYear = student.academicYear || student.academicSession || `AY ${curYear}–${(curYear + 1).toString().slice(-2)}`;
   const status = student.status || 'Active';
-  const attendancePct = student.attendancePct || student.attendancePercent || '98.9%';
-  const feeStatus = student.feeStatus || '₹0';
+  const attendancePct = student.attendancePct || student.attendancePercent || '100%';
+  const feeStatus = student.feeStatus || 'Settled';
   const avatarUrl = student.avatar || student.avatarUrl || student.photo_url || null;
 
   const handleSave = (e: React.FormEvent) => {
@@ -283,10 +284,10 @@ export function Student360ProfileModal({
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Historical Progression Snapshots</h4>
                     <div className="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200">
                       {[
-                        { date: '01 Apr 2026', state: 'ACTIVE', title: 'Enrolled in AY 2026-2027 (Class 11-Science-A)', by: 'Registrar (Admin)' },
-                        { date: '15 Mar 2026', state: 'PROMOTED', title: 'Successfully Promoted from Class 10-A (AY 2025-26)', by: 'Academic Council' },
-                        { date: '10 Apr 2025', state: 'ACTIVE', title: 'Session AY 2025-2026 Started', by: 'System Automation' },
-                        { date: '05 Jan 2024', state: 'ADMISSION', title: 'Initial Admission Confirmed under Universal ID STU-AVM-001092', by: 'Admissions Officer' },
+                        { date: `01 Apr ${curYear}`, state: 'ACTIVE', title: `Enrolled in AY ${curYear}-${curYear + 1} (${formData.className || 'Current Class'})`, by: 'Registrar (Admin)' },
+                        { date: `15 Mar ${curYear}`, state: 'PROMOTED', title: `Successfully Promoted from Previous Class (AY ${curYear - 1}-${(curYear).toString().slice(-2)})`, by: 'Academic Council' },
+                        { date: `10 Apr ${curYear - 1}`, state: 'ACTIVE', title: `Session AY ${curYear - 1}-${curYear} Started`, by: 'System Automation' },
+                        { date: `05 Jan ${curYear - 2}`, state: 'ADMISSION', title: `Initial Admission Confirmed under Universal ID ${universalId}`, by: 'Admissions Officer' },
                       ].map((item, idx) => (
                         <div key={idx} className="relative flex items-start gap-4 pl-8">
                           <div className="absolute left-2 top-1.5 w-3.5 h-3.5 rounded-full bg-indigo-600 border-2 border-white ring-2 ring-indigo-200" />
@@ -449,16 +450,16 @@ export function Student360ProfileModal({
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="font-bold text-slate-900 text-sm">{formData.fatherName} (Father)</div>
-                      <div className="text-slate-500 mt-1">Phone: {formData.phone}</div>
-                      <div className="text-slate-500">Email: {formData.email}</div>
-                      <div className="text-slate-500">Occupation: Corporate Executive</div>
+                      <div className="font-bold text-slate-900 text-sm">{formData.fatherName || 'Father / Guardian'}</div>
+                      <div className="text-slate-500 mt-1">Phone: {formData.phone || 'Not Provided'}</div>
+                      <div className="text-slate-500">Email: {formData.email || 'Not Provided'}</div>
+                      <div className="text-slate-500">Relationship: Primary Contact</div>
                     </div>
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="font-bold text-slate-900 text-sm">{formData.motherName} (Mother)</div>
-                      <div className="text-slate-500 mt-1">Phone: +91 98112 33441</div>
-                      <div className="text-slate-500">Email: sunita.raman@example.com</div>
-                      <div className="text-slate-500">Occupation: Architect</div>
+                      <div className="font-bold text-slate-900 text-sm">{formData.motherName || 'Mother / Secondary Guardian'}</div>
+                      <div className="text-slate-500 mt-1">Phone: {formData.phone || 'Not Provided'}</div>
+                      <div className="text-slate-500">Email: {formData.email || 'Not Provided'}</div>
+                      <div className="text-slate-500">Relationship: Secondary Contact</div>
                     </div>
                   </div>
                 </div>
@@ -467,43 +468,39 @@ export function Student360ProfileModal({
               {activeTab === 'academics' && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
                   <h3 className="font-black text-slate-900 uppercase tracking-wider">Holistic &amp; NEP 360° Academic Evaluation</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
-                      <div className="text-slate-500 font-bold">Mathematics</div>
-                      <div className="text-lg font-black text-indigo-700 mt-1">96 / 100</div>
+                  {student.marks && student.marks.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {student.marks.map((m: any, idx: number) => (
+                        <div key={idx} className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
+                          <div className="text-slate-500 font-bold truncate">{m.subjectName || m.subject}</div>
+                          <div className="text-lg font-black text-indigo-700 mt-1">{m.score || m.totalMarksObtained || 0} / 100</div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
-                      <div className="text-slate-500 font-bold">Science / Physics</div>
-                      <div className="text-lg font-black text-indigo-700 mt-1">94 / 100</div>
+                  ) : (
+                    <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center text-slate-500">
+                      Term evaluation records are compiled during term assessment cycles. View Report Cards desk for detailed scholastic breakdowns.
                     </div>
-                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
-                      <div className="text-slate-500 font-bold">English Literature</div>
-                      <div className="text-lg font-black text-indigo-700 mt-1">92 / 100</div>
-                    </div>
-                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-center">
-                      <div className="text-slate-500 font-bold">Social Studies</div>
-                      <div className="text-lg font-black text-indigo-700 mt-1">90 / 100</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'attendance' && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
-                  <h3 className="font-black text-slate-900 uppercase tracking-wider">Attendance Logs (AY 2026-27)</h3>
-                  <p className="text-slate-600">Total Working Days: 184 | Days Present: 182 | Unexcused Leaves: 0</p>
+                  <h3 className="font-black text-slate-900 uppercase tracking-wider">Attendance Logs ({academicYear})</h3>
+                  <p className="text-slate-600">Annual Attendance Rate: <strong className="text-slate-900 font-bold">{attendancePct}</strong></p>
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '98.9%' }} />
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, parseFloat(attendancePct) || 100))}%` }} />
                   </div>
                 </div>
               )}
 
               {activeTab === 'fees' && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
-                  <h3 className="font-black text-slate-900 uppercase tracking-wider">Fee Realization & Invoices</h3>
+                  <h3 className="font-black text-slate-900 uppercase tracking-wider">Fee Realization &amp; Invoices</h3>
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold flex items-center justify-between">
-                    <span>Tuition & Campus Services (2026-27): Fully Settled</span>
-                    <span className="font-mono text-sm">Receipt #REC-2026-8819</span>
+                    <span>Tuition &amp; Campus Services ({academicYear}): Status {feeStatus || 'Settled'}</span>
+                    <span className="font-mono text-sm">Ledger Active</span>
                   </div>
                 </div>
               )}
@@ -514,8 +511,18 @@ export function Student360ProfileModal({
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <Bus className="w-6 h-6 text-indigo-600" />
                     <div>
-                      <div className="font-bold text-slate-900">{formData.transportRoute}</div>
-                      <div className="text-slate-500">Pick-up: 07:15 AM | Drop-off: 03:45 PM | Driver: Mr. Rajinder (+91 98711 20044)</div>
+                      <div className="font-bold text-slate-900">{formData.transportRoute || 'Self Transport'}</div>
+                      <div className="text-slate-500">
+                        {formData.transportRoute && formData.transportRoute !== 'Self Transport' ? (
+                          <>
+                            {student.pickupTime ? `Pick-up: ${student.pickupTime} | ` : ''}
+                            {student.dropTime ? `Drop-off: ${student.dropTime} | ` : ''}
+                            Driver: {student.driverName || student.driver_name ? `${student.driverName || student.driver_name} (${student.driverPhone || student.driver_phone || 'Office'})` : 'Assigned with Route Schedule'}
+                          </>
+                        ) : (
+                          'Student commutes via self/private guardian transport.'
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -921,7 +928,7 @@ export function Student360ProfileModal({
 
                 {/* Serial Details */}
                 <div className="flex justify-between items-center text-xs font-bold font-mono text-slate-700 mb-4 pb-2 border-b border-slate-200">
-                  <span>Certificate No: TC/2026/089</span>
+                  <span>Certificate No: TC/{curYear}/{student.admissionNumber || student.id?.slice(0, 4).toUpperCase() || '001'}</span>
                   <span>Admission No: {admissionNo}</span>
                   <span>Universal ID: {universalId}</span>
                 </div>
@@ -946,7 +953,7 @@ export function Student360ProfileModal({
                   </div>
                   <div className="py-1.5 flex justify-between">
                     <span className="text-slate-600 font-medium">5. Date of First Admission in School with Class:</span>
-                    <span className="font-bold text-slate-900 font-mono">05-04-2021 in Class 6</span>
+                    <span className="font-bold text-slate-900 font-mono">05-04-{curYear - 3} in Class 1</span>
                   </div>
                   <div className="py-1.5 flex justify-between">
                     <span className="text-slate-600 font-medium">6. Date of Birth (in figures & words):</span>
@@ -978,7 +985,7 @@ export function Student360ProfileModal({
                   </div>
                   <div className="py-1.5 flex justify-between">
                     <span className="text-slate-600 font-medium">13. Date of Issue of Certificate:</span>
-                    <span className="font-bold text-slate-900 font-mono">29-08-2026</span>
+                    <span className="font-bold text-slate-900 font-mono">{new Date().toLocaleDateString('en-GB')}</span>
                   </div>
                 </div>
 

@@ -22,8 +22,12 @@ export const HomepageVaniSection: React.FC = () => {
   const [isAsking, setIsAsking] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
 
+  const currentYear = new Date().getFullYear();
+  const currentSessionShort = `${currentYear}–${(currentYear + 1).toString().slice(-2)}`;
+  const currentSessionFull = `${currentYear}–${currentYear + 1}`;
+
   const popularChips = [
-    { label: "🎓 Admissions 2026–27", text: "What is the admission process for Session 2026–2027?" },
+    { label: `🎓 Admissions ${currentSessionShort}`, text: `What is the admission process for Session ${currentSessionFull}?` },
     { label: "💰 Fee Structure", text: "What is the quarterly fee structure for Nursery & Class 1?" },
     { label: "🚌 Bus Routes", text: "Is school bus transport available in Burari and Sant Nagar?" },
     { label: "📅 Book Campus Visit", text: "How can I book a personal campus tour?" },
@@ -71,7 +75,7 @@ export const HomepageVaniSection: React.FC = () => {
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300/90 max-w-2xl mx-auto leading-relaxed">
-            Whether you&apos;re exploring admissions for 2026–27, checking approved fee structures, verifying bus routes, or booking a campus visit, <strong>VANI is here to help — anytime, day or night.</strong>
+            Whether you&apos;re exploring admissions for {currentSessionShort}, checking approved fee structures, verifying bus routes, or booking a campus visit, <strong>VANI is here to help — anytime, day or night.</strong>
           </p>
         </div>
 

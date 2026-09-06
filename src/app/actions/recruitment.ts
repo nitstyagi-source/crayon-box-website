@@ -20,7 +20,16 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
+}
+
+async function resolveCampusCode(supabase: any, campusId?: string): Promise<string> {
+  if (campusId && campusId !== "all" && campusId !== "default") {
+    const { data: campus } = await supabase.from("campuses").select("code").eq("id", campusId).maybeSingle();
+    if (campus?.code) return campus.code;
+  }
+  const { data: firstCampus } = await supabase.from("campuses").select("code").limit(1).maybeSingle();
+  return firstCampus?.code || "CBS";
 }
 
 // -------------------------------------------------------------
@@ -157,8 +166,12 @@ export async function createJobVacancy(payload: {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
+    const resolvedCampusCode = await resolveCampusCode(supabase, resolvedCampusId);
 
-    const jobCode = `CBS-JOB-2026-${Math.floor(10 + Math.random() * 90)}`;
+    const { count: jobCount } = await supabase.from("job_vacancies").select("*", { count: "exact", head: true });
+    const nextJobSeq = ((jobCount || 0) + 1).toString().padStart(3, '0');
+    const currentYear = new Date().getFullYear();
+    const jobCode = `${resolvedCampusCode}-JOB-${currentYear}-${nextJobSeq}`;
 
     const { data, error } = await supabase
       .from("job_vacancies")
@@ -269,8 +282,12 @@ export async function submitJobApplication(payload: {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
+    const resolvedCampusCode = await resolveCampusCode(supabase, resolvedCampusId);
 
-    const candidateCode = `CBS-CAN-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: canCount } = await supabase.from("job_applications").select("*", { count: "exact", head: true });
+    const nextCanSeq = ((canCount || 0) + 1).toString().padStart(4, '0');
+    const currentYear = new Date().getFullYear();
+    const candidateCode = `${resolvedCampusCode}-CAN-${currentYear}-${nextCanSeq}`;
 
     const { data, error } = await supabase
       .from("job_applications")
@@ -471,7 +488,13 @@ export async function generateCandidateOfferLetter(payload: {
   try {
     const supabase = getSupabaseAdmin();
 
-    const offerNumber = `CBS/HR/OFFER/2026-${Math.floor(100 + Math.random() * 900)}`;
+    const { data: appRow } = await supabase.from("job_applications").select("campus_id").eq("id", payload.applicationId).maybeSingle();
+    const resolvedCampusCode = await resolveCampusCode(supabase, appRow?.campus_id);
+
+    const { count: offerCount } = await supabase.from("job_offers").select("*", { count: "exact", head: true });
+    const nextOfferSeq = ((offerCount || 0) + 1).toString().padStart(4, '0');
+    const currentYear = new Date().getFullYear();
+    const offerNumber = `${resolvedCampusCode}/HR/OFFER/${currentYear}-${nextOfferSeq}`;
 
     const { data, error } = await supabase
       .from("job_offers")
@@ -537,7 +560,9 @@ export async function completeCandidateJoiningAndOnboardToStaff(payload: {
     const nameParts = application.full_name.trim().split(" ");
     const firstName = nameParts[0] || "Educator";
     const lastName = nameParts.slice(1).join(" ") || "";
-    const empCode = payload.employeeCode || `CBS-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: staffCount } = await supabase.from("staff").select("*", { count: "exact", head: true });
+    const nextEmpSeq = ((staffCount || 0) + 1).toString().padStart(4, '0');
+    const empCode = payload.employeeCode || `CBS-${nextEmpSeq}`;
 
     // 2. Insert into `staff` Master Table
     const { data: newStaff, error: staffErr } = await supabase

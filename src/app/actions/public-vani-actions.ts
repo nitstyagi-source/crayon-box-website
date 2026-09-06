@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -247,11 +245,23 @@ export async function askPublicVaniAction(params: {
     let createdEnquiryNo: string | null = null;
 
     if (state.parentPhone || state.childName) {
-      const genNo = `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const enqCountRes = await client.query(`SELECT count(*)::int as count FROM public.enquiries;`);
+      const nextSeq = ((enqCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+      const genNo = `ENQ-2026-${nextSeq}`;
       const pName = state.parentName || (state.childName ? `Parent of ${state.childName}` : 'Prospective Parent');
       const pPhone = state.parentPhone || '+91 9999999999';
       const cName = state.childName || 'Applicant';
       const grade = state.targetGrade || 'Nursery';
+
+      // Dynamically resolve admissions counsellor from staff table
+      const counsellorRes = await client.query(`
+        SELECT first_name, last_name FROM public.staff
+        WHERE designation ILIKE '%counsel%' OR designation ILIKE '%admission%' OR department ILIKE '%admission%'
+        LIMIT 1;
+      `);
+      const counsellorName = counsellorRes.rows[0]
+        ? `${counsellorRes.rows[0].first_name} ${counsellorRes.rows[0].last_name || ''}`.trim()
+        : 'Admissions Desk';
 
       const summary = `Public VANI Website Intake:\n• Target Grade: ${grade}\n• Child: ${cName}\n• Parent: ${pName} (${pPhone})\n• Locality: ${state.locality || 'Not specified'}\n• Transport: ${state.transportRequired ? 'YES' : 'NO'}\n• Campus Visit: ${state.campusVisitDate ? `${state.campusVisitDate} at ${state.campusVisitTime || '11:00 AM'}` : 'Not scheduled'}\n• Lead Score: ${calculatedScore}/100`;
 
@@ -264,13 +274,13 @@ export async function askPublicVaniAction(params: {
             counsellor_name, remarks
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-            'PUBLIC_WEBSITE_VANI', 'HOT_LEAD', $12, 'Rushali Chauhan', $13
+            'PUBLIC_WEBSITE_VANI', 'HOT_LEAD', $12, $13, $14
           ) RETURNING enquiry_no;
         `, [
           genNo, pName, pPhone, state.parentEmail || null, cName,
           grade, state.locality || null, Boolean(state.transportRequired),
           Boolean(state.campusVisitDate), state.campusVisitDate || null, state.campusVisitTime || null,
-          calculatedScore >= 75 ? 'HIGH' : 'MEDIUM', summary
+          calculatedScore >= 75 ? 'HIGH' : 'MEDIUM', counsellorName, summary
         ]);
 
         if (enqRows.length > 0) {

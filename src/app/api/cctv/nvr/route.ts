@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ 
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ 
       connectionString,
       ssl: { rejectUnauthorized: false }
     });

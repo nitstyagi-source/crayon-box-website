@@ -20,7 +20,8 @@ import {
   RotateCcw,
   Sparkles,
   Award,
-  AlertOctagon
+  AlertOctagon,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,160 +35,29 @@ import {
   CbtQuestion
 } from '@/app/actions/cbt-exam-actions';
 
-const DEFAULT_QUESTIONS: CbtQuestion[] = [
-  {
-    id: 'q1',
-    question_number: 1,
-    section: 'Section A (Multiple Choice)',
-    question_text: 'A spherical mirror and a thin spherical lens have each a focal length of -15 cm. The mirror and the lens are likely to be:',
-    options: ['Both concave', 'Both convex', 'The mirror is concave and the lens is convex', 'The mirror is convex, but the lens is concave'],
-    correct_option: 0,
-    marks: 1
-  },
-  {
-    id: 'q2',
-    question_number: 2,
-    section: 'Section A (Multiple Choice)',
-    question_text: 'Which of the following represents the balanced chemical equation for the reaction of iron with steam?',
-    options: [
-      '2Fe + 3H2O -> Fe2O3 + 3H2',
-      '3Fe + 4H2O -> Fe3O4 + 4H2',
-      'Fe + H2O -> FeO + H2',
-      '3Fe + 2H2O -> Fe3O2 + 2H2'
-    ],
-    correct_option: 1,
-    marks: 1
-  },
-  {
-    id: 'q3',
-    question_number: 3,
-    section: 'Section A (Multiple Choice)',
-    question_text: 'The electrical resistivity of a given metallic wire depends upon:',
-    options: ['Its length', 'Its thickness', 'Its shape', 'Nature of the material'],
-    correct_option: 3,
-    marks: 1
-  },
-  {
-    id: 'q4',
-    question_number: 4,
-    section: 'Section B (Assertion & Reasoning)',
-    question_text: 'Assertion (A): The inner lining of the small intestine has numerous finger-like projections called villi.\nReason (R): The villi increase the surface area for absorption of digested food.',
-    options: [
-      'Both (A) and (R) are true and (R) is the correct explanation of (A)',
-      'Both (A) and (R) are true but (R) is NOT the correct explanation of (A)',
-      '(A) is true but (R) is false',
-      '(A) is false but (R) is true'
-    ],
-    correct_option: 0,
-    marks: 2
-  },
-  {
-    id: 'q5',
-    question_number: 5,
-    section: 'Section B (Assertion & Reasoning)',
-    question_text: 'A wire of resistance R is cut into five equal pieces. These pieces are then connected in parallel. If the equivalent resistance is R\', the ratio R/R\' is:',
-    options: ['1/25', '1/5', '5', '25'],
-    correct_option: 3,
-    marks: 2
-  }
-];
+const DEFAULT_QUESTIONS: CbtQuestion[] = [];
 
-const DEFAULT_TEMPLATES: CbtExamTemplate[] = [
-  {
-    id: 'cbt-board-10-sci',
-    title: 'Class 10 Science Term-2 Standard CBT Mock',
-    subject: 'Science',
-    grade: 'Class 10',
-    exam_type: 'BOARD_MOCK',
-    duration_minutes: 120,
-    total_marks: 80,
-    is_lockdown_enabled: true,
-    questions: DEFAULT_QUESTIONS
-  },
-  {
-    id: 'cbt-jee-main-phy',
-    title: 'JEE Main All India CBT Diagnostic Assessment - Mechanics & Optics',
-    subject: 'Physics',
-    grade: 'Class 12',
-    exam_type: 'JEE_MAIN',
-    duration_minutes: 180,
-    total_marks: 100,
-    is_lockdown_enabled: true,
-    questions: DEFAULT_QUESTIONS
-  },
-  {
-    id: 'cbt-board-10-math',
-    title: 'Class 10 Standard Mathematics Digital Benchmark',
-    subject: 'Mathematics',
-    grade: 'Class 10',
-    exam_type: 'BOARD_MOCK',
-    duration_minutes: 120,
-    total_marks: 80,
-    is_lockdown_enabled: true,
-    questions: DEFAULT_QUESTIONS
-  }
-];
 
-const DEFAULT_SESSIONS: CbtProctorSession[] = [
-  {
-    id: 'sess-1',
-    student_name: 'Aarav Sharma',
-    admission_no: 'CBS-2024-0012',
-    status: 'IN_PROGRESS',
-    answered_count: 4,
-    total_questions: 5,
-    tab_switch_violations: 0,
-    fullscreen_violations: 0,
-    time_remaining_sec: 4320
-  },
-  {
-    id: 'sess-2',
-    student_name: 'Ananya Verma',
-    admission_no: 'CBS-2024-0018',
-    status: 'FLAGGED',
-    answered_count: 2,
-    total_questions: 5,
-    tab_switch_violations: 2,
-    fullscreen_violations: 1,
-    time_remaining_sec: 4100
-  },
-  {
-    id: 'sess-3',
-    student_name: 'Ishaan Patel',
-    admission_no: 'CBS-2024-0024',
-    status: 'SUBMITTED',
-    answered_count: 5,
-    total_questions: 5,
-    tab_switch_violations: 0,
-    fullscreen_violations: 0,
-    time_remaining_sec: 0,
-    current_score: 7
-  },
-  {
-    id: 'sess-4',
-    student_name: 'Priya Nair',
-    admission_no: 'CBS-2024-0031',
-    status: 'IN_PROGRESS',
-    answered_count: 5,
-    total_questions: 5,
-    tab_switch_violations: 0,
-    fullscreen_violations: 0,
-    time_remaining_sec: 3950
-  }
-];
+interface OnlineCbtTestingDeskProps {
+  candidateName?: string;
+  candidateId?: string;
+}
 
-export function OnlineCbtTestingDesk() {
+export function OnlineCbtTestingDesk({
+  candidateName,
+  candidateId
+}: OnlineCbtTestingDeskProps = {}) {
   const [viewMode, setViewMode] = useState<'PROCTOR_CENTER' | 'STUDENT_TEST_RUNNER'>('PROCTOR_CENTER');
-  const [templates, setTemplates] = useState<CbtExamTemplate[]>(DEFAULT_TEMPLATES);
-  const [activeTemplate, setActiveTemplate] = useState<CbtExamTemplate | null>(DEFAULT_TEMPLATES[0]);
-  const [proctorSessions, setProctorSessions] = useState<CbtProctorSession[]>(DEFAULT_SESSIONS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [templates, setTemplates] = useState<CbtExamTemplate[]>([]);
+  const [activeTemplate, setActiveTemplate] = useState<CbtExamTemplate | null>(null);
+  const [proctorSessions, setProctorSessions] = useState<CbtProctorSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Student Test Runner States
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
-  const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({ q1: true });
+  const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
   const [remainingSeconds, setRemainingSeconds] = useState(7200); // 2 hours
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
@@ -195,16 +65,19 @@ export function OnlineCbtTestingDesk() {
   const [testResult, setTestResult] = useState<any | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
     getCbtTemplatesAction().then((res) => {
-      if (res.success && res.templates.length > 0) {
+      if (res.success && res.templates && res.templates.length > 0) {
         setTemplates(res.templates);
         setActiveTemplate(res.templates[0]);
         getCbtProctorStreamAction(res.templates[0].id).then((pRes) => {
-          if (pRes.success) setProctorSessions(pRes.sessions);
+          if (pRes.success && pRes.sessions) setProctorSessions(pRes.sessions);
           setIsLoading(false);
         });
+      } else {
+        setIsLoading(false);
       }
-    });
+    }).catch(() => setIsLoading(false));
   }, []);
 
   // Timer countdown in test runner
@@ -358,34 +231,47 @@ export function OnlineCbtTestingDesk() {
       {/* VIEW 1: PROCTOR COMMAND CENTER */}
       {viewMode === 'PROCTOR_CENTER' && (
         <div className="space-y-6">
-          {/* Active Assessments Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {templates.map((tpl) => (
-              <Card
-                key={tpl.id}
-                onClick={() => setActiveTemplate(tpl)}
-                className={`p-4 rounded-2xl cursor-pointer transition-all border ${
-                  activeTemplate?.id === tpl.id
-                    ? 'border-amber-500 bg-amber-500/[0.04] shadow-md ring-1 ring-amber-400'
-                    : 'border-[#E8DFC8] bg-white hover:border-amber-300'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
-                    {tpl.exam_type}
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-                    <ShieldCheck className="w-3 h-3" /> Lockdown ON
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-stone-900 mt-2 line-clamp-1">{tpl.title}</h3>
-                <div className="mt-3 flex items-center justify-between text-xs text-stone-500">
-                  <span>{tpl.subject} • {tpl.grade}</span>
-                  <span>{tpl.duration_minutes} Mins • {tpl.total_marks} Marks</span>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="p-8 text-center bg-white rounded-2xl border border-[#E8DFC8] text-stone-400">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />
+              <div className="text-xs font-bold text-stone-600">Loading CBT Assessments &amp; Proctor Feeds...</div>
+            </div>
+          ) : templates.length > 0 ? (
+            /* Active Assessments Cards */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {templates.map((tpl) => (
+                <Card
+                  key={tpl.id}
+                  onClick={() => setActiveTemplate(tpl)}
+                  className={`p-4 rounded-2xl cursor-pointer transition-all border ${
+                    activeTemplate?.id === tpl.id
+                      ? 'border-amber-500 bg-amber-500/[0.04] shadow-md ring-1 ring-amber-400'
+                      : 'border-[#E8DFC8] bg-white hover:border-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                      {tpl.exam_type}
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                      <ShieldCheck className="w-3 h-3" /> Lockdown ON
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-stone-900 mt-2 line-clamp-1">{tpl.title}</h3>
+                  <div className="mt-3 flex items-center justify-between text-xs text-stone-500">
+                    <span>{tpl.subject} • {tpl.grade}</span>
+                    <span>{tpl.duration_minutes} Mins • {tpl.total_marks} Marks</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white rounded-2xl border border-[#E8DFC8] text-stone-400">
+              <Monitor className="w-8 h-8 mx-auto mb-2 text-stone-300" />
+              <div className="text-xs font-bold text-stone-600">No CBT Assessments Scheduled</div>
+              <div className="text-[10px] text-stone-400 mt-0.5">Create exam templates in the Examination Hub to launch online CBT tests.</div>
+            </div>
+          )}
 
           {/* Live Proctor Grid */}
           <div className="bg-white rounded-2xl border border-[#E8DFC8] p-5 shadow-sm">
@@ -397,12 +283,13 @@ export function OnlineCbtTestingDesk() {
                 </h3>
               </div>
               <span className="text-xs text-stone-500">
-                Exam: <span className="font-semibold text-stone-800">{activeTemplate?.title}</span>
+                Exam: <span className="font-semibold text-stone-800">{activeTemplate?.title || 'No Exam Selected'}</span>
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              {proctorSessions.map((session) => (
+            {proctorSessions && proctorSessions.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                {proctorSessions.map((session) => (
                 <div
                   key={session.id}
                   className={`p-4 rounded-xl border transition-all ${
@@ -466,6 +353,13 @@ export function OnlineCbtTestingDesk() {
                 </div>
               ))}
             </div>
+            ) : (
+              <div className="p-8 text-center text-stone-400 border border-dashed border-[#E8DFC8] rounded-xl mt-4">
+                <Users className="w-8 h-8 mx-auto text-stone-300 mb-2" />
+                <div className="text-xs font-bold text-stone-600">No active student sessions for this assessment</div>
+                <div className="text-[10px] text-stone-400 mt-0.5">Students appearing for this CBT will appear in real time here.</div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -718,7 +612,7 @@ export function OnlineCbtTestingDesk() {
                 </div>
 
                 <div className="pt-4 border-t border-stone-800 text-[11px] text-stone-500">
-                  Candidate: <span className="text-stone-300">Aarav Sharma (CBS-2024-0012)</span>
+                  Candidate: <span className="text-stone-300">{candidateName ? `${candidateName} (${candidateId || 'STU-ACTIVE'})` : 'Active Examinee (Session Active)'}</span>
                 </div>
               </div>
             </div>

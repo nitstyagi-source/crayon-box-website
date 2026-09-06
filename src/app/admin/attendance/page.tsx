@@ -627,33 +627,11 @@ function DailyAttendanceContent() {
           <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-4">
             <h3 className="font-extrabold text-stone-900 text-sm">Identified Students Below 75% Threshold</h3>
             <div className="space-y-2">
-              {[
-                { name: 'Aarav Singhania', class: 'Class 5 - A', rate: 64, absentDays: 14, parent: 'Mr. Rajesh Singhania', phone: '9811102027' },
-                { name: 'Meera Kapoor', class: 'Class 4 - B', rate: 69, absentDays: 11, parent: 'Mrs. Sunita Kapoor', phone: '9876543210' },
-                { name: 'Dev Sharma', class: 'Class 3 - A', rate: 71, absentDays: 9, parent: 'Dr. Sameer Sharma', phone: '9988776655' }
-              ].map((def, i) => (
-                <div key={i} className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#E8DFC8] flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-black text-stone-900">{def.name}</h4>
-                    <p className="text-[11px] text-stone-500">{def.class} • Parent: {def.parent} (📞 {def.phone})</p>
-                    <p className="text-[10px] text-rose-700 font-bold mt-0.5">Absent for {def.absentDays} working days this term</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <span className="text-sm font-black text-rose-700">{def.rate}%</span>
-                      <span className="text-[9px] text-stone-500 block">Attendance</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => alert(`Official 75% Attendance Notice generated for ${def.name}. Sent to parent via WhatsApp & Registered Post.`)}
-                      className="text-xs font-bold border-rose-300 text-rose-800 bg-white"
-                    >
-                      Issue Warning Notice
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              <div className="text-center py-12 bg-[#FAF7F2] rounded-2xl border border-dashed border-[#E8DFC8] text-xs text-stone-500 font-medium">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2 opacity-80" />
+                <span className="font-bold text-stone-800 block text-sm">No Statutory Defaulters Identified</span>
+                <span className="text-stone-500 text-[11px] mt-0.5 block">All enrolled students currently meet or exceed the mandatory 75% attendance threshold.</span>
+              </div>
             </div>
           </div>
         </div>

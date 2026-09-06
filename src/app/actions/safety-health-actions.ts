@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -26,14 +35,22 @@ function safeDateStr(d: any): string {
 // -------------------------------------------------------------
 // 1. GET CAMPUS VISITORS LOG
 // -------------------------------------------------------------
-export async function getCampusVisitorsAction() {
+export async function getCampusVisitorsAction(institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    const res = await client.query(`
-      SELECT * FROM public.campus_visitors ORDER BY check_in_time DESC
-    `);
+    let query = `SELECT * FROM public.campus_visitors`;
+    const params: any[] = [];
+
+    if (institutionCode && institutionCode !== 'ALL') {
+      query += ` WHERE (campus_id::text = $1 OR institution_code = $1 OR $1 IS NULL)`;
+      params.push(institutionCode);
+    }
+
+    query += ` ORDER BY check_in_time DESC`;
+
+    const res = await client.query(query, params);
 
     const visitors = res.rows.map((v: any) => ({
       ...v,
@@ -71,8 +88,9 @@ export async function checkInCampusVisitorAction(params: {
 
   try {
     const { fullName, phoneNumber, visitorType, hostPerson, purpose, vehicleNumber } = params;
-    const randomBadge = Math.floor(100 + Math.random() * 900);
-    const badgeNumber = `VIS-2026-${randomBadge}`;
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.campus_visitors;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const badgeNumber = `VIS-${new Date().getFullYear()}-${nextSeq}`;
 
     const res = await client.query(`
       INSERT INTO public.campus_visitors (
@@ -128,11 +146,19 @@ export async function checkOutCampusVisitorAction(visitorId: string) {
 // -------------------------------------------------------------
 // 4. GET STUDENT MEDICAL INFIRMARY LOGS
 // -------------------------------------------------------------
-export async function getStudentHealthMedicalDashboardAction() {
+export async function getStudentHealthMedicalDashboardAction(institutionCode?: string) {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
+    let whereClause = '';
+    const params: any[] = [];
+
+    if (institutionCode && institutionCode !== 'ALL') {
+      whereClause = `WHERE (s.institution_code = $1 OR s.campus_id::text = $1 OR $1 IS NULL)`;
+      params.push(institutionCode);
+    }
+
     const res = await client.query(`
       SELECT m.*, s.first_name, s.last_name, s.admission_no,
              COALESCE(c.grade, 'Class 1') as class_name,
@@ -141,8 +167,9 @@ export async function getStudentHealthMedicalDashboardAction() {
       JOIN public.students s ON s.id = m.student_id
       LEFT JOIN public.classes c ON c.id = s.class_id
       LEFT JOIN public.staff st ON st.id = m.logged_by
+      ${whereClause}
       ORDER BY m.created_at DESC
-    `);
+    `, params);
 
     const logs = res.rows.map((r: any) => ({
       ...r,

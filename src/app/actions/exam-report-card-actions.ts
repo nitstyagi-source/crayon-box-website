@@ -3,11 +3,20 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+let globalPool: pg.Pool | null = null;
 
-function getPool() {
-  return new Pool({ connectionString });
+function getPool(): pg.Pool {
+  if (!globalPool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({
+      connectionString,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return globalPool;
 }
 
 function safeRevalidate(path: string) {
@@ -131,15 +140,15 @@ export async function getClassExamMarksRosterAction(params: {
       shortName: instData?.short_name || instData?.name || 'School',
       code: instData?.code || params.institutionCode || 'CBS',
       boardAffiliation: instData?.board_affiliation || 'Recognized Board',
-      affiliationNumber: instData?.affiliation_number || '2130894',
-      schoolIdNumber: instData?.school_id_number || '07010203401',
-      udiseCode: instData?.udise_code || '07010203401',
-      address: instData?.address || 'Main Campus, Institutional Area',
-      phoneNumber: instData?.phone_number || '+91 120 4567890',
-      websiteUrl: instData?.website_url || 'https://school.edu.in',
+      affiliationNumber: instData?.affiliation_number || '',
+      schoolIdNumber: instData?.school_id_number || '',
+      udiseCode: instData?.udise_code || '',
+      address: instData?.address || '',
+      phoneNumber: instData?.phone_number || '',
+      websiteUrl: instData?.website_url || '',
       logoUrl: instData?.logo_url || '/logo.png',
-      principalName: instData?.principal_name || 'Dr. Meenakshi Sunder',
-      principalEmail: instData?.principal_email || 'principal@school.edu.in'
+      principalName: instData?.principal_name || 'Principal Office',
+      principalEmail: instData?.principal_email || ''
     };
 
     // Collect distinct subjects dynamically from marks records
@@ -147,12 +156,12 @@ export async function getClassExamMarksRosterAction(params: {
     marks.forEach((m: any) => {
       if (m.subject_name) distinctSubjectsSet.add(m.subject_name);
     });
-    let distinctSubjects = Array.from(distinctSubjectsSet);
-    if (distinctSubjects.length === 0) {
-      distinctSubjects = ['English', 'Mathematics', 'Science', 'Social Science', 'Hindi'];
-    }
+    const distinctSubjects = Array.from(distinctSubjectsSet);
 
-    const classAverage = totalMaxSum > 0 ? Math.round((totalScoreSum / totalMaxSum) * 1000) / 10 : 85.4;
+    const classAverage = totalMaxSum > 0 ? Math.round((totalScoreSum / totalMaxSum) * 1000) / 10 : 0;
+    const passCount = roster.filter((r: any) => r.status === 'PASS' || (r.overallGrade && r.overallGrade !== 'E')).length;
+    const passPercentage = roster.length > 0 ? Math.round((passCount / roster.length) * 1000) / 10 : 0;
+    const highestScore = roster.length > 0 ? Math.max(...roster.map((r: any) => Number(r.percentage) || 0)) : 0;
 
     return {
       success: true,
@@ -165,8 +174,8 @@ export async function getClassExamMarksRosterAction(params: {
       summary: {
         totalStudents: roster.length,
         classAverage,
-        passPercentage: roster.length > 0 ? 100 : 0,
-        highestScore: roster[0]?.percentage || 98.4,
+        passPercentage,
+        highestScore,
         gradeDistribution: gradeDist
       }
     };
@@ -312,16 +321,39 @@ export async function getStudentCompleteReportCardAction(params: {
       shortName: instData?.short_name || instData?.name || 'School',
       code: instData?.code || instCandidateCode,
       boardAffiliation: instData?.board_affiliation || 'Recognized Board',
-      affiliationNumber: instData?.affiliation_number || '2130894',
-      schoolIdNumber: instData?.school_id_number || '07010203401',
-      udiseCode: instData?.udise_code || '07010203401',
-      address: instData?.address || 'Main Campus, Institutional Area',
-      phoneNumber: instData?.phone_number || '+91 120 4567890',
-      websiteUrl: instData?.website_url || 'https://school.edu.in',
+      affiliationNumber: instData?.affiliation_number || '',
+      schoolIdNumber: instData?.school_id_number || '',
+      udiseCode: instData?.udise_code || '',
+      address: instData?.address || '',
+      phoneNumber: instData?.phone_number || '',
+      websiteUrl: instData?.website_url || '',
       logoUrl: instData?.logo_url || '/logo.png',
-      principalName: instData?.principal_name || 'Dr. Meenakshi Sunder',
-      principalEmail: instData?.principal_email || 'principal@school.edu.in'
+      principalName: instData?.principal_name || 'Principal Office',
+      principalEmail: instData?.principal_email || ''
     };
+
+    let coscholasticData = coschRes.rows[0];
+    if (!coscholasticData) {
+      const attRes = await client.query(`
+        SELECT 
+          COUNT(*)::int as total_days,
+          COUNT(CASE WHEN status IN ('PRESENT', 'LATE', 'HALF_DAY') THEN 1 END)::int as attended_days
+        FROM public.student_attendance_records
+        WHERE student_id = $1
+      `, [stu.id]);
+      const tot = Number(attRes.rows[0]?.total_days || 0);
+      const att = Number(attRes.rows[0]?.attended_days || 0);
+      const attPct = tot > 0 ? Math.round((att / tot) * 1000) / 10 : 0;
+
+      coscholasticData = {
+        work_education_grade: 'Pending Assessment',
+        art_education_grade: 'Pending Assessment',
+        health_physical_education_grade: 'Pending Assessment',
+        discipline_grade: 'Pending Assessment',
+        attendance_percentage: attPct,
+        class_teacher_remarks: 'Evaluation in progress.'
+      };
+    }
 
     return {
       success: true,
@@ -329,14 +361,14 @@ export async function getStudentCompleteReportCardAction(params: {
       student: {
         id: stu.id,
         name: `${stu.first_name} ${stu.last_name}`,
-        fatherName: stu.father_name || 'Mr. Rajesh Verma',
-        motherName: stu.mother_name || 'Mrs. Pooja Verma',
-        admissionNo: stu.admission_no || stu.universal_id,
-        universalId: stu.universal_id,
+        fatherName: stu.father_name || '',
+        motherName: stu.mother_name || '',
+        admissionNo: stu.admission_no || stu.universal_id || 'N/A',
+        universalId: stu.universal_id || 'N/A',
         dob: safeDateStr(stu.dob || stu.date_of_birth),
-        className: stu.class_name,
-        sectionName: stu.section_name,
-        rollNo: stu.roll_no || '12',
+        className: stu.class_name || 'N/A',
+        sectionName: stu.section_name || 'A',
+        rollNo: stu.roll_no || '',
         institutionCode: instData?.code || instCandidateCode,
         institutionName: instData?.name || 'School Name',
         photoUrl: stu.photo_url,
@@ -345,14 +377,7 @@ export async function getStudentCompleteReportCardAction(params: {
       scholasticSubjects: subjectsList,
       overallPercentage,
       overallFinalGrade,
-      coscholastic: coschRes.rows[0] || {
-        work_education_grade: 'A',
-        art_education_grade: 'A',
-        health_physical_education_grade: 'A',
-        discipline_grade: 'A',
-        attendance_percentage: 96.2,
-        class_teacher_remarks: 'Consistently demonstrates exceptional critical thinking, enthusiastic classroom engagement, and polite demeanor.'
-      },
+      coscholastic: coscholasticData,
       montessori: montRes.rows[0] || null
     };
   } catch (error: any) {
@@ -469,7 +494,7 @@ export async function getBulkClassReportCardsAction(params: {
     for (const stu of students) {
       const stuMarks = marks.filter((m: any) => m.student_id === stu.id);
       const totalObtained = stuMarks.reduce((acc: number, cur: any) => acc + Number(cur.total_marks_obtained || 0), 0);
-      const maxMarks = stuMarks.length > 0 ? stuMarks.length * 100 : 500;
+      const maxMarks = stuMarks.reduce((acc: number, cur: any) => acc + Number(cur.max_marks || 100), 0);
       const percentage = maxMarks > 0 ? Math.round((totalObtained / maxMarks) * 1000) / 10 : 0;
 
       let overallGrade = 'E';
@@ -482,16 +507,16 @@ export async function getBulkClassReportCardsAction(params: {
       else if (percentage >= 33) overallGrade = 'D';
 
       const hol = holMap.get(stu.id) || {
-        work_education_grade: 'A',
-        art_education_grade: 'A',
-        health_physical_grade: 'A',
-        discipline_grade: 'A',
-        critical_thinking_score: 88,
-        collaboration_score: 92,
-        communication_score: 85,
-        creativity_score: 90,
-        emotional_quotient_score: 87,
-        teacher_remarks: 'Displays outstanding academic dedication, creative thinking, and polite classroom leadership.'
+        work_education_grade: 'Pending',
+        art_education_grade: 'Pending',
+        health_physical_grade: 'Pending',
+        discipline_grade: 'Pending',
+        critical_thinking_score: null,
+        collaboration_score: null,
+        communication_score: null,
+        creativity_score: null,
+        emotional_quotient_score: null,
+        teacher_remarks: 'Evaluation in progress.'
       };
 
       const verificationToken = Buffer.from(`${stu.id}-${className}-${session}`).toString('base64').replace(/=/g, '');
@@ -500,13 +525,13 @@ export async function getBulkClassReportCardsAction(params: {
         student: {
           id: stu.id,
           name: `${stu.first_name} ${stu.last_name}`,
-          admissionNo: stu.admission_no,
-          rollNo: stu.roll_no || '01',
-          dob: safeDateStr(stu.dob || '2018-05-15'),
+          admissionNo: stu.admission_no || '',
+          rollNo: stu.roll_no || '',
+          dob: safeDateStr(stu.dob || ''),
           gender: stu.gender || 'Not Specified',
-          fatherName: stu.father_name || 'Mr. Rajesh Tyagi',
-          motherName: stu.mother_name || 'Mrs. Sunita Tyagi',
-          parentPhone: stu.primary_contact || '+919876543210',
+          fatherName: stu.father_name || '',
+          motherName: stu.mother_name || '',
+          parentPhone: stu.primary_contact || '',
           photoUrl: stu.photo_url || null,
           className: stu.class_name,
           sectionName: stu.section_name
@@ -587,8 +612,8 @@ export async function sendReportCardWhatsAppAction(params: {
       ) VALUES ('default', $1, $2, $3, 'REPORT_CARD', 'report_card_dispatch', $4, $5, 'DELIVERED', NOW());
     `, [params.studentId, params.studentName, params.parentPhone, msgContent, params.reportCardUrl]);
 
-    safeRevalidate('/admin/exams/report-cards');
-    safeRevalidate('/admin/communications/whatsapp');
+    safeRevalidate('/admin/reports/holistic-card');
+    safeRevalidate('/admin/communications');
 
     return {
       success: true,

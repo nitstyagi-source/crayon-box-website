@@ -1,27 +1,55 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   GraduationCap, Clock, CheckCircle2, XCircle, 
   ArrowRight, Users, BookOpen, AlertCircle, 
-  Calendar, Check, ShieldCheck, ChevronRight, UserCheck
+  Calendar, Check, ShieldCheck, ChevronRight, UserCheck, RefreshCw
 } from "lucide-react";
 import { useMobileAuth } from "../MobileAuthProvider";
 import { SchoolLogo } from "@/components/ui/SchoolLogo";
+import { getApprovalRequestsAction, processApprovalDecisionAction } from "@/app/actions/approval-engine-actions";
 
 export default function PrincipalMobileDashboard() {
   const { user } = useMobileAuth();
+  const [approvals, setApprovals] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [approvals, setApprovals] = useState([
-    { id: "APP-01", type: "Fee Refund", detail: "Aarav Gupta (Grade 4B)", amount: "₹12,500", reason: "Excess lab deposit refund", status: "pending" },
-    { id: "APP-02", type: "Leave Request", detail: "Pooja Verma (TGT Science)", amount: "2 Days", reason: "Family emergency leave", status: "pending" },
-    { id: "APP-03", type: "Expense Voucher", detail: "Robotics Lab Spares", amount: "₹8,400", reason: "Arduino microcontrollers & sensors", status: "pending" },
-  ]);
+  useEffect(() => {
+    async function loadApprovals() {
+      try {
+        const res = await getApprovalRequestsAction({ status: 'PENDING' });
+        if (res.success && res.data) {
+          setApprovals(res.data.map((a: any) => ({
+            id: a.id,
+            type: a.request_type?.replace(/_/g, ' ') || 'Approval',
+            detail: `${a.entity_name || 'Item'} (${a.title})`,
+            amount: a.diff_payload?.amount ? `₹${a.diff_payload.amount}` : (a.priority || 'NORMAL'),
+            reason: a.description || 'Maker-checker review requested',
+            status: a.status?.toLowerCase() || 'pending'
+          })));
+        }
+      } catch (_) {}
+      finally {
+        setIsLoading(false);
+      }
+    }
+    loadApprovals();
+  }, []);
 
-  const handleAction = (id: string, action: "approved" | "rejected") => {
-    setApprovals(prev => prev.map(item => item.id === id ? { ...item, status: action } : item));
+  const handleAction = async (id: string, action: "approved" | "rejected") => {
+    try {
+      await processApprovalDecisionAction({
+        requestId: id,
+        decision: action === 'approved' ? 'APPROVED' : 'REJECTED',
+        reviewerName: user?.fullName || 'Principal'
+      });
+      setApprovals(prev => prev.map(item => item.id === id ? { ...item, status: action } : item));
+    } catch (_) {}
   };
+
+  const todayStr = new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(new Date());
 
   return (
     <div className="space-y-6 pb-24">
@@ -33,29 +61,29 @@ export default function PrincipalMobileDashboard() {
             <span className="inline-flex items-center gap-1.5 bg-indigo-500/20 text-indigo-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-indigo-400/30">
               <GraduationCap className="w-3.5 h-3.5" /> Principal Operations
             </span>
-            <span className="text-xs text-slate-400 font-mono">Today &bull; 08:30 AM</span>
+            <span className="text-xs text-slate-400 font-mono">Today &bull; {todayStr}</span>
           </div>
 
           <div className="flex items-center gap-3.5">
             <SchoolLogo size="lg" shape="square" className="bg-white/95 p-1 shadow-md" />
             <div>
-              <h2 className="text-xl font-bold font-serif">{user?.fullName || "Dr. Sunita Rao"}</h2>
+              <h2 className="text-xl font-bold font-serif">{user?.fullName || "School Principal"}</h2>
               <p className="text-xs text-slate-300 mt-0.5">Classes in Session &bull; Academic Oversight</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-1 text-center">
             <div className="bg-white/10 rounded-2xl p-2.5 border border-white/10">
-              <div className="text-base font-bold text-amber-300">28/28</div>
-              <span className="text-[10px] text-slate-300 font-medium">Classes Active</span>
+              <div className="text-base font-bold text-amber-300">Active</div>
+              <span className="text-[10px] text-slate-300 font-medium">Session Live</span>
             </div>
             <div className="bg-white/10 rounded-2xl p-2.5 border border-white/10">
-              <div className="text-base font-bold text-emerald-400">96.2%</div>
-              <span className="text-[10px] text-slate-300 font-medium">Teachers Present</span>
+              <div className="text-base font-bold text-emerald-400">Normal</div>
+              <span className="text-[10px] text-slate-300 font-medium">Operations</span>
             </div>
             <div className="bg-white/10 rounded-2xl p-2.5 border border-white/10">
-              <div className="text-base font-bold text-blue-300">3</div>
-              <span className="text-[10px] text-slate-300 font-medium">Substitutions</span>
+              <div className="text-base font-bold text-blue-300">{approvals.filter(a => a.status === 'pending').length}</div>
+              <span className="text-[10px] text-slate-300 font-medium">Pending Tasks</span>
             </div>
           </div>
         </div>

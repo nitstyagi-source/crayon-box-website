@@ -6,13 +6,11 @@ import { callGemini } from '@/lib/services/ai/gemini-client';
 import { fetchLiveSchoolGrounding } from '@/lib/services/ai/erp-grounding';
 import { generateQuestionPaperWithKey, generate5ELessonPlan } from '@/lib/services/ai/pedagogical-engine';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }

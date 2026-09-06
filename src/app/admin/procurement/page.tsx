@@ -48,7 +48,7 @@ function ProcurementHubContent() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [vendorName, setVendorName] = useState('');
   const [category, setCategory] = useState('IT Infrastructure');
-  const [amount, setAmount] = useState('150000');
+  const [amount, setAmount] = useState('');
   const [itemsSummary, setItemsSummary] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,27 +56,21 @@ function ProcurementHubContent() {
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [voucherEditMode, setVoucherEditMode] = useState<"edit" | "preview">("preview");
   const [voucherData, setVoucherData] = useState<PaymentVoucherData>({
-    voucher_no: "VCH-2026-089",
+    voucher_no: "VCH-" + new Date().getFullYear() + "-001",
     voucher_date: new Date().toISOString().split('T')[0],
     institution_name: selectedInstitutionObj?.name || (isAllInstitutions ? "Vani Multi-Campus Trust HQ" : "School Administration"),
     institution_address: selectedInstitutionObj?.address || "Institutional Campus, Delhi NCR",
     school_id: selectedInstitutionObj?.affiliationNumber || selectedInstitutionObj?.code || "SCH-01",
-    vendor_name: "Standard Stationery & Supplies",
-    on_account_of: "Purchase of Classroom Stationery & Examination Materials",
+    vendor_name: "",
+    on_account_of: "",
     payment_mode: "Cheque / NEFT",
-    cheque_or_txn_no: "CHQ-892104",
+    cheque_or_txn_no: "",
     cheque_date: new Date().toISOString().split('T')[0],
-    debit_lines: [
-      { particulars: "Stationery & Examination Material (Class 1 to 10)", amount: 25000 },
-      { particulars: "Printing, Binding & Administrative Consumables", amount: 15000 },
-      { particulars: "Freight, Handling & Logistics Charges", amount: 2500 }
-    ],
-    credit_lines: [
-      { particulars: "By HDFC Bank A/c No. 502000123456 (Cheque No. 892104)", amount: 42500 }
-    ],
-    total_amount: 42500,
-    amount_in_words: "Forty Two Thousand Five Hundred Rupees Only",
-    receiver_signature_name: "Vendor Representative",
+    debit_lines: [],
+    credit_lines: [],
+    total_amount: 0,
+    amount_in_words: "Zero Rupees Only",
+    receiver_signature_name: "",
     authorised_signatory_name: "Authorised Signatory"
   });
 

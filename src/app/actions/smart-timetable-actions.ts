@@ -4,13 +4,11 @@ import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 import { TimetableGeneticEngine, TimetableClassConfig, TimetableTeacherConfig } from '@/lib/algorithms/timetable-genetic-engine';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -48,8 +46,10 @@ export async function getSmartTimetableMatrixAction(params: {
   const client = await p.connect();
 
   try {
+    const curYear = new Date().getFullYear();
+    const defaultSession = `${curYear}–${curYear + 1}`;
     const className = params.className || "Class 1";
-    const session = params.academicSession || "2026–2027";
+    const session = params.academicSession || defaultSession;
 
     const res = await client.query(`
       SELECT * FROM public.school_timetable
@@ -86,18 +86,20 @@ export async function generateConflictFreeTimetableAction(params: {
   const client = await p.connect();
 
   try {
-    const { className, academicSession = "2026–2027" } = params;
+    const curYear = new Date().getFullYear();
+    const defaultSession = `${curYear}–${curYear + 1}`;
+    const { className, academicSession = defaultSession } = params;
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const subjects = [
-      { name: 'Mathematics', teacher: 'Ms. Pooja Sharma', room: 'Room 101' },
-      { name: 'English Literature', teacher: 'Mrs. Neha Gupta', room: 'Room 101' },
-      { name: 'Environmental Science (EVS)', teacher: 'Dr. Rajesh Verma', room: 'Science Lab' },
-      { name: 'Hindi Core', teacher: 'Mrs. Kavita Kumari', room: 'Room 101' },
-      { name: 'Computer Applications', teacher: 'Mr. Amit Kumar', room: 'Computer Lab' },
-      { name: 'Art & Craft / SUPW', teacher: 'Ms. Ritu Roy', room: 'Activity Room' },
-      { name: 'Physical Education & Games', teacher: 'Mr. Vikram Singh', room: 'Playground' },
-      { name: 'Library & Reading Club', teacher: 'Mrs. Meenakshi S.', room: 'Central Library' }
+      { name: 'Mathematics', teacher: 'Subject Faculty (Mathematics)', room: 'Room 101' },
+      { name: 'English Literature', teacher: 'Subject Faculty (English)', room: 'Room 101' },
+      { name: 'Environmental Science (EVS)', teacher: 'Subject Faculty (Science)', room: 'Science Lab' },
+      { name: 'Hindi Core', teacher: 'Subject Faculty (Hindi)', room: 'Room 101' },
+      { name: 'Computer Applications', teacher: 'Subject Faculty (Computer Applications)', room: 'Computer Lab' },
+      { name: 'Art & Craft / SUPW', teacher: 'Subject Faculty (Fine Arts)', room: 'Activity Room' },
+      { name: 'Physical Education & Games', teacher: 'Sports & PE Coach', room: 'Playground' },
+      { name: 'Library & Reading Club', teacher: 'Librarian & Resource Incharge', room: 'Central Library' }
     ];
 
     const periodTimes = [
@@ -159,7 +161,8 @@ export async function generateSchoolWideGeneticTimetableAction(params?: {
   const client = await p.connect();
 
   try {
-    const session = params?.academicSession || "2026–2027";
+    const curYear = new Date().getFullYear();
+    const session = params?.academicSession || `${curYear}–${curYear + 1}`;
 
     // 1. Fetch real active classes or fallback to core institution grades
     const classesRes = await client.query(`
@@ -188,14 +191,14 @@ export async function generateSchoolWideGeneticTimetableAction(params?: {
 
     if (teachers.length < 5) {
       teachers = [
-        { id: 'T-1', name: 'Ms. Pooja Sharma', subjects: ['Mathematics', 'AI & Computer Studio'], maxPeriodsPerDay: 5 },
-        { id: 'T-2', name: 'Mrs. Neha Gupta', subjects: ['English Literature', 'Library & Self-Study'], maxPeriodsPerDay: 5 },
-        { id: 'T-3', name: 'Dr. Rajesh Verma', subjects: ['Science', 'Physics', 'Environmental Science (EVS)'], maxPeriodsPerDay: 5 },
-        { id: 'T-4', name: 'Mrs. Kavita Kumari', subjects: ['Hindi Core', 'Social Studies'], maxPeriodsPerDay: 5 },
-        { id: 'T-5', name: 'Mr. Amit Kumar', subjects: ['Computer Applications', 'AI & Computer Studio'], maxPeriodsPerDay: 5 },
-        { id: 'T-6', name: 'Mr. Vikram Singh', subjects: ['Physical Education & Games', 'Sports Arena'], maxPeriodsPerDay: 5 },
-        { id: 'T-7', name: 'Ms. Ritu Roy', subjects: ['Art & Craft / SUPW', 'Fine Arts Pavilion'], maxPeriodsPerDay: 5 },
-        { id: 'T-8', name: 'Mrs. Meenakshi S.', subjects: ['Library & Reading Club', 'Social Studies'], maxPeriodsPerDay: 5 }
+        { id: 'T-1', name: 'Subject Faculty (Mathematics)', subjects: ['Mathematics', 'AI & Computer Studio'], maxPeriodsPerDay: 5 },
+        { id: 'T-2', name: 'Subject Faculty (English)', subjects: ['English Literature', 'Library & Self-Study'], maxPeriodsPerDay: 5 },
+        { id: 'T-3', name: 'Subject Faculty (Science)', subjects: ['Science', 'Physics', 'Environmental Science (EVS)'], maxPeriodsPerDay: 5 },
+        { id: 'T-4', name: 'Subject Faculty (Hindi)', subjects: ['Hindi Core', 'Social Studies'], maxPeriodsPerDay: 5 },
+        { id: 'T-5', name: 'Subject Faculty (Computers)', subjects: ['Computer Applications', 'AI & Computer Studio'], maxPeriodsPerDay: 5 },
+        { id: 'T-6', name: 'Sports & PE Coach', subjects: ['Physical Education & Games', 'Sports Arena'], maxPeriodsPerDay: 5 },
+        { id: 'T-7', name: 'Fine Arts & SUPW Instructor', subjects: ['Art & Craft / SUPW', 'Fine Arts Pavilion'], maxPeriodsPerDay: 5 },
+        { id: 'T-8', name: 'Library & Media Specialist', subjects: ['Library & Reading Club', 'Social Studies'], maxPeriodsPerDay: 5 }
       ];
     }
 
@@ -324,12 +327,28 @@ export async function assignTeacherProxyAction(params: {
     // Send WhatsApp Alert to Substitute Teacher
     const msgContent = `📋 *Crayon Box School — Teacher Substitution (Proxy) Alert*\n\nDear ${params.substituteTeacherName}, you have been allocated a proxy period:\n\n• *Class*: ${slot.class_name}-${slot.section_name}\n• *Period*: Period ${slot.period_number} (${slot.start_time}–${slot.end_time})\n• *Subject*: ${slot.subject_name}\n• *Room*: ${slot.room_number}\n• *Original Teacher*: ${slot.teacher_name} (On Leave)\n\n_Please reach the classroom promptly._\n_Academic Coordinator, Crayon Box School_`;
 
-    await client.query(`
-      INSERT INTO public.whatsapp_messages (
-        campus_id, student_id, student_name, parent_phone, message_type,
-        template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, '+919876543210', 'PROXY_ALERT', 'teacher_proxy_notice', $2, 'DELIVERED', NOW());
-    `, [params.substituteTeacherName, msgContent]);
+    // Lookup Substitute Teacher Phone & Campus
+    const teacherRes = await client.query(`
+      SELECT phone_number, personal_mobile, campus_id
+      FROM public.staff
+      WHERE full_name ILIKE $1 OR name ILIKE $1
+      LIMIT 1;
+    `, [params.substituteTeacherName]);
+
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const defaultCampusId = campRes.rows[0]?.id || null;
+
+    const teacherPhone = teacherRes.rows[0]?.personal_mobile || teacherRes.rows[0]?.phone_number || '';
+    const resolvedCampusId = teacherRes.rows[0]?.campus_id || slot.campus_id || defaultCampusId;
+
+    if (teacherPhone) {
+      await client.query(`
+        INSERT INTO public.whatsapp_messages (
+          campus_id, student_id, student_name, parent_phone, message_type,
+          template_name, content, status, dispatched_at
+        ) VALUES ($1, NULL, $2, $3, 'PROXY_ALERT', 'teacher_proxy_notice', $4, 'DELIVERED', NOW());
+      `, [resolvedCampusId, params.substituteTeacherName, teacherPhone, msgContent]);
+    }
 
     safeRevalidate('/admin/timetable/smart-builder');
     safeRevalidate('/admin/faculty/substitutions');
@@ -358,17 +377,41 @@ export async function sendTimetableToParentsWhatsAppAction(params: {
   try {
     const msgContent = `🗓️ *Crayon Box School — Master Weekly Timetable for ${params.className}*\n\nDear Parent, the updated weekly period schedule and teacher matrix for *${params.className}* is now active:\n\n• *Timings*: 08:30 AM – 03:00 PM (Mon–Sat)\n• *Periods/Day*: 8 Periods + Recess\n• *Core Subjects*: Math, English, EVS, Hindi, Computer Lab\n\n📄 *View Full Weekly Schedule*: https://www.crayonboxschool.com/academics/timetable?class=${encodeURIComponent(params.className)}\n\n_Academic Dean, Crayon Box School_`;
 
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campRes.rows[0]?.id || null;
+
+    let phone = params.parentPhone;
+    if (!phone) {
+      const parentRes = await client.query(`
+        SELECT COALESCE(s.parent_phone, s.primary_contact) as contact
+        FROM public.students s
+        LEFT JOIN public.classes c ON c.id = s.class_id
+        WHERE s.status = 'ACTIVE'
+          AND (c.grade = $1 OR c.grade || '-' || c.section = $1)
+          AND COALESCE(s.parent_phone, s.primary_contact) IS NOT NULL
+        LIMIT 1;
+      `, [params.className]);
+      phone = parentRes.rows[0]?.contact || null;
+    }
+
+    if (!phone) {
+      return {
+        success: false,
+        error: `No registered guardian phone numbers found for ${params.className}.`
+      };
+    }
+
     await client.query(`
       INSERT INTO public.whatsapp_messages (
         campus_id, student_id, student_name, parent_phone, message_type,
         template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, $2, 'TIMETABLE_BROADCAST', 'timetable_notice', $3, 'DELIVERED', NOW());
-    `, [params.className, params.parentPhone || '+919810081008', msgContent]);
+      ) VALUES ($1, NULL, $2, $3, 'TIMETABLE_BROADCAST', 'timetable_notice', $4, 'DELIVERED', NOW());
+    `, [campusId, params.className, phone, msgContent]);
 
     safeRevalidate('/admin/communications/whatsapp');
     return {
       success: true,
-      message: `Weekly timetable for ${params.className} successfully broadcast to parents via WhatsApp!`
+      message: `Weekly timetable for ${params.className} successfully broadcast to parent contact (${phone}) via WhatsApp!`
     };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -424,7 +467,7 @@ export async function issueLibraryBookAction(params: {
       );
     `, [params.studentName, params.className, params.parentPhone, params.bookIsbn, params.bookTitle]);
 
-    safeRevalidate('/admin/library/circulation');
+    safeRevalidate('/admin/library');
     return { success: true, message: `Book "${params.bookTitle}" issued to ${params.studentName} (Due in 14 days)!` };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -444,7 +487,7 @@ export async function returnLibraryBookAction(loanId: string) {
       WHERE id = $1;
     `, [loanId]);
 
-    safeRevalidate('/admin/library/circulation');
+    safeRevalidate('/admin/library');
     return { success: true, message: "Book return recorded and barcode marked available in library catalog." };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -465,14 +508,16 @@ export async function sendOverdueBookWhatsAppAlertAction(params: {
   try {
     const msgContent = `📚 *Crayon Box School Library — Overdue Book Notice*\n\nDear Parent, the library book borrowed by *${params.studentName}* is currently overdue:\n\n• *Book*: "${params.bookTitle}"\n• *Overdue Fine*: ₹${params.fineAmount}\n• *Policy*: ₹5/day overdue charge\n\nKindly request your ward to return the book to the Central Library tomorrow.\n\n_Central Library, Crayon Box School_`;
 
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusId = campRes.rows[0]?.id || null;
     await client.query(`
       INSERT INTO public.whatsapp_messages (
         campus_id, student_id, student_name, parent_phone, message_type,
         template_name, content, status, dispatched_at
-      ) VALUES ('default', NULL, $1, $2, 'LIBRARY_OVERDUE', 'overdue_book_notice', $3, 'DELIVERED', NOW());
-    `, [params.studentName, params.parentPhone, msgContent]);
+      ) VALUES ($1, NULL, $2, $3, 'LIBRARY_OVERDUE', 'overdue_book_notice', $4, 'DELIVERED', NOW());
+    `, [campusId, params.studentName, params.parentPhone, msgContent]);
 
-    safeRevalidate('/admin/library/circulation');
+    safeRevalidate('/admin/library');
     return {
       success: true,
       message: `Overdue reminder dispatched to parent WhatsApp (${params.parentPhone})!`
@@ -483,3 +528,39 @@ export async function sendOverdueBookWhatsAppAlertAction(params: {
     client.release();
   }
 }
+
+// -------------------------------------------------------------
+// 10. GET DYNAMIC SUBSTITUTE TEACHERS
+// -------------------------------------------------------------
+export async function getAvailableSubstituteTeachersAction() {
+  const p = getPool();
+  const client = await p.connect();
+
+  try {
+    const res = await client.query(`
+      SELECT id, first_name, last_name, designation, department
+      FROM public.staff
+      WHERE status = 'ACTIVE' OR status IS NULL
+      ORDER BY first_name ASC
+      LIMIT 50;
+    `);
+
+    const teachers = res.rows.map((r: any) => {
+      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || 'Faculty Member';
+      const dept = r.department || r.designation || 'Academics';
+      return {
+        id: r.id,
+        name,
+        department: dept,
+        displayName: `${name} (${dept})`
+      };
+    });
+
+    return { success: true, teachers };
+  } catch (e: any) {
+    return { success: false, teachers: [], error: e.message };
+  } finally {
+    client.release();
+  }
+}
+

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 

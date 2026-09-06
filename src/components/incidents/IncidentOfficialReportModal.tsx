@@ -213,7 +213,7 @@ export default function IncidentOfficialReportModal({
 
                 <div>
                   <span className="text-slate-500 block text-[10px]">Guardian Emergency Contact</span>
-                  <span className="font-semibold text-slate-800">{incident.emergency_contact_phone || "+91 98765 43210"}</span>
+                  <span className="font-semibold text-slate-800">{incident.emergency_contact_phone || "Not Recorded"}</span>
                 </div>
 
                 <div className="col-span-2">

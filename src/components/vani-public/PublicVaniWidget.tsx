@@ -32,8 +32,11 @@ export const PublicVaniWidget: React.FC = () => {
     }
   ]);
 
+  const currentYear = new Date().getFullYear();
+  const currentSessionShort = `${currentYear}–${(currentYear + 1).toString().slice(-2)}`;
+
   const quickPrompts = [
-    { label: "🎓 Admissions 2026–27", text: "How do I apply for admissions for Academic Session 2026–27?" },
+    { label: `🎓 Admissions ${currentSessionShort}`, text: `How do I apply for admissions for Academic Session ${currentSessionShort}?` },
     { label: "💰 Fee Structure", text: "What is the fee structure for Nursery and Primary grades?" },
     { label: "🚌 Bus Transport", text: "Do you provide school bus transport in Burari, Sant Nagar, and Delhi NCR?" },
     { label: "📅 Book Campus Visit", text: "I would like to schedule a campus tour tomorrow at 11 AM." },

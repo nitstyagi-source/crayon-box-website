@@ -53,15 +53,11 @@ export function FeeMasterStructureDesk({ embedded = false }: { embedded?: boolea
       max_late_fee: number;
     }>;
   }>({
-    name: "General Grade 1 Standard Structure",
+    name: "",
     class_name: "Grade 1",
-    academic_session: "2026-2027",
+    academic_session: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
     fee_category: "General",
-    items: [
-      { fee_head_id: "", fee_head_name: "Tuition Fee", frequency: "Quarterly", amount: 6500, due_day: 10, late_fee_per_day: 25, max_late_fee: 500 },
-      { fee_head_id: "", fee_head_name: "Annual Charges", frequency: "Annual", amount: 3000, due_day: 10, late_fee_per_day: 25, max_late_fee: 500 },
-      { fee_head_id: "", fee_head_name: "Activity Fee", frequency: "Quarterly", amount: 1000, due_day: 10, late_fee_per_day: 25, max_late_fee: 500 }
-    ]
+    items: []
   });
   const [isSavingStruct, setIsSavingStruct] = useState(false);
 
@@ -138,14 +134,11 @@ export function FeeMasterStructureDesk({ embedded = false }: { embedded?: boolea
 
   function handleOpenAddStructure() {
     setStructFormData({
-      name: "Standard Fee Structure",
+      name: "",
       class_name: "Grade 1",
-      academic_session: "2026-2027",
+      academic_session: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       fee_category: "General",
-      items: [
-        { fee_head_id: "", fee_head_name: "Tuition Fee", frequency: "Quarterly", amount: 6500, due_day: 10, late_fee_per_day: 25, max_late_fee: 500 },
-        { fee_head_id: "", fee_head_name: "Annual Charges", frequency: "Annual", amount: 3000, due_day: 10, late_fee_per_day: 25, max_late_fee: 500 }
-      ]
+      items: []
     });
     setStructModalOpen(true);
   }
@@ -240,7 +233,7 @@ export function FeeMasterStructureDesk({ embedded = false }: { embedded?: boolea
               Centralized Fee Configuration
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Session 2026-2027</span>
+            <span className="text-stone-500 text-xs font-bold">Session {`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`}</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">Fee Master & Class Structures</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">

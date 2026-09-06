@@ -17,7 +17,7 @@ export interface AppNotificationItem {
 }
 
 function getPool() {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+  const connectionString = process.env.DATABASE_URL || '';
   return new pg.Pool({
     connectionString,
     ssl: { rejectUnauthorized: false }
@@ -111,25 +111,31 @@ export async function getLiveNotificationsAction(role = 'SUPER_ADMIN', instituti
       });
     }
 
+    // 4. Check Transport Route Telematics
+    const routeRes = await client.query(`
+      SELECT route_name FROM public.transport_routes LIMIT 2;
+    `);
+    const activeRouteNames = routeRes.rows.map((r: any) => r.route_name).filter(Boolean).join(' and ');
+    notifications.push({
+      id: 'NOTIF-SAFE-01',
+      title: 'Fleet Telematics & Transit Tracking Active',
+      message: activeRouteNames
+        ? `Transit route telemetry active for ${activeRouteNames} with verified guardian check-ins.`
+        : 'Transit route GPS telemetry system active across configured transport corridors.',
+      category: 'SAFETY',
+      priority: 'LOW',
+      timestamp: new Date(now.getTime() - 4 * 3600000).toISOString(),
+      timeAgo: '4 hours ago',
+      unread: !readNotificationIds.has('NOTIF-SAFE-01'),
+      link: '/admin/operations',
+      institutionCode: institutionCode === 'ALL' ? 'CBS' : institutionCode
+    });
+
   } catch (error: any) {
     console.error('Error querying live notification signals:', error.message);
   } finally {
     if (client) client.release();
   }
-
-  // 4. Default Enterprise Infrastructure Notifications
-  notifications.push({
-    id: 'NOTIF-SAFE-01',
-    title: 'Fleet Telematics & Bus Tracking Active',
-    message: 'Morning GPS route telemetry active for Bus Route #04 and #08 with 100% on-time parent check-ins.',
-    category: 'SAFETY',
-    priority: 'LOW',
-    timestamp: new Date(now.getTime() - 4 * 3600000).toISOString(),
-    timeAgo: '4 hours ago',
-    unread: !readNotificationIds.has('NOTIF-SAFE-01'),
-    link: '/admin/operations',
-    institutionCode: 'CBS'
-  });
 
   notifications.push({
     id: 'NOTIF-LIFE-01',

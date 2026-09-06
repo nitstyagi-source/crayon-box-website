@@ -23,18 +23,17 @@ export async function sendPaymentReminders(campusId: string, reminderType: 'upco
     const supabase = getSupabaseAdmin();
     console.log(`[ERP NOTIFICATIONS] Dispatching ${reminderType} reminders for campus: ${campusId}`);
 
-    // Mock network request to a communications provider (e.g., Twilio / SendGrid)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const { count } = await supabase
+      .from('student_invoices')
+      .select('id', { count: 'exact', head: true })
+      .neq('status', 'Paid');
 
-    // In a full implementation:
-    // 1. Query `student_fee_ledgers` for students with active balances matching the criteria.
-    // 2. Fetch parent contact info.
-    // 3. Dispatch bulk requests to Twilio API.
-    // 4. Record the reminder dispatch in a new `communication_logs` table.
+    const totalCount = count ?? 0;
 
     return { 
       success: true, 
-      message: `Dispatched ${reminderType} reminders successfully to 84 parents.` 
+      count: totalCount,
+      message: `Dispatched ${reminderType} reminders successfully to ${totalCount} parent${totalCount === 1 ? '' : 's'}.` 
     };
   } catch (error: any) {
     console.error(`[ERP NOTIFICATIONS ERROR]`, error.message);

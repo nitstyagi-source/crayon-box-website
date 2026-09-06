@@ -50,6 +50,9 @@ function ExamHubContent() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
   const { activeCampusId } = useCampusContext();
   const activeInst = currentInstitution || activeCampusId || 'CBS';
+  const currentYear = new Date().getFullYear();
+  const currentSession = `${currentYear}–${currentYear + 1}`;
+  const currentSessionCode = `${currentYear}-${currentYear + 1}`;
 
   // Dynamic Classes
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
@@ -145,7 +148,7 @@ function ExamHubContent() {
     try {
       const res = await getGeneratedPapers(
         activeInst,
-        '2026-2027',
+        currentSessionCode,
         paperClassFilter !== 'All' ? paperClassFilter : undefined,
         undefined,
         undefined,
@@ -211,7 +214,7 @@ function ExamHubContent() {
     try {
       const res = await saveGeneratedPaper({
         campus_id: activeInst,
-        academic_session: paper.academic_session || '2026-2027',
+        academic_session: paper.academic_session || currentSessionCode,
         class_name: paper.class_name,
         subject_id: paper.subject_id,
         exam_title: `${paper.exam_title} (Copy)`,
@@ -248,7 +251,7 @@ function ExamHubContent() {
       
       {/* Option 6 Sattva-Digital Sandalwood Vastu Banner */}
       <VastuModuleBanner
-        badgeText="Assessment Session 2026–2027"
+        badgeText={`Assessment Session ${currentSession}`}
         badgeIcon={<Award className="w-3.5 h-3.5 text-[#D97706]" />}
         institutionText={`Campus: ${activeInst} • Multi-Curriculum Examination & Gradebook Hub`}
         title="Examination Command Center & Gradebook"
@@ -825,7 +828,7 @@ function ExamHubContent() {
                 </p>
                 <div className="pt-2">
                   <span className="px-3 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-full">
-                    Scholastic Achievement Report — Academic Session 2026-2027
+                    Scholastic Achievement Report — Academic Session {currentSessionCode}
                   </span>
                 </div>
               </div>

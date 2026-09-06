@@ -229,7 +229,7 @@ export function TeacherCpdTrackerDesk() {
             {totalHoursLogged} Hours
           </p>
           <div className="flex items-center gap-1.5 text-[11px] text-indigo-700 mt-1">
-            <span>Academic Year 2026–2027</span>
+            <span>Academic Year {new Date().getFullYear()}–{new Date().getFullYear() + 1}</span>
           </div>
         </Card>
       </div>
@@ -467,7 +467,7 @@ export function TeacherCpdTrackerDesk() {
                   Continuous Professional Development Compliance Report
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Affiliation Code: 2132891 • Session 2026–2027 • Form §5.3
+                  Affiliation Code: 2132891 • Session {new Date().getFullYear()}–{new Date().getFullYear() + 1} • Form §5.3
                 </p>
               </div>
               <button

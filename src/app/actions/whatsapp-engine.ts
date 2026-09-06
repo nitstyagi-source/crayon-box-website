@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -59,7 +57,7 @@ export async function getWhatsAppDashboardAction(campusId: string = "default") {
     `, [campusId]);
     const settings = setRes.rows[0] || {
       provider: "meta_cloud",
-      sender_phone: "+919876543210",
+      sender_phone: "",
       upi_vpa: "crayonbox@icici",
       upi_payee_name: "Crayon Box School",
       auto_absent_alert_enabled: true,
@@ -139,23 +137,19 @@ export async function sendAbsenteeAlertsAction(params: {
       ${params.selectedClass && params.selectedClass !== 'All' ? `AND COALESCE(c.grade, 'Class 1') = '${params.selectedClass}'` : ''}
     `, [targetDate]);
 
-    let absentStudents = absentRes.rows;
+    const absentStudents = absentRes.rows;
 
     if (absentStudents.length === 0) {
-      const sampleRes = await client.query(`
-        SELECT s.id, s.first_name, s.last_name, COALESCE(s.primary_contact, '+919810081008') as primary_contact,
-               COALESCE(c.grade, 'Class 1') as class_name, COALESCE(c.section, 'A') as section_name
-        FROM public.students s
-        LEFT JOIN public.classes c ON c.id = s.class_id
-        WHERE s.status = 'ACTIVE'
-        LIMIT 3;
-      `);
-      absentStudents = sampleRes.rows;
+      return {
+        success: true,
+        message: `No unexcused absentees recorded for ${targetDate}. Zero alert messages dispatched.`
+      };
     }
 
     let dispatchedCount = 0;
     for (const stu of absentStudents) {
-      const phone = stu.primary_contact || stu.father_phone || stu.mother_phone || "+919876543210";
+      const phone = stu.primary_contact || stu.father_phone || stu.mother_phone;
+      if (!phone) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
       const msgContent = `🚨 *Crayon Box School — Attendance Notice*\n\nDear Parent, your ward *${studentName}* (${stu.class_name}-${stu.section_name}) has been marked *ABSENT* today (${targetDate}).\n\nIf this was an unannounced absence, please submit a leave note or contact the class teacher.\n\n_Crayon Box School Administration_`;
 
@@ -202,22 +196,35 @@ export async function sendFeeDueRemindersAction(params: {
     const upiVpa = setRes.rows[0]?.upi_vpa || "crayonbox@icici";
     const upiPayee = setRes.rows[0]?.upi_payee_name || "Crayon Box School";
 
-    // Query students with outstanding dues
+    // Query students with outstanding dues from student_invoices
     const stuRes = await client.query(`
-      SELECT s.id, s.first_name, s.last_name, COALESCE(s.primary_contact, '+919810081008') as primary_contact,
-             COALESCE(c.grade, 'Class 1') as class_name, COALESCE(c.section, 'A') as section_name
+      SELECT s.id, s.first_name, s.last_name, 
+             COALESCE(s.parent_phone, s.primary_contact) as primary_contact,
+             COALESCE(c.grade, 'Class 1') as class_name, COALESCE(c.section, 'A') as section_name,
+             COALESCE(SUM(inv.total_amount + COALESCE(inv.total_late_fee, 0) - COALESCE(inv.amount_paid, 0)), 0) as balance_due
       FROM public.students s
       LEFT JOIN public.classes c ON c.id = s.class_id
+      INNER JOIN public.student_invoices inv ON inv.student_id = s.id AND inv.status = 'UNPAID'
       WHERE s.status = 'ACTIVE'
       ${params.selectedClass && params.selectedClass !== 'All' ? `AND COALESCE(c.grade, 'Class 1') = '${params.selectedClass}'` : ''}
-      ORDER BY s.admission_no ASC
-      LIMIT 10;
+      GROUP BY s.id, s.first_name, s.last_name, s.parent_phone, s.primary_contact, c.grade, c.section
+      HAVING SUM(inv.total_amount + COALESCE(inv.total_late_fee, 0) - COALESCE(inv.amount_paid, 0)) > 0
+      ORDER BY balance_due DESC
+      LIMIT 15;
     `);
+
+    if (stuRes.rows.length === 0) {
+      return {
+        success: true,
+        message: "No outstanding unpaid student fee invoices found."
+      };
+    }
 
     let sentCount = 0;
     for (const stu of stuRes.rows) {
+      if (!stu.primary_contact) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
-      const dueAmount = 4500; // Standard term fee due
+      const dueAmount = Number(stu.balance_due) || 0;
       const webPayLink = `https://www.crayonboxschool.com/fees/pay?studentId=${stu.id}&amount=${dueAmount}`;
 
       const msgContent = `💳 *Crayon Box School — Fee Due Reminder*\n\nDear Parent, the school fee for *${studentName}* (${stu.class_name}-${stu.section_name}) is currently due:\n\n• *Amount Due*: ₹${dueAmount.toLocaleString('en-IN')}\n• *Due Date*: 10th of this Month\n\n⚡ *1-Click Instant UPI Payment*:\n${webPayLink}\n\n_Thank you for your prompt cooperation._\n_Accounts Office, Crayon Box School_`;
@@ -235,7 +242,7 @@ export async function sendFeeDueRemindersAction(params: {
     safeRevalidate('/admin/communications/whatsapp');
     return {
       success: true,
-      message: `Successfully dispatched ${sentCount} 1-click UPI fee reminder messages via WhatsApp!`
+      message: `Successfully dispatched ${sentCount} 1-click UPI fee reminder messages with verified invoice balances via WhatsApp!`
     };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -262,17 +269,20 @@ export async function sendBroadcastMessageAction(params: {
 
     // Query recipient parent phones
     const stuRes = await client.query(`
-      SELECT s.id, s.first_name, s.last_name, COALESCE(s.primary_contact, '+919810081008') as primary_contact,
+      SELECT s.id, s.first_name, s.last_name, 
+             COALESCE(s.parent_phone, s.primary_contact) as primary_contact,
              COALESCE(c.grade, 'Class 1') as class_name, COALESCE(c.section, 'A') as section_name
       FROM public.students s
       LEFT JOIN public.classes c ON c.id = s.class_id
       WHERE s.status = 'ACTIVE'
+        AND COALESCE(s.parent_phone, s.primary_contact) IS NOT NULL
       ${params.targetAudience === 'CLASS' && params.selectedClass ? `AND COALESCE(c.grade, 'Class 1') = '${params.selectedClass}'` : ''}
       LIMIT 50;
     `);
 
     let count = 0;
     for (const stu of stuRes.rows) {
+      if (!stu.primary_contact) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
       const formattedContent = `📢 *Crayon Box School Announcement*\n\n*${params.title}*\n\n${params.message}\n\n_Ref: Student ${studentName} (${stu.class_name}-${stu.section_name})_\n_Crayon Box School Administration_`;
 

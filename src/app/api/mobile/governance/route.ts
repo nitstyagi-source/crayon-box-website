@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import pg from "pg";
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
 }
 
 export async function GET(request: NextRequest) {
@@ -86,8 +88,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 
@@ -200,7 +200,5 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }

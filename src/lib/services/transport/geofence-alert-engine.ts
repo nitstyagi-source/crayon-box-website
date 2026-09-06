@@ -117,49 +117,7 @@ export async function getGeofenceAlertHistoryAction(limit: number = 20) {
       .limit(limit);
 
     if (error || !data || data.length === 0) {
-      // Mock realistic dispatched alert history
-      const mockHistory: GeofenceAlert[] = [
-        {
-          id: 'geo-1',
-          bus_number: 'Bus 01 (DL-1PC-4501)',
-          route_name: 'Route 1A (Burari - Sant Nagar)',
-          stop_name: 'Sant Nagar Main Market (Chowk)',
-          student_name: 'Aarav Sharma (Class 5-A)',
-          parent_phone: '+91 98112 34567',
-          distance_km: 0.8,
-          eta_minutes: 4,
-          dispatched_at: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
-          status: 'DELIVERED',
-          message_preview: 'Crayon Box Alert: Bus 01 is 800m (approx 4 mins) away from Sant Nagar Main Market. Please arrive at pickup point.'
-        },
-        {
-          id: 'geo-2',
-          bus_number: 'Bus 04 (DL-1PC-4504)',
-          route_name: 'Route 4B (Rohini Express)',
-          stop_name: 'Rohini Sector 9 DC Chowk',
-          student_name: 'Kavya Tyagi (Class 3-B)',
-          parent_phone: '+91 99990 12345',
-          distance_km: 1.1,
-          eta_minutes: 6,
-          dispatched_at: new Date(Date.now() - 1000 * 60 * 19).toISOString(),
-          status: 'DELIVERED',
-          message_preview: 'Crayon Box Alert: Bus 04 is 1.1km away from Rohini Sector 9. ETA ~6 minutes.'
-        },
-        {
-          id: 'geo-3',
-          bus_number: 'Bus 02 (DL-1PC-4502)',
-          route_name: 'Route 2 (Model Town)',
-          stop_name: 'Model Town Phase 2 Metro Gate 3',
-          student_name: 'Reyansh Gupta (Class 1-A)',
-          parent_phone: '+91 98710 44321',
-          distance_km: 0.9,
-          eta_minutes: 5,
-          dispatched_at: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-          status: 'DELIVERED',
-          message_preview: 'Crayon Box Alert: Bus 02 is approaching Model Town Gate 3. Please be at designated stop.'
-        }
-      ];
-      return { success: true, alerts: mockHistory };
+      return { success: true, alerts: [] };
     }
 
     const alerts: GeofenceAlert[] = data.map((d: any) => ({

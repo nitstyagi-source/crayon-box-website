@@ -29,7 +29,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
   // Form State
   const [formData, setFormData] = useState({
     // A. System
-    academicSession: "2026-2027",
+    academicSession: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
     institutionCode: "CBS",
     admissionClass: "Nursery",
     admissionType: "NEW",
@@ -39,7 +39,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
     childFirstName: "",
     childMiddleName: "",
     childLastName: "",
-    childDob: "2022-04-15",
+    childDob: "",
     childGender: "Male",
     nationality: "Indian",
     bloodGroup: "O+",
@@ -94,8 +94,8 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
     visitRequested: true,
     visitDate: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
     visitSlot: "10:30 AM - Morning Slot",
-    assignedCounsellorName: "Pooja Verma (Admissions Lead)",
-    counsellorNotes: "Parent enquired via phone / walk-in. Very keen on robotics and safe bus transit.",
+    assignedCounsellorName: "",
+    counsellorNotes: "",
     preferredContactChannel: "WHATSAPP",
     preferredContactTime: "Evening (4 PM - 7 PM)",
 
@@ -106,15 +106,19 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
 
   // Dynamic Age Computation
   const [calculatedAge, setCalculatedAge] = useState<{ years: number; months: number; text: string }>({
-    years: 3,
-    months: 11,
-    text: "3 Yrs 11 Mos (Eligible for Nursery)"
+    years: 0,
+    months: 0,
+    text: "Select Date of Birth to calculate"
   });
 
   useEffect(() => {
-    if (!formData.childDob) return;
+    if (!formData.childDob) {
+      setCalculatedAge({ years: 0, months: 0, text: "Select Date of Birth to calculate" });
+      return;
+    }
     const dob = new Date(formData.childDob);
-    const cutoff = new Date("2026-03-31");
+    const currentYear = new Date().getFullYear();
+    const cutoff = new Date(`${currentYear}-03-31`);
     if (isNaN(dob.getTime())) return;
 
     let yrs = cutoff.getFullYear() - dob.getFullYear();
@@ -124,7 +128,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
       yrs--;
       mos += 12;
     }
-    const txt = `${Math.max(0, yrs)} Yrs ${Math.max(0, mos)} Mos as on 31 Mar 2026`;
+    const txt = `${Math.max(0, yrs)} Yrs ${Math.max(0, mos)} Mos as on 31 Mar ${cutoff.getFullYear()}`;
     setCalculatedAge({ years: yrs, months: mos, text: txt });
   }, [formData.childDob]);
 
@@ -301,7 +305,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
               Internal ERP Intake
             </span>
             <span className="text-xs text-slate-400">•</span>
-            <span className="text-xs font-bold text-slate-600">Session 2026-2027</span>
+            <span className="text-xs font-bold text-slate-600">Session {formData.academicSession}</span>
           </div>
           <h2 className="text-xl font-black text-slate-900 mt-1">
             New School Admission Enquiry Master
@@ -497,7 +501,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
               <input
                 type="tel"
                 required
-                placeholder="9811102008"
+                placeholder="98XXXXXXXX"
                 value={formData.primaryGuardianPhone}
                 onChange={e => setFormData({ ...formData, primaryGuardianPhone: e.target.value, primaryGuardianWhatsapp: e.target.value })}
                 className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-bold"
@@ -766,7 +770,18 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
           <Clock className="w-4 h-4 text-rose-600" /> I &amp; J. Campus Tour &amp; Counsellor Action
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Counsellor</label>
+            <input
+              type="text"
+              value={formData.assignedCounsellorName}
+              onChange={e => setFormData({ ...formData, assignedCounsellorName: e.target.value })}
+              placeholder="e.g. Counsellor Full Name"
+              className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+            />
+          </div>
+
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Campus Tour Date</label>
             <input

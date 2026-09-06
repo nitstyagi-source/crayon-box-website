@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import pg from "pg";
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
 }
 
 export async function GET(request: NextRequest) {
@@ -39,12 +41,16 @@ export async function GET(request: NextRequest) {
        ORDER BY created_at ASC;`
     ).catch(() => ({ rows: [] }));
 
-    // 3. Fetch User Account Role Counts
-    const usersCountRes = await pool.query(
-      `SELECT role, count(*) as count 
-       FROM public.user_accounts 
-       GROUP BY role;`
-    ).catch(() => ({ rows: [] }));
+    // 3. Fetch User Account Role Counts, Students, Staff, Houses, Departments, Fee Heads, and Registered Parents
+    const [usersCountRes, totalStudentsRes, totalStaffRes, housesRes, deptsRes, feeHeadsRes, parentsCountRes] = await Promise.all([
+      pool.query(`SELECT role, count(*) as count FROM public.user_accounts GROUP BY role;`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT count(*)::int as count FROM public.students WHERE status IN ('Active', 'Enrolled', 'Admitted');`).catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query(`SELECT count(*)::int as count FROM public.staff WHERE status = 'Active';`).catch(() => ({ rows: [{ count: 0 }] })),
+      pool.query(`SELECT id, name, color, motto, captain_student_name as captain FROM public.school_houses ORDER BY created_at ASC;`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT department as name, count(*)::int as "staffCount" FROM public.staff WHERE department IS NOT NULL AND TRIM(department) != '' GROUP BY department ORDER BY department ASC;`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT id, name, code, is_mandatory as mandatory, 'Quarterly' as frequency FROM public.fee_heads WHERE is_active = true ORDER BY name ASC;`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT count(*)::int as count FROM public.student_guardians;`).catch(() => pool.query(`SELECT count(*)::int as count FROM public.student_parents;`)).catch(() => ({ rows: [{ count: 0 }] }))
+    ]);
 
     const classes = classesRes.rows.length > 0 ? classesRes.rows : [
       { id: 'cls-1', grade: 'Pre-Nursery', section: 'A', room_no: 'Early Years Wing 101', capacity: 25 },
@@ -62,55 +68,72 @@ export async function GET(request: NextRequest) {
       { id: 'cls-13', grade: 'Class 10', section: 'A', room_no: 'Senior Wing 404', capacity: 40 }
     ];
 
-    const institutions = instsRes.rows.length > 0 ? instsRes.rows : [
-      { code: 'CBS', name: 'Crayon Box School', shortName: 'Crayon Box School', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: '2130894', principalName: 'Dr. Meenakshi Sunder', address: 'Plot 4, Sector 62, Noida, UP' },
-      { code: 'CBPS', name: 'Crayon Box Pre School', shortName: 'Crayon Box Pre-School', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Shalini Mehta', address: 'Shastri Park Extn., Delhi NCR' },
-      { code: 'AS', name: 'Avinya School', shortName: 'Avinya School (Kindergarten)', institutionType: 'PRE_SCHOOL', boardAffiliation: 'MONTESSORI', principalName: 'Mrs. Pratibha Joshi', address: 'Virender Nagar Burari, Delhi 110084' },
-      { code: 'AVM', name: 'Avinya Vidya Mandir', shortName: 'Avinya Vidya Mandir', institutionType: 'K12_SCHOOL', boardAffiliation: 'STATE_BOARD', affiliationNumber: 'REG/AFF/2130992', principalName: 'Prof. Ramesh Chandra', address: 'Virender Nagar Burari, Delhi 110084' }
-    ];
+    const institutions = instsRes.rows;
 
-    const departments = [
-      { id: 'dept-1', name: 'Sciences & Robotics', head: 'Dr. Arvind Gupta', staffCount: 18, wing: 'Middle & Senior' },
-      { id: 'dept-2', name: 'Mathematics & Computing', head: 'Mrs. S. Ranganathan', staffCount: 16, wing: 'All Wings' },
-      { id: 'dept-3', name: 'Languages & Literature', head: 'Mrs. Ananya Sharma', staffCount: 22, wing: 'All Wings' },
-      { id: 'dept-4', name: 'Social Sciences & Humanities', head: 'Mr. Rajesh Verma', staffCount: 14, wing: 'Middle & Senior' },
-      { id: 'dept-5', name: 'Performing Arts & Music', head: 'Mrs. Kavita Roy', staffCount: 10, wing: 'All Wings' },
-      { id: 'dept-6', name: 'Physical Education & Sports', head: 'Coach Virender Singh', staffCount: 8, wing: 'Campus-wide' }
-    ];
+    const departments = deptsRes.rows.length > 0
+      ? deptsRes.rows.map((d: any, idx: number) => ({
+          id: `dept-${idx + 1}`,
+          name: d.name,
+          head: 'Department Head',
+          staffCount: d.staffCount || 1,
+          wing: 'Academic Wing'
+        }))
+      : [];
 
+    const currentYear = new Date().getFullYear();
     const academicSessions = [
-      { id: 'sess-2026', code: '2026-2027', name: 'Academic Year 2026-27', isCurrent: true, startDate: '2026-04-01', endDate: '2027-03-31' },
-      { id: 'sess-2025', code: '2025-2026', name: 'Academic Year 2025-26', isCurrent: false, startDate: '2025-04-01', endDate: '2026-03-31' }
+      {
+        id: `sess-${currentYear}`,
+        code: `${currentYear}-${currentYear + 1}`,
+        name: `Academic Year ${currentYear}-${(currentYear + 1).toString().slice(-2)}`,
+        isCurrent: true,
+        startDate: `${currentYear}-04-01`,
+        endDate: `${currentYear + 1}-03-31`
+      },
+      {
+        id: `sess-${currentYear - 1}`,
+        code: `${currentYear - 1}-${currentYear}`,
+        name: `Academic Year ${currentYear - 1}-${currentYear.toString().slice(-2)}`,
+        isCurrent: false,
+        startDate: `${currentYear - 1}-04-01`,
+        endDate: `${currentYear}-03-31`
+      },
+      {
+        id: `sess-${currentYear + 1}`,
+        code: `${currentYear + 1}-${currentYear + 2}`,
+        name: `Academic Year ${currentYear + 1}-${(currentYear + 2).toString().slice(-2)}`,
+        isCurrent: false,
+        startDate: `${currentYear + 1}-04-01`,
+        endDate: `${currentYear + 2}-03-31`
+      }
     ];
 
-    const houses = [
-      { id: 'house-1', name: 'Agni House', color: '#EF4444', motto: 'Courage & Radiance', captain: 'Aarav Sharma (Gr 10)' },
-      { id: 'house-2', name: 'Prithvi House', color: '#10B981', motto: 'Steadfast & Resilient', captain: 'Diya Patel (Gr 10)' },
-      { id: 'house-3', name: 'Vayu House', color: '#3B82F6', motto: 'Swift & Adaptable', captain: 'Kabir Verma (Gr 10)' },
-      { id: 'house-4', name: 'Jal House', color: '#8B5CF6', motto: 'Wisdom & Depth', captain: 'Ananya Nair (Gr 10)' }
-    ];
+    const houses = housesRes.rows;
 
-    const feeHeads = [
-      { id: 'fee-1', name: 'Tuition Fee (Quarterly)', code: 'TUF', frequency: 'Quarterly', mandatory: true },
-      { id: 'fee-2', name: 'AI & Robotics Lab Fee', code: 'AIL', frequency: 'Annual', mandatory: true },
-      { id: 'fee-3', name: 'Air-Conditioned Transport Fee', code: 'TRN', frequency: 'Monthly', mandatory: false },
-      { id: 'fee-4', name: 'Annual Development & Composite', code: 'ADC', frequency: 'Annual', mandatory: true },
-      { id: 'fee-5', name: 'Smart Canteen & Meal Plan', code: 'CAN', frequency: 'Monthly', mandatory: false }
-    ];
+    const feeHeads = feeHeadsRes.rows;
+
+    const roleCountMap: Record<string, number> = {};
+    usersCountRes.rows.forEach((r: any) => {
+      roleCountMap[r.role?.toUpperCase()] = parseInt(r.count, 10) || 0;
+    });
+
+    const studentCount = parseInt(totalStudentsRes.rows[0]?.count || '0', 10);
+    const staffCount = parseInt(totalStaffRes.rows[0]?.count || '0', 10);
+    const authenticParentCount = parseInt(parentsCountRes.rows[0]?.count || '0', 10);
 
     const iamRoleStats = [
-      { role: 'SUPER_ADMIN', label: 'Super Administrators', count: 3, permissions: 'Full System & Statutory Control' },
-      { role: 'PRINCIPAL', label: 'Principals & Heads', count: 4, permissions: 'Academic, HR, Approvals & Safety' },
-      { role: 'TEACHER', label: 'Teaching Faculty', count: 94, permissions: 'Attendance, Homework, Grades, Diary' },
-      { role: 'PARENT', label: 'Registered Parents', count: 1248, permissions: 'Live CCTV, Bus GPS, Fees, Reports' },
-      { role: 'STUDENT', label: 'Student Accounts', count: 1480, permissions: 'Timetable, Library, LMS, Identity' },
-      { role: 'DRIVER', label: 'Fleet Drivers & Escorts', count: 8, permissions: 'GPS Telematics, Route Stops, SOS' }
+      { role: 'SUPER_ADMIN', label: 'Super Administrators', count: roleCountMap['SUPER_ADMIN'] || roleCountMap['ADMIN'] || 0, permissions: 'Full System & Statutory Control' },
+      { role: 'PRINCIPAL', label: 'Principals & Heads', count: roleCountMap['PRINCIPAL'] || 0, permissions: 'Academic, HR, Approvals & Safety' },
+      { role: 'TEACHER', label: 'Teaching Faculty', count: roleCountMap['TEACHER'] || staffCount, permissions: 'Attendance, Homework, Grades, Diary' },
+      { role: 'PARENT', label: 'Registered Parents', count: roleCountMap['PARENT'] || authenticParentCount, permissions: 'Live CCTV, Bus GPS, Fees, Reports' },
+      { role: 'STUDENT', label: 'Student Accounts', count: roleCountMap['STUDENT'] || studentCount, permissions: 'Timetable, Library, LMS, Identity' },
+      { role: 'DRIVER', label: 'Fleet Drivers & Escorts', count: roleCountMap['DRIVER'] || 0, permissions: 'GPS Telematics, Route Stops, SOS' }
     ];
 
     const systemIntegrity = {
       overallScorePercent: 100,
-      totalUniversalStudents: 1480,
-      totalUniversalStaff: 94,
+      totalUniversalStudents: studentCount,
+      totalUniversalStaff: staffCount,
       syncedModules: ['SIS', 'Biometric Gate', 'Fee Ledger', 'HLS Stream', 'GPS Telematics', 'Library OPAC'],
       lastSyncTimestamp: new Date().toISOString()
     };
@@ -130,7 +153,5 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }

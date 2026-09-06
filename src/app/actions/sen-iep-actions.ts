@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -156,18 +154,25 @@ export async function createSenProfileAction(params: {
   const client = await p.connect();
 
   try {
-    // Generate UUID or link to student
-    const stuRes = await client.query(`SELECT id FROM public.students LIMIT 1;`);
-    const studentId = stuRes.rows[0]?.id || '00000000-0000-0000-0000-000000000001';
+    // Match student by name or generate unique record
+    let studentId: string | null = null;
+    const stuMatch = await client.query(
+      `SELECT id FROM public.students WHERE (first_name || ' ' || COALESCE(last_name, '')) ILIKE $1 LIMIT 1;`,
+      [`%${params.studentName.trim()}%`]
+    );
+    if (stuMatch.rows.length > 0) {
+      studentId = stuMatch.rows[0].id;
+    }
 
     const res = await client.query(`
       INSERT INTO public.sen_student_profiles (
         student_id, student_name, class_name, primary_category, case_status,
         lead_specialist_name, shadow_educator_name, general_summary
       ) VALUES (
-        gen_random_uuid(), $1, $2, $3, 'ACTIVE', $4, $5, $6
+        COALESCE($1, gen_random_uuid()), $2, $3, $4, 'ACTIVE', $5, $6, $7
       ) RETURNING id;
     `, [
+      studentId,
       params.studentName,
       params.className,
       params.primaryCategory,

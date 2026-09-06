@@ -11,8 +11,19 @@ import {
   getParentConsentDashboardAction,
   submitDigitalParentConsentAction
 } from "@/app/actions/communication-actions";
+import { getSiblingsForContextAction } from "@/app/actions/students";
 
-export function ParentConsentDesk() {
+interface ParentConsentDeskProps {
+  initialStudentId?: string;
+  initialStudentName?: string;
+  initialParentName?: string;
+}
+
+export function ParentConsentDesk({
+  initialStudentId = "",
+  initialStudentName = "",
+  initialParentName = "Parent / Guardian"
+}: ParentConsentDeskProps = {}) {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions } = useInstitution();
 
   const [forms, setForms] = useState<any[]>([]);
@@ -25,9 +36,11 @@ export function ParentConsentDesk() {
   const [isLoading, setIsLoading] = useState(true);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
 
-  // Digital Signature Simulation Modal
+  // Digital Signature State
   const [activeSignForm, setActiveSignForm] = useState<any | null>(null);
-  const [parentName, setParentName] = useState("Pooja Verma");
+  const [students, setStudents] = useState<Array<{ id: string; firstName: string; grade: string }>>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(initialStudentId);
+  const [parentName, setParentName] = useState(initialParentName);
   const [signStatus, setSignStatus] = useState<"APPROVED" | "DECLINED">("APPROVED");
   const [isSigning, setIsSigning] = useState(false);
 
@@ -43,7 +56,16 @@ export function ParentConsentDesk() {
 
   useEffect(() => {
     fetchConsents();
-  }, []);
+    // Fetch real enrolled students
+    getSiblingsForContextAction().then((res) => {
+      if (res.success && res.data.length > 0) {
+        setStudents(res.data);
+        if (!initialStudentId) {
+          setSelectedStudentId(res.data[0].id);
+        }
+      }
+    });
+  }, [initialStudentId]);
 
   const handleSendReminderNudge = (formTitle: string, pending: number) => {
     setNudgeMessage(`📲 Automated WhatsApp Nudge Dispatched to ${pending} pending parents for "${formTitle}"!`);
@@ -57,7 +79,7 @@ export function ParentConsentDesk() {
     setIsSigning(true);
     const res = await submitDigitalParentConsentAction({
       formId: activeSignForm.id,
-      studentId: "3e6b0d63-7a91-47b4-800e-8886b23f3701", // Rohan Verma
+      studentId: selectedStudentId || "student-auto",
       parentName,
       status: signStatus
     });
@@ -210,8 +232,24 @@ export function ParentConsentDesk() {
 
             <form onSubmit={handleSignatureSubmit} className="space-y-4 text-xs">
               <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFC8] text-stone-700 space-y-1">
-                <span className="text-[10px] font-bold uppercase text-stone-500 block">Student Information</span>
-                <strong className="text-stone-900 text-sm block">Rohan Verma (Class 1A • CBS-2026-0001)</strong>
+                <span className="text-[10px] font-bold uppercase text-stone-500 block">Student Authorization For</span>
+                {students.length > 0 ? (
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full bg-white border border-[#E8DFC8] rounded-lg px-2.5 py-1.5 font-bold text-stone-900 text-xs focus:outline-none"
+                  >
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.firstName} ({s.grade})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <strong className="text-stone-900 text-sm block">
+                    {initialStudentName || "Enrolled Student"}
+                  </strong>
+                )}
               </div>
 
               <div>

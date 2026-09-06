@@ -129,17 +129,17 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
 
       return {
         ...s,
-        class_name: h?.class_name || 'Grade 3',
-        section_name: h?.section_name || 'A',
+        class_name: h?.class_name || s.grade || 'N/A',
+        section_name: h?.section_name || s.section || 'A',
         roll_no: h?.roll_no || s.roll_no || `${idx + 1}`,
         card_number: card?.card_number || `CB-STU-2026-${(idx + 1).toString().padStart(4, '0')}`,
         qr_token: defaultQr,
         card_status: card?.status || 'Active',
         expiry_date: card?.expiry_date || '2027-03-31',
-        parent_phone: parentMap[s.id] || '+91 9811102008',
-        father_name: fatherMap[s.id] || 'Mr. Rajesh Sharma',
-        mother_name: motherMap[s.id] || 'Mrs. Sunita Sharma',
-        transport_route: s.transport_route || 'Route #04 (Burari Main)',
+        parent_phone: parentMap[s.id] || '',
+        father_name: fatherMap[s.id] || '',
+        mother_name: motherMap[s.id] || '',
+        transport_route: s.transport_route || 'Self / Private',
         has_generated_card: !!card
       };
     });
@@ -527,9 +527,12 @@ export async function blockAndReplaceIdCard(cardId: string, reason: string) {
       .eq('id', cardId);
 
     // 3. Issue Replacement Card with new secure token
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const { count: cardCount } = await supabase
+      .from('id_cards')
+      .select('*', { count: 'exact', head: true });
+    const replSeq = String((cardCount || 0) + 1).padStart(4, '0');
     const newCardNumber = `${existingCard.card_number}-R${(existingCard.reprint_count || 0) + 1}`;
-    const newQrToken = `CBS-SEC-REPL-${randomSuffix}-${Date.now().toString().slice(-6)}`;
+    const newQrToken = `CBS-SEC-REPL-${replSeq}-${Date.now().toString().slice(-6)}`;
 
     const { data: replacementCard, error: insertErr } = await supabase
       .from('id_cards')
@@ -577,8 +580,11 @@ export async function createTemporaryEscortPass(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const passCode = `CB-PASS-${randomNum}`;
+    const { count: passCount } = await supabase
+      .from('temporary_escort_passes')
+      .select('*', { count: 'exact', head: true });
+    const nextPassSeq = String((passCount || 0) + 1).padStart(4, '0');
+    const passCode = `CB-PASS-${nextPassSeq}`;
     const todayStr = new Date().toISOString().split('T')[0];
 
     const { data: pass, error } = await supabase
@@ -623,7 +629,11 @@ export async function addEscortToStudent(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const randomCode = `ESC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { count: escortCount } = await supabase
+      .from('escorts')
+      .select('*', { count: 'exact', head: true });
+    const nextEscortSeq = String((escortCount || 0) + 1).padStart(4, '0');
+    const randomCode = `ESC-2026-${nextEscortSeq}`;
 
     // 1. Insert Escort record
     const { data: escort, error: escErr } = await supabase

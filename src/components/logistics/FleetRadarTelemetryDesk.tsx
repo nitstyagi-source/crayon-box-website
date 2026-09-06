@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import {
   getFleetLiveTelemetryAction,
-  recordStudentBusScanAction
+  recordStudentBusScanAction,
+  getBusPassengerManifestAction
 } from "@/app/actions/transport-telematics-actions";
 
 export function FleetRadarTelemetryDesk() {
@@ -30,14 +31,7 @@ export function FleetRadarTelemetryDesk() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [simulationActive, setSimulationActive] = useState(true);
-
-  // Sample Onboard Students Manifest for active route
-  const [manifest, setManifest] = useState([
-    { id: "STU-101", name: "Aarav Sharma", class: "Class 1-B", stop: "Sant Nagar Main Market", status: "BOARDED", phone: "+919810081008", time: "07:42 AM" },
-    { id: "STU-102", name: "Ananya Verma", class: "Class 3-A", stop: "Burari Chowk", status: "BOARDED", phone: "+919876500112", time: "07:46 AM" },
-    { id: "STU-103", name: "Kabir Mehta", class: "Class 5", stop: "Kamalpur Road", status: "WAITING", phone: "+919876500113", time: "ETA 4 min" },
-    { id: "STU-104", name: "Riya Kapoor", class: "Class 2-A", stop: "Milan Vihar Stop", status: "WAITING", phone: "+919876500114", time: "ETA 9 min" },
-  ]);
+  const [manifest, setManifest] = useState<any[]>([]);
 
   useEffect(() => {
     loadFleet();
@@ -47,11 +41,29 @@ export function FleetRadarTelemetryDesk() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (selectedBusNumber) {
+      loadManifest(selectedBusNumber);
+    }
+  }, [selectedBusNumber]);
+
+  async function loadManifest(busNo: string) {
+    try {
+      const res = await getBusPassengerManifestAction(busNo);
+      if (res.success && res.manifest) {
+        setManifest(res.manifest);
+      }
+    } catch (_) {}
+  }
+
   async function loadFleet() {
     try {
       const res = await getFleetLiveTelemetryAction();
       if (res.success) {
         setFleetData(res);
+        if (!selectedBusNumber && res.buses?.length > 0) {
+          setSelectedBusNumber(res.buses[0].bus_number);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -79,15 +91,15 @@ export function FleetRadarTelemetryDesk() {
   }
 
   const activeBus = fleetData?.buses?.find((b: any) => b.bus_number === selectedBusNumber) || fleetData?.buses?.[0] || {
-    bus_number: "BUS-01",
+    bus_number: selectedBusNumber || "BUS-01",
     registration_number: "DL-1PA-8821",
-    driver_name: "Ramesh Kumar",
-    driver_phone: "+919876543201",
-    attendant_name: "Sunita Devi",
-    route_name: "Route 01 — Burari Main to Sant Nagar",
-    current_speed_kmh: 32,
-    current_location_name: "Sant Nagar Chowk",
-    status: "Running"
+    driver_name: "Transport Driver",
+    driver_phone: "N/A",
+    attendant_name: "Bus Attendant",
+    route_name: "Campus Transit Route",
+    current_speed_kmh: 0,
+    current_location_name: "Campus Terminal",
+    status: "Active"
   };
 
   return (
@@ -302,43 +314,51 @@ export function FleetRadarTelemetryDesk() {
 
           {/* Student Roster List */}
           <div className="space-y-3">
-            {manifest.map((stu) => (
-              <div
-                key={stu.id}
-                className="p-3.5 rounded-2xl border border-stone-200 hover:border-emerald-300 bg-stone-50/50 flex flex-col space-y-2 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <strong className="text-stone-900 font-black">{stu.name}</strong>
-                    <div className="text-[10px] text-stone-500">{stu.class} • Stop: {stu.stop}</div>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                    stu.status === 'BOARDED'
-                      ? 'bg-emerald-100 text-emerald-900'
-                      : 'bg-amber-100 text-amber-900'
-                  }`}>
-                    {stu.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-stone-200/60">
-                  <span className="text-[10px] text-stone-400 font-mono">{stu.time}</span>
-                  {stu.status !== 'BOARDED' ? (
-                    <button
-                      onClick={() => handleMarkBoarded(stu)}
-                      disabled={isProcessing}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 shadow-xs transition active:scale-95 disabled:opacity-50"
-                    >
-                      <Send className="w-3 h-3" /> Mark Boarded &amp; Alert Parent
-                    </button>
-                  ) : (
-                    <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Parent Notified via WhatsApp
+            {manifest && manifest.length > 0 ? (
+              manifest.map((stu) => (
+                <div
+                  key={stu.id}
+                  className="p-3.5 rounded-2xl border border-stone-200 hover:border-emerald-300 bg-stone-50/50 flex flex-col space-y-2 text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <strong className="text-stone-900 font-black">{stu.name}</strong>
+                      <div className="text-[10px] text-stone-500">{stu.class} • Stop: {stu.stop}</div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      stu.status === 'BOARDED'
+                        ? 'bg-emerald-100 text-emerald-900'
+                        : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {stu.status}
                     </span>
-                  )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-200/60">
+                    <span className="text-[10px] text-stone-400 font-mono">{stu.time}</span>
+                    {stu.status !== 'BOARDED' ? (
+                      <button
+                        onClick={() => handleMarkBoarded(stu)}
+                        disabled={isProcessing}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 shadow-xs transition active:scale-95 disabled:opacity-50"
+                      >
+                        <Send className="w-3 h-3" /> Mark Boarded &amp; Alert Parent
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Parent Notified via WhatsApp
+                      </span>
+                    )}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-stone-400 border border-dashed border-stone-200 rounded-2xl space-y-1">
+                <Users className="w-8 h-8 mx-auto text-stone-300 mb-2" />
+                <div className="text-xs font-bold text-stone-600">No passengers assigned to {selectedBusNumber}</div>
+                <div className="text-[10px] text-stone-400">Allocate students to this route in Transport Allocations to see live manifests.</div>
               </div>
-            ))}
+            )}
           </div>
 
         </div>

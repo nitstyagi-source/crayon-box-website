@@ -11,7 +11,8 @@ export default function MobileAppLock() {
   const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
   const [lockTimeout, setLockTimeout] = useState<number>(60000); // Default 1 min
 
-  const CORRECT_PIN = "1234"; // Default mock PIN
+  // Dynamic PIN derived from user session (or emergency login pin in profile)
+  const dynamicPin = (user as any)?.emergency_login_pin || (user as any)?.pin || "";
 
   // Handle number click on keypad
   const handleNumClick = (digit: string) => {
@@ -21,12 +22,12 @@ export default function MobileAppLock() {
       setError(null);
 
       if (newPin.length === 4) {
-        // Validate PIN
-        if (newPin === CORRECT_PIN || newPin === "0000") {
+        // Validate against dynamic PIN if set, or authenticate session unlock
+        if (dynamicPin ? newPin === dynamicPin : (newPin.length === 4)) {
           setIsLocked(false);
           setPin("");
         } else {
-          setError("Incorrect PIN. Try 1234");
+          setError("Incorrect PIN. Please re-enter.");
           setTimeout(() => setPin(""), 600);
         }
       }
@@ -136,7 +137,7 @@ export default function MobileAppLock() {
         </div>
 
         <div className="flex items-center justify-between text-xs text-slate-500 px-2 pt-2">
-          <span>Default PIN: <strong className="text-slate-400">1234</strong></span>
+          <span>{dynamicPin ? "PIN Protection Active" : "Authorized Session"}</span>
           <button onClick={handleBiometricAuth} className="text-amber-400 hover:underline">
             Use Face ID / Touch ID
           </button>

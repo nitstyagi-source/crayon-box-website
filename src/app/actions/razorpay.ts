@@ -2,13 +2,22 @@
 
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_mock",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "mock_secret",
-});
+function getRazorpayClient() {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) return null;
+  return new Razorpay({ key_id, key_secret });
+}
 
 export async function createRazorpayOrder(invoiceId: string, amount: number) {
   try {
+    const razorpay = getRazorpayClient();
+    if (!razorpay) {
+      return { 
+        success: false, 
+        error: "Payment gateway credentials (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET) are not configured." 
+      };
+    }
     // 1. Create order on Razorpay
     const options = {
       amount: Math.round(amount * 100), // amount in the smallest currency unit (paise)

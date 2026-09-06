@@ -12,7 +12,7 @@ import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
 import { createClient } from '@/lib/supabase/client';
 import { clearServerAuthSession } from '@/app/actions/auth';
-import { getTrustDetailsAction, updateTrustDetailsAction } from '@/app/actions/governance-analytics-actions';
+import { getTrustDetailsAction, updateTrustDetailsAction, getAcademicSessionsAction } from '@/app/actions/governance-analytics-actions';
 
 import { VaniCommandPalette } from '@/components/vani/VaniCommandPalette';
 import { VaniGlobalDrawer } from '@/components/vani/VaniGlobalDrawer';
@@ -48,24 +48,50 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
   const [isVaniPaletteOpen, setIsVaniPaletteOpen] = useState(false);
   const [isVaniDrawerOpen, setIsVaniDrawerOpen] = useState(false);
 
-  // Profile Form State
-  const [userName, setUserName] = useState('Nitin Tyagi');
-  const [userEmail, setUserEmail] = useState('nits.tyagi@gmail.com');
-  const [userPhone, setUserPhone] = useState('+91 9811102008');
-  const [userTitle, setUserTitle] = useState('Trust Chairman & Super Administrator');
+  // Profile Form State - Read dynamically from browser cookies & active session
+  const [userName, setUserName] = useState('Staff Administrator');
+  const [userEmail, setUserEmail] = useState('admin@school.edu.in');
+  const [userPhone, setUserPhone] = useState(selectedInstitutionObj?.phone || '');
+  const [userTitle, setUserTitle] = useState('Campus Administrator');
+  const [sessionsList, setSessionsList] = useState<string[]>([`${new Date().getFullYear()}–${new Date().getFullYear() + 1} (Active)`]);
 
   useEffect(() => {
-    // Load current trust chairman details
+    // 1. Resolve user profile from cookies / active session
+    if (typeof document !== 'undefined') {
+      const getCookie = (name: string) => {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+      };
+      const cookieName = getCookie('cb_user_name');
+      const cookieEmail = getCookie('cb_user_email');
+      const cookieRole = getCookie('cb_user_role');
+      if (cookieName) setUserName(cookieName);
+      if (cookieEmail) setUserEmail(cookieEmail);
+      if (cookieRole) setUserTitle(cookieRole.replace(/_/g, ' '));
+    }
+
+    // 2. Load dynamic academic sessions from database
+    getAcademicSessionsAction().then(res => {
+      if (res.success && res.sessions && res.sessions.length > 0) {
+        const formatted = res.sessions.map((s: any) => `${s.name}${s.is_current ? ' (Active)' : ''}`);
+        setSessionsList(formatted);
+      }
+    });
+
+    // 3. Load trust chairman details if available
     getTrustDetailsAction().then(res => {
       if (res.success && res.trust) {
-        if (res.trust.chairmanName) setUserName(res.trust.chairmanName);
+        if (res.trust.chairmanName && currentRole === 'SUPER_ADMIN') {
+          setUserName(res.trust.chairmanName);
+          setUserTitle('Trust Chairman & Super Administrator');
+        }
         if (res.trust.contactEmail) setUserEmail(res.trust.contactEmail);
         if (res.trust.contactPhone) setUserPhone(res.trust.contactPhone);
       }
     });
-  }, []);
+  }, [currentRole]);
 
-  const sessions = ['2026–2027 (Active)', '2025–2026 (Archived)'];
+  const sessions = sessionsList;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -217,12 +243,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                  className="flex items-center gap-1.5 p-1 sm:pr-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition cursor-pointer"
                >
                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#0A1A44] text-white flex items-center justify-center font-bold text-[11px] shadow-xs overflow-hidden">
-                   <img 
-                     src="/nitin-tyagi.jpg" 
-                     alt={userName} 
-                     className="w-full h-full object-cover"
-                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                   />
+                   <span>{userName ? userName.charAt(0).toUpperCase() : 'A'}</span>
                  </div>
                  <div className="hidden md:flex flex-col text-left">
                    <span className="text-[11px] font-bold text-slate-800 leading-tight truncate max-w-[110px]">{userName}</span>

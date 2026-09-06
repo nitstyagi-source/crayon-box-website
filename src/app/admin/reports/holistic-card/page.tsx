@@ -152,19 +152,19 @@ export default function HolisticReportCardPrintPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs">
             <div>
               <span className="text-[10px] text-stone-400 font-bold uppercase block">Student Name</span>
-              <strong className="text-stone-900 text-sm">{reportData.student?.full_name || 'Arjun Das'}</strong>
+              <strong className="text-stone-900 text-sm">{reportData.student?.full_name || 'Enrolled Student'}</strong>
             </div>
             <div>
               <span className="text-[10px] text-stone-400 font-bold uppercase block">Admission Number</span>
-              <strong className="text-stone-900 text-sm font-mono">{reportData.student?.admission_no || 'TEST-ADM-2026-0001'}</strong>
+              <strong className="text-stone-900 text-sm font-mono">{reportData.student?.admission_no || 'N/A'}</strong>
             </div>
             <div>
               <span className="text-[10px] text-stone-400 font-bold uppercase block">Grade & Section</span>
-              <strong className="text-stone-900 text-sm">{reportData.student?.class_name || 'Class 1'} - Section A</strong>
+              <strong className="text-stone-900 text-sm">{reportData.student?.class_name ? `${reportData.student.class_name} - ${reportData.student?.section_name || 'Section A'}` : 'Not Enrolled'}</strong>
             </div>
             <div>
               <span className="text-[10px] text-stone-400 font-bold uppercase block">Assessment Term</span>
-              <strong className="text-stone-900 text-sm">{term} (2026–27)</strong>
+              <strong className="text-stone-900 text-sm">{term} ({new Date().getFullYear()}–{(new Date().getFullYear() + 1).toString().slice(-2)})</strong>
             </div>
           </div>
 

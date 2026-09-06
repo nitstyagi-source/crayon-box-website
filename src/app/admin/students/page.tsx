@@ -74,15 +74,18 @@ function UniversalStudentsDirectoryContent() {
   // -------------------------------------------------------------
   // TAB 1: ROSTER STATE & ACTIONS
   // -------------------------------------------------------------
-  const [filters, setFilters] = useState<StudentFilterQuery>({
-    institutionCode: currentInstitution,
-    academicSession: "2026-2027",
-    academicStage: "ALL",
-    className: "ALL",
-    sectionName: "ALL",
-    status: "ACTIVE",
-    search: "",
-    showTestRecords: true,
+  const [filters, setFilters] = useState<StudentFilterQuery>(() => {
+    const y = new Date().getFullYear();
+    return {
+      institutionCode: currentInstitution,
+      academicSession: `${y}-${y + 1}`,
+      academicStage: "ALL",
+      className: "ALL",
+      sectionName: "ALL",
+      status: "ACTIVE",
+      search: "",
+      showTestRecords: true,
+    };
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,7 +124,7 @@ function UniversalStudentsDirectoryContent() {
     firstName: "",
     middleName: "",
     lastName: "",
-    dob: "2016-05-15",
+    dob: "",
     gender: "Male",
     bloodGroup: "O+",
     nationality: "Indian",
@@ -130,7 +133,7 @@ function UniversalStudentsDirectoryContent() {
     isTestRecord: false,
 
     institutionCode: currentInstitution === "ALL" ? "CBS" : currentInstitution,
-    academicSession: "2026-2027",
+    academicSession: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
     academicStage: selectedInstitutionObj?.institutionType === "PRE_SCHOOL" ? "FOUNDATION" : "PRIMARY",
     className: selectedInstitutionObj?.institutionType === "PRE_SCHOOL" ? "Nursery" : "Class 4",
     sectionName: "A",
@@ -260,7 +263,7 @@ function UniversalStudentsDirectoryContent() {
         firstName: "",
         middleName: "",
         lastName: "",
-        dob: "2016-05-15",
+        dob: "",
         gender: "Male",
         bloodGroup: "O+",
         nationality: "Indian",
@@ -269,7 +272,7 @@ function UniversalStudentsDirectoryContent() {
         isTestRecord: false,
 
         institutionCode: currentInstitution === "ALL" ? "CBS" : currentInstitution,
-        academicSession: "2026-2027",
+        academicSession: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         academicStage: selectedInstitutionObj?.institutionType === "PRE_SCHOOL" ? "FOUNDATION" : "PRIMARY",
         className: selectedInstitutionObj?.institutionType === "PRE_SCHOOL" ? "Nursery" : "Class 4",
         sectionName: "A",
@@ -299,15 +302,18 @@ function UniversalStudentsDirectoryContent() {
   // Re-Admission State
   const [isReadmitModalOpen, setIsReadmitModalOpen] = useState(false);
   const [targetStudentForReadmit, setTargetStudentForReadmit] = useState<any>(null);
-  const [readmitForm, setReadmitForm] = useState({
-    institutionCode: "CBS",
-    academicSession: "2026-2027",
-    className: "Class 3",
-    sectionName: "A",
-    academicStage: "PRIMARY",
-    admissionNumber: "",
-    admissionDate: new Date().toISOString().split("T")[0],
-    remarks: "Student re-admitted to active roster."
+  const [readmitForm, setReadmitForm] = useState(() => {
+    const y = new Date().getFullYear();
+    return {
+      institutionCode: "CBS",
+      academicSession: `${y}-${y + 1}`,
+      className: "Class 3",
+      sectionName: "A",
+      academicStage: "PRIMARY",
+      admissionNumber: "",
+      admissionDate: new Date().toISOString().split("T")[0],
+      remarks: "Student re-admitted to active roster."
+    };
   });
   const [isSubmittingReadmit, setIsSubmittingReadmit] = useState(false);
   const [readmitToastMsg, setReadmitToastMsg] = useState<string | null>(null);
@@ -322,16 +328,17 @@ function UniversalStudentsDirectoryContent() {
   };
 
   const handleOpenReadmitModal = (row: any) => {
+    const y = new Date().getFullYear();
     setTargetStudentForReadmit(row);
     setReadmitForm({
       institutionCode: row.institution_code || (currentInstitution === "ALL" ? "CBS" : currentInstitution),
-      academicSession: "2026-2027",
+      academicSession: `${y}-${y + 1}`,
       className: row.class_name || "Class 3",
       sectionName: row.section_name || "A",
       academicStage: row.academic_stage || "PRIMARY",
       admissionNumber: row.admission_number || row.admission_no || "",
       admissionDate: new Date().toISOString().split("T")[0],
-      remarks: `Student re-admitted after previous departure period (Session ${row.academic_session || "2025-2026"}).`
+      remarks: `Student re-admitted after previous departure period (Session ${row.academic_session || `${y - 1}-${y}`}).`
     });
     setIsReadmitModalOpen(true);
   };
@@ -412,15 +419,15 @@ function UniversalStudentsDirectoryContent() {
   const [isTcSubmitting, setIsTcSubmitting] = useState(false);
 
   // Form State for TC
-  const [tcStudentName, setTcStudentName] = useState("Rohan Singhal");
-  const [tcAdmissionNo, setTcAdmissionNo] = useState("ADM-2024-0089");
-  const [tcFatherName, setTcFatherName] = useState("Mr. Vikram Singhal");
-  const [tcMotherName, setTcMotherName] = useState("Mrs. Anita Singhal");
-  const [tcDob, setTcDob] = useState("2014-08-15");
-  const [tcAdmissionDate, setTcAdmissionDate] = useState("2024-04-01");
-  const [tcClassLastAttended, setTcClassLastAttended] = useState("Class 6-A");
-  const [tcReasonForLeaving, setTcReasonForLeaving] = useState("Parents relocated to Bangalore for corporate transfer.");
-  const [tcAnnualResult, setTcAnnualResult] = useState("Promoted to Class 7 (Passed Term 2 Examinations)");
+  const [tcStudentName, setTcStudentName] = useState("");
+  const [tcAdmissionNo, setTcAdmissionNo] = useState("");
+  const [tcFatherName, setTcFatherName] = useState("");
+  const [tcMotherName, setTcMotherName] = useState("");
+  const [tcDob, setTcDob] = useState("");
+  const [tcAdmissionDate, setTcAdmissionDate] = useState("");
+  const [tcClassLastAttended, setTcClassLastAttended] = useState("");
+  const [tcReasonForLeaving, setTcReasonForLeaving] = useState("");
+  const [tcAnnualResult, setTcAnnualResult] = useState("");
 
   const fetchTcList = async () => {
     setTcLoading(true);
@@ -471,11 +478,11 @@ function UniversalStudentsDirectoryContent() {
   const handleSelectStudentForTc = (stu: any) => {
     setTcStudentName(`${stu.first_name} ${stu.last_name}`);
     setTcAdmissionNo(stu.admission_number || stu.admission_no || "");
-    setTcFatherName(stu.guardian_first ? `${stu.guardian_first} ${stu.guardian_last || ""}` : "Father/Guardian");
-    setTcMotherName(stu.mother_name || "Mother");
-    setTcDob(stu.dob ? String(stu.dob).split("T")[0] : "2015-01-01");
-    setTcAdmissionDate(stu.admission_date ? String(stu.admission_date).split("T")[0] : "2024-04-01");
-    setTcClassLastAttended(`${stu.class_name || "Class 5"} (${stu.section_name || "A"})`);
+    setTcFatherName(stu.guardian_first ? `${stu.guardian_first} ${stu.guardian_last || ""}` : (stu.parent_name || ""));
+    setTcMotherName(stu.mother_name || "");
+    setTcDob(stu.dob ? String(stu.dob).split("T")[0] : "");
+    setTcAdmissionDate(stu.admission_date ? String(stu.admission_date).split("T")[0] : (stu.created_at ? String(stu.created_at).split("T")[0] : new Date().toISOString().split("T")[0]));
+    setTcClassLastAttended(stu.class_name ? `${stu.class_name}${stu.section_name ? ` (${stu.section_name})` : ''}` : "");
   };
 
   // -------------------------------------------------------------
@@ -1270,7 +1277,7 @@ function UniversalStudentsDirectoryContent() {
                     required
                     value={tcStudentName}
                     onChange={e => setTcStudentName(e.target.value)}
-                    placeholder="e.g. Aarav Sharma"
+                    placeholder="e.g. Student Full Name"
                     className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                   />
                 </div>
@@ -1283,7 +1290,7 @@ function UniversalStudentsDirectoryContent() {
                       required
                       value={tcAdmissionNo}
                       onChange={e => setTcAdmissionNo(e.target.value)}
-                      placeholder="CBS-ADM-0921"
+                      placeholder="e.g. ADM-2026-001"
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                     />
                   </div>
@@ -1294,7 +1301,7 @@ function UniversalStudentsDirectoryContent() {
                       required
                       value={tcClassLastAttended}
                       onChange={e => setTcClassLastAttended(e.target.value)}
-                      placeholder="Class 5"
+                      placeholder="e.g. Class 5-A"
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                     />
                   </div>
@@ -1308,7 +1315,7 @@ function UniversalStudentsDirectoryContent() {
                       required
                       value={tcFatherName}
                       onChange={e => setTcFatherName(e.target.value)}
-                      placeholder="Dr. Rajesh Sharma"
+                      placeholder="e.g. Father's Full Name"
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                     />
                   </div>
@@ -1319,7 +1326,7 @@ function UniversalStudentsDirectoryContent() {
                       required
                       value={tcMotherName}
                       onChange={e => setTcMotherName(e.target.value)}
-                      placeholder="Mrs. Sunita Sharma"
+                      placeholder="e.g. Mother's Full Name"
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                     />
                   </div>
@@ -1395,7 +1402,7 @@ function UniversalStudentsDirectoryContent() {
                     {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
                   </h2>
                   <div className="text-xs text-stone-600 font-medium">
-                    {selectedInstitutionObj?.address || "Delhi-NCR"} | Registration Code: {selectedInstitutionObj?.affiliationNumber || "1253481"}
+                    {selectedInstitutionObj?.address || ""} {selectedInstitutionObj?.affiliationNumber ? `| Registration Code: ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.code ? `| Code: ${selectedInstitutionObj.code}` : '')}
                   </div>
                   <div className="inline-block mt-2 bg-stone-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                     Official Transfer Certificate (TC) / School Leaving Certificate
@@ -1406,7 +1413,7 @@ function UniversalStudentsDirectoryContent() {
                 <div className="grid grid-cols-2 gap-4 border-b border-stone-200 pb-4 text-xs font-mono">
                   <div>
                     <span className="text-stone-400 font-bold block">TC Serial Number:</span>
-                    <strong className="text-base text-amber-900">{selectedTc?.tc_number || "TC/2026/0148"}</strong>
+                    <strong className="text-base text-amber-900">{selectedTc?.tc_number || "PENDING"}</strong>
                   </div>
                   <div className="text-right">
                     <span className="text-stone-400 font-bold block">Issue Date:</span>
@@ -1448,15 +1455,19 @@ function UniversalStudentsDirectoryContent() {
                       </tr>
                       <tr className="border-b border-stone-200">
                         <td className="p-2.5 font-bold text-stone-600">8. Month up to which school dues paid</td>
-                        <td className="p-2.5 font-bold text-stone-900">All Dues Fully Cleared (No Arrears)</td>
+                        <td className="p-2.5 font-bold text-stone-900">
+                          {selectedTc ? (selectedTc.dues_paid ? "All Dues Fully Cleared (No Arrears)" : "Pending Dues Applicable") : "All Dues Fully Cleared (No Arrears)"}
+                        </td>
                       </tr>
                       <tr className="border-b border-stone-200 bg-stone-50/50">
                         <td className="p-2.5 font-bold text-stone-600">9. Reason for leaving the school</td>
-                        <td className="p-2.5 font-medium text-stone-800">{tcReasonForLeaving}</td>
+                        <td className="p-2.5 font-medium text-stone-800">{tcReasonForLeaving || selectedTc?.reason_for_leaving || "Course Completed"}</td>
                       </tr>
                       <tr>
                         <td className="p-2.5 font-bold text-stone-600">10. General Conduct</td>
-                        <td className="p-2.5 font-bold text-stone-900">Exemplary &amp; Good</td>
+                        <td className="p-2.5 font-bold text-stone-900">
+                          {selectedTc?.status === "CANCELLED" ? "Flagged / Under Administrative Review" : "Good"}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -1588,7 +1599,7 @@ function UniversalStudentsDirectoryContent() {
                   required
                   value={formData.parentPhone}
                   onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                  placeholder="9811102008"
+                  placeholder="98XXXXXXXX"
                 />
               </div>
 

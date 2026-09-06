@@ -20,7 +20,7 @@ async function resolveCampusId(supabase: any, campusId?: string): Promise<string
     return campusId;
   }
   const { data: firstCampus } = await supabase.from("campuses").select("id").limit(1).single();
-  return firstCampus?.id || "c3d782a9-a50b-4708-a3fc-6b146f456662";
+  return firstCampus?.id || "";
 }
 
 // -------------------------------------------------------------
@@ -38,29 +38,44 @@ export async function getHrDashboardStats(campusId?: string) {
 
     const totalStaff = staffList?.length ?? 0;
 
+    const now = new Date();
+    const currentMonthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    const currentMonthCode = now.toISOString().slice(0, 7);
+
+    // Fetch payroll records for this month if any exist
+    const { data: payrollRecords } = await supabase
+      .from("staff_payroll_records")
+      .select("*")
+      .eq("month_year", currentMonthLabel);
+
+    const records = payrollRecords || [];
+    const grossSum = records.reduce((acc: number, r: any) => acc + Number(r.gross_salary || 0), 0);
+    const dedSum = records.reduce((acc: number, r: any) => acc + Number(r.total_deductions || 0), 0);
+    const netSum = records.reduce((acc: number, r: any) => acc + Number(r.net_salary || 0), 0);
+
     return {
       success: true,
       data: {
         todaySummary: {
           totalEmployees: totalStaff,
-          presentToday: 79,
-          onLeave: 5,
-          absent: 2,
-          late: 8,
-          halfDay: 1,
-          officialDuty: 2,
-          newJoinersThisMonth: 4,
-          birthdaysToday: 1,
-          contractsExpiring: 2
+          presentToday: totalStaff,
+          onLeave: 0,
+          absent: 0,
+          late: 0,
+          halfDay: 0,
+          officialDuty: 0,
+          newJoinersThisMonth: 0,
+          birthdaysToday: 0,
+          contractsExpiring: 0
         },
         payrollSummary: {
-          month: "August 2026",
-          grossPayroll: 3250000,
-          totalDeductions: 385000,
-          netPayroll: 2865000,
-          paid: 2790000,
-          pending: 75000,
-          bankTransferStatus: "Dispatched (UTR #SBIN002910)"
+          month: currentMonthLabel,
+          grossPayroll: grossSum,
+          totalDeductions: dedSum,
+          netPayroll: netSum,
+          paid: netSum,
+          pending: 0,
+          bankTransferStatus: records.length > 0 ? "Processed" : "Pending Run"
         }
       }
     };
@@ -106,10 +121,11 @@ export async function getEmployeesMasterList(payload?: {
 }
 
 // -------------------------------------------------------------
-// 3. GET MONTHLY PAYROLL LEDGER (AUGUST 2026)
+// 3. GET MONTHLY PAYROLL LEDGER
 // -------------------------------------------------------------
-export async function getMonthlyPayrollLedger(month: string = "2026-08", campusId?: string) {
+export async function getMonthlyPayrollLedger(month?: string, campusId?: string) {
   try {
+    const targetMonth = month || new Date().toISOString().slice(0, 7);
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
@@ -123,7 +139,7 @@ export async function getMonthlyPayrollLedger(month: string = "2026-08", campusI
     const { data: ledgers, error: lErr } = await supabase
       .from("payroll_ledgers")
       .select("*")
-      .eq("month", month);
+      .eq("month", targetMonth);
 
     if (lErr) throw lErr;
 

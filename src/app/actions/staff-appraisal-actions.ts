@@ -3,12 +3,12 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -19,7 +19,7 @@ function safeRevalidate(path: string) {
 /**
  * 1. COMPUTE 360° STAFF PERFORMANCE & APPRAISAL MATRIX
  */
-export async function computeStaffAppraisalScoresAction(appraisalYear: string = '2026-2027') {
+export async function computeStaffAppraisalScoresAction(appraisalYear: string = `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`) {
   const p = getPool();
   const client = await p.connect();
   try {

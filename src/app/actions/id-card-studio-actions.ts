@@ -2,13 +2,11 @@
 
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!pool) {
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
 }
@@ -24,6 +22,7 @@ export interface StudentIdCardBadge {
   bloodGroup: string;
   emergencyPhone: string;
   busRoute: string;
+  address?: string;
   dob: string;
   validUpto: string;
 }
@@ -40,9 +39,11 @@ export async function getBatchIdCardDataAction(className?: string) {
 
     const res = await client.query(`
       SELECT s.id, s.admission_no, s.first_name, s.last_name, s.date_of_birth,
-             COALESCE(s.primary_contact, '+919810081008') as primary_contact,
-             COALESCE(s.blood_group, 'B+') as blood_group,
-             COALESCE(s.transport_mode, 'Bus #01 (Burari)') as transport_mode,
+             COALESCE(s.father_name, 'Parent/Guardian') as father_name,
+             COALESCE(s.mother_name, 'Parent/Guardian') as mother_name,
+             COALESCE(s.parent_phone, s.primary_contact, 'N/A') as contact_phone,
+             COALESCE(s.blood_group, 'O+') as blood_group,
+             COALESCE(s.transport_route, s.transport_bus_no, 'Own Transport') as transport_info,
              COALESCE(c.grade, $1) as grade, COALESCE(c.section, 'A') as section
       FROM public.students s
       LEFT JOIN public.classes c ON c.id = s.class_id
@@ -54,15 +55,15 @@ export async function getBatchIdCardDataAction(className?: string) {
     const cards: StudentIdCardBadge[] = res.rows.map((r: any, idx: number) => ({
       id: r.id,
       admissionNo: r.admission_no || `ADM-2026-00${idx + 1}`,
-      studentName: `${r.first_name} ${r.last_name}`,
+      studentName: `${r.first_name} ${r.last_name}`.trim(),
       className: r.grade || cls,
       sectionName: r.section || "A",
-      fatherName: "Mr. Rajesh Sharma",
-      motherName: "Mrs. Sunita Sharma",
-      bloodGroup: r.blood_group || "B+",
-      emergencyPhone: r.primary_contact || "+919810081008",
-      busRoute: r.transport_mode || "Bus #01 (Burari)",
-      dob: r.date_of_birth ? new Date(r.date_of_birth).toLocaleDateString('en-IN') : "12/04/2019",
+      fatherName: r.father_name,
+      motherName: r.mother_name,
+      bloodGroup: r.blood_group,
+      emergencyPhone: r.contact_phone,
+      busRoute: r.transport_info,
+      dob: r.date_of_birth ? new Date(r.date_of_birth).toLocaleDateString('en-IN') : "N/A",
       validUpto: "31-03-2027"
     }));
 

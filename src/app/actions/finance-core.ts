@@ -49,7 +49,7 @@ export async function generateIndividualInvoice(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     // 1. Verify student and check EWS status
     const { data: student, error: stErr } = await supabase
@@ -95,7 +95,9 @@ export async function generateIndividualInvoice(payload: {
     });
 
     const netPayable = Math.max(0, totalBase - totalDiscount);
-    const invoiceNumber = `INV-2026-${Date.now().toString().slice(-6)}`;
+    const curYear = new Date().getFullYear();
+    const dynamicSessionStr = `${curYear}-${curYear + 1}`;
+    const invoiceNumber = `INV-${curYear}-${Date.now().toString().slice(-6)}`;
 
     // 3. Insert into student_invoices
     const { data: invoice, error: invErr } = await supabase
@@ -104,7 +106,7 @@ export async function generateIndividualInvoice(payload: {
         institution_code: resolvedId,
         student_id: student.id,
         invoice_number: invoiceNumber,
-        billing_period: payload.billing_period || 'Session 2026-27',
+        billing_period: payload.billing_period || `Session ${curYear}-${(curYear + 1).toString().slice(-2)}`,
         total_amount: totalBase,
         total_discount: totalDiscount,
         total_late_fee: 0,
@@ -141,7 +143,7 @@ export async function generateIndividualInvoice(payload: {
     await supabase.from('student_fee_ledgers').insert([{
       institution_code: resolvedId,
       student_id: student.id,
-      academic_session: '2026-2027',
+      academic_session: dynamicSessionStr,
       transaction_date: new Date().toISOString().split('T')[0],
       particulars: `Fee Demand Invoice #${invoiceNumber} (${payload.billing_period})`,
       fee_head_name: 'Fee Invoice Demand',
@@ -167,7 +169,7 @@ export async function generateIndividualInvoice(payload: {
 export async function getBulkTargetStudents(institutionCode: string, className?: string, sectionName?: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data: allStudents, error: stErr } = await supabase
       .from('students')
@@ -261,7 +263,7 @@ export async function generateBulkInvoices(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     // Fetch fee heads master map for fallback IDs
     const { data: allHeads } = await supabase
@@ -399,7 +401,9 @@ export async function generateBulkInvoices(payload: {
       }
 
       const netPayable = Math.max(0, totalBase - totalDiscount);
-      const invNum = `INV-2026-B${invCounter++}`;
+      const curYear = new Date().getFullYear();
+      const dynamicSessionStr = `${curYear}-${curYear + 1}`;
+      const invNum = `INV-${curYear}-B${invCounter++}`;
 
       const { data: inv } = await supabase
         .from('student_invoices')
@@ -407,7 +411,7 @@ export async function generateBulkInvoices(payload: {
           institution_code: resolvedId,
           student_id: st.id,
           invoice_number: invNum,
-          billing_period: payload.billing_period || 'Session 2026-27',
+          billing_period: payload.billing_period || `Session ${curYear}-${(curYear + 1).toString().slice(-2)}`,
           total_amount: totalBase,
           total_discount: totalDiscount,
           total_late_fee: 0,
@@ -432,7 +436,7 @@ export async function generateBulkInvoices(payload: {
       await supabase.from('student_fee_ledgers').insert([{
         institution_code: resolvedId,
         student_id: st.id,
-        academic_session: '2026-2027',
+        academic_session: dynamicSessionStr,
         transaction_date: new Date().toISOString().split('T')[0],
         particulars: `Fee Demand Invoice #${invNum} (${payload.billing_period})`,
         fee_head_name: 'Fee Demand',
@@ -536,10 +540,11 @@ export async function updateIndividualInvoice(payload: {
 
     // Post audit adjustment to student_fee_ledgers
     if (inv.student_id) {
+      const curYear = new Date().getFullYear();
       await supabase.from('student_fee_ledgers').insert([{
         institution_code: inv.institution_code,
         student_id: inv.student_id,
-        academic_session: '2026-2027',
+        academic_session: `${curYear}-${curYear + 1}`,
         transaction_date: new Date().toISOString().split('T')[0],
         particulars: `Invoice #${inv.invoice_number} adjusted: Total ₹${totalAmt}, Discount ₹${discount}, Net Due ₹${netDue}`,
         fee_head_name: 'Invoice Adjustment',
@@ -565,7 +570,7 @@ export async function getInvoices(institutionCode: string) {
   try {
     if (!institutionCode) return { success: true, data: [] };
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
     
     const { data: invoices, error } = await supabase
       .from('student_invoices')
@@ -652,7 +657,7 @@ export async function getPendingFees(institutionCode: string) {
   try {
     if (!institutionCode) return { success: true, totalPending: 0 };
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
     const { data, error } = await supabase
       .from('student_invoices')
       .select('total_amount, amount_paid')
@@ -722,7 +727,7 @@ export async function recordManualPayment(institutionCode: string, invoiceId: st
 export async function getFinanceExecutiveMetrics(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     // Fetch Receipts
     const { data: receipts, error: recErr } = await supabase
@@ -808,7 +813,7 @@ export async function getFinanceExecutiveMetrics(institutionCode: string) {
 export async function getFeeHeads(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('fee_heads')
@@ -826,7 +831,7 @@ export async function getFeeHeads(institutionCode: string) {
 export async function saveFeeHead(payload: any) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const headData = {
       institution_code: resolvedId,
@@ -862,7 +867,7 @@ export async function saveFeeHead(payload: any) {
 export async function getFeeStructures(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data: structures, error } = await supabase
       .from('fee_structures')
@@ -896,7 +901,7 @@ export async function saveFeeStructure(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const totalAnnual = payload.items.reduce((sum, it) => {
       let multiplier = 1;
@@ -906,11 +911,12 @@ export async function saveFeeStructure(payload: {
       return sum + (Number(it.amount || 0) * multiplier);
     }, 0);
 
+    const curYear = new Date().getFullYear();
     const structureData = {
       institution_code: resolvedId,
       name: payload.name,
       class_name: payload.class_name,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || `${curYear}-${curYear + 1}`,
       fee_category: payload.fee_category || 'General',
       total_annual_amount: totalAnnual,
       is_active: true
@@ -943,9 +949,9 @@ export async function saveFeeStructure(payload: {
         fee_head_name: it.fee_head_name,
         frequency: it.frequency || 'Quarterly',
         amount: Number(it.amount || 0),
-        due_day: Number(it.due_day || 10),
-        late_fee_per_day: Number(it.late_fee_per_day || 25),
-        max_late_fee: Number(it.max_late_fee || 500)
+        due_day: Number(it.due_day ?? 10),
+        late_fee_per_day: Number(it.late_fee_per_day ?? 0),
+        max_late_fee: Number(it.max_late_fee ?? 0)
       }));
 
       const { error: itemsErr } = await supabase.from('fee_structure_items').insert(itemsToInsert);
@@ -966,7 +972,7 @@ export async function saveFeeStructure(payload: {
 export async function getFeeRefunds(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('fee_refunds')
@@ -996,7 +1002,7 @@ export async function processFeeRefund(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const refundData = {
       institution_code: resolvedId,
@@ -1048,7 +1054,7 @@ export async function processFeeRefund(payload: {
 export async function searchStudentsForFeeCollection(institutionCode: string, query: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     let queryBuilder = supabase
       .from('students')
@@ -1092,7 +1098,7 @@ export async function searchStudentsForFeeCollection(institutionCode: string, qu
       const parent = s.student_parents?.find((p: any) => p.is_primary_contact) || s.student_parents?.[0] || {};
       const profile = s.student_fee_profiles?.[0] || {};
       const isEws = s.category === 'EWS' || profile.fee_category === 'EWS' || profile.status === 'EWS Exempted';
-      const ledger = ledgerMap[s.id] || { totalDebit: isEws ? 0 : 11500, totalCredit: 0, balance: isEws ? 0 : 11500 };
+      const ledger = ledgerMap[s.id] || { totalDebit: 0, totalCredit: 0, balance: 0 };
 
       return {
         id: s.id,
@@ -1103,15 +1109,15 @@ export async function searchStudentsForFeeCollection(institutionCode: string, qu
         category: s.category || 'General',
         isEws,
         parentName: parent.name || 'Guardian',
-        parentMobile: parent.mobile || '+91 9811102008',
-        totalDebit: isEws ? 0 : (ledger.totalDebit || 11500),
+        parentMobile: parent.mobile || '',
+        totalDebit: isEws ? 0 : (ledger.totalDebit || 0),
         totalPaid: ledger.totalCredit || 0,
         outstandingBalance: isEws ? 0 : Math.max(0, ledger.balance),
-        transportOpted: isEws ? false : (profile.transport_opted ?? true),
-        transportFee: isEws ? 0 : Number(profile.transport_monthly_fee || 2000),
+        transportOpted: isEws ? false : (profile.transport_opted ?? false),
+        transportFee: isEws ? 0 : Number(profile.transport_monthly_fee || 0),
         concessionType: isEws ? 'RTE / EWS 100% Free Seat' : profile.concession_type,
         concessionPct: isEws ? 100 : Number(profile.concession_percentage || 0),
-        familyId: profile.family_id || 'FAM-1001'
+        familyId: profile.family_id || ''
       };
     });
 
@@ -1179,7 +1185,7 @@ export async function getStudentFeeLedger(studentId: string) {
         className: academic.class_name || 'Grade 1',
         sectionName: academic.section_name || 'A',
         parentName: parent.name || 'Guardian',
-        parentMobile: parent.mobile || '+91 9811102008',
+        parentMobile: parent.mobile || '',
         familyId: profile.family_id || 'FAM-1001',
         concessionType: profile.concession_type,
         concessionPct: Number(profile.concession_percentage || 0),
@@ -1225,7 +1231,7 @@ export async function collectFeePayment(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const paidAmt = Number(payload.net_amount_paid || 0);
     const dueAmt = Number(payload.total_amount_due || 0);
@@ -1236,6 +1242,24 @@ export async function collectFeePayment(payload: {
       throw new Error("This account / invoice is already fully paid. An invoice cannot be paid twice.");
     }
 
+    // 0. Idempotency Check: Prevent duplicate fee collection on fast double-clicks
+    if (payload.transaction_ref && payload.transaction_ref.trim() !== '') {
+      const { data: existingReceipt } = await supabase
+        .from('fee_receipts')
+        .select('*')
+        .eq('transaction_ref', payload.transaction_ref.trim())
+        .maybeSingle();
+
+      if (existingReceipt) {
+        return {
+          success: true,
+          receipt: existingReceipt,
+          alreadyProcessed: true,
+          message: "Payment with this transaction reference has already been recorded."
+        };
+      }
+    }
+
     const remainingBalance = Math.max(0, dueAmt + lateFeeAmt - concessionAmt - paidAmt);
 
     // Generate Unique Receipt Number
@@ -1244,103 +1268,143 @@ export async function collectFeePayment(payload: {
 
     const receiptStatus = remainingBalance === 0 ? 'Paid' : 'Partially Paid';
 
-    // 1. Insert Official Receipt
-    const { data: receipt, error: recErr } = await supabase
-      .from('fee_receipts')
-      .insert([{
-        institution_code: resolvedId,
-        receipt_no: receiptNo,
-        receipt_date: new Date().toISOString().split('T')[0],
-        student_id: payload.student_id,
-        admission_no: payload.admission_no,
-        student_name: payload.student_name,
-        class_name: payload.class_name,
-        section_name: payload.section_name || 'A',
-        parent_name: payload.parent_name || 'Guardian',
-        parent_mobile: payload.parent_mobile || '+91 9811102008',
-        total_amount_due: dueAmt,
-        concession_amount: concessionAmt,
-        late_fee_amount: lateFeeAmt,
-        net_amount_paid: paidAmt,
-        remaining_balance: remainingBalance,
-        payment_mode: payload.payment_mode || 'UPI',
-        transaction_ref: payload.transaction_ref || `TXN-${Date.now()}`,
-        bank_name: payload.bank_name,
-        cheque_no: payload.cheque_no,
-        cheque_date: payload.cheque_date,
-        collected_by: payload.collected_by || 'Rushali (Accounts Desk)',
-        status: receiptStatus,
-        verification_qr: verificationQr
-      }])
-      .select()
-      .single();
+    let createdReceiptId: string | null = null;
+    let modifiedInvoiceId: string | null = null;
+    let prevInvoicePaid = 0;
+    let prevInvoiceStatus = 'Unpaid';
 
-    if (recErr) throw recErr;
+    try {
+      // 1. Insert Official Receipt
+      const { data: receipt, error: recErr } = await supabase
+        .from('fee_receipts')
+        .insert([{
+          institution_code: resolvedId,
+          receipt_no: receiptNo,
+          receipt_date: new Date().toISOString().split('T')[0],
+          student_id: payload.student_id,
+          admission_no: payload.admission_no,
+          student_name: payload.student_name,
+          class_name: payload.class_name,
+          section_name: payload.section_name || 'A',
+          parent_name: payload.parent_name || 'Guardian',
+          parent_mobile: payload.parent_mobile || '',
+          total_amount_due: dueAmt,
+          concession_amount: concessionAmt,
+          late_fee_amount: lateFeeAmt,
+          net_amount_paid: paidAmt,
+          remaining_balance: remainingBalance,
+          payment_mode: payload.payment_mode || 'UPI',
+          transaction_ref: payload.transaction_ref || `TXN-${Date.now()}`,
+          bank_name: payload.bank_name,
+          cheque_no: payload.cheque_no,
+          cheque_date: payload.cheque_date,
+          collected_by: payload.collected_by || 'Accounts Desk',
+          status: receiptStatus,
+          verification_qr: verificationQr
+        }])
+        .select()
+        .single();
 
-    // 2. Update matching student_invoices record
-    const { data: activeInvs } = await supabase
-      .from('student_invoices')
-      .select('*')
-      .eq('student_id', payload.student_id)
-      .in('status', ['Unpaid', 'Partial', 'Overdue'])
-      .order('created_at', { ascending: false });
+      if (recErr) throw recErr;
+      createdReceiptId = receipt.id;
 
-    if (activeInvs && activeInvs.length > 0) {
-      const activeInv = activeInvs[0];
-      const curPaid = Number(activeInv.amount_paid || 0) + paidAmt;
-      const netInvDue = Math.max(0, Number(activeInv.total_amount || 0) - Number(activeInv.total_discount || 0) - curPaid);
-      const newInvStatus = netInvDue === 0 ? 'Paid' : 'Partial';
-
-      await supabase
+      // 2. Update matching student_invoices record
+      const { data: activeInvs } = await supabase
         .from('student_invoices')
-        .update({
-          amount_paid: curPaid,
-          status: newInvStatus
-        })
-        .eq('id', activeInv.id);
-    }
+        .select('*')
+        .eq('student_id', payload.student_id)
+        .in('status', ['Unpaid', 'Partial', 'Overdue'])
+        .order('created_at', { ascending: false });
 
-    // 3. Insert Double-Entry Ledger Credit
-    await supabase.from('student_fee_ledgers').insert([{
-      institution_code: resolvedId,
-      student_id: payload.student_id,
-      academic_session: '2026-2027',
-      transaction_date: new Date().toISOString().split('T')[0],
-      particulars: `Fee Collection (${receiptStatus}) via ${payload.payment_mode}`,
-      fee_head_name: 'Payment Receipt',
-      debit: 0,
-      credit: paidAmt,
-      running_balance: remainingBalance,
-      voucher_type: 'Receipt',
-      reference_no: receiptNo,
-      receipt_id: receipt.id,
-      created_by: payload.collected_by || 'Reception POS'
-    }]);
+      if (activeInvs && activeInvs.length > 0) {
+        const activeInv = activeInvs[0];
+        modifiedInvoiceId = activeInv.id;
+        prevInvoicePaid = Number(activeInv.amount_paid || 0);
+        prevInvoiceStatus = activeInv.status;
 
-    // 3. If Concession applied, post Concession Ledger entry
-    if (concessionAmt > 0) {
-      await supabase.from('student_fee_ledgers').insert([{
+        const curPaid = prevInvoicePaid + paidAmt;
+        const netInvDue = Math.max(0, Number(activeInv.total_amount || 0) - Number(activeInv.total_discount || 0) - curPaid);
+        const newInvStatus = netInvDue === 0 ? 'Paid' : 'Partial';
+
+        const { error: invErr } = await supabase
+          .from('student_invoices')
+          .update({
+            amount_paid: curPaid,
+            status: newInvStatus
+          })
+          .eq('id', activeInv.id);
+
+        if (invErr) throw invErr;
+      }
+
+      // 3. Insert Double-Entry Ledger Credit
+      const curYear = new Date().getFullYear();
+      const dynamicSession = `${curYear}-${curYear + 1}`;
+
+      const { error: ledErr } = await supabase.from('student_fee_ledgers').insert([{
         institution_code: resolvedId,
         student_id: payload.student_id,
-        academic_session: '2026-2027',
+        academic_session: dynamicSession,
         transaction_date: new Date().toISOString().split('T')[0],
-        particulars: `Authorized Concession / Discount Applied`,
-        fee_head_name: 'Fee Concession',
+        particulars: `Fee Collection (${receiptStatus}) via ${payload.payment_mode}`,
+        fee_head_name: 'Payment Receipt',
         debit: 0,
-        credit: concessionAmt,
+        credit: paidAmt,
         running_balance: remainingBalance,
-        voucher_type: 'Concession',
+        voucher_type: 'Receipt',
         reference_no: receiptNo,
         receipt_id: receipt.id,
-        created_by: payload.collected_by || 'Accounts Desk'
+        created_by: payload.collected_by || 'Reception POS'
       }]);
-    }
 
-    safeRevalidatePath('/admin/finance');
-    safeRevalidatePath('/admin/finance/collections');
-    safeRevalidatePath('/admin/finance/receipts');
-    safeRevalidatePath('/admin/finance/reports');
-    return { success: true, receipt };
+      if (ledErr) throw ledErr;
+
+      // 4. If Concession applied, post Concession Ledger entry
+      if (concessionAmt > 0) {
+        const { error: concErr } = await supabase.from('student_fee_ledgers').insert([{
+          institution_code: resolvedId,
+          student_id: payload.student_id,
+          academic_session: dynamicSession,
+          transaction_date: new Date().toISOString().split('T')[0],
+          particulars: `Authorized Concession / Discount Applied`,
+          fee_head_name: 'Fee Concession',
+          debit: 0,
+          credit: concessionAmt,
+          running_balance: remainingBalance,
+          voucher_type: 'Concession',
+          reference_no: receiptNo,
+          receipt_id: receipt.id,
+          created_by: payload.collected_by || 'Accounts Desk'
+        }]);
+
+        if (concErr) throw concErr;
+      }
+
+      safeRevalidatePath('/admin/finance');
+      safeRevalidatePath('/admin/finance/collections');
+      safeRevalidatePath('/admin/finance/receipts');
+      safeRevalidatePath('/admin/finance/reports');
+      return { success: true, receipt };
+    } catch (innerErr: any) {
+      // Transaction compensation rollback: revert partial writes
+      if (modifiedInvoiceId) {
+        try {
+          await supabase.from('student_invoices').update({
+            amount_paid: prevInvoicePaid,
+            status: prevInvoiceStatus
+          }).eq('id', modifiedInvoiceId);
+        } catch (_) {}
+      }
+
+      if (createdReceiptId) {
+        try {
+          await supabase.from('student_fee_ledgers').delete().eq('receipt_id', createdReceiptId);
+          await supabase.from('fee_receipts').delete().eq('id', createdReceiptId);
+        } catch (_) {}
+      }
+
+      throw innerErr;
+    }
   } catch (error: any) {
     console.error("Error collecting fee payment:", error);
     return { success: false, error: error.message };
@@ -1357,7 +1421,7 @@ export async function getOfficialReceipts(institutionCode: string, filters?: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     let queryBuilder = supabase
       .from('fee_receipts')
@@ -1413,10 +1477,11 @@ export async function cancelFeeReceipt(receiptId: string, cancellationReason: st
     if (updateErr) throw updateErr;
 
     // 2. Post Reversal Ledger Entry (Debit to restore student's due balance)
+    const curYear = new Date().getFullYear();
     await supabase.from('student_fee_ledgers').insert([{
       institution_code: receipt.institution_code,
       student_id: receipt.student_id,
-      academic_session: '2026-2027',
+      academic_session: `${curYear}-${curYear + 1}`,
       transaction_date: new Date().toISOString().split('T')[0],
       particulars: `REVERSAL of Cancelled Receipt #${receipt.receipt_no}: ${cancellationReason}`,
       fee_head_name: 'Receipt Reversal',
@@ -1444,7 +1509,7 @@ export async function cancelFeeReceipt(receiptId: string, cancellationReason: st
 export async function getDefaultersAging(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     // Fetch all students with their ledger balances
     const { data: students, error: stErr } = await supabase
@@ -1480,9 +1545,15 @@ export async function getDefaultersAging(institutionCode: string) {
         const academic = st.student_academic_history?.find((h: any) => h.is_current_session) || st.student_academic_history?.[0] || {};
         const parent = st.student_parents?.find((p: any) => p.is_primary_contact) || st.student_parents?.[0] || {};
 
-        // Calculate days overdue
-        const daysOverdue = 45; // Standard active aging
-        let agingBucket = '31–60 Days';
+        // Calculate days overdue dynamically
+        let daysOverdue = 30;
+        if (lastPaymentDate && lastPaymentDate !== 'No Payment') {
+          const lastDate = new Date(lastPaymentDate);
+          const diffTime = Math.abs(Date.now() - lastDate.getTime());
+          daysOverdue = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        }
+
+        let agingBucket = '0–30 Days';
         if (daysOverdue <= 30) agingBucket = '0–30 Days';
         else if (daysOverdue <= 60) agingBucket = '31–60 Days';
         else if (daysOverdue <= 90) agingBucket = '61–90 Days';
@@ -1494,7 +1565,7 @@ export async function getDefaultersAging(institutionCode: string) {
           admissionNo: st.admission_no || 'ADM-N/A',
           className: academic.class_name ? `${academic.class_name} ${academic.section_name || ''}`.trim() : 'Grade 1',
           parentName: parent.name || 'Guardian',
-          parentMobile: parent.mobile || '+91 9811102008',
+          parentMobile: parent.mobile || '',
           totalDue: due,
           daysOverdue,
           agingBucket,
@@ -1516,7 +1587,7 @@ export async function getDefaultersAging(institutionCode: string) {
 export async function getDailyCashClosing(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data, error } = await supabase
       .from('daily_cash_closings')
@@ -1547,7 +1618,7 @@ export async function sendFeeReminderNotification(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const { data, error } = await supabase
       .from('fee_reminders_log')
@@ -1578,7 +1649,7 @@ export async function sendFeeReminderNotification(payload: {
 export async function getFinanceSettings(institutionCode: string) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, institutionCode);
+    const resolvedId = await resolveInstitutionCode(supabase, institutionCode);
 
     const { data: campus, error } = await supabase
       .from('campuses')
@@ -1600,17 +1671,17 @@ export async function getFinanceSettings(institutionCode: string) {
     return {
       success: true,
       data: {
-        institution_name: campus?.name || inst?.name || 'School Name',
-        school_id: campus?.school_id || inst?.school_id_number || '1253481',
-        udise_code: campus?.udise_code || inst?.udise_code || '07124100151',
-        contact_phone: campus?.contact_phone || inst?.phone_number || '9811102008',
-        contact_email: campus?.contact_email || inst?.principal_email || 'admissions@school.edu.in',
-        address: campus?.address || inst?.address || 'Main Campus, Institutional Area',
-        receipt_prefix: 'CBS-REC-',
-        invoice_prefix: 'INV-2026-',
+        institution_name: campus?.name || inst?.name || '',
+        school_id: campus?.school_id || inst?.school_id_number || '',
+        udise_code: campus?.udise_code || inst?.udise_code || '',
+        contact_phone: campus?.contact_phone || inst?.phone_number || '',
+        contact_email: campus?.contact_email || inst?.principal_email || '',
+        address: campus?.address || inst?.address || '',
+        receipt_prefix: 'REC-',
+        invoice_prefix: 'INV-',
         default_due_day: 10,
-        late_fee_per_day: 25,
-        max_late_fee: 500,
+        late_fee_per_day: 0,
+        max_late_fee: 0,
         currency_symbol: '₹',
         paper_format: 'A5 (148 x 210 mm) - 1 Page Standard',
         allow_partial_admin: true,
@@ -1623,17 +1694,17 @@ export async function getFinanceSettings(institutionCode: string) {
       success: false,
       error: error.message,
       data: {
-        institution_name: 'School Name',
-        school_id: '1253481',
-        udise_code: '07124100151',
-        contact_phone: '9811102008',
-        contact_email: 'crayonboxdelhi@gmail.com',
-        address: 'Burari, Sant Nagar, Delhi - 110084',
-        receipt_prefix: 'CBS-REC-',
-        invoice_prefix: 'INV-2026-',
+        institution_name: '',
+        school_id: '',
+        udise_code: '',
+        contact_phone: '',
+        contact_email: '',
+        address: '',
+        receipt_prefix: 'REC-',
+        invoice_prefix: 'INV-',
         default_due_day: 10,
-        late_fee_per_day: 25,
-        max_late_fee: 500,
+        late_fee_per_day: 0,
+        max_late_fee: 0,
         currency_symbol: '₹',
         paper_format: 'A5 (148 x 210 mm) - 1 Page Standard',
         allow_partial_admin: true,
@@ -1660,7 +1731,7 @@ export async function saveFinanceSettings(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     const { data, error } = await supabase
       .from('campuses')
@@ -1802,8 +1873,8 @@ export async function getReceiptTemplateSettingsAction(institutionCode?: string)
       institution_name: instName,
       affiliation_number: staticInst?.affiliationNumber || 'AFF/REG',
       school_id: campus?.school_id || staticInst?.code || 'SCH-01',
-      udise_code: campus?.udise_code || '07124100151',
-      contact_phone: campus?.contact_phone || '9811102008',
+      udise_code: campus?.udise_code || (staticInst as any)?.udiseCode || '',
+      contact_phone: campus?.contact_phone || staticInst?.phone || '',
       contact_email: campus?.contact_email || staticInst?.principalEmail || 'accounts@school.edu.in',
       address: staticInst?.address || campus?.address || 'Main Campus, Delhi NCR',
       receipt_title: 'FEE RECEIPT',
@@ -1824,8 +1895,8 @@ export async function getReceiptTemplateSettingsAction(institutionCode?: string)
         institution_name: staticInst?.name || 'School Fee Billing',
         affiliation_number: staticInst?.affiliationNumber || 'AFF/REG',
         school_id: staticInst?.code || 'SCH-01',
-        udise_code: '07124100151',
-        contact_phone: '9811102008',
+        udise_code: (staticInst as any)?.udiseCode || '',
+        contact_phone: staticInst?.phone || '',
         contact_email: staticInst?.principalEmail || 'accounts@school.edu.in',
         address: staticInst?.address || 'Main Campus, Delhi NCR',
         receipt_title: 'FEE RECEIPT',
@@ -1846,7 +1917,7 @@ export async function saveReceiptTemplateSettingsAction(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
-    const resolvedId = resolveInstitutionCode(supabase, payload.institution_code);
+    const resolvedId = await resolveInstitutionCode(supabase, payload.institution_code);
 
     if (payload.settings.institution_name || payload.settings.address || payload.settings.contact_phone) {
       await supabase.from('campuses').update({

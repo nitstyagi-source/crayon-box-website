@@ -1,6 +1,10 @@
 const pg = require("pg");
 const { Pool } = pg;
-const connectionString = "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 
 async function initPhase7Schema() {

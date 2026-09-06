@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import pg from 'pg';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let pool: pg.Pool | null = null;
-function getPool() {
-  if (!pool) pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
   return pool;
 }
 
@@ -24,7 +24,10 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
-    const from = (formData.get('From') as string) || '+919810022334';
+    const from = (formData.get('From') as string) || '';
+    if (!from.trim()) {
+      return NextResponse.json({ error: "Missing required 'From' sender parameter." }, { status: 400 });
+    }
     const body = ((formData.get('Body') as string) || '').trim();
 
     console.log(`[2-Way WhatsApp Bot] Inbound from ${from}: "${body}"`);
@@ -41,12 +44,21 @@ export async function POST(request: Request) {
       LIMIT 1;
     `, [cleanPhone.slice(-10)]); // match last 10 digits
 
-    const student = stuRes.rows[0] || {
-      first_name: 'Student',
-      last_name: 'Scholar',
-      admission_no: 'TEST-ADM-2026-0001',
-      class_name: 'Class 1-A'
-    };
+    const student = stuRes.rows[0];
+    if (!student) {
+      const unregisteredReply = `👋 *Welcome to Crayon Box School Desk*\n\nYour mobile number (${cleanPhone.slice(-10)}) is not linked with an active enrolled student profile in our directory. Please contact the school administrative desk to update your verified parent mobile number.`;
+      const twiml = `
+        <Response>
+          <Message>
+            <Body>${unregisteredReply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Body>
+          </Message>
+        </Response>
+      `;
+      return new NextResponse(twiml, {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
 
     const text = body.toUpperCase();
     let replyText = '';
@@ -63,32 +75,60 @@ export async function POST(request: Request) {
       if (invRes.rows.length > 0) {
         const inv = invRes.rows[0];
         const pending = Number(inv.total_amount) - Number(inv.amount_paid);
-        replyText = `💳 *Crayon Box Fee Bot*\n\nStudent: *${student.first_name} ${student.last_name}* (${student.admission_no})\nInvoice: *${inv.invoice_number}*\nTotal Due: *₹${pending.toLocaleString('en-IN')}*\nStatus: *${inv.status}*\n\n👉 *Pay Instantly via UPI / Card*:\nhttps://www.crayonboxschool.com/fees/pay?inv=${inv.invoice_number}\n\nType *MENU* for more options.`;
+        replyText = `💳 *Crayon Box Fee Bot*\n\nStudent: *${student.first_name} ${student.last_name || ''}* (${student.admission_no})\nInvoice: *${inv.invoice_number}*\nTotal Due: *₹${pending.toLocaleString('en-IN')}*\nStatus: *${inv.status}*\n\n👉 *Pay Instantly via UPI / Card*:\nhttps://www.crayonboxschool.com/fees/pay?inv=${inv.invoice_number}\n\nType *MENU* for more options.`;
       } else {
-        replyText = `💳 *Crayon Box Fee Bot*\n\nStudent: *${student.first_name} ${student.last_name}*\nStatus: *All fees are up-to-date! Zero pending arrears.*\nReceipts available on parent portal.`;
+        replyText = `💳 *Crayon Box Fee Bot*\n\nStudent: *${student.first_name} ${student.last_name || ''}*\nStatus: *All fees are up-to-date! Zero pending arrears.*\nReceipts available on parent portal.`;
       }
     }
     // INTENT 2: ATTENDANCE
     else if (text.includes('ATTEND') || text.includes('PRESENT') || text.includes('ABSENT')) {
       const attRes = await client.query(`
         SELECT count(*) as total_days,
-               count(*) FILTER (WHERE status = 'PRESENT') as present_days
+               count(*) FILTER (WHERE status = 'Present') as present_days
         FROM public.student_attendance_records
         WHERE student_id = $1;
       `, [student.id]);
 
-      const att = attRes.rows[0];
-      const pct = att.total_days > 0 ? Math.round((att.present_days / att.total_days) * 100) : 94;
+      const att = attRes.rows[0] || {};
+      const totalDays = Number(att.total_days || 0);
+      const presentDays = Number(att.present_days || 0);
+      const pct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
-      replyText = `📊 *Attendance Desk Bot*\n\nStudent: *${student.first_name} ${student.last_name}* (${student.class_name})\n• Overall Attendance: *${pct}%*\n• Present Days: *${att.present_days || 18} / ${att.total_days || 20} Days*\n• Statutory Compliance: ${pct >= 75 ? '✅ Satisfactory (>75%)' : '⚠️ Critical Remedial (<75%)'}\n\nType *MENU* for more options.`;
+      replyText = `📊 *Attendance Desk Bot*\n\nStudent: *${student.first_name} ${student.last_name || ''}* (${student.class_name})\n• Overall Attendance: *${pct}%*\n• Present Days: *${presentDays} / ${totalDays} Days*\n• Statutory Compliance: ${pct >= 75 ? '✅ Satisfactory (>75%)' : '⚠️ Critical Remedial (<75%)'}\n\nType *MENU* for more options.`;
     }
     // INTENT 3: HOMEWORK & DIARY
     else if (text.includes('HOMEWORK') || text.includes('DIARY') || text.includes('LESSON')) {
-      replyText = `📚 *Today's Lesson Diary & Homework*\n\nStudent: *${student.first_name}* (${student.class_name})\n\n1. *Mathematics*: Chapter 4 Exercise 4.2 (Q1 to Q5 in notebook).\n2. *English*: Read Chapter 5 "The Friendly Dolphin" & complete workbook pg 24.\n3. *Science*: Prepare leaf chart for tomorrow's lab experiment.\n\nType *MENU* for more options.`;
+      const hwRes = await client.query(`
+        SELECT subject_name, title, instructions, due_date
+        FROM public.student_homework
+        WHERE class_name ILIKE '%' || $1 || '%' OR class_name = $2
+        ORDER BY created_at DESC
+        LIMIT 3;
+      `, [student.class_name?.split('-')[0] || '', student.class_name]);
+
+      if (hwRes.rows.length > 0) {
+        const list = hwRes.rows.map((h: any, i: number) => `${i + 1}. *${h.subject_name || 'Subject'}*: ${h.title}${h.instructions ? ` - ${h.instructions}` : ''}`).join('\n');
+        replyText = `📚 *Today's Lesson Diary & Homework*\n\nStudent: *${student.first_name}* (${student.class_name})\n\n${list}\n\nType *MENU* for more options.`;
+      } else {
+        replyText = `📚 *Today's Lesson Diary & Homework*\n\nStudent: *${student.first_name}* (${student.class_name})\n\nNo pending homework or diary entries recorded for today.\n\nType *MENU* for more options.`;
+      }
     }
     // INTENT 4: TRANSPORT & BUS TRACKING
     else if (text.includes('BUS') || text.includes('TRACK') || text.includes('DRIVER')) {
-      replyText = `🚌 *Smart Fleet Live Radar*\n\nRoute: *R-01 (Sector 62 to Indirapuram)*\nBus Number: *TEST-DL-01-CB-1001*\nDriver: *Ramesh Kumar* (+91 99999 10001)\nCurrent Status: *On Schedule (Approaching Stop)*\nETA to designated pickup: *7 minutes*.\n\nType *MENU* for more options.`;
+      const busRes = await client.query(`
+        SELECT bus_number, route_name, driver_name, driver_phone, status
+        FROM public.transport_buses
+        WHERE status = 'ACTIVE' OR status ILIKE '%active%'
+        ORDER BY updated_at DESC
+        LIMIT 1;
+      `);
+
+      if (busRes.rows.length > 0) {
+        const b = busRes.rows[0];
+        replyText = `🚌 *Smart Fleet Live Radar*\n\nRoute: *${b.route_name || 'Assigned Route'}*\nBus Number: *${b.bus_number}*\nDriver: *${b.driver_name || 'Assigned Driver'}* (${b.driver_phone || 'Driver contact via dispatch'})\nCurrent Status: *${b.status || 'Active'}*\n\nType *MENU* for more options.`;
+      } else {
+        replyText = `🚌 *Smart Fleet Live Radar*\n\nStudent: *${student.first_name}*\nNo active school transport or active bus trip found at this moment.\n\nType *MENU* for more options.`;
+      }
     }
     // FALLBACK / MENU
     else {

@@ -34,18 +34,19 @@ export default function InvoiceA5PrintModal({ invoice, isOpen, onClose }: Invoic
   const issueDate = invoice.created_at 
     ? new Date(invoice.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const curYear = new Date().getFullYear();
   const dueDate = invoice.due_date 
     ? new Date(invoice.due_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    : "10-09-2026";
+    : `10-${String(new Date().getMonth() + 1).padStart(2, '0')}-${curYear}`;
   
   const studentName = invoice.student_name || (invoice.students ? `${invoice.students.first_name || ''} ${invoice.students.last_name || ''}`.trim() : "Student Record");
-  const admissionNo = invoice.admission_no || invoice.students?.admission_no || "ADM-2026";
+  const admissionNo = invoice.admission_no || invoice.students?.admission_no || `ADM-${curYear}`;
   const rollNo = invoice.students?.roll_no || "—";
-  const className = invoice.class_name || (invoice.classes ? `${invoice.classes.grade || ''}-${invoice.classes.section || ''}` : "Class 5");
+  const className = invoice.class_name || (invoice.classes ? `${invoice.classes.grade || ''}-${invoice.classes.section || ''}` : "Class 1");
   const sectionName = invoice.section_name || "";
   const classDisplay = sectionName ? `${className}-${sectionName}` : className;
   const fatherName = invoice.students?.father_name || invoice.parent_name || "Parent / Guardian";
-  const billingPeriod = invoice.billing_period || invoice.term_name || "Quarter 2 (Jul - Sep 2026)";
+  const billingPeriod = invoice.billing_period || invoice.term_name || `Quarter 2 (Jul - Sep ${curYear})`;
   const status = invoice.status || "Unpaid";
 
   // Financial Calculations

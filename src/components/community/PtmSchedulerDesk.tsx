@@ -19,9 +19,23 @@ import {
   bookPtmSlotAction,
   PtmSlotItem
 } from "@/app/actions/ptm-scheduler-actions";
+import { getInstitutionClassesAction } from "@/app/actions/attendance-actions";
+import { useInstitution } from "@/components/providers/InstitutionContext";
 
-export function PtmSchedulerDesk() {
-  const [selectedClass, setSelectedClass] = useState("Class 1-A");
+interface PtmSchedulerDeskProps {
+  initialStudentName?: string;
+  initialParentName?: string;
+  initialParentPhone?: string;
+}
+
+export function PtmSchedulerDesk({
+  initialStudentName = "",
+  initialParentName = "",
+  initialParentPhone = ""
+}: PtmSchedulerDeskProps = {}) {
+  const { currentInstitution } = useInstitution();
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState("ALL");
   const [slots, setSlots] = useState<PtmSlotItem[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +43,24 @@ export function PtmSchedulerDesk() {
 
   // Booking Modal / Form
   const [selectedSlot, setSelectedSlot] = useState<PtmSlotItem | null>(null);
-  const [studentName, setStudentName] = useState("Aarav Sharma");
-  const [parentName, setParentName] = useState("Mr. Rajesh Sharma");
-  const [parentPhone, setParentPhone] = useState("+919810081008");
-  const [agendaNotes, setAgendaNotes] = useState("Discuss Mathematics speed, reading phonics & co-scholastic participation.");
+  const [studentName, setStudentName] = useState(initialStudentName);
+  const [parentName, setParentName] = useState(initialParentName);
+  const [parentPhone, setParentPhone] = useState(initialParentPhone);
+  const [agendaNotes, setAgendaNotes] = useState("");
+
+  useEffect(() => {
+    async function loadDynamicClasses() {
+      try {
+        const res = await getInstitutionClassesAction(currentInstitution || 'CBS');
+        if (res.success && res.classes && res.classes.length > 0) {
+          setAvailableClasses(res.classes as string[]);
+        }
+      } catch (e) {
+        console.error("Failed to load institution classes for PTM scheduler:", e);
+      }
+    }
+    loadDynamicClasses();
+  }, [currentInstitution]);
 
   useEffect(() => {
     loadSlots();
@@ -98,11 +126,20 @@ export function PtmSchedulerDesk() {
             onChange={(e) => setSelectedClass(e.target.value)}
             className="bg-white border border-[#E8DFC8] text-stone-900 font-bold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#D97706]"
           >
-            <option value="Class 1-A">Class 1-A</option>
-            <option value="Class 2-A">Class 2-A</option>
-            <option value="Class 3-A">Class 3-A</option>
-            <option value="Class 4-A">Class 4-A</option>
-            <option value="Class 5-A">Class 5-A</option>
+            <option value="ALL">All Classes / Cohorts</option>
+            {availableClasses.length > 0 ? (
+              availableClasses.map((cls) => (
+                <option key={cls} value={cls}>{cls}</option>
+              ))
+            ) : (
+              <>
+                <option value="Class 1-A">Class 1-A</option>
+                <option value="Class 2-A">Class 2-A</option>
+                <option value="Class 3-A">Class 3-A</option>
+                <option value="Class 4-A">Class 4-A</option>
+                <option value="Class 5-A">Class 5-A</option>
+              </>
+            )}
           </select>
 
           <button
@@ -134,7 +171,7 @@ export function PtmSchedulerDesk() {
             Confirmed Booked Slots
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-700">
-            {stats?.bookedSlots || 1}
+            {stats?.bookedSlots ?? slots.filter((s: any) => s.is_booked).length}
           </div>
           <div className="text-[10px] text-emerald-600 font-bold">WhatsApp Confirmed</div>
         </div>
@@ -145,7 +182,7 @@ export function PtmSchedulerDesk() {
             Available Open Slots
           </div>
           <div className="text-2xl sm:text-3xl font-black text-[#92400E]">
-            {stats?.availableSlots || (slots.length - 1)}
+            {stats?.availableSlots ?? slots.filter((s: any) => !s.is_booked).length}
           </div>
           <div className="text-[10px] text-[#D97706] font-bold">Ready for Parent Booking</div>
         </div>
@@ -226,6 +263,7 @@ export function PtmSchedulerDesk() {
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="e.g. Advait Sharma"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />
@@ -237,6 +275,7 @@ export function PtmSchedulerDesk() {
                   type="text"
                   value={parentName}
                   onChange={(e) => setParentName(e.target.value)}
+                  placeholder="e.g. Rajesh Sharma"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />
@@ -248,6 +287,7 @@ export function PtmSchedulerDesk() {
                   type="text"
                   value={parentPhone}
                   onChange={(e) => setParentPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />
@@ -258,6 +298,7 @@ export function PtmSchedulerDesk() {
                 <textarea
                   value={agendaNotes}
                   onChange={(e) => setAgendaNotes(e.target.value)}
+                  placeholder="Discuss academic progress, reading speed, or behavioral questions..."
                   rows={3}
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 text-stone-900 font-medium leading-relaxed focus:outline-none focus:border-[#D97706]"
                   required

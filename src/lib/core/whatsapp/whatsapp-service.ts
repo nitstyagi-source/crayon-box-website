@@ -18,14 +18,16 @@ export interface WhatsAppSendResult {
   waLink?: string;
 }
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
 }
 
 export class WhatsAppService {
@@ -81,6 +83,7 @@ export class WhatsAppService {
     // 2. MSG91 WhatsApp Outbound API
     else if (msg91AuthKey) {
       provider = "MSG91_WHATSAPP";
+      const integratedNumber = process.env.MSG91_WHATSAPP_NUMBER || process.env.WHATSAPP_SENDER_NUMBER || "";
       try {
         const msg91Res = await fetch("https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/", {
           method: "POST",
@@ -89,7 +92,7 @@ export class WhatsAppService {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            integrated_number: "919811102008",
+            integrated_number: integratedNumber,
             content_type: "text",
             payload: {
               to: cleanPhone,
@@ -150,8 +153,6 @@ export class WhatsAppService {
         status: 'SENT',
         waLink
       };
-    } finally {
-      await pool.end();
     }
   }
 
@@ -170,8 +171,6 @@ export class WhatsAppService {
     } catch (e: any) {
       console.error("Error fetching WhatsApp logs:", e);
       return [];
-    } finally {
-      await pool.end();
     }
   }
 }

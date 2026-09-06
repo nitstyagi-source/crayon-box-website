@@ -65,44 +65,47 @@ interface MobileAuthContextType {
 const MobileAuthContext = createContext<MobileAuthContextType | undefined>(undefined);
 
 // Preset Demo Personas mirroring modern K-12 ERP multi-role environments
+const currentYear = new Date().getFullYear();
+const currentYearShort = currentYear.toString().slice(-2);
+
 const DEMO_PERSONAS: Record<string, UserAccountProfile> = {
   faculty_parent: {
-    id: "USR-NEHA-001",
-    fullName: "Neha Sharma",
-    email: "neha.sharma@crayonboxschool.com",
-    phoneNumber: "+91 98765 43210",
+    id: "USR-FAC-001",
+    fullName: "Faculty Assessor & Parent",
+    email: "faculty@crayonboxschool.com",
+    phoneNumber: "+91 98765 00001",
     primaryRole: "Faculty",
     linkedRoles: ["Faculty", "Parent"],
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    employeeCode: "EMP-2026-042",
-    department: "Mathematics & Science",
+    avatar: "/avatars/faculty.png",
+    employeeCode: `EMP-${currentYear}-042`,
+    department: "Academic Faculty",
     children: [
       {
-        id: "STU-AARAV-01",
-        admissionNo: "CB26-05421",
-        firstName: "Aarav",
-        lastName: "Sharma",
+        id: "STU-DEMO-01",
+        admissionNo: `CB${currentYearShort}-05421`,
+        firstName: "Enrolled",
+        lastName: "Student A",
         grade: "Grade 5",
         section: "A",
         rollNo: "14",
-        avatar: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80",
-        busRoute: "Route 4 - Sector 62",
-        busStop: "Shipra Sun City Gate 2",
+        avatar: "/avatars/student1.png",
+        busRoute: "Campus Transit Route 1",
+        busStop: "Main Gate Bus Bay",
         classroomCamera: "Grade 5",
-        attendancePercent: 94.2,
-        pendingFee: 12500
+        attendancePercent: 95.0,
+        pendingFee: 0
       },
       {
-        id: "STU-ANAYA-02",
-        admissionNo: "CB26-08194",
-        firstName: "Anaya",
-        lastName: "Sharma",
+        id: "STU-DEMO-02",
+        admissionNo: `CB${currentYearShort}-08194`,
+        firstName: "Enrolled",
+        lastName: "Student B",
         grade: "Grade 2",
         section: "B",
         rollNo: "07",
-        avatar: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=150&auto=format&fit=crop&q=80",
-        busRoute: "Route 4 - Sector 62",
-        busStop: "Shipra Sun City Gate 2",
+        avatar: "/avatars/student2.png",
+        busRoute: "Campus Transit Route 1",
+        busStop: "Main Gate Bus Bay",
         classroomCamera: "Grade 2",
         attendancePercent: 98.0,
         pendingFee: 0
@@ -110,86 +113,86 @@ const DEMO_PERSONAS: Record<string, UserAccountProfile> = {
     ]
   },
   principal: {
-    id: "USR-SUNITA-002",
-    fullName: "Dr. Sunita Rao",
+    id: "USR-PRIN-002",
+    fullName: "Principal Operations Desk",
     email: "principal@crayonboxschool.com",
-    phoneNumber: "+91 99887 76655",
+    phoneNumber: "+91 99887 00002",
     primaryRole: "Principal",
     linkedRoles: ["Principal", "Management"],
-    avatar: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?w=150&auto=format&fit=crop&q=80",
+    avatar: "/avatars/principal.png",
     employeeCode: "EMP-EXEC-001",
     department: "Executive Leadership"
   },
   admin: {
-    id: "USR-RAJESH-003",
-    fullName: "Dr. Rajesh Malhotra",
+    id: "USR-ADM-003",
+    fullName: "Executive Management / Super Admin",
     email: "director@crayonboxschool.com",
-    phoneNumber: "+91 98111 22334",
+    phoneNumber: "+91 98111 00003",
     primaryRole: "Super Admin",
     linkedRoles: ["Super Admin", "Management", "Principal"],
-    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
+    avatar: "/avatars/admin.png",
     employeeCode: "DIR-001",
     department: "Board of Management"
   },
   student: {
-    id: "USR-AARAV-STU",
-    fullName: "Aarav Sharma",
-    email: "aarav.cb26@crayonboxschool.com",
-    phoneNumber: "+91 98765 43210",
+    id: "USR-STU-004",
+    fullName: "Student Learner Profile",
+    email: "student@crayonboxschool.com",
+    phoneNumber: "+91 98765 00004",
     primaryRole: "Student",
     linkedRoles: ["Student"],
-    avatar: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80",
+    avatar: "/avatars/student1.png",
     children: [
       {
-        id: "STU-AARAV-01",
-        admissionNo: "CB26-05421",
-        firstName: "Aarav",
-        lastName: "Sharma",
+        id: "STU-DEMO-01",
+        admissionNo: `CB${currentYearShort}-05421`,
+        firstName: "Enrolled",
+        lastName: "Student",
         grade: "Grade 5",
         section: "A",
         rollNo: "14",
-        avatar: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80",
-        busRoute: "Route 4 - Sector 62",
-        busStop: "Shipra Sun City Gate 2",
+        avatar: "/avatars/student1.png",
+        busRoute: "Campus Transit Route 1",
+        busStop: "Main Gate Bus Bay",
         classroomCamera: "Grade 5",
-        attendancePercent: 94.2,
-        pendingFee: 12500
+        attendancePercent: 95.0,
+        pendingFee: 0
       }
     ]
   },
   parent_only: {
-    id: "USR-VIKRAM-004",
-    fullName: "Vikram Malhotra",
-    email: "vikram.m@gmail.com",
-    phoneNumber: "+91 98100 99887",
+    id: "USR-PAR-005",
+    fullName: "Parent / Guardian Profile",
+    email: "parent@crayonboxschool.com",
+    phoneNumber: "+91 98100 00005",
     primaryRole: "Parent",
     linkedRoles: ["Parent"],
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    avatar: "/avatars/parent.png",
     children: [
       {
-        id: "STU-ROHIT-03",
-        admissionNo: "CB26-03912",
-        firstName: "Rohit",
-        lastName: "Malhotra",
+        id: "STU-DEMO-03",
+        admissionNo: `CB${currentYearShort}-03912`,
+        firstName: "Ward",
+        lastName: "Student",
         grade: "Grade 8",
         section: "A",
         rollNo: "21",
-        avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
-        busRoute: "Route 2 - Indirapuram",
-        busStop: "Habitat Centre Gate 1",
+        avatar: "/avatars/student2.png",
+        busRoute: "Campus Transit Route 2",
+        busStop: "Sector Central Bus Stop",
         classroomCamera: "Grade 8",
         attendancePercent: 96.5,
-        pendingFee: 18500
+        pendingFee: 0
       }
     ]
   }
 };
 
 export function MobileAuthProvider({ children }: { children: ReactNode }) {
-  // Default to multi-role persona Neha Sharma (Faculty + Parent of 2)
-  const [user, setUser] = useState<UserAccountProfile | null>(DEMO_PERSONAS.faculty_parent);
-  const [activeRole, setActiveRole] = useState<RoleType>("Faculty");
-  const [activeChildId, setActiveChildId] = useState<string>("STU-AARAV-01");
+  // Default to unauthenticated session requiring live login or active credentials
+  const [user, setUser] = useState<UserAccountProfile | null>(null);
+  const [activeRole, setActiveRole] = useState<RoleType>("Parent");
+  const [activeChildId, setActiveChildId] = useState<string>("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
 

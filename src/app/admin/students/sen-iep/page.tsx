@@ -53,7 +53,7 @@ export default function SenIepStudioPage() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newClassName, setNewClassName] = useState("Class 9B");
   const [newCategory, setNewCategory] = useState("Dyslexia & Phonological Processing");
-  const [newSpecialist, setNewSpecialist] = useState("Dr. Sunita Rao (SEN Specialist)");
+  const [newSpecialist, setNewSpecialist] = useState("");
   const [newShadow, setNewShadow] = useState("");
   const [newSummary, setNewSummary] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -210,7 +210,7 @@ export default function SenIepStudioPage() {
     try {
       const res = await logTherapySessionAction({
         profileId: selectedProfileId,
-        specialistName: detailData?.profile.lead_specialist_name || "Dr. Sunita Rao",
+        specialistName: detailData?.profile.lead_specialist_name || "Specialist On File",
         therapyType,
         durationMinutes: sessionDuration,
         keyObservations: sessionObs,
@@ -594,6 +594,7 @@ export default function SenIepStudioPage() {
                     type="text"
                     value={newSpecialist}
                     onChange={(e) => setNewSpecialist(e.target.value)}
+                    placeholder="e.g. Lead Specialist Full Name"
                     className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-bold focus:bg-white"
                   />
                 </div>

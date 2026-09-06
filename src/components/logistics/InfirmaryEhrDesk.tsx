@@ -35,15 +35,15 @@ export function InfirmaryEhrDesk({
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Form State
-  const [studentName, setStudentName] = useState("Aarav Sharma");
-  const [className, setClassName] = useState("Class 1-B");
-  const [parentPhone, setParentPhone] = useState("+919810081008");
-  const [symptoms, setSymptoms] = useState("Mild headache and slight feverish warmth");
-  const [bodyTemp, setBodyTemp] = useState<number>(99.2);
-  const [treatmentGiven, setTreatmentGiven] = useState("Rest on clinic bed for 20 mins, cool forehead compress applied, glass of water given.");
-  const [medicineAdministered, setMedicineAdministered] = useState("Paracetamol 250mg syrup");
+  const [studentName, setStudentName] = useState("");
+  const [className, setClassName] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [symptoms, setSymptoms] = useState("");
+  const [bodyTemp, setBodyTemp] = useState<number | string>("");
+  const [treatmentGiven, setTreatmentGiven] = useState("");
+  const [medicineAdministered, setMedicineAdministered] = useState("");
   const [actionStatus, setActionStatus] = useState<"RESTING_IN_CLINIC" | "SENT_BACK_TO_CLASS" | "SENT_HOME">("RESTING_IN_CLINIC");
-  const [nurseName, setNurseName] = useState("Nurse Mary (RN)");
+  const [nurseName, setNurseName] = useState("");
 
   useEffect(() => {
     loadVisits();
@@ -71,15 +71,23 @@ export function InfirmaryEhrDesk({
         className,
         parentPhone,
         symptoms,
-        bodyTemperatureF: bodyTemp,
+        bodyTemperatureF: bodyTemp !== "" ? Number(bodyTemp) : undefined,
         treatmentGiven,
         medicineAdministered,
         actionStatus,
-        nurseName
+        nurseName: nurseName.trim() || undefined
       });
 
       if (res.success) {
         alert(res.message);
+        setStudentName("");
+        setClassName("");
+        setParentPhone("");
+        setSymptoms("");
+        setBodyTemp("");
+        setTreatmentGiven("");
+        setMedicineAdministered("");
+        setNurseName("");
         loadVisits();
         setActiveTab("register");
       } else {
@@ -219,6 +227,7 @@ export function InfirmaryEhrDesk({
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="e.g. Student full name"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900 focus:bg-white"
                   required
                 />
@@ -230,6 +239,7 @@ export function InfirmaryEhrDesk({
                   type="text"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g. Class 1-B"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900 focus:bg-white"
                   required
                 />
@@ -241,6 +251,7 @@ export function InfirmaryEhrDesk({
                   type="text"
                   value={parentPhone}
                   onChange={(e) => setParentPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:bg-white"
                   required
                 />
@@ -252,9 +263,9 @@ export function InfirmaryEhrDesk({
                   type="number"
                   step="0.1"
                   value={bodyTemp}
-                  onChange={(e) => setBodyTemp(Number(e.target.value))}
+                  onChange={(e) => setBodyTemp(e.target.value)}
+                  placeholder="e.g. 98.6"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:bg-white"
-                  required
                 />
               </div>
 
@@ -276,6 +287,7 @@ export function InfirmaryEhrDesk({
                   value={treatmentGiven}
                   onChange={(e) => setTreatmentGiven(e.target.value)}
                   rows={2}
+                  placeholder="e.g. Antiseptic dressing, cold compress, rest in dark room..."
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-stone-900 font-medium leading-relaxed focus:bg-white"
                   required
                 />
@@ -287,11 +299,23 @@ export function InfirmaryEhrDesk({
                   type="text"
                   value={medicineAdministered}
                   onChange={(e) => setMedicineAdministered(e.target.value)}
+                  placeholder="e.g. Paracetamol 250mg or None"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-stone-900 focus:bg-white"
                 />
               </div>
 
               <div>
+                <label className="font-bold text-stone-700 block mb-1">Attending Health Officer / Nurse</label>
+                <input
+                  type="text"
+                  value={nurseName}
+                  onChange={(e) => setNurseName(e.target.value)}
+                  placeholder="e.g. School Health Officer (RN)"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900 focus:bg-white"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
                 <label className="font-bold text-stone-700 block mb-1">Current Action Status</label>
                 <select
                   value={actionStatus}

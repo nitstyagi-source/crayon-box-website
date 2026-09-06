@@ -3,11 +3,13 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
-function getPool() {
-  return new Pool({ connectionString });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
+  return pool;
 }
 
 function safeRevalidate(path: string) {
@@ -161,13 +163,17 @@ export async function generateOfficialTransferCertificateAction(params: {
   const client = await pool.connect();
 
   try {
-    const { studentAdmissionNoOrName, reasonForLeaving, approvedBy = 'Principal Dr. Meenakshi Sunder' } = params;
+    const { studentAdmissionNoOrName, reasonForLeaving } = params;
 
     const stuRes = await client.query(`
       SELECT s.id, s.first_name, s.last_name, 
              COALESCE(se.admission_number, s.admission_no, 'N/A') as admission_no, 
              s.dob,
+             s.admission_date,
+             s.pen_number,
+             s.created_at as student_created_at,
              COALESCE(se.class_name, c.grade, 'Class 1') as class_name,
+             COALESCE(se.section_name, c.section, c.name, 'A') as section_name,
              COALESCE(s.father_name, g.first_name, 'Father') as father_name,
              COALESCE(s.mother_name, 'Mother') as mother_name
       FROM public.students s
@@ -188,8 +194,42 @@ export async function generateOfficialTransferCertificateAction(params: {
     }
 
     const stu = stuRes.rows[0];
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const today = new Date().toISOString().split('T')[0];
+
+    // Fetch Dynamic Sequential Count
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.transfer_certificates;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+
+    // Fetch Authentic Attendance
+    const attRes = await client.query(`
+      SELECT 
+        COUNT(*)::int as total_days,
+        COUNT(CASE WHEN status IN ('PRESENT', 'LATE', 'HALF_DAY') THEN 1 END)::int as attended_days
+      FROM public.student_attendance_records
+      WHERE student_id = $1
+    `, [stu.id]);
+    const totalAttendance = Number(attRes.rows[0]?.total_days || 0);
+    const studentAttendance = Number(attRes.rows[0]?.attended_days || 0);
+
+    // Fetch Outstanding Dues
+    const invRes = await client.query(`
+      SELECT COALESCE(SUM(balance_amount), 0)::numeric as pending_balance
+      FROM public.student_invoices
+      WHERE student_id = $1 AND status != 'PAID'
+    `, [stu.id]);
+    const pendingBalance = Number(invRes.rows[0]?.pending_balance || 0);
+    const duesPaid = pendingBalance <= 0;
+
+    // Fetch Academic Result
+    const examRes = await client.query(`
+      SELECT overall_grade, status
+      FROM public.exam_report_cards
+      WHERE student_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [stu.id]);
+    const examData = examRes.rows[0];
+    const annualResult = examData ? `${examData.status || 'Promoted'} - Grade ${examData.overall_grade || 'A'}` : 'Course Term Completed';
 
     // Fetch Dynamic Institution Information
     const instRes = await client.query(`
@@ -201,11 +241,17 @@ export async function generateOfficialTransferCertificateAction(params: {
     const instData = instRes.rows[0];
     const instCode = instData?.code || 'CBS';
     const schoolName = instData?.name || 'School Name';
-    const schoolIdNo = instData?.school_id_number || '2730891';
-    const udiseCode = instData?.udise_code || '07010203401';
+    const schoolIdNo = instData?.school_id_number || '';
+    const udiseCode = instData?.udise_code || '';
+    const approvedBy = params.approvedBy || instData?.principal_name || 'Principal Office';
 
-    const tcNo = `TC-${instCode}-2026-${randomSuffix}`;
-    const refNo = `REF/VET/2026/${randomSuffix}`;
+    const currentYear = new Date().getFullYear();
+    const tcNo = `TC-${instCode}-${currentYear}-${nextSeq}`;
+    const refNo = `REF/VET/${currentYear}/${nextSeq}`;
+    const admissionDate = safeDateStr(stu.admission_date) || safeDateStr(stu.student_created_at) || today;
+    const penNo = stu.pen_number || `PEN-${currentYear}-${nextSeq}`;
+    const sectionLastAttended = stu.section_name || 'A';
+    const classAdmitted = stu.class_name || 'Class 1';
 
     const insertRes = await client.query(`
       INSERT INTO public.transfer_certificates (
@@ -221,20 +267,24 @@ export async function generateOfficialTransferCertificateAction(params: {
       ) VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8, $9,
-        $10, $11, $12, '2023-04-01',
-        'Class 1', $13, 'A',
-        'PEN-2026-9901', $14, $14, true,
-        '2026-2027', 180, 175,
-        'Passed & Promoted with Grade A1', $15, 'ISSUED', true,
+        $10, $11, $12, $13,
+        $14, $15, $16,
+        $17, $18, $18, $19,
+        $20, $21, $22,
+        $23, $24, 'ISSUED', $25,
         true, true, true,
-        $16, NOW()
+        $26, NOW()
       )
       RETURNING *
     `, [
       stu.id, tcNo, refNo, instCode, schoolName,
-      schoolIdNo, udiseCode, `${stu.first_name} ${stu.last_name}`, stu.father_name,
-      stu.mother_name, safeDateStr(stu.dob), stu.admission_no, stu.class_name,
-      today, reasonForLeaving, approvedBy
+      schoolIdNo, udiseCode, `${stu.first_name} ${stu.last_name}`.trim(), stu.father_name,
+      stu.mother_name, safeDateStr(stu.dob), stu.admission_no, admissionDate,
+      classAdmitted, stu.class_name, sectionLastAttended,
+      penNo, today, duesPaid,
+      `${currentYear}-${currentYear + 1}`, totalAttendance, studentAttendance,
+      annualResult, reasonForLeaving, duesPaid,
+      approvedBy
     ]);
 
     // Update Student Status to TRANSFERRED and deactivate current enrollment

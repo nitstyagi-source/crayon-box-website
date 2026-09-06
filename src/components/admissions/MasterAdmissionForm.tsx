@@ -40,6 +40,8 @@ interface Props {
 }
 
 export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSuccess }) => {
+  const curYear = new Date().getFullYear();
+  const currentSession = `${curYear}–${(curYear + 1).toString().slice(-2)}`;
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successAppNo, setSuccessAppNo] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     // Step 1: Admission Details
     application_no: "",
     enquiry_no: initialEnquiryNo || "",
-    academic_year: "2026-2027",
+    academic_year: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
     campus_id: "",
     class_applied: "Class 1",
     admission_type: "NEW_ADMISSION",
@@ -75,7 +77,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     middle_name: "",
     last_name: "",
     name_as_per_birth_cert: "",
-    dob: "2021-05-15",
+    dob: "",
     gender: "MALE",
     blood_group: "B+",
     nationality: "Indian",
@@ -87,42 +89,42 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     id_mark_2: "",
 
     // Step 3: Birth Details
-    birth_place: "Delhi",
-    birth_city: "Delhi",
-    birth_district: "North Delhi",
-    birth_state: "Delhi",
+    birth_place: "",
+    birth_city: "",
+    birth_district: "",
+    birth_state: "",
     birth_country: "India",
     birth_certificate_no: "",
-    birth_cert_issuing_authority: "MCD Delhi",
-    birth_cert_issue_date: "2021-06-01",
+    birth_cert_issuing_authority: "",
+    birth_cert_issue_date: "",
 
     // Step 4: Parents & Guardian
     father_name: "",
-    father_dob: "1988-04-12",
+    father_dob: "",
     father_aadhaar: "",
-    father_qualification: "Post Graduate",
-    father_occupation: "Private Service",
-    father_designation: "Senior Manager",
-    father_organization: "Tech Corp",
+    father_qualification: "",
+    father_occupation: "",
+    father_designation: "",
+    father_organization: "",
     father_office_address: "",
     father_phone: "",
     father_whatsapp: "",
     father_email: "",
-    father_annual_income: "1200000",
+    father_annual_income: "",
     is_father_primary: true,
 
     mother_name: "",
-    mother_dob: "1990-08-20",
+    mother_dob: "",
     mother_aadhaar: "",
-    mother_qualification: "Graduate",
-    mother_occupation: "Professional",
-    mother_designation: "Consultant",
+    mother_qualification: "",
+    mother_occupation: "",
+    mother_designation: "",
     mother_organization: "",
     mother_office_address: "",
     mother_phone: "",
     mother_whatsapp: "",
     mother_email: "",
-    mother_annual_income: "800000",
+    mother_annual_income: "",
     is_mother_primary: false,
 
     has_legal_guardian: false,
@@ -134,18 +136,18 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
 
     // Step 5: Address & Family
     current_address_line1: "",
-    current_locality: "Burari",
+    current_locality: "",
     current_landmark: "",
-    current_city: "Delhi",
-    current_district: "Central North",
-    current_state: "Delhi",
-    current_pincode: "110084",
+    current_city: "",
+    current_district: "",
+    current_state: "",
+    current_pincode: "",
     is_permanent_same: true,
     permanent_address_line1: "",
-    permanent_city: "Delhi",
-    permanent_state: "Delhi",
-    permanent_pincode: "110084",
-    distance_from_campus_km: "3.5",
+    permanent_city: "",
+    permanent_state: "",
+    permanent_pincode: "",
+    distance_from_campus_km: "",
     family_marital_status: "Married",
     child_lives_with: "Both Parents",
 
@@ -155,11 +157,11 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     previous_school_board: "",
     previous_school_medium: "English",
     previous_class_attended: "",
-    previous_academic_year: "2025-2026",
+    previous_academic_year: "",
     previous_tc_number: "",
     previous_tc_date: "",
-    previous_marks_percentage: "92",
-    previous_reason_for_leaving: "Relocation to school neighborhood",
+    previous_marks_percentage: "",
+    previous_reason_for_leaving: "",
 
     // Step 7: Language & Sibling
     first_language: "English",
@@ -174,9 +176,9 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
     // Step 8: Health & Emergency
     medical_allergies: "None",
     medical_conditions: "Healthy, No chronic conditions",
-    doctor_name: "Dr. A. K. Verma",
-    doctor_phone: "9876543210",
-    preferred_hospital: "Max Healthcare",
+    doctor_name: "",
+    doctor_phone: "",
+    preferred_hospital: "",
     emergency_contact_1_name: "",
     emergency_contact_1_relation: "Father",
     emergency_contact_1_phone: "",
@@ -368,7 +370,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
           <p className="text-blue-800">
             1. Our Admissions Committee will verify your submitted documents.<br />
             2. You will receive an SMS and WhatsApp notification regarding your interactive interaction slot.<br />
-            3. Upon confirmation, your child&apos;s Admission Number (<code>ADM-2026-XXXX</code>) and Parent App login will be activated.
+            3. Upon confirmation, your child&apos;s Admission Number (<code>ADM-{curYear}-XXXX</code>) and Parent App login will be activated.
           </p>
         </div>
 
@@ -411,7 +413,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-black text-white">Master Admission Application (2026–27)</h2>
+              <h2 className="text-sm sm:text-base font-black text-white">Master Admission Application ({currentSession})</h2>
               <p className="text-[11px] text-slate-300">12-Section Master Student Ledger Form</p>
             </div>
           </div>
@@ -498,8 +500,9 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                   onChange={(e) => setForm({ ...form, academic_year: e.target.value })}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900"
                 >
-                  <option value="2026-2027">2026–2027 (Active Intake)</option>
-                  <option value="2027-2028">2027–2028 (Advance Booking)</option>
+                  <option value={`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`}>{`${new Date().getFullYear()}–${new Date().getFullYear() + 1}`} (Active Intake)</option>
+                  <option value={`${new Date().getFullYear() + 1}-${new Date().getFullYear() + 2}`}>{`${new Date().getFullYear() + 1}–${new Date().getFullYear() + 2}`} (Advance Booking)</option>
+                  <option value={`${new Date().getFullYear() - 1}-${new Date().getFullYear()}`}>{`${new Date().getFullYear() - 1}–${new Date().getFullYear()}`} (Past Session)</option>
                 </select>
               </div>
 
@@ -828,7 +831,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                     required
                     value={form.father_phone}
                     onChange={(e) => setForm({ ...form, father_phone: e.target.value, father_whatsapp: e.target.value })}
-                    placeholder="9811102008"
+                    placeholder="98XXXXXXXX"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900 font-mono"
                   />
                 </div>
@@ -1096,7 +1099,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                   type="text"
                   value={form.previous_tc_number}
                   onChange={(e) => setForm({ ...form, previous_tc_number: e.target.value })}
-                  placeholder="TC/2026/0921"
+                  placeholder={`TC/${curYear}/0921`}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900 font-mono"
                 />
               </div>
@@ -1307,7 +1310,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                   required
                   value={form.emergency_contact_1_phone}
                   onChange={(e) => setForm({ ...form, emergency_contact_1_phone: e.target.value })}
-                  placeholder="9811102008"
+                  placeholder="98XXXXXXXX"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900 font-mono"
                 />
               </div>

@@ -156,9 +156,16 @@ export async function createStudent(payload: any) {
       
     let yearId = academicYear?.id;
     if (!yearId) {
+      const curYear = new Date().getFullYear();
       const { data: newYear } = await supabase
         .from('academic_years')
-        .insert([{ campus_id: campusId, name: '2026-2027', start_date: '2026-04-01', end_date: '2027-03-31', is_active: true }])
+        .insert([{ 
+          campus_id: campusId, 
+          name: `${curYear}-${curYear + 1}`, 
+          start_date: `${curYear}-04-01`, 
+          end_date: `${curYear + 1}-03-31`, 
+          is_active: true 
+        }])
         .select()
         .single();
       yearId = newYear?.id;
@@ -439,10 +446,18 @@ export async function promoteStudent(studentId: string, payload: {
       .maybeSingle();
 
     let yearId = academicYear?.id;
+    const curYear = new Date().getFullYear();
+    const defaultSession = `${curYear}-${curYear + 1}`;
     if (!yearId) {
       const { data: newYear } = await supabase
         .from('academic_years')
-        .insert([{ campus_id: campusId, name: payload.academic_session || '2026-2027', start_date: '2026-04-01', end_date: '2027-03-31', is_active: true }])
+        .insert([{ 
+          campus_id: campusId, 
+          name: payload.academic_session || defaultSession, 
+          start_date: `${curYear}-04-01`, 
+          end_date: `${curYear + 1}-03-31`, 
+          is_active: true 
+        }])
         .select()
         .single();
       yearId = newYear?.id;
@@ -481,7 +496,7 @@ export async function promoteStudent(studentId: string, payload: {
         student_id: studentId,
         action_type: 'Promotion',
         action_date: new Date().toISOString().split('T')[0],
-        remarks: payload.remarks || `Promoted to ${payload.next_class} (${payload.academic_session || '2026-2027'})`
+        remarks: payload.remarks || `Promoted to ${payload.next_class} (${payload.academic_session || defaultSession})`
       }]);
 
     revalidatePath(`/admin/students/${studentId}`);
@@ -741,6 +756,89 @@ export async function searchPotentialSiblings(query: string, excludeStudentId?: 
   }
 }
 
+export async function getSiblingsForContextAction(studentId?: string): Promise<{
+  success: boolean;
+  data: Array<{
+    id: string;
+    firstName: string;
+    grade: string;
+    avatar: string;
+  }>;
+}> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (studentId) {
+      const { data: mainStudent } = await supabase
+        .from('students')
+        .select(`
+          id, first_name, last_name, photo_url,
+          student_academic_history(class_name, is_current_session)
+        `)
+        .eq('id', studentId)
+        .maybeSingle();
+
+      const { data: siblings } = await supabase
+        .from('student_siblings')
+        .select(`
+          sibling:students!student_siblings_sibling_student_id_fkey(
+            id, first_name, last_name, photo_url,
+            student_academic_history(class_name, is_current_session)
+          )
+        `)
+        .eq('student_id', studentId);
+
+      const list: any[] = [];
+      if (mainStudent) {
+        const currHist = (mainStudent.student_academic_history || []).find((h: any) => h.is_current_session) || mainStudent.student_academic_history?.[0];
+        list.push({
+          id: mainStudent.id,
+          firstName: mainStudent.first_name,
+          grade: currHist?.class_name || 'Enrolled',
+          avatar: mainStudent.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(mainStudent.first_name)}&background=0D8ABC&color=fff`
+        });
+      }
+
+      (siblings || []).forEach((row: any) => {
+        const s = row.sibling;
+        if (s && !list.some(item => item.id === s.id)) {
+          const currHist = (s.student_academic_history || []).find((h: any) => h.is_current_session) || s.student_academic_history?.[0];
+          list.push({
+            id: s.id,
+            firstName: s.first_name,
+            grade: currHist?.class_name || 'Enrolled',
+            avatar: s.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.first_name)}&background=f97316&color=fff`
+          });
+        }
+      });
+
+      return { success: true, data: list };
+    }
+
+    const { data: fallbackStudents } = await supabase
+      .from('students')
+      .select(`
+        id, first_name, last_name, photo_url,
+        student_academic_history(class_name, is_current_session)
+      `)
+      .order('created_at', { ascending: true })
+      .limit(2);
+
+    const mapped = (fallbackStudents || []).map((s: any, idx: number) => {
+      const currHist = (s.student_academic_history || []).find((h: any) => h.is_current_session) || s.student_academic_history?.[0];
+      return {
+        id: s.id,
+        firstName: s.first_name,
+        grade: currHist?.class_name || 'Enrolled',
+        avatar: s.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.first_name)}&background=${idx === 0 ? '0D8ABC' : 'f97316'}&color=fff`
+      };
+    });
+
+    return { success: true, data: mapped };
+  } catch (err: any) {
+    return { success: false, data: [] };
+  }
+}
+
 export async function uploadStudentDocument(studentId: string, payload: {
   document_type: string;
   document_no?: string;
@@ -748,6 +846,10 @@ export async function uploadStudentDocument(studentId: string, payload: {
   verification_status?: string;
 }) {
   try {
+    if (!payload.file_url || !payload.file_url.trim()) {
+      return { success: false, error: 'Document file URL or attachment is required.' };
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
@@ -756,7 +858,7 @@ export async function uploadStudentDocument(studentId: string, payload: {
         student_id: studentId,
         document_type: payload.document_type,
         document_no: payload.document_no || null,
-        file_url: payload.file_url || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        file_url: payload.file_url.trim(),
         verification_status: payload.verification_status || 'Verified',
         uploaded_at: new Date().toISOString()
       }])

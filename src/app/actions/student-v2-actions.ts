@@ -3,15 +3,12 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const DB_CONNECTION_STRING =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
+const DB_CONNECTION_STRING = process.env.DATABASE_URL || '';
 
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ connectionString: DB_CONNECTION_STRING });
+    globalPool = new pg.Pool({ connectionString: DB_CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
 }
@@ -168,11 +165,58 @@ export async function issueTransferCertificateAction(input: {
     const schoolIdNo = instData?.school_id_number || '2730891';
     const udiseCode = instData?.udise_code || '07010203401';
 
-    // Generate Sequential Serial TC Number
-    const randomTc = Math.floor(1000 + Math.random() * 9000);
-    const tcNumber = `TC-${instCode}-2026-${randomTc}`;
-    const refNumber = `REF/VET/2026/${randomTc}`;
+    // Generate Sequential Serial TC Number based on authentic DB count
+    const tcCountRes = await client.query(`SELECT count(*)::int as count FROM public.transfer_certificates;`);
+    const nextTcNum = ((tcCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
+    const currentYear = new Date().getFullYear();
+    const tcNumber = `TC-${instCode}-${currentYear}-${nextTcNum}`;
+    const refNumber = `REF/VET/${currentYear}/${nextTcNum}`;
     const today = new Date().toISOString().split('T')[0];
+
+    // Authentic Attendance Check
+    let totalAttendance = input.totalAttendance;
+    let studentAttendance = input.studentAttendance;
+    if (totalAttendance === undefined || studentAttendance === undefined) {
+      const attRes = await client.query(`
+        SELECT 
+          COUNT(*)::int as total_days,
+          COUNT(CASE WHEN status IN ('PRESENT', 'LATE', 'HALF_DAY') THEN 1 END)::int as attended_days
+        FROM public.student_attendance_records
+        WHERE student_id = $1;
+      `, [stu.id]);
+      const attRow = attRes.rows[0];
+      if (totalAttendance === undefined) totalAttendance = Number(attRow?.total_days || 0);
+      if (studentAttendance === undefined) studentAttendance = Number(attRow?.attended_days || 0);
+    }
+
+    // Authentic Dues Check
+    let duesPaid = input.duesPaid;
+    if (duesPaid === undefined) {
+      const invRes = await client.query(`
+        SELECT COALESCE(SUM(balance_amount), 0)::numeric as pending_balance
+        FROM public.student_invoices
+        WHERE student_id = $1 AND status != 'PAID';
+      `, [stu.id]);
+      duesPaid = Number(invRes.rows[0]?.pending_balance || 0) <= 0;
+    }
+
+    // Authentic Academic Result Check
+    let annualResult = input.annualResult;
+    if (!annualResult) {
+      const examRes = await client.query(`
+        SELECT overall_grade, status
+        FROM public.exam_report_cards
+        WHERE student_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1;
+      `, [stu.id]);
+      const examRow = examRes.rows[0];
+      annualResult = examRow ? `${examRow.status || 'Promoted'} - Grade ${examRow.overall_grade || 'A'}` : 'Course Term Completed';
+    }
+
+    const admissionDate = safeDateStr(stu.admission_date) || safeDateStr(stu.stu_adm_date) || safeDateStr(stu.created_at) || today;
+    const penNumber = stu.pen_no || stu.pen_number || `PEN-${currentYear}-${nextTcNum}`;
+    const classAdmitted = stu.class_admitted || stu.class_name || 'Class 1';
 
     // 4. Insert into transfer_certificates
     const tcRes = await client.query(`
@@ -200,23 +244,23 @@ export async function issueTransferCertificateAction(input: {
       schoolName,
       schoolIdNo,
       udiseCode,
-      `${stu.first_name} ${stu.last_name}`,
+      `${stu.first_name} ${stu.last_name}`.trim(),
       fatherName,
       motherName,
-      safeDateStr(stu.dob) || '2016-04-14',
+      safeDateStr(stu.dob) || today,
       stu.admission_no || 'ADM-N/A',
-      safeDateStr(stu.admission_date) || '2023-04-01',
-      'Pre-Nursery',
+      admissionDate,
+      classAdmitted,
       stu.class_name || 'Class 1',
       stu.section_name || 'A',
-      stu.pen_no || `PEN-2026-${randomTc}`,
+      penNumber,
       today,
       today,
-      input.duesPaid !== false,
-      stu.academic_session || '2026-2027',
-      input.totalAttendance || 220,
-      input.studentAttendance || 204,
-      input.annualResult || 'Promoted to Next Higher Class',
+      duesPaid,
+      stu.academic_session || `${currentYear}-${currentYear + 1}`,
+      totalAttendance,
+      studentAttendance,
+      annualResult,
       input.reasonForLeaving || 'Transferred to Sister Campus / Parent Relocation',
     ]);
 

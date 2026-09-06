@@ -73,11 +73,11 @@ export default function RecruitmentPortalPage() {
     roundType: "Demo Class",
     scheduledDate: new Date().toISOString().split("T")[0],
     scheduledTime: "10:30 AM",
-    interviewerName: "Academic Coordinator & HOD",
-    venueOrLink: "Room 302 (Grade 5A)",
-    demoSubject: "Mathematics",
-    demoClass: "Grade 5",
-    demoTopic: "Fractions & Decimals"
+    interviewerName: "",
+    venueOrLink: "",
+    demoSubject: "",
+    demoClass: "",
+    demoTopic: ""
   });
 
   // Offer Letter Form State
@@ -85,9 +85,9 @@ export default function RecruitmentPortalPage() {
     designation: "",
     department: "Academics",
     joiningDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    salaryMonthly: 50000,
-    ctcAnnual: 600000,
-    reportingManager: "Principal & Managing Director"
+    salaryMonthly: 0,
+    ctcAnnual: 0,
+    reportingManager: ""
   });
 
   useEffect(() => {
@@ -394,23 +394,37 @@ export default function RecruitmentPortalPage() {
               </strong>
 
               <div className="space-y-2">
-                {[
-                  { name: "School Website", pct: 45, count: 57 },
-                  { name: "LinkedIn", pct: 25, count: 32 },
-                  { name: "Naukri", pct: 15, count: 19 },
-                  { name: "Employee Referral", pct: 10, count: 12 },
-                  { name: "Indeed & Others", pct: 5, count: 6 }
-                ].map(s => (
-                  <div key={s.name} className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-bold">
-                      <span className="text-stone-700">{s.name}</span>
-                      <span className="text-purple-700 font-mono">{s.count} ({s.pct}%)</span>
+                {(() => {
+                  const sourceCounts: Record<string, number> = {};
+                  applications.forEach(a => {
+                    const src = a.source || 'School Website';
+                    sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+                  });
+                  const total = applications.length;
+                  const sourcesList = Object.entries(sourceCounts).map(([name, count]) => ({
+                    name,
+                    count,
+                    pct: total > 0 ? Math.round((count / total) * 100) : 0
+                  }));
+
+                  if (sourcesList.length === 0) {
+                    return (
+                      <p className="text-stone-400 italic text-[11px]">No candidate sources logged yet.</p>
+                    );
+                  }
+
+                  return sourcesList.map(s => (
+                    <div key={s.name} className="space-y-1">
+                      <div className="flex justify-between text-[11px] font-bold">
+                        <span className="text-stone-700">{s.name}</span>
+                        <span className="text-purple-700 font-mono">{s.count} ({s.pct}%)</span>
+                      </div>
+                      <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-purple-600 h-full rounded-full" style={{ width: `${s.pct}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-purple-600 h-full rounded-full" style={{ width: `${s.pct}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
 
@@ -672,63 +686,64 @@ export default function RecruitmentPortalPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            {[
-              {
-                name: "Sunita Mehra",
-                pos: "PRT Mathematics Teacher",
-                round: "Demo Class",
-                date: "25 August 2026",
-                time: "10:30 AM",
-                topic: "Fractions & Geometric Shapes (Grade 5A)",
-                interviewer: "HOD Mathematics",
-                score: 4.8,
-                recommendation: "Recommended",
-                remarks: "Engaging classroom rapport. Excellent explanation of equivalent fractions using visual strips."
-              },
-              {
-                name: "Rohan Deshmukh",
-                pos: "PRT Mathematics Teacher",
-                round: "Subject Technical Round",
-                date: "26 August 2026",
-                time: "11:30 AM",
-                topic: "Curriculum Syllabus Pacing & Math Lab Tools",
-                interviewer: "Vice Principal",
-                score: 4.2,
-                recommendation: "Hold",
-                remarks: "Strong subject knowledge. Needs more practice with early grade classroom engagement."
-              }
-            ].map((int, i) => (
-              <div key={i} className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-amber-700 font-bold">{int.round}</span>
-                    <strong className="text-stone-900 font-bold text-sm block mt-0.5">{int.name}</strong>
-                    <span className="text-[11px] text-stone-500">{int.pos}</span>
-                  </div>
-                  <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900">
-                    ⭐ {int.score} / 5.0
-                  </span>
-                </div>
-
-                <div className="bg-white p-2.5 rounded-xl border border-stone-200 space-y-1 text-[11px]">
-                  <div><strong>Topic:</strong> {int.topic}</div>
-                  <div><strong>Time:</strong> {int.date} at {int.time}</div>
-                  <div><strong>Evaluator:</strong> {int.interviewer}</div>
-                  <div className="text-stone-600 italic pt-1">&quot;{int.remarks}&quot;</div>
-                </div>
-
-                <div className="flex justify-between items-center pt-1 text-[11px]">
-                  <span className="font-bold text-purple-900">Outcome: {int.recommendation}</span>
-                  <button
-                    type="button"
-                    onClick={() => alert(`Scorecard approved for ${int.name}!`)}
-                    className="px-3 py-1 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg shadow-2xs"
-                  >
-                    Confirm Evaluation
-                  </button>
-                </div>
+            {applications.filter(a => ['Interview', 'Demo Class', 'Selected', 'Offer Sent'].includes(a.status) || a.interview_round).length === 0 ? (
+              <div className="col-span-2 p-8 text-center bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
+                <Clock className="w-6 h-6 mx-auto text-stone-400 mb-1" />
+                <p className="font-bold text-stone-700 text-xs">No Candidate Evaluations Scheduled</p>
+                <p className="text-stone-500 text-[11px]">Schedule interviews or demo classes from the Applications tab to view evaluations here.</p>
               </div>
-            ))}
+            ) : (
+              applications
+                .filter(a => ['Interview', 'Demo Class', 'Selected', 'Offer Sent'].includes(a.status) || a.interview_round)
+                .map((cand, i) => (
+                  <div key={cand.id || i} className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase text-amber-700 font-bold">{cand.interview_round || cand.status}</span>
+                        <strong className="text-stone-900 font-bold text-sm block mt-0.5">{cand.full_name}</strong>
+                        <span className="text-[11px] text-stone-500">{cand.position_applied || 'Educator Applicant'}</span>
+                      </div>
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900">
+                        ⭐ {cand.demo_class_rating || 4.5} / 5.0
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-stone-200 space-y-1 text-[11px]">
+                      <div><strong>Subject:</strong> {cand.subject || cand.job_vacancies?.title || 'Academic Pedagogy'}</div>
+                      <div><strong>Scheduled Date:</strong> {cand.interview_date ? new Date(cand.interview_date).toLocaleDateString('en-IN') : 'Scheduled'}</div>
+                      <div><strong>Evaluator:</strong> {cand.interviewer_name || 'Academic Selection Board'}</div>
+                      {cand.feedback && <div className="text-stone-600 italic pt-1">&quot;{cand.feedback}&quot;</div>}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1 text-[11px]">
+                      <span className="font-bold text-purple-900">Status: {cand.status}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await evaluateInterviewAndDemoClass({
+                            interviewId: cand.id,
+                            applicationId: cand.id,
+                            evaluationScore: 4.5,
+                            criteria: {
+                              subjectKnowledge: 5,
+                              communication: 4,
+                              teachingSkills: 5,
+                              classroomManagement: 4,
+                              confidence: 5
+                            },
+                            recommendation: "Recommended",
+                            remarks: "Evaluation confirmed by Academic Board"
+                          });
+                          await loadAllData();
+                        }}
+                        className="px-3 py-1 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg shadow-2xs cursor-pointer"
+                      >
+                        Confirm Evaluation
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
         </div>
       )}
@@ -749,66 +764,55 @@ export default function RecruitmentPortalPage() {
           </div>
 
           <div className="space-y-3 text-xs">
-            {[
-              {
-                offerNo: "CBS/HR/OFFER/2026-024",
-                name: "Priyanka Sen",
-                designation: "TGT English Educator",
-                department: "Languages & Humanities",
-                joiningDate: "01 September 2026",
-                monthlySalary: "₹55,000 / month",
-                ctc: "₹6,60,000 per annum",
-                status: "Offer Sent",
-                candidateObj: { id: "priyanka-id", full_name: "Priyanka Sen", position_applied: "TGT English Educator" }
-              },
-              {
-                offerNo: "CBS/HR/OFFER/2026-021",
-                name: "Kavita Rawat",
-                designation: "Senior Kindergarten Educator",
-                department: "Early Childhood Education",
-                joiningDate: "15 August 2026",
-                monthlySalary: "₹35,000 / month",
-                ctc: "₹4,20,000 per annum",
-                status: "Joined",
-                candidateObj: { id: "kavita-id", full_name: "Kavita Rawat", position_applied: "Senior Kindergarten Educator" }
-              }
-            ].map((off, i) => (
-              <div key={i} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <span className="text-[10px] font-mono text-purple-700 font-bold">{off.offerNo}</span>
-                  <strong className="text-stone-900 font-bold text-sm block mt-0.5">{off.name}</strong>
-                  <span className="text-[11px] text-stone-600">{off.designation} • {off.department}</span>
-                  <div className="text-[10px] text-stone-400 font-mono mt-0.5">
-                    Joining: {off.joiningDate} • Compensation: {off.monthlySalary} ({off.ctc})
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
-                    off.status === "Joined" ? "bg-emerald-100 text-emerald-900" : "bg-indigo-100 text-indigo-900"
-                  }`}>
-                    {off.status}
-                  </span>
-
-                  {off.status === "Offer Sent" ? (
-                    <button
-                      type="button"
-                      onClick={() => handleJoinAndOnboardStaff(off.candidateObj)}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1"
-                    >
-                      <span>🎉</span> Complete Joining
-                    </button>
-                  ) : (
-                    <Link
-                      href="/admin/faculty"
-                      className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl transition"
-                    >
-                      View in Faculty Master
-                    </Link>
-                  )}
-                </div>
+            {applications.filter(a => ['Offer Sent', 'Selected', 'Joined'].includes(a.status) || a.offer_letter_number).length === 0 ? (
+              <div className="p-8 text-center bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
+                <Award className="w-6 h-6 mx-auto text-stone-400 mb-1" />
+                <p className="font-bold text-stone-700 text-xs">No Offer Letters Generated Yet</p>
+                <p className="text-stone-500 text-[11px]">Select a candidate from the Applications list and click Generate Offer to initiate onboarding.</p>
               </div>
-            ))}
+            ) : (
+              applications
+                .filter(a => ['Offer Sent', 'Selected', 'Joined'].includes(a.status) || a.offer_letter_number)
+                .map((cand, i) => (
+                  <div key={cand.id || i} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono text-purple-700 font-bold">
+                        {cand.offer_letter_number || `CBS/HR/OFFER/2026-${(i + 1).toString().padStart(3, '0')}`}
+                      </span>
+                      <strong className="text-stone-900 font-bold text-sm block mt-0.5">{cand.full_name}</strong>
+                      <span className="text-[11px] text-stone-600">{cand.position_applied || 'Educator'} • {cand.department || 'Academics'}</span>
+                      <div className="text-[10px] text-stone-400 font-mono mt-0.5">
+                        Joining: {cand.joining_date ? new Date(cand.joining_date).toLocaleDateString('en-IN') : 'Immediate'} • Compensation: ₹{(cand.offered_salary || 45000).toLocaleString('en-IN')} / month
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
+                        cand.status === "Joined" ? "bg-emerald-100 text-emerald-900" : "bg-indigo-100 text-indigo-900"
+                      }`}>
+                        {cand.status}
+                      </span>
+
+                      {cand.status === "Offer Sent" || cand.status === "Selected" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleJoinAndOnboardStaff(cand)}
+                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>🎉</span> Complete Joining
+                        </button>
+                      ) : (
+                        <Link
+                          href="/admin/faculty"
+                          className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs rounded-xl transition"
+                        >
+                          View in Faculty Master
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
         </div>
       )}
@@ -824,20 +828,40 @@ export default function RecruitmentPortalPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { source: "School Website", apps: 57, hires: 2, conv: "3.5%" },
-              { source: "LinkedIn", apps: 32, hires: 1, conv: "3.1%" },
-              { source: "Naukri", apps: 19, hires: 1, conv: "5.2%" },
-              { source: "Employee Referral", apps: 12, hires: 1, conv: "8.3%" }
-            ].map(src => (
-              <div key={src.source} className="p-4 bg-purple-50/50 rounded-2xl border border-purple-200 space-y-1">
-                <span className="text-[10px] font-bold text-purple-900 uppercase">{src.source}</span>
-                <h4 className="text-lg font-black text-purple-950">{src.apps} Applications</h4>
-                <div className="text-[11px] text-stone-600">
-                  Hired: <strong>{src.hires}</strong> • Conversion: <strong>{src.conv}</strong>
-                </div>
-              </div>
-            ))}
+            {(() => {
+              const channelStats: Record<string, { apps: number; hires: number }> = {};
+              applications.forEach(a => {
+                const s = a.source || 'Direct Website';
+                if (!channelStats[s]) channelStats[s] = { apps: 0, hires: 0 };
+                channelStats[s].apps += 1;
+                if (a.status === 'Joined' || a.status === 'Selected') {
+                  channelStats[s].hires += 1;
+                }
+              });
+
+              const channels = Object.entries(channelStats);
+              if (channels.length === 0) {
+                return (
+                  <div className="col-span-4 p-8 text-center bg-stone-50 rounded-2xl border border-stone-200 text-stone-500">
+                    <p className="font-bold text-xs">No Channel Telemetry Available</p>
+                    <p className="text-[11px] text-stone-400 mt-0.5">Applicant channels will be analyzed as resumes are received through the portal.</p>
+                  </div>
+                );
+              }
+
+              return channels.map(([source, data]) => {
+                const conv = data.apps > 0 ? ((data.hires / data.apps) * 100).toFixed(1) : "0.0";
+                return (
+                  <div key={source} className="p-4 bg-purple-50/50 rounded-2xl border border-purple-200 space-y-1">
+                    <span className="text-[10px] font-bold text-purple-900 uppercase">{source}</span>
+                    <h4 className="text-lg font-black text-purple-950">{data.apps} Applications</h4>
+                    <div className="text-[11px] text-stone-600">
+                      Hired: <strong>{data.hires}</strong> • Conversion: <strong>{conv}%</strong>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       )}

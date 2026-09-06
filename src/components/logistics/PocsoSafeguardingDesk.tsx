@@ -141,7 +141,7 @@ export function PocsoSafeguardingDesk({
     const res = await logSchoolIncidentAction({
       incidentType: newType,
       studentId: selectedStudentObj?.id,
-      studentAdmissionNoOrName: selectedStudentObj?.name || studentSearchText || 'Rohan Verma',
+      studentAdmissionNoOrName: selectedStudentObj?.name || studentSearchText || 'Unspecified Student / General Incident',
       category: newCategory,
       severity: newSeverity,
       location: newLocation,

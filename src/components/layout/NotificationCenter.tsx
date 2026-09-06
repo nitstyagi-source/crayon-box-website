@@ -128,7 +128,7 @@ export function NotificationCenter({
     const alertTemplates = [
       {
         title: '🚨 Immediate Gate Pass Verification',
-        message: 'Student Aarav Sharma escort verified at CBS North Security Gate.',
+        message: 'Student escort verified at Security Gate with valid QR authorization.',
         category: 'SAFETY' as const,
         priority: 'URGENT' as const,
         link: '/admin/operations'
@@ -149,8 +149,8 @@ export function NotificationCenter({
       }
     ];
 
-    const randomTemplate = alertTemplates[Math.floor(Math.random() * alertTemplates.length)];
-    const res = await dispatchTestNotificationAction(randomTemplate);
+    const selectedTemplate = alertTemplates[notifications.length % alertTemplates.length];
+    const res = await dispatchTestNotificationAction(selectedTemplate);
     if (res.success && res.notification) {
       setNotifications(prev => [res.notification, ...prev]);
       setUnreadCount(prev => prev + 1);

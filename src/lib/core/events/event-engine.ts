@@ -44,6 +44,7 @@ export type EventHandler = (payload: ErpEventPayload) => Promise<void> | void;
 class EventEngine {
   private handlers: Map<ErpEventType, EventHandler[]> = new Map();
   private eventLog: ErpEventPayload[] = [];
+  private counter = 0;
 
   constructor() {
     this.registerCoreSubscribers();
@@ -63,7 +64,7 @@ class EventEngine {
   public async publish(event: Omit<ErpEventPayload, 'eventId' | 'timestamp'>): Promise<ErpEventPayload> {
     const fullEvent: ErpEventPayload = {
       ...event,
-      eventId: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      eventId: `EVT-${Date.now()}-${(++this.counter).toString().padStart(4, '0')}`,
       timestamp: new Date().toISOString(),
     };
 

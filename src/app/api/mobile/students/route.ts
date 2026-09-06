@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import pg from "pg";
 
-function getPool() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
-  return new pg.Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+let pool: pg.Pool | null = null;
+function getPool(): pg.Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL || '';
+    pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
 }
 
 export async function GET(request: NextRequest) {
@@ -37,6 +39,9 @@ export async function GET(request: NextRequest) {
         s.transport_mode,
         s.universal_id,
         s.class_id,
+        s.father_name,
+        s.mother_name,
+        s.parent_phone,
         c.grade,
         c.section,
         c.room_number
@@ -71,28 +76,28 @@ export async function GET(request: NextRequest) {
 
     const res = await pool.query(query, params);
 
-    const students = res.rows.map((s: any, index: number) => ({
+    const students = res.rows.map((s: any) => ({
       id: s.id,
       name: s.full_name,
       firstName: s.first_name,
       lastName: s.last_name || '',
-      admissionNo: s.admission_no || `CBS-2026-${String(index + 1).padStart(4, '0')}`,
-      rollNo: s.roll_no || String(index + 1).padStart(2, '0'),
-      grade: s.grade || 'Class 5',
-      section: s.section || 'A',
-      room: s.room_number || 'Room 101',
+      admissionNo: s.admission_no || '',
+      rollNo: s.roll_no || '',
+      grade: s.grade || '',
+      section: s.section || '',
+      room: s.room_number || '',
       status: s.status || 'ACTIVE',
-      gender: s.gender || 'Male',
-      bloodGroup: s.blood_group || 'O+',
-      dob: s.dob || '2015-05-10',
-      transportMode: s.transport_mode || 'School Bus',
-      universalId: s.universal_id || `STU-VET-${String(index + 1).padStart(6, '0')}`,
-      avatar: s.photo_url || `https://images.unsplash.com/photo-${1544717305 + index % 10}?w=150&auto=format&fit=crop&q=80`,
-      attendancePct: 96.2,
-      feeStatus: index % 4 === 0 ? 'PENDING' : 'PAID',
-      fatherName: 'Mr. Sharma',
-      motherName: 'Mrs. Sharma',
-      parentPhone: '+91 98110 55442'
+      gender: s.gender || '',
+      bloodGroup: s.blood_group || '',
+      dob: s.dob ? String(s.dob).split('T')[0] : '',
+      transportMode: s.transport_mode || '',
+      universalId: s.universal_id || '',
+      avatar: s.photo_url || '',
+      attendancePct: 0,
+      feeStatus: 'PAID',
+      fatherName: s.father_name || '',
+      motherName: s.mother_name || '',
+      parentPhone: s.parent_phone || ''
     }));
 
     return NextResponse.json({
@@ -105,8 +110,6 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in students API:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }
 
@@ -130,8 +133,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "First name is required." }, { status: 400 });
     }
 
-    const admission_no = `CBS-2026-${Date.now().toString().slice(-4)}`;
-    const universal_id = `STU-VET-${Date.now().toString().slice(-6)}`;
+    const instCode = body.institution_code || body.campus_code || 'CBS';
+    const currentYear = new Date().getFullYear();
+    const admission_no = `${instCode}-${currentYear}-${Date.now().toString().slice(-4)}`;
+    const universal_id = `STU-${currentYear}-${Date.now().toString().slice(-6)}`;
 
     const insertRes = await pool.query(`
       INSERT INTO public.students (
@@ -169,7 +174,5 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error enrolling student:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  } finally {
-    await pool.end();
   }
 }

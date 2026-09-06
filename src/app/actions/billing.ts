@@ -47,10 +47,16 @@ export async function generateInvoiceWizard(
       
     if (itemsError || !items || items.length === 0) throw new Error("Failed to fetch template items or template is empty.");
 
+    // Query current count of student_invoices to ensure sequential, deterministic invoice numbering
+    const { count: existingInvoiceCount } = await supabase
+      .from('student_invoices')
+      .select('*', { count: 'exact', head: true });
+    let currentInvoiceSeq = (existingInvoiceCount || 0);
+
     // 2. Loop through each student and create an invoice
     for (const studentId of studentIds) {
-      
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+      currentInvoiceSeq += 1;
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${currentInvoiceSeq.toString().padStart(5, '0')}`;
       
       let totalAmount = 0;
       let totalDiscount = 0;

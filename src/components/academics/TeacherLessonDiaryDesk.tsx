@@ -73,7 +73,7 @@ export function TeacherLessonDiaryDesk() {
   const [selectedChapterId, setSelectedChapterId] = useState('');
   const [formLessonDate, setFormLessonDate] = useState(new Date().toISOString().split('T')[0]);
   const [formPeriodNum, setFormPeriodNum] = useState(1);
-  const [formTeacherName, setFormTeacherName] = useState('Dr. Sunita Sharma');
+  const [formTeacherName, setFormTeacherName] = useState('');
   const [formTopicTitle, setFormTopicTitle] = useState('');
   const [formPedagogy, setFormPedagogy] = useState('Smartboard & Concept Discussion');
   const [formAids, setFormAids] = useState('Smartboard, Workbook, Manipulatives');
@@ -476,7 +476,7 @@ export function TeacherLessonDiaryDesk() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Type teacher name (e.g. Dr. Sunita, Ananya, Rajesh, Rohit)..."
+                placeholder="Type teacher name to filter lesson records..."
                 value={teacherSearchQuery}
                 onChange={(e) => {
                   setTeacherSearchQuery(e.target.value);
@@ -1116,6 +1116,7 @@ export function TeacherLessonDiaryDesk() {
                     type="text"
                     value={formTeacherName}
                     onChange={e => setFormTeacherName(e.target.value)}
+                    placeholder="e.g. Teacher Full Name"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900"
                     required
                   />

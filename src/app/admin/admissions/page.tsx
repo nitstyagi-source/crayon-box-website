@@ -164,14 +164,17 @@ function AdmissionsCommandCenterContent() {
       const res = await askAdmissionsAiBotAction({
         userQuery: prompt,
         parentName: 'Walk-in / Online Parent',
-        parentPhone: '+91 9811102008',
+        parentPhone: selectedInstitutionObj?.phone || '',
         targetGrade: 'Primary K-12',
       });
 
       if (res.success && res.aiResponse) {
         setChatMessages(prev => [...prev, { sender: 'bot', text: res.aiResponse, time: 'Just now' }]);
       } else {
-        setChatMessages(prev => [...prev, { sender: 'bot', text: `Thank you for reaching out to ${selectedInstitutionObj?.name || 'Admissions'}. Our team is available at ${selectedInstitutionObj?.phone || '+91 9811102008'} to assist you with registration details.`, time: 'Just now' }]);
+        const contactMsg = selectedInstitutionObj?.phone 
+          ? ` Our team is available at ${selectedInstitutionObj.phone} to assist you with registration details.`
+          : ' Our team is available at the admissions office to assist you with registration details.';
+        setChatMessages(prev => [...prev, { sender: 'bot', text: `Thank you for reaching out to ${selectedInstitutionObj?.name || 'Admissions'}.${contactMsg}`, time: 'Just now' }]);
       }
     } catch (err: any) {
       setChatMessages(prev => [...prev, { sender: 'bot', text: 'Error connecting to Admissions AI Assistant.', time: 'Just now' }]);
@@ -783,7 +786,7 @@ function AdmissionsCommandCenterContent() {
             <div className="bg-white/95 rounded-3xl border border-[#E8DFC8] p-5 shadow-xs space-y-2">
               <h4 className="font-extrabold text-stone-900 text-sm">Live WhatsApp Bot Telemetry</h4>
               <p className="text-xs text-stone-600">
-                Connected to school WhatsApp Business webhook (+91 9811102008). Automatically converts WhatsApp conversations into Lead cards in Tab 1.
+                Connected to official school WhatsApp Business webhook{selectedInstitutionObj?.phone ? ` (${selectedInstitutionObj.phone})` : ''}. Automatically converts WhatsApp conversations into Lead cards in Tab 1.
               </p>
               <div className="pt-2 flex items-center justify-between text-xs font-bold text-emerald-700">
                 <span>Webhook Health: Normal</span>

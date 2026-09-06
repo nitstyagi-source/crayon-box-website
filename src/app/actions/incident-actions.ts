@@ -3,13 +3,11 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
-
 let globalPool: pg.Pool | null = null;
-function getPool() {
+function getPool(): pg.Pool {
   if (!globalPool) {
-    globalPool = new Pool({ 
+    const connectionString = process.env.DATABASE_URL || '';
+    globalPool = new pg.Pool({ 
       connectionString,
       ssl: { rejectUnauthorized: false }
     });
@@ -49,7 +47,7 @@ export async function getIncidentsDashboardAction(params: {
              s.photo_url,
              s.father_name,
              s.mother_name,
-             COALESCE(p.phone_number, '+91 98765 43210') as emergency_contact_phone,
+             COALESCE(p.phone_number, '') as emergency_contact_phone,
              s.gender,
              COALESCE(s.date_of_birth, s.dob) as date_of_birth
       FROM public.school_incidents inc
@@ -130,7 +128,7 @@ export async function getEnrolledStudentsForIncidentLookupAction(query: string =
     let sql = `
       SELECT s.id, s.first_name, s.last_name, s.admission_no, s.universal_id,
              s.gender, COALESCE(s.date_of_birth, s.dob) as date_of_birth, s.father_name, s.mother_name,
-             COALESCE(p.phone_number, '+91 98765 43210') as emergency_contact_phone,
+             COALESCE(p.phone_number, '') as emergency_contact_phone,
              COALESCE(c.grade, 'Class 1') as class_name,
              COALESCE(c.section, 'A') as section_name,
              s.campus_id
@@ -163,7 +161,7 @@ export async function getEnrolledStudentsForIncidentLookupAction(query: string =
       section_name: r.section_name,
       full_class: `${r.class_name}-${r.section_name}`,
       parent_name: r.father_name || r.mother_name || "Parent/Guardian",
-      phone: r.emergency_contact_phone || "+91 98765 43210",
+      phone: r.emergency_contact_phone || "",
       campus_id: r.campus_id
     }));
 
@@ -235,11 +233,12 @@ export async function logSchoolIncidentAction(params: {
 
     // Lookup Student if not provided
     let studentId = providedStudentId || null;
-    let personName = studentAdmissionNoOrName;
-    let admissionNo = 'CBS-2026-0001';
-    let className = 'Class 1';
+    let personName = studentAdmissionNoOrName || 'General Campus Incident';
+    let admissionNo = '';
+    let className = 'General';
     let sectionName = 'A';
-    let campusId = 'c3d782a9-a50b-4708-a3fc-6b146f456662';
+    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    let campusId = campRes.rows[0]?.id || null;
 
     if (providedStudentId) {
       const stuRes = await client.query(`
@@ -282,9 +281,10 @@ export async function logSchoolIncidentAction(params: {
       }
     }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const countRes = await client.query(`SELECT count(*)::int as count FROM public.school_incidents;`);
+    const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
     const prefix = incidentType === 'POCSO_SAFEGUARDING' ? 'SAFE' : incidentType === 'MEDICAL_INFIRMARY' ? 'MED' : 'DISC';
-    const incidentCode = `INC-${prefix}-2026-${randomSuffix}`;
+    const incidentCode = `INC-${prefix}-${new Date().getFullYear()}-${nextSeq}`;
 
     const initialAuditNote = {
       timestamp: new Date().toISOString(),
@@ -560,7 +560,7 @@ export async function getIncidentFullDossierAction(incidentId: string) {
              s.photo_url,
              s.father_name,
              s.mother_name,
-             COALESCE(p.phone_number, '+91 98765 43210') as emergency_contact_phone,
+             COALESCE(p.phone_number, '') as emergency_contact_phone,
              s.gender,
              COALESCE(s.date_of_birth, s.dob) as date_of_birth,
              s.blood_group

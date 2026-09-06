@@ -32,10 +32,12 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
   const { currentInstitution, selectedInstitutionObj } = useInstitution();
   const activeInst = currentInstitution || activeCampusId || 'CBS';
 
+  const currentYear = new Date().getFullYear();
+  const defaultCurrentSession = `${currentYear}–${currentYear + 1}`;
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState("Class 1");
   const [selectedTerm, setSelectedTerm] = useState("Term 1 (Half Yearly Examination)");
-  const [selectedSession, setSelectedSession] = useState("2026–2027");
+  const [selectedSession, setSelectedSession] = useState(defaultCurrentSession);
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<string | null>(null);
   const [reportCards, setReportCards] = useState<any[]>([]);
@@ -182,8 +184,9 @@ export function CBSEHolisticReportCardsDesk({ embedded = false }: { embedded?: b
               onChange={(e) => setSelectedSession(e.target.value)}
               className="bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none"
             >
-              <option value="2026–2027">2026–2027 (Current)</option>
-              <option value="2025–2026">2025–2026</option>
+              <option value={`${currentYear}–${currentYear + 1}`}>{`${currentYear}–${currentYear + 1}`} (Current)</option>
+              <option value={`${currentYear - 1}–${currentYear}`}>{`${currentYear - 1}–${currentYear}`}</option>
+              <option value={`${currentYear + 1}–${currentYear + 2}`}>{`${currentYear + 1}–${currentYear + 2}`} (Upcoming)</option>
             </select>
           </div>
         </div>
