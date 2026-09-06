@@ -55,11 +55,13 @@ export async function getWhatsAppDashboardAction(campusId: string = "default") {
     const setRes = await client.query(`
       SELECT * FROM public.whatsapp_settings WHERE campus_id = $1 LIMIT 1;
     `, [campusId]);
+    const campRes = await client.query(`SELECT name FROM public.campuses WHERE id = $1 LIMIT 1;`, [campusId]).catch(() => ({ rows: [] }));
+    const defaultSchoolName = campRes.rows[0]?.name || "School Administration";
     const settings = setRes.rows[0] || {
       provider: "meta_cloud",
       sender_phone: "",
-      upi_vpa: "crayonbox@icici",
-      upi_payee_name: "Crayon Box School",
+      upi_vpa: "accounts@upi",
+      upi_payee_name: defaultSchoolName,
       auto_absent_alert_enabled: true,
       absent_alert_time: "09:30",
       auto_fee_reminder_enabled: true,
@@ -146,12 +148,15 @@ export async function sendAbsenteeAlertsAction(params: {
       };
     }
 
+    const campRes = await client.query(`SELECT name FROM public.campuses WHERE id = $1 LIMIT 1;`, [campusId]).catch(() => ({ rows: [] }));
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+
     let dispatchedCount = 0;
     for (const stu of absentStudents) {
       const phone = stu.primary_contact || stu.father_phone || stu.mother_phone;
       if (!phone) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
-      const msgContent = `🚨 *Crayon Box School — Attendance Notice*\n\nDear Parent, your ward *${studentName}* (${stu.class_name}-${stu.section_name}) has been marked *ABSENT* today (${targetDate}).\n\nIf this was an unannounced absence, please submit a leave note or contact the class teacher.\n\n_Crayon Box School Administration_`;
+      const msgContent = `🚨 *${schoolName} — Attendance Notice*\n\nDear Parent, your ward *${studentName}* (${stu.class_name}-${stu.section_name}) has been marked *ABSENT* today (${targetDate}).\n\nIf this was an unannounced absence, please submit a leave note or contact the class teacher.\n\n_${schoolName}_`;
 
       await client.query(`
         INSERT INTO public.whatsapp_messages (
@@ -193,8 +198,11 @@ export async function sendFeeDueRemindersAction(params: {
     const setRes = await client.query(`
       SELECT upi_vpa, upi_payee_name FROM public.whatsapp_settings WHERE campus_id = $1 LIMIT 1;
     `, [campusId]);
-    const upiVpa = setRes.rows[0]?.upi_vpa || "crayonbox@icici";
-    const upiPayee = setRes.rows[0]?.upi_payee_name || "Crayon Box School";
+    const campRes = await client.query(`SELECT name FROM public.campuses WHERE id = $1 LIMIT 1;`, [campusId]).catch(() => ({ rows: [] }));
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+    const upiVpa = setRes.rows[0]?.upi_vpa || "accounts@upi";
+    const upiPayee = setRes.rows[0]?.upi_payee_name || schoolName;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
     // Query students with outstanding dues from student_invoices
     const stuRes = await client.query(`
@@ -225,9 +233,9 @@ export async function sendFeeDueRemindersAction(params: {
       if (!stu.primary_contact) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
       const dueAmount = Number(stu.balance_due) || 0;
-      const webPayLink = `https://www.crayonboxschool.com/fees/pay?studentId=${stu.id}&amount=${dueAmount}`;
+      const webPayLink = `${appUrl}/fees/pay?studentId=${stu.id}&amount=${dueAmount}`;
 
-      const msgContent = `💳 *Crayon Box School — Fee Due Reminder*\n\nDear Parent, the school fee for *${studentName}* (${stu.class_name}-${stu.section_name}) is currently due:\n\n• *Amount Due*: ₹${dueAmount.toLocaleString('en-IN')}\n• *Due Date*: 10th of this Month\n\n⚡ *1-Click Instant UPI Payment*:\n${webPayLink}\n\n_Thank you for your prompt cooperation._\n_Accounts Office, Crayon Box School_`;
+      const msgContent = `💳 *${schoolName} — Fee Due Reminder*\n\nDear Parent, the school fee for *${studentName}* (${stu.class_name}-${stu.section_name}) is currently due:\n\n• *Amount Due*: ₹${dueAmount.toLocaleString('en-IN')}\n• *Due Date*: 10th of this Month\n\n⚡ *1-Click Instant UPI Payment*:\n${webPayLink}\n\n_Thank you for your prompt cooperation._\n_Accounts Office, ${schoolName}_`;
 
       await client.query(`
         INSERT INTO public.whatsapp_messages (
@@ -280,11 +288,14 @@ export async function sendBroadcastMessageAction(params: {
       LIMIT 50;
     `);
 
+    const campRes = await client.query(`SELECT name FROM public.campuses WHERE id = $1 LIMIT 1;`, [campusId]).catch(() => ({ rows: [] }));
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+
     let count = 0;
     for (const stu of stuRes.rows) {
       if (!stu.primary_contact) continue;
       const studentName = `${stu.first_name} ${stu.last_name}`;
-      const formattedContent = `📢 *Crayon Box School Announcement*\n\n*${params.title}*\n\n${params.message}\n\n_Ref: Student ${studentName} (${stu.class_name}-${stu.section_name})_\n_Crayon Box School Administration_`;
+      const formattedContent = `📢 *${schoolName} Announcement*\n\n*${params.title}*\n\n${params.message}\n\n_Ref: Student ${studentName} (${stu.class_name}-${stu.section_name})_\n_${schoolName}_`;
 
       await client.query(`
         INSERT INTO public.whatsapp_messages (

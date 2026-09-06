@@ -64,8 +64,8 @@ export async function getTodaysAndUpcomingBirthdays(payload?: {
       allow_classmates_to_wish: false,
       allow_parents_to_wish: true,
       hide_dob_from_users: true,
-      custom_student_message: "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From Crayon Box School family 🎉",
-      custom_teacher_message: "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School!"
+      custom_student_message: "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From {SCHOOL_NAME} 🎉",
+      custom_teacher_message: "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from {SCHOOL_NAME}!"
     };
 
     // 2. Fetch Students with DOB
@@ -226,10 +226,21 @@ export async function sendBirthdayWish(payload: {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campusId);
+    let campusName = "School Family";
+    if (resolvedCampusId) {
+      const { data: campusRec } = await supabase
+        .from("campuses")
+        .select("name")
+        .eq("id", resolvedCampusId)
+        .maybeSingle();
+      if (campusRec?.name) {
+        campusName = campusRec.name;
+      }
+    }
 
     const defaultMsg = payload.recipientType === "Student"
-      ? `🎂 Happy Birthday, ${payload.recipientName}! Wishing you a wonderful day filled with happiness and learning! From Crayon Box School family 🎉`
-      : `🎉 Wishing our esteemed educator ${payload.recipientName} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School!`;
+      ? `🎂 Happy Birthday, ${payload.recipientName}! Wishing you a wonderful day filled with happiness and learning! From ${campusName} 🎉`
+      : `🎉 Wishing our esteemed educator ${payload.recipientName} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from ${campusName}!`;
 
     const wishRecord = {
       campus_id: resolvedCampusId,
@@ -405,19 +416,31 @@ export async function autoSendTodaysBirthdayWishes(payload?: {
     if (enableSms) channels.push("SMS");
     const primaryChannel = channels.join(" + ") || "App";
 
+    let campusName = "School Administration";
+    if (resolvedCampusId) {
+      const { data: campusRec } = await supabase
+        .from("campuses")
+        .select("name")
+        .eq("id", resolvedCampusId)
+        .maybeSingle();
+      if (campusRec?.name) {
+        campusName = campusRec.name;
+      }
+    }
+
     // 4. Auto-Send to Students
     if (autoSendStudents) {
       for (const stu of todaysStudents) {
         if (alreadySentSet.has(stu.id)) continue;
 
         const rawTemplate = settings?.custom_student_message || 
-          "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness, joy, and learning! From Crayon Box School family 🎉";
+          "🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness, joy, and learning! From {SCHOOL_NAME} 🎉";
         
         const message = rawTemplate
           .replace(/{NAME}/g, stu.fullName)
           .replace(/{FIRST_NAME}/g, stu.firstName)
           .replace(/{CLASS}/g, stu.classDisplay || "Class")
-          .replace(/{SCHOOL_NAME}/g, "Crayon Box School");
+          .replace(/{SCHOOL_NAME}/g, campusName);
 
         insertedRecords.push({
           campus_id: resolvedCampusId,
@@ -444,13 +467,13 @@ export async function autoSendTodaysBirthdayWishes(payload?: {
         if (alreadySentSet.has(teacher.id)) continue;
 
         const rawTemplate = settings?.custom_teacher_message || 
-          "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School family!";
+          "🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from {SCHOOL_NAME}!";
         
         const message = rawTemplate
           .replace(/{NAME}/g, teacher.fullName)
           .replace(/{DESIGNATION}/g, teacher.designation || "Educator")
           .replace(/{DEPARTMENT}/g, teacher.department || "Academics")
-          .replace(/{SCHOOL_NAME}/g, "Crayon Box School");
+          .replace(/{SCHOOL_NAME}/g, campusName);
 
         insertedRecords.push({
           campus_id: resolvedCampusId,

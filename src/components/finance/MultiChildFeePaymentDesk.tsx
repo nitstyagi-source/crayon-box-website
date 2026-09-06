@@ -49,7 +49,7 @@ export function MultiChildFeePaymentDesk({ embedded = false, initialPhone = "" }
       if (res.success) {
         setSiblings(res.siblings);
         setSummary(res.summary);
-        setSelectedStudentIds(res.siblings.map(s => s.id));
+        setSelectedStudentIds(res.siblings.map((s: any) => s.id));
       } else {
         setSiblings([]);
         setSummary(null);

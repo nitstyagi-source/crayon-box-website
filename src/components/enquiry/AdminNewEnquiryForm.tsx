@@ -490,7 +490,7 @@ export function AdminNewEnquiryForm({ onSuccess, onCancel, isModal = false }: Ad
               <input
                 type="text"
                 required
-                placeholder="e.g. Dr. Rajesh Sharma"
+                placeholder="e.g. Parent Full Name"
                 value={formData.primaryGuardianName}
                 onChange={e => setFormData({ ...formData, primaryGuardianName: e.target.value })}
                 className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"

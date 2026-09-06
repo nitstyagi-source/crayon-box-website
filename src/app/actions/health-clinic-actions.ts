@@ -67,11 +67,12 @@ export async function logInfirmaryVisitAction(params: {
 
     const visit = res.rows[0];
 
-    // Dispatch WhatsApp Medical Notice to Parent
-    const msgContent = `🏥 *Crayon Box School — Infirmary Medical Care Notice*\n\nDear Parent, your ward *${params.studentName}* (${params.className}) visited the school health clinic today:\n\n• *Time*: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n• *Symptoms Reported*: ${params.symptoms}\n• *Temperature*: ${temp}°F\n• *Treatment / Care*: ${params.treatmentGiven}\n• *Medicine Administered*: ${params.medicineAdministered || 'None'}\n• *Status*: ${params.actionStatus.replace(/_/g, ' ')}\n• *Attended by*: ${nurse}\n\n_Your child is being monitored with utmost care._\n_Health Clinic & Infirmary, Crayon Box School_`;
-
-    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campRes = await client.query(`SELECT id, name FROM public.campuses LIMIT 1;`);
     const campusId = campRes.rows[0]?.id || null;
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+
+    // Dispatch WhatsApp Medical Notice to Parent
+    const msgContent = `🏥 *${schoolName} — Infirmary Medical Care Notice*\n\nDear Parent, your ward *${params.studentName}* (${params.className}) visited the school health clinic today:\n\n• *Time*: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n• *Symptoms Reported*: ${params.symptoms}\n• *Temperature*: ${temp}°F\n• *Treatment / Care*: ${params.treatmentGiven}\n• *Medicine Administered*: ${params.medicineAdministered || 'None'}\n• *Status*: ${params.actionStatus.replace(/_/g, ' ')}\n• *Attended by*: ${nurse}\n\n_Your child is being monitored with utmost care._\n_Health Clinic & Infirmary, ${schoolName}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (

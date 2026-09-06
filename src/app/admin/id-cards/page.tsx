@@ -75,16 +75,16 @@ export default function IDCardAndEscortGeneratorHubPage() {
         
         const s = stuRes.data[0];
         setSelectedEscort({
-          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
-          relationship: 'FATHER',
-          phone: s.guardian_phone || '9810011001',
+          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}`.trim() : (s.father_name || s.mother_name || 'Parent / Guardian'),
+          relationship: s.guardian_relation || 'PARENT',
+          phone: s.guardian_phone || s.father_phone || s.mother_phone || s.primary_contact || '',
           photoUrl: '',
           isAuthorizedPickup: true,
-          studentName: `${s.first_name} ${s.last_name}`,
-          studentUniversalId: s.universal_id || 'STU-VET-000001',
+          studentName: `${s.first_name} ${s.last_name || ''}`.trim(),
+          studentUniversalId: s.universal_id || `STU-${s.admission_no || s.id?.slice(0, 6)}`,
           studentPhotoUrl: s.photo_url || '',
-          className: s.class_name || 'Class 4',
-          sectionName: s.section_name || 'A',
+          className: s.class_name || '',
+          sectionName: s.section_name || '',
           institutionCode: s.institution_code || 'CBS',
         });
       }
@@ -574,16 +574,16 @@ export default function IDCardAndEscortGeneratorHubPage() {
                     key={s.id}
                     onClick={() => {
                       setSelectedEscort({
-                        guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
-                        relationship: 'FATHER',
-                        phone: s.guardian_phone || '9810011001',
+                        guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}`.trim() : (s.father_name || s.mother_name || 'Parent / Guardian'),
+                        relationship: s.guardian_relation || 'PARENT',
+                        phone: s.guardian_phone || s.father_phone || s.mother_phone || s.primary_contact || '',
                         photoUrl: '',
                         isAuthorizedPickup: true,
-                        studentName: `${s.first_name} ${s.last_name}`,
-                        studentUniversalId: s.universal_id || 'STU-VET-000001',
+                        studentName: `${s.first_name} ${s.last_name || ''}`.trim(),
+                        studentUniversalId: s.universal_id || `STU-${s.admission_no || s.id?.slice(0, 6)}`,
                         studentPhotoUrl: s.photo_url || '',
-                        className: s.class_name || 'Class 4',
-                        sectionName: s.section_name || 'A',
+                        className: s.class_name || '',
+                        sectionName: s.section_name || '',
                         institutionCode: s.institution_code || 'CBS',
                       });
                     }}
@@ -594,7 +594,7 @@ export default function IDCardAndEscortGeneratorHubPage() {
                     }`}
                   >
                     <div>
-                      <span className="font-bold text-slate-900 block">Parent: {s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma'}</span>
+                      <span className="font-bold text-slate-900 block">Parent: {s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}`.trim() : (s.father_name || s.mother_name || 'Parent / Guardian')}</span>
                       <span className="text-[10px] text-slate-500">Child: {s.first_name} {s.last_name} ({s.class_name})</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -883,16 +883,16 @@ export default function IDCardAndEscortGeneratorHubPage() {
                         layoutMode={bulkLayout}
                         schoolInfo={selectedInstitutionObj}
                         escort={{
-                          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}` : 'Mr. Rajesh Sharma',
-                          relationship: 'FATHER',
-                          phone: s.guardian_phone || '9810011001',
+                          guardianName: s.guardian_first ? `${s.guardian_first} ${s.guardian_last || ''}`.trim() : (s.father_name || s.mother_name || 'Parent / Guardian'),
+                          relationship: s.guardian_relation || 'PARENT',
+                          phone: s.guardian_phone || s.father_phone || s.mother_phone || s.primary_contact || '',
                           photoUrl: '',
                           isAuthorizedPickup: true,
-                          studentName: `${s.first_name} ${s.last_name}`,
-                          studentUniversalId: s.universal_id || 'STU-VET-000001',
+                          studentName: `${s.first_name} ${s.last_name || ''}`.trim(),
+                          studentUniversalId: s.universal_id || `STU-${s.admission_no || s.id?.slice(0, 6)}`,
                           studentPhotoUrl: s.photo_url || '',
-                          className: s.class_name || 'Class 4',
-                          sectionName: s.section_name || 'A',
+                          className: s.class_name || '',
+                          sectionName: s.section_name || '',
                           institutionCode: s.institution_code || currentInstitution || 'CBS',
                         }}
                       />

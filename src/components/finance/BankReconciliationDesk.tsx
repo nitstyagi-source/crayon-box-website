@@ -42,8 +42,8 @@ export function BankReconciliationDesk() {
 
   // Simulation Form State
   const [simVan, setSimVan] = useState('');
-  const [simAmount, setSimAmount] = useState('14500');
-  const [simRemitter, setSimRemitter] = useState('RAJESH SHARMA HDFC A/C');
+  const [simAmount, setSimAmount] = useState('');
+  const [simRemitter, setSimRemitter] = useState('');
   const [showSimModal, setShowSimModal] = useState(false);
 
   const loadData = async () => {
@@ -444,7 +444,7 @@ export function BankReconciliationDesk() {
                   type="number"
                   value={simAmount}
                   onChange={(e) => setSimAmount(e.target.value)}
-                  placeholder="14500"
+                  placeholder="e.g. 10000"
                   className="text-xs border-[#E8DFC8]"
                 />
               </div>
@@ -456,7 +456,7 @@ export function BankReconciliationDesk() {
                 <Input
                   value={simRemitter}
                   onChange={(e) => setSimRemitter(e.target.value)}
-                  placeholder="PARENT NAME HDFC A/C"
+                  placeholder="e.g. REMITTER NAME HDFC A/C"
                   className="text-xs border-[#E8DFC8]"
                 />
               </div>

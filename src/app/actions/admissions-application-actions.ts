@@ -191,7 +191,7 @@ export async function saveMasterAdmissionApplicationAction(data: any) {
       data.current_address_line1 || null, data.current_locality || null, data.current_landmark || null, data.current_city || 'Delhi', data.current_district || null, data.current_state || 'Delhi', data.current_pincode || null, Boolean(data.is_permanent_same), data.permanent_address_line1 || null, data.permanent_city || null, data.permanent_state || null, data.permanent_pincode || null, data.distance_from_campus_km || null, data.family_marital_status || null, data.child_lives_with || 'Parents', data.primary_custodian || 'Parents',
       data.previous_school_name || null, data.previous_school_address || null, data.previous_school_board || null, data.previous_school_medium || null, data.previous_class_attended || null, data.previous_academic_year || null, data.previous_tc_number || null, data.previous_tc_date || null, data.previous_tc_url || null, data.previous_marks_percentage || null, data.previous_report_card_url || null, data.previous_reason_for_leaving || null,
       data.first_language || 'English', data.second_language || 'Hindi', data.languages_known || ['English', 'Hindi'], Boolean(data.has_sibling_in_school), data.sibling_student_id || null, data.sibling_admission_no || null, data.sibling_name || null, data.sibling_class || null,
-      data.medical_allergies || null, data.medical_conditions || null, data.doctor_name || null, data.doctor_phone || null, data.preferred_hospital || null, data.emergency_contact_1_name || 'Emergency Contact', data.emergency_contact_1_relation || 'Parent', data.emergency_contact_1_phone || data.father_phone || '9999999999', data.emergency_contact_2_name || null, data.emergency_contact_2_relation || null, data.emergency_contact_2_phone || null,
+      data.medical_allergies || null, data.medical_conditions || null, data.doctor_name || null, data.doctor_phone || null, data.preferred_hospital || null, data.emergency_contact_1_name || 'Emergency Contact', data.emergency_contact_1_relation || 'Parent', data.emergency_contact_1_phone || data.father_phone || data.mother_phone || null, data.emergency_contact_2_name || null, data.emergency_contact_2_relation || null, data.emergency_contact_2_phone || null,
       Boolean(data.transport_required), data.transport_type || 'TWO_WAY', data.bus_route_id || null, data.pickup_point || null, data.drop_point || null, data.authorized_escort_1_name || null, data.authorized_escort_1_phone || null, data.authorized_escort_1_photo_url || null,
       data.sports_talents || [], data.arts_talents || [], Boolean(data.special_learning_support_needed), data.special_support_details || null,
       JSON.stringify(data.documents_checklist || []), Boolean(data.parent_declaration_accepted)
@@ -320,7 +320,7 @@ export async function approveAdmissionAndCreateStudentMasterAction(params: {
       params.section || 'A',
       params.rollNo || 1,
       app.father_name || app.mother_name || 'Parent',
-      app.father_phone || app.mother_phone || '9999999999',
+      app.father_phone || app.mother_phone || null,
       app.father_email || app.mother_email || null,
       app.current_address_line1 || 'Delhi',
       app.current_city || 'Delhi',

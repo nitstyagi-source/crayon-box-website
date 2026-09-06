@@ -144,7 +144,7 @@ export async function askPublicVaniAction(params: {
       responseMarkdown = `Namaste! As per our official school policy, our fee structure is uniform and transparent for all students. We offer standard **Sibling Concessions (10% on the 2nd child)** and merit-cum-means assistance as per trust regulations.\n\nAny special fee concession requests must be reviewed directly by the Admissions Committee. Would you like me to register your enquiry for the Admissions Dean's personal review?`;
     } else if (isGuaranteeDemand) {
       intentTags.push('GUARANTEE_REQUEST');
-      responseMarkdown = `Admissions at Crayon Box School follow a transparent, merit-cum-eligibility process adhering strictly to NEP 2020 guidelines and classroom capacity limits. While I cannot guarantee admission without formal verification, I will gladly register your priority enquiry and arrange a personal meeting with our Admissions Counsellor.`;
+      responseMarkdown = `Admissions follow a transparent, merit-cum-eligibility process adhering strictly to NEP 2020 guidelines and classroom capacity limits. While I cannot guarantee admission without formal verification, I will gladly register your priority enquiry and arrange a personal meeting with our Admissions Counsellor.`;
     } else if (isPrivateDataProbe) {
       responseMarkdown = `To protect the privacy and safety of all our students and staff, individual student records, contact numbers, and personal details cannot be shared. I am happy to share our official institutional fee structure, curriculum guidelines, and prospectus with you.`;
     }
@@ -216,13 +216,13 @@ export async function askPublicVaniAction(params: {
       } else {
         // Conversational Intake
         if (!state.childName) {
-          responseMarkdown = `Namaste and welcome to Crayon Box School! 😊 I am VANI, your 24/7 Admissions Receptionist. I'd be happy to guide you through admissions, curriculum, fees, and campus tours.\n\nMay I know your child's name and which grade you are considering?`;
+          responseMarkdown = `Namaste and welcome to our Admissions Desk! 😊 I am VANI, your 24/7 Admissions Receptionist. I'd be happy to guide you through admissions, curriculum, fees, and campus tours.\n\nMay I know your child's name and which grade you are considering?`;
         } else if (!state.targetGrade) {
           responseMarkdown = `Wonderful! And which class or grade are you planning for **${state.childName}**?`;
         } else if (!state.parentPhone) {
           responseMarkdown = `Great! Admissions for **${state.targetGrade}** are currently open for Academic Session ${academicSessionStr}. May I have your 10-digit mobile number so we can register your priority enquiry and share the official brochure?`;
         } else {
-          responseMarkdown = `Thank you for sharing the details! We warmly welcome you to Crayon Box School. We offer experiential learning, robotics innovation labs, smart classrooms, and 360° NEP child development.\n\nWould you like me to schedule a campus tour for you tomorrow at **11:00 AM** or **04:00 PM**?`;
+          responseMarkdown = `Thank you for sharing the details! We warmly welcome you to our school. We offer experiential learning, robotics innovation labs, smart classrooms, and 360° NEP child development.\n\nWould you like me to schedule a campus tour for you tomorrow at **11:00 AM** or **04:00 PM**?`;
 
           // Record Knowledge Gap
           await client.query(`
@@ -253,7 +253,7 @@ export async function askPublicVaniAction(params: {
       const nextSeq = ((enqCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
       const genNo = `ENQ-${currentYear}-${nextSeq}`;
       const pName = state.parentName || (state.childName ? `Parent of ${state.childName}` : 'Prospective Parent');
-      const pPhone = state.parentPhone || '+91 9999999999';
+      const pPhone = state.parentPhone || 'Phone Not Provided';
       const cName = state.childName || 'Applicant';
       const grade = state.targetGrade || 'Nursery';
 

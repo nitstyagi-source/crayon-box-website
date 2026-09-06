@@ -324,8 +324,12 @@ export async function assignTeacherProxyAction(params: {
 
     const slot = res.rows[0];
 
+    const campRes = await client.query(`SELECT id, name FROM public.campuses LIMIT 1;`);
+    const defaultCampusId = campRes.rows[0]?.id || null;
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+
     // Send WhatsApp Alert to Substitute Teacher
-    const msgContent = `📋 *Crayon Box School — Teacher Substitution (Proxy) Alert*\n\nDear ${params.substituteTeacherName}, you have been allocated a proxy period:\n\n• *Class*: ${slot.class_name}-${slot.section_name}\n• *Period*: Period ${slot.period_number} (${slot.start_time}–${slot.end_time})\n• *Subject*: ${slot.subject_name}\n• *Room*: ${slot.room_number}\n• *Original Teacher*: ${slot.teacher_name} (On Leave)\n\n_Please reach the classroom promptly._\n_Academic Coordinator, Crayon Box School_`;
+    const msgContent = `📋 *${schoolName} — Teacher Substitution (Proxy) Alert*\n\nDear ${params.substituteTeacherName}, you have been allocated a proxy period:\n\n• *Class*: ${slot.class_name}-${slot.section_name}\n• *Period*: Period ${slot.period_number} (${slot.start_time}–${slot.end_time})\n• *Subject*: ${slot.subject_name}\n• *Room*: ${slot.room_number}\n• *Original Teacher*: ${slot.teacher_name} (On Leave)\n\n_Please reach the classroom promptly._\n_Academic Coordinator, ${schoolName}_`;
 
     // Lookup Substitute Teacher Phone & Campus
     const teacherRes = await client.query(`
@@ -334,9 +338,6 @@ export async function assignTeacherProxyAction(params: {
       WHERE full_name ILIKE $1 OR name ILIKE $1
       LIMIT 1;
     `, [params.substituteTeacherName]);
-
-    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
-    const defaultCampusId = campRes.rows[0]?.id || null;
 
     const teacherPhone = teacherRes.rows[0]?.personal_mobile || teacherRes.rows[0]?.phone_number || '';
     const resolvedCampusId = teacherRes.rows[0]?.campus_id || slot.campus_id || defaultCampusId;
@@ -375,10 +376,12 @@ export async function sendTimetableToParentsWhatsAppAction(params: {
   const client = await p.connect();
 
   try {
-    const msgContent = `🗓️ *Crayon Box School — Master Weekly Timetable for ${params.className}*\n\nDear Parent, the updated weekly period schedule and teacher matrix for *${params.className}* is now active:\n\n• *Timings*: 08:30 AM – 03:00 PM (Mon–Sat)\n• *Periods/Day*: 8 Periods + Recess\n• *Core Subjects*: Math, English, EVS, Hindi, Computer Lab\n\n📄 *View Full Weekly Schedule*: https://www.crayonboxschool.com/academics/timetable?class=${encodeURIComponent(params.className)}\n\n_Academic Dean, Crayon Box School_`;
-
-    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campRes = await client.query(`SELECT id, name FROM public.campuses LIMIT 1;`);
     const campusId = campRes.rows[0]?.id || null;
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+    const msgContent = `🗓️ *${schoolName} — Master Weekly Timetable for ${params.className}*\n\nDear Parent, the updated weekly period schedule and teacher matrix for *${params.className}* is now active:\n\n• *Timings*: 08:30 AM – 03:00 PM (Mon–Sat)\n• *Periods/Day*: 8 Periods + Recess\n• *Core Subjects*: Math, English, EVS, Hindi, Computer Lab\n\n📄 *View Full Weekly Schedule*: ${appUrl}/academics/timetable?class=${encodeURIComponent(params.className)}\n\n_Academic Dean, ${schoolName}_`;
 
     let phone = params.parentPhone;
     if (!phone) {
@@ -506,10 +509,11 @@ export async function sendOverdueBookWhatsAppAlertAction(params: {
   const client = await p.connect();
 
   try {
-    const msgContent = `📚 *Crayon Box School Library — Overdue Book Notice*\n\nDear Parent, the library book borrowed by *${params.studentName}* is currently overdue:\n\n• *Book*: "${params.bookTitle}"\n• *Overdue Fine*: ₹${params.fineAmount}\n• *Policy*: ₹5/day overdue charge\n\nKindly request your ward to return the book to the Central Library tomorrow.\n\n_Central Library, Crayon Box School_`;
-
-    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campRes = await client.query(`SELECT id, name FROM public.campuses LIMIT 1;`);
     const campusId = campRes.rows[0]?.id || null;
+    const schoolName = campRes.rows[0]?.name || "School Library";
+
+    const msgContent = `📚 *${schoolName} — Overdue Book Notice*\n\nDear Parent, the library book borrowed by *${params.studentName}* is currently overdue:\n\n• *Book*: "${params.bookTitle}"\n• *Overdue Fine*: ₹${params.fineAmount}\n• *Policy*: ₹5/day overdue charge\n\nKindly request your ward to return the book to the Central Library tomorrow.\n\n_Central Library, ${schoolName}_`;
     await client.query(`
       INSERT INTO public.whatsapp_messages (
         campus_id, student_id, student_name, parent_phone, message_type,

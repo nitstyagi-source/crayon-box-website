@@ -459,7 +459,7 @@ export default function PbisHouseCupPastoralPage() {
                 <label className="text-stone-500">Student Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Aarav Sharma"
+                  placeholder="e.g. Student name or roll number"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
                   className="w-full mt-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-bold focus:bg-white"

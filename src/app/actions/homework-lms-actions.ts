@@ -65,8 +65,12 @@ export async function createHomeworkAssignmentAction(params: {
 
     const hw = res.rows[0];
 
+    const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
     // Dispatch WhatsApp Broadcast to Class Parents
-    const msgContent = `📝 *Crayon Box School — Daily Homework Notice*\n\n• *Class*: ${params.className}-${section}\n• *Subject*: ${params.subjectName}\n• *Teacher*: ${params.teacherName}\n• *Topic*: *${params.title}*\n• *Due Date*: ${new Date(params.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n📖 *Instructions*:\n${params.instructions}\n\n📲 *Submit Homework Online*: https://www.crayonboxschool.com/student/homework\n\n_Academic Faculty, Crayon Box School_`;
+    const msgContent = `📝 *${schoolName} — Daily Homework Notice*\n\n• *Class*: ${params.className}-${section}\n• *Subject*: ${params.subjectName}\n• *Teacher*: ${params.teacherName}\n• *Topic*: *${params.title}*\n• *Due Date*: ${new Date(params.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n📖 *Instructions*:\n${params.instructions}\n\n📲 *Submit Homework Online*: ${appUrl}/student/homework\n\n_Academic Faculty, ${schoolName}_`;
 
     // Fetch actual parents of the targeted class
     const { rows: classStudents } = await client.query(`

@@ -25,15 +25,18 @@ export async function generateAndDispatchStudentCredentialsAction(params: {
   const client = await p.connect();
 
   try {
-    const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campusRes = await client.query(`SELECT id, name, code FROM public.campuses LIMIT 1;`);
     const campusId = campusRes.rows[0]?.id || null;
+    const schoolName = campusRes.rows[0]?.name || "School Administration";
+    const schoolCode = campusRes.rows[0]?.code || "SCHOOL";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
     const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
     const admissionNo = `ADM-${new Date().getFullYear()}-${nextSeq}`;
-    const initialPassword = `Crayon@${nextSeq}`;
+    const initialPassword = `Welcome@${nextSeq}`;
 
-    const msgContent = `🎓 *Welcome to Crayon Box School! Official Portal Credentials*\n\nDear Parent, student admission and digital profile for *${params.studentName}* (${params.className}) has been activated:\n\n• *Admission ID*: ${admissionNo}\n• *Portal Username*: ${params.parentPhone}\n• *Default Password*: ${initialPassword}\n• *School Code*: CBS-DELHI\n\n📲 *Login to Parent Portal*: https://www.crayonboxschool.com/login\n\n_Please change your password upon first login._\n_Admissions Board, Crayon Box School_`;
+    const msgContent = `🎓 *Welcome to ${schoolName}! Official Portal Credentials*\n\nDear Parent, student admission and digital profile for *${params.studentName}* (${params.className}) has been activated:\n\n• *Admission ID*: ${admissionNo}\n• *Portal Username*: ${params.parentPhone}\n• *Default Password*: ${initialPassword}\n• *School Code*: ${schoolCode}\n\n📲 *Login to Parent Portal*: ${appUrl}/login\n\n_Please change your password upon first login._\n_Admissions Board, ${schoolName}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (

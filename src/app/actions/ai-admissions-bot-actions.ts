@@ -74,7 +74,9 @@ export async function askAdmissionsAiBotAction(params: {
       aiResponse = `Here is the required document checklist for admission:\n\n1. Municipal Birth Certificate of the child\n2. 4 Passport-size photographs of the student\n3. 2 Photographs of each parent/guardian\n4. Address proof (Aadhaar Card / Voter ID / Electricity Bill)\n5. Transfer Certificate (TC) & previous report card (for Class 2 onwards)\n6. Immunization / Vaccination medical record.`;
     } else {
       intent = "PROSPECTUS_AND_VISIT";
-      aiResponse = `Thank you for your interest in Crayon Box School! We are a premier educational institution focused on experiential learning, robotics labs, smart classrooms, and 360° NEP holistic development.\n\nOur Admissions Desk is open from **08:30 AM to 04:00 PM (Monday to Saturday)**. We cordially invite you for a campus tour with our Principal & Academic Coordinators.`;
+      const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+      const schoolName = campRes.rows[0]?.name || "our institution";
+      aiResponse = `Thank you for your interest in ${schoolName}! We are a premier educational institution focused on experiential learning, robotics labs, smart classrooms, and 360° NEP holistic development.\n\nOur Admissions Desk is open from **08:30 AM to 04:00 PM (Monday to Saturday)**. We cordially invite you for a campus tour with our Principal & Academic Coordinators.`;
     }
 
     // Record inquiry to database

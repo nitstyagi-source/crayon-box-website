@@ -52,6 +52,7 @@ export default function PayFeesPage() {
         admissionNo: accountData.student.admissionNo,
         className: accountData.student.className,
         billingPeriod: accountData.invoice.billing_period,
+        schoolName: accountData.student.school_name || accountData.student.campus_name || "OFFICIAL FEE RECEIPT",
         items: accountData.items || []
       });
       setAccountData(null);
@@ -292,7 +293,7 @@ export default function PayFeesPage() {
               `}</style>
 
               <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-                <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">CRAYON BOX SCHOOL</h3>
+                <h3 className="text-base font-black text-stone-900 tracking-tight uppercase">{receipt.schoolName || "OFFICIAL FEE RECEIPT"}</h3>
                 <p className="text-[10px] font-bold text-stone-700">
                   OFFICIAL ONLINE FEE PAYMENT RECEIPT
                 </p>

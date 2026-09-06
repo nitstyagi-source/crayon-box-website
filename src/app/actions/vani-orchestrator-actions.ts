@@ -147,7 +147,7 @@ export async function askVaniOrchestratorAction(params: {
           ? `Recent Diary / Homework Entries: ${JSON.stringify(recentDiary.map(d => ({ title: d.title, content: d.content })))}`
           : `No homework entries logged today.`;
 
-        const systemInstruction = `You are VANI, the loving, professional, and reliable Family AI Copilot for Crayon Box School.
+        const systemInstruction = `You are VANI, the loving, professional, and reliable Family AI Copilot for school parents.
 You are interacting with parent "${params.userName}".
 RULES:
 1. Always be polite, warm, and clear.
@@ -301,7 +301,7 @@ RULES:
       // C. General Teacher Pedagogical Advice & Classroom Management
       else {
         toolUsed = 'teacher_pedagogical_copilot';
-        const systemInstruction = `You are VANI, the Senior CBSE & NEP 2020 Pedagogical Classroom Copilot for teachers at Crayon Box School.
+        const systemInstruction = `You are VANI, the Senior CBSE & NEP 2020 Pedagogical Classroom Copilot for teachers.
 You are advising teacher "${params.userName}".
 RULES:
 1. Provide practical, high-impact instructional advice, classroom engagement strategies, rubrics, and activity ideas.
@@ -339,7 +339,7 @@ LIVE SCHOOL ERP DATABASE METRICS (TRUTH FROM SUPABASE):
 ${liveSchool.summaryText}
 `;
 
-      const systemInstruction = `You are VANI, the Strategic AI Operating System and Executive Intelligence Layer for the Super Admin and Trust Leadership of Crayon Box School.
+      const systemInstruction = `You are VANI, the Strategic AI Operating System and Executive Intelligence Layer for the Super Admin and Trust Leadership.
 You are addressing "${params.userName}".
 
 STRICT GROUND TRUTH RULES:

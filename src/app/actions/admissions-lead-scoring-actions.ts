@@ -94,7 +94,7 @@ export async function getAdmissionsLeadScoresAction(): Promise<{
           : tier === 'WARM'
           ? 'Follow up with fee structure breakdown and invite for campus showcase.'
           : 'Send automated newsletter digest and invitation to open house.',
-        suggested_message: `Dear ${pName}, greetings from Crayon Box School regarding admission for ${cName}. We invite you to complete the enrolment documentation.`,
+        suggested_message: `Dear ${pName}, greetings from the Admissions Office regarding admission for ${cName}. We invite you to complete the enrolment documentation.`,
         last_contacted_at: row.next_follow_up_date || row.follow_up_date || null,
         created_at: row.created_at || new Date().toISOString()
       };

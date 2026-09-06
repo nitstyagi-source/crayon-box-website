@@ -1695,7 +1695,7 @@ function UniversalStudentsDirectoryContent() {
                   required
                   value={formData.parentName}
                   onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                  placeholder="Dr. Rajesh Sharma"
+                  placeholder="e.g. Guardian Full Name"
                 />
                 <Select
                   label="Relationship *"

@@ -104,7 +104,9 @@ export async function requestEarlyStudentExitOtpAction(params: {
     const passId = insertRes.rows[0].id;
 
     // Send Parent WhatsApp Alert with OTP
-    const msgContent = `🔐 *Crayon Box School Security — Early Exit Verification OTP*\n\nAn early student exit request was initiated at the main security gate for:\n• *Student*: ${params.studentName} (${params.className})\n• *Pickup Person*: ${params.guardianName}\n• *Reason*: ${params.reason}\n\n👉 Your 6-Digit Security OTP is: *${otp}*\n\nPlease share this OTP with the gate security guard to authorize student departure.`;
+    const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+    const schoolName = campRes.rows[0]?.name || 'Campus Security';
+    const msgContent = `🔐 *${schoolName} Security — Early Exit Verification OTP*\n\nAn early student exit request was initiated at the main security gate for:\n• *Student*: ${params.studentName} (${params.className})\n• *Pickup Person*: ${params.guardianName}\n• *Reason*: ${params.reason}\n\n👉 Your 6-Digit Security OTP is: *${otp}*\n\nPlease share this OTP with the gate security guard to authorize student departure.`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (
@@ -163,7 +165,9 @@ export async function verifyStudentExitOtpAndIssuePassAction(params: {
     `, [params.guardName || 'Main Gate Security Guard', params.passId]);
 
     // Send departure confirmation WhatsApp
-    const confirmMsg = `🚪 *Crayon Box School — Student Departure Notice*\n\nYour ward *${pass.student_name}* (${pass.class_name}) has safely exited the school main gate with *${pass.guardian_name}* at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.\n\n_Security Gate Pass Code: ${pass.pass_code}_`;
+    const campRes2 = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+    const schoolName2 = campRes2.rows[0]?.name || 'Campus Security';
+    const confirmMsg = `🚪 *${schoolName2} — Student Departure Notice*\n\nYour ward *${pass.student_name}* (${pass.class_name}) has safely exited the school main gate with *${pass.guardian_name}* at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.\n\n_Security Gate Pass Code: ${pass.pass_code}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (

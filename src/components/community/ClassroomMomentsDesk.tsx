@@ -352,7 +352,7 @@ export function ClassroomMomentsDesk() {
                 <Input
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Aarav Sharma, Vihaan Tyagi"
+                  placeholder="e.g. Student name or admission number"
                   className="text-xs border-[#E8DFC8]"
                 />
               </div>

@@ -62,9 +62,15 @@ export async function getGeofenceConfig(campusId?: string) {
 
     if (error) throw error;
 
+    let defaultSchoolName = "School Campus";
+    if (resolvedCampusId) {
+      const { data: campRec } = await supabase.from('campuses').select('name').eq('id', resolvedCampusId).maybeSingle();
+      if (campRec?.name) defaultSchoolName = campRec.name;
+    }
+
     // Default fallback if not customized yet
     const config = data || {
-      school_name: "Crayon Box School - Main Campus, Burari",
+      school_name: defaultSchoolName,
       latitude: 28.7533150,
       longitude: 77.2024180,
       geofence_radius_meters: 120,
@@ -92,9 +98,15 @@ export async function saveGeofenceConfig(campusId: string, payload: any) {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
+    let defaultSchoolName = "School Campus";
+    if (resolvedCampusId) {
+      const { data: campRec } = await supabase.from('campuses').select('name').eq('id', resolvedCampusId).maybeSingle();
+      if (campRec?.name) defaultSchoolName = campRec.name;
+    }
+
     const dataToSave = {
       campus_id: resolvedCampusId,
-      school_name: payload.school_name || "Crayon Box School",
+      school_name: payload.school_name || defaultSchoolName,
       latitude: Number(payload.latitude) || 28.7533150,
       longitude: Number(payload.longitude) || 77.2024180,
       geofence_radius_meters: Number(payload.geofence_radius_meters) || 120,

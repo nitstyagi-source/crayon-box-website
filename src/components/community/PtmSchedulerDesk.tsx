@@ -275,7 +275,7 @@ export function PtmSchedulerDesk({
                   type="text"
                   value={parentName}
                   onChange={(e) => setParentName(e.target.value)}
-                  placeholder="e.g. Rajesh Sharma"
+                  placeholder="e.g. Parent Full Name"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />

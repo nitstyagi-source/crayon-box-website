@@ -421,7 +421,7 @@ export function PublicEnquiryForm({
               required
               value={formData.primaryGuardianName}
               onChange={e => setFormData({ ...formData, primaryGuardianName: e.target.value })}
-              placeholder="Dr. Rajesh Sharma"
+              placeholder="e.g. Parent Full Name"
               className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-medium"
             />
           </div>
@@ -701,7 +701,7 @@ export function PublicEnquiryForm({
             className="w-4 h-4 rounded text-emerald-600 focus:ring-0 mt-0.5"
           />
           <span>
-            I agree to be contacted by Crayon Box School admissions representatives via Phone, WhatsApp, SMS, and Email regarding fee structures, syllabus, and scheduled campus tours.
+            I agree to be contacted by school admissions representatives via Phone, WhatsApp, SMS, and Email regarding fee structures, syllabus, and scheduled campus tours.
           </span>
         </label>
 

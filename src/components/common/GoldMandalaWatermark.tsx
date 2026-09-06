@@ -6,10 +6,12 @@ export function GoldMandalaWatermark({
   size = 220,
   opacity = 0.25,
   className = '',
+  institutionName = 'OFFICIAL CREDENTIAL',
 }: {
   size?: number;
   opacity?: number;
   className?: string;
+  institutionName?: string;
 }) {
   return (
     <div
@@ -106,7 +108,7 @@ export function GoldMandalaWatermark({
 /**
  * Security Microprint Watermark Pattern (Repeating School Name across Card)
  */
-export function CardSecurityPattern({ opacity = 0.12 }: { opacity?: number }) {
+export function CardSecurityPattern({ opacity = 0.12, schoolName = 'OFFICIAL CREDENTIAL' }: { opacity?: number; schoolName?: string }) {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0" style={{ opacity }}>
       <svg width="100%" height="100%">
@@ -121,7 +123,7 @@ export function CardSecurityPattern({ opacity = 0.12 }: { opacity?: number }) {
               fill="#B8934B"
               letterSpacing="0.08em"
             >
-              CRAYON BOX SCHOOL &bull; NEW DELHI &bull;
+              {schoolName.toUpperCase()} &bull; VERIFIED &bull;
             </text>
           </pattern>
         </defs>

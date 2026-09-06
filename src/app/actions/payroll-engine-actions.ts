@@ -103,7 +103,11 @@ export async function sendSalarySlipWhatsAppAction(recordId: string) {
 
     const pay = res.rows[0];
 
-    const msgContent = `💵 *Crayon Box School — Official Salary Slip Notification*\n\nDear *${pay.staff_name}* (${pay.designation}), your salary for *${pay.month_year}* has been credited successfully:\n\n• *Basic Pay*: ₹${Number(pay.basic_pay).toLocaleString('en-IN')}\n• *HRA (40%)*: ₹${Number(pay.hra).toLocaleString('en-IN')}\n• *DA (20%)*: ₹${Number(pay.da).toLocaleString('en-IN')}\n• *Gross Salary*: ₹${Number(pay.gross_salary).toLocaleString('en-IN')}\n• *EPF (12%) & ESI Deductions*: -₹${Number(pay.total_deductions).toLocaleString('en-IN')}\n\n👉 *Net Disbursed Salary*: *₹${Number(pay.net_salary).toLocaleString('en-IN')}*\n• *Payment Status*: PAID & RECONCILED\n\n📄 *Download Digital Salary Slip*: https://www.crayonboxschool.com/staff/salary-slip?id=${pay.id}\n\n_Accounts & HR Department, Crayon Box School_`;
+    const instRes = await client.query(`SELECT name FROM public.campuses LIMIT 1`);
+    const schoolName = instRes.rows[0]?.name || 'School Administration';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+    const msgContent = `💵 *${schoolName} — Official Salary Slip Notification*\n\nDear *${pay.staff_name}* (${pay.designation}), your salary for *${pay.month_year}* has been credited successfully:\n\n• *Basic Pay*: ₹${Number(pay.basic_pay).toLocaleString('en-IN')}\n• *HRA (40%)*: ₹${Number(pay.hra).toLocaleString('en-IN')}\n• *DA (20%)*: ₹${Number(pay.da).toLocaleString('en-IN')}\n• *Gross Salary*: ₹${Number(pay.gross_salary).toLocaleString('en-IN')}\n• *EPF (12%) & ESI Deductions*: -₹${Number(pay.total_deductions).toLocaleString('en-IN')}\n\n👉 *Net Disbursed Salary*: *₹${Number(pay.net_salary).toLocaleString('en-IN')}*\n• *Payment Status*: PAID & RECONCILED\n\n📄 *Download Digital Salary Slip*: ${appUrl}/staff/salary-slip?id=${pay.id}\n\n_Accounts & HR Department, ${schoolName}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (

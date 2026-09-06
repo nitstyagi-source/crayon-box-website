@@ -43,9 +43,10 @@ export default function AdminDashboard() {
 
   // Add Session Modal State
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
-  const [sessionName, setSessionName] = useState('2027-2028');
-  const [startDate, setStartDate] = useState('2027-04-01');
-  const [endDate, setEndDate] = useState('2028-03-31');
+  const nextYr = new Date().getFullYear() + 1;
+  const [sessionName, setSessionName] = useState(`${nextYr}-${nextYr + 1}`);
+  const [startDate, setStartDate] = useState(`${nextYr}-04-01`);
+  const [endDate, setEndDate] = useState(`${nextYr + 1}-03-31`);
   const [calendarModel, setCalendarModel] = useState('CBSE_ANNUAL');
   const [isCurrent, setIsCurrent] = useState(false);
   const [isSubmittingSession, setIsSubmittingSession] = useState(false);
@@ -1141,7 +1142,7 @@ export default function AdminDashboard() {
                     value={instPrincipal}
                     onChange={(e) => setInstPrincipal(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-900"
-                    placeholder="Dr. Meenakshi Sunder"
+                    placeholder="e.g. Principal Full Name"
                     required
                   />
                 </div>
@@ -1281,13 +1282,13 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Session Name (e.g. 2027-2028)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Session Name (e.g. YYYY-YYYY)</label>
                   <input
                     type="text"
                     value={sessionName}
                     onChange={(e) => setSessionName(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-900 font-mono"
-                    placeholder="2027-2028"
+                    placeholder="e.g. 2026-2027"
                     required
                   />
                 </div>

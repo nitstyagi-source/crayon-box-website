@@ -542,7 +542,7 @@ export function WhatsAppEngineDesk({ initialSubTab = "triggers" }: WhatsAppEngin
                   type="text"
                   value={settingsForm.sender_phone}
                   onChange={(e) => setSettingsForm({ ...settingsForm, sender_phone: e.target.value })}
-                  placeholder="+919876543210"
+                  placeholder="e.g. +91 98100 00000"
                   className="w-full bg-white border border-[#E8DFC8] rounded-xl p-2.5 font-mono font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
                   required
                 />

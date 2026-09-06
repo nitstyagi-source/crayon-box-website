@@ -168,11 +168,11 @@ export function StudentIDCard({
   const validUpto = cfg.validUptoText || s.valid_upto || s.validUpto || '31 Mar 2027';
 
   // School Information (with custom overrides from cfg, NO CBSE default)
-  const schName = (cfg.schoolName || schoolInfo?.name || s.school_name || 'CRAYON BOX SCHOOL').toUpperCase();
-  const schCity = (cfg.city || schoolInfo?.city || schoolInfo?.address?.split(',')?.pop() || 'DELHI NCR').toUpperCase();
+  const schName = (cfg.schoolName || schoolInfo?.name || s.school_name || 'INSTITUTION NAME').toUpperCase();
+  const schCity = (cfg.city || schoolInfo?.city || schoolInfo?.address?.split(',')?.pop() || '').toUpperCase();
   const schTagline = cfg.tagline !== undefined ? cfg.tagline : (schoolInfo?.boardAffiliation || schoolInfo?.affiliation || '');
-  const schPhone = cfg.customPhone || schoolInfo?.phone || '+91 11 2761 8899';
-  const schWebsite = cfg.customWebsite || schoolInfo?.website || 'www.crayonboxschool.edu.in';
+  const schPhone = cfg.customPhone || schoolInfo?.phone || '';
+  const schWebsite = cfg.customWebsite || schoolInfo?.website || '';
   const schoolLogo = cfg.customLogoUrl || schoolInfo?.logoUrl || s.school_logo;
   const photoUrl = s.photo_url || s.avatar_url || s.image;
 

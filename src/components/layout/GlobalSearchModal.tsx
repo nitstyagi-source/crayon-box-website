@@ -87,8 +87,8 @@ export default function GlobalSearchModal({
             <div className="p-8 text-center text-stone-400 text-xs font-medium space-y-2">
               <p>Type at least 2 characters to search across all institutional records.</p>
               <div className="flex justify-center gap-2 text-[11px] font-bold text-stone-500">
-                <span className="px-2 py-0.5 bg-stone-100 rounded-md">Aarav Sharma</span>
-                <span className="px-2 py-0.5 bg-stone-100 rounded-md">Sharma Family</span>
+                <span className="px-2 py-0.5 bg-stone-100 rounded-md">Student Name</span>
+                <span className="px-2 py-0.5 bg-stone-100 rounded-md">Admission / Roll No</span>
                 <span className="px-2 py-0.5 bg-stone-100 rounded-md">{`INV-${new Date().getFullYear()}`}</span>
               </div>
             </div>

@@ -38,12 +38,17 @@ export async function getFamilySiblingFeeDuesAction(parentPhone?: string) {
   const client = await p.connect();
 
   try {
+    const setRes = await client.query(`SELECT upi_vpa, upi_payee_name FROM public.whatsapp_settings LIMIT 1;`).catch(() => ({ rows: [] }));
+    const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+    const upiPayeeName = setRes.rows[0]?.upi_payee_name || campRes.rows[0]?.name || "School Administration";
+    const upiVpa = setRes.rows[0]?.upi_vpa || "accounts@upi";
+
     const phone = parentPhone?.trim();
     if (!phone) {
       return {
         success: true,
         siblings: [],
-        summary: { totalChildren: 0, totalBaseFee: 0, totalSiblingDiscount: 0, netPayable: 0, upiVpa: "crayonbox@icici", upiPayeeName: "Crayon Box School" }
+        summary: { totalChildren: 0, totalBaseFee: 0, totalSiblingDiscount: 0, netPayable: 0, upiVpa, upiPayeeName }
       };
     }
 
@@ -58,42 +63,47 @@ export async function getFamilySiblingFeeDuesAction(parentPhone?: string) {
                WHERE inv.student_id = s.id AND inv.status != 'PAID'
              ), 0) as total_unpaid_fee
       FROM public.students s
-      LEFT JOIN public.classes c ON c.id = s.class_id
-      WHERE (s.guardian_phone = $1 OR s.emergency_contact = $1 OR s.father_phone = $1 OR s.mother_phone = $1)
-      ORDER BY s.admission_no ASC;
+      LEFT JOIN public.classes c ON s.class_id = c.id
+      WHERE (
+        s.guardian_phone = $1 OR s.emergency_contact = $1 
+        OR s.father_phone = $1 OR s.mother_phone = $1
+      )
+      ORDER BY s.first_name ASC;
     `, [phone]);
 
-    // Query configured sibling concession policy from fee_concessions
-    const concessionRes = await client.query(`
-      SELECT percentage, flat_discount
-      FROM public.fee_concessions
-      WHERE concession_name ILIKE '%sibling%' OR concession_code ILIKE '%sibling%'
-      LIMIT 1;
-    `).catch(() => ({ rows: [] }));
-    const concessionPct = Number(concessionRes.rows[0]?.percentage || 10) / 100;
-    const flatDiscount = Number(concessionRes.rows[0]?.flat_discount || 0);
+    if (stuRes.rows.length === 0) {
+      return {
+        success: true,
+        siblings: [],
+        summary: { totalChildren: 0, totalBaseFee: 0, totalSiblingDiscount: 0, netPayable: 0, upiVpa, upiPayeeName }
+      };
+    }
 
-    const siblings: SiblingStudentFee[] = stuRes.rows.map((stu: any, idx: number) => {
-      const baseFee = Number(stu.total_unpaid_fee) || 0;
-      const isSecondChild = idx > 0; // 2nd or 3rd sibling gets configured concession
-      const siblingDiscount = isSecondChild ? Math.round(baseFee * concessionPct) + flatDiscount : 0;
-      const finalDueAmount = Math.max(0, baseFee - siblingDiscount);
+    // Apply sibling policy: 1st child pays 100%, 2nd child gets 10% waiver, 3rd+ gets 20% waiver
+    const siblings = stuRes.rows.map((r: any, index: number) => {
+      const baseFee = Number(r.total_unpaid_fee || 0);
+      let discountPercentage = 0;
+      if (index === 1) discountPercentage = 10;
+      else if (index >= 2) discountPercentage = 20;
+
+      const discountAmount = Math.round((baseFee * discountPercentage) / 100);
+      const netPayable = baseFee - discountAmount;
 
       return {
-        id: stu.id,
-        studentName: `${stu.first_name} ${stu.last_name || ''}`.trim(),
-        className: `${stu.class_name}-${stu.section_name}`,
-        admissionNo: stu.admission_no || `ADM-${stu.id.slice(0, 8)}`,
-        parentPhone: stu.primary_contact || phone,
+        id: r.id,
+        studentName: `${r.first_name} ${r.last_name || ''}`.trim(),
+        className: `${r.class_name}-${r.section_name}`,
+        admissionNo: r.admission_no || `ADM-${r.id.slice(0, 8)}`,
+        parentPhone: r.primary_contact || phone,
         baseFee,
-        isSecondChild,
-        siblingDiscount,
-        finalDueAmount
+        isSecondChild: index > 0,
+        siblingDiscount: discountAmount,
+        finalDueAmount: netPayable
       };
     });
 
-    const totalBaseFee = siblings.reduce((acc, s) => acc + s.baseFee, 0);
-    const totalSiblingDiscount = siblings.reduce((acc, s) => acc + s.siblingDiscount, 0);
+    const totalBaseFee = siblings.reduce((acc: number, s: any) => acc + s.baseFee, 0);
+    const totalSiblingDiscount = siblings.reduce((acc: number, s: any) => acc + s.siblingDiscount, 0);
     const netPayable = totalBaseFee - totalSiblingDiscount;
 
     return {
@@ -104,12 +114,12 @@ export async function getFamilySiblingFeeDuesAction(parentPhone?: string) {
         totalBaseFee,
         totalSiblingDiscount,
         netPayable,
-        upiVpa: "crayonbox@icici",
-        upiPayeeName: "Crayon Box School"
+        upiVpa,
+        upiPayeeName
       }
     };
   } catch (e: any) {
-    return { success: false, error: e.message, siblings: [], summary: { totalChildren: 0, totalBaseFee: 0, totalSiblingDiscount: 0, netPayable: 0, upiVpa: "crayonbox@icici", upiPayeeName: "Crayon Box School" } };
+    return { success: false, error: e.message, siblings: [], summary: { totalChildren: 0, totalBaseFee: 0, totalSiblingDiscount: 0, netPayable: 0, upiVpa: "accounts@upi", upiPayeeName: "School Administration" } };
   } finally {
     client.release();
   }
@@ -133,8 +143,10 @@ export async function processCombinedFeePaymentAction(params: {
     const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
     const currentYear = new Date().getFullYear();
     const txId = params.transactionRef || `PAY-SIB-${currentYear}-${nextSeq}`;
-    const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
+    const campRes = await client.query(`SELECT id, name FROM public.campuses LIMIT 1;`);
     const campusId = campRes.rows[0]?.id || null;
+    const schoolName = campRes.rows[0]?.name || "School Administration";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
     let phone = params.parentPhone;
     if (!phone && params.selectedStudentIds.length > 0) {
@@ -173,7 +185,7 @@ export async function processCombinedFeePaymentAction(params: {
     }
 
     // Send WhatsApp payment confirmation if phone is known
-    const msgContent = `🧾 *Crayon Box School — Fee Payment Confirmation*\n\nThank you! Your combined school fee payment has been received successfully:\n\n• *Amount Paid*: ₹${params.totalPaidAmount.toLocaleString('en-IN')}\n• *Transaction Ref*: ${txId}\n• *Students Covered*: ${params.selectedStudentIds.length} Children\n• *Payment Status*: PAID & RECONCILED\n\n📄 *Download Official GST Receipts*: https://www.crayonboxschool.com/fees/receipts?tx=${txId}\n\n_Accounts Department, Crayon Box School_`;
+    const msgContent = `🧾 *${schoolName} — Fee Payment Confirmation*\n\nThank you! Your combined school fee payment has been received successfully:\n\n• *Amount Paid*: ₹${params.totalPaidAmount.toLocaleString('en-IN')}\n• *Transaction Ref*: ${txId}\n• *Students Covered*: ${params.selectedStudentIds.length} Children\n• *Payment Status*: PAID & RECONCILED\n\n📄 *Download Official GST Receipts*: ${appUrl}/fees/receipts?tx=${txId}\n\n_Accounts Department, ${schoolName}_`;
 
     if (phone) {
       await client.query(`

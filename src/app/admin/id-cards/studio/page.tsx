@@ -705,7 +705,7 @@ export default function VisualIDCardStudioPage() {
                     <input
                       type="text"
                       value={(persona === "STUDENT" ? config.schoolName : persona === "TEACHER" ? teacherConfig.schoolName : escortConfig.schoolName) || ""}
-                      placeholder={selectedInstitutionObj?.name || "CRAYON BOX SCHOOL"}
+                      placeholder={selectedInstitutionObj?.name || "e.g. INSTITUTION NAME"}
                       onChange={(e) => {
                         if (persona === "STUDENT") updateStudentConfig({ schoolName: e.target.value });
                         else if (persona === "TEACHER") updateTeacherConfig({ schoolName: e.target.value });

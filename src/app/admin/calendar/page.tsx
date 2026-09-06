@@ -933,7 +933,7 @@ export function SchoolCalendarDesk() {
                   rows={3}
                   value={bdaySettings.custom_student_message || ""}
                   onChange={(e) => setBdaySettings({ ...bdaySettings, custom_student_message: e.target.value })}
-                  placeholder="e.g. 🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From Crayon Box School family 🎉"
+                  placeholder="e.g. 🎂 Happy Birthday, {NAME}! Wishing you a wonderful day filled with happiness and learning! From {SCHOOL_NAME} 🎉"
                   className="w-full bg-white border border-pink-200 rounded-xl p-2.5 text-xs font-medium text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-pink-400"
                 />
                 <div className="flex items-center gap-1 text-[10px] text-stone-500 flex-wrap">
@@ -957,7 +957,7 @@ export function SchoolCalendarDesk() {
                   rows={3}
                   value={bdaySettings.custom_teacher_message || ""}
                   onChange={(e) => setBdaySettings({ ...bdaySettings, custom_teacher_message: e.target.value })}
-                  placeholder="e.g. 🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from Crayon Box School family!"
+                  placeholder="e.g. 🎉 Wishing our esteemed educator {NAME} a very Happy Birthday! Thank you for inspiring young minds every day. Best wishes from {SCHOOL_NAME}!"
                   className="w-full bg-white border border-purple-200 rounded-xl p-2.5 text-xs font-medium text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-purple-400"
                 />
                 <div className="flex items-center gap-1 text-[10px] text-stone-500 flex-wrap">

@@ -87,12 +87,12 @@ export async function generateSchoolCircularAction(params: {
       ? VANI_TRUST_INSTITUTIONS.find(i => i.code === params.institutionCode)
       : null;
 
-    const schName = params.schoolName || matchedInst?.name || "Crayon Box School";
+    const schName = params.schoolName || matchedInst?.name || "School Administration";
     const schAffil = params.affiliation || (matchedInst?.affiliationNumber ? `Affiliation No. ${matchedInst.affiliationNumber} • ${matchedInst.boardAffiliation}` : (matchedInst?.boardAffiliation || "Recognized Educational Institution"));
     const schAddress = params.schoolAddress || matchedInst?.address || "Academic Campus Administration";
     const schLogo = params.logoUrl || matchedInst?.logoUrl || "/logo.png";
     const schPrincipal = params.principalName || matchedInst?.principalName || "Principal";
-    const schWebsite = params.website || "https://www.crayonboxschool.com";
+    const schWebsite = params.website || process.env.NEXT_PUBLIC_APP_URL || "";
 
     const p = getPool();
     let cirSeq = '001';

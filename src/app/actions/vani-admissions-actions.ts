@@ -316,14 +316,14 @@ export async function askVaniReceptionistAction(params: {
       } else {
         // Conversational Fallback / Intake Follow-up
         if (!state.childName) {
-          aiResponse = `Namaste and welcome to Crayon Box School! 😊 I would be delighted to assist you with admissions for Academic Session ${activeAcademicSession}.\n\nMay I know your child's name and which class you are looking for?`;
+          aiResponse = `Namaste and welcome to our Admissions Desk! 😊 I would be delighted to assist you with admissions for Academic Session ${activeAcademicSession}.\n\nMay I know your child's name and which class you are looking for?`;
         } else if (!state.targetGrade) {
           aiResponse = `Wonderful! And which grade or class are you planning for **${state.childName}**?`;
         } else if (!state.parentPhone) {
           aiResponse = `Great! Admissions for **${state.targetGrade}** are currently open. May I have your 10-digit mobile number so our admissions team can share the official brochure and fee receipt structure?`;
         } else {
           confidenceScore = 0.65;
-          aiResponse = `Thank you for sharing the details! We warmly welcome you to Crayon Box School. We offer experiential learning, robotics innovation labs, smart classrooms, and 360° NEP child development.\n\nWould you like me to schedule a campus tour for you tomorrow at **11:00 AM** or **04:00 PM**?`;
+          aiResponse = `Thank you for sharing the details! We warmly welcome you to our school. We offer experiential learning, robotics innovation labs, smart classrooms, and 360° NEP child development.\n\nWould you like me to schedule a campus tour for you tomorrow at **11:00 AM** or **04:00 PM**?`;
 
           // Record Knowledge Gap for Unanswered Question
           await client.query(`
@@ -356,7 +356,7 @@ export async function askVaniReceptionistAction(params: {
       const nextSeq = ((enqCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
       const generatedEnqNo = `ENQ-${currentCalYear}-${nextSeq}`;
       const pName = state.parentName || (state.childName ? `Parent of ${state.childName}` : 'Prospective Parent');
-      const pPhone = state.parentPhone || '+91 9999999999';
+      const pPhone = state.parentPhone || 'Phone Not Provided';
       const cName = state.childName || 'Applicant';
       const grade = state.targetGrade || 'Nursery';
 

@@ -918,7 +918,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                     type="tel"
                     value={form.mother_phone}
                     onChange={(e) => setForm({ ...form, mother_phone: e.target.value, mother_whatsapp: e.target.value })}
-                    placeholder="9876543210"
+                    placeholder="e.g. 98100 00000"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900 font-mono"
                   />
                 </div>
@@ -1170,7 +1170,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
             <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <strong className="text-xs font-black text-stone-900 block">Existing Sibling in Crayon Box School?</strong>
+                  <strong className="text-xs font-black text-stone-900 block">Existing Sibling in this School?</strong>
                   <p className="text-[11px] text-stone-500">Links to the student master ledger and automatically applies 10% Sibling Fee Concession.</p>
                 </div>
                 <label className="flex items-center gap-1.5 text-xs font-bold text-blue-950 cursor-pointer">
@@ -1274,7 +1274,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                   type="tel"
                   value={form.doctor_phone}
                   onChange={(e) => setForm({ ...form, doctor_phone: e.target.value })}
-                  placeholder="9876543210"
+                  placeholder="e.g. 98100 00000"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-xs font-semibold text-stone-900 font-mono"
                 />
               </div>
@@ -1404,7 +1404,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
                     type="tel"
                     value={form.authorized_escort_1_phone}
                     onChange={(e) => setForm({ ...form, authorized_escort_1_phone: e.target.value })}
-                    placeholder="9876543210"
+                    placeholder="e.g. 98100 00000"
                     className="w-full bg-white border border-stone-200 rounded-xl p-2 text-xs font-semibold font-mono"
                   />
                 </div>
@@ -1501,7 +1501,7 @@ export const MasterAdmissionForm: React.FC<Props> = ({ initialEnquiryNo, onSucce
             <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-4 text-xs text-stone-700 leading-relaxed">
               <strong className="font-black text-stone-900 block text-sm">Parent / Guardian Declaration:</strong>
               <p>
-                I/We hereby confirm that all information provided in this admission form and the documents submitted are true, authentic, and correct to the best of our knowledge. I/We agree to abide by the rules, code of conduct, and policies of Crayon Box School.
+                I/We hereby confirm that all information provided in this admission form and the documents submitted are true, authentic, and correct to the best of our knowledge. I/We agree to abide by the rules, code of conduct, and policies of the institution.
               </p>
 
               <label className="flex items-center gap-2 text-xs font-bold text-stone-900 cursor-pointer pt-2">

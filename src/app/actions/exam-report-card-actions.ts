@@ -612,7 +612,7 @@ export async function sendReportCardWhatsAppAction(params: {
       ? VANI_TRUST_INSTITUTIONS.find(i => i.code === params.institutionCode)
       : null;
 
-    const schName = params.schoolName || matchedInst?.name || "Crayon Box School";
+    const schName = params.schoolName || matchedInst?.name || "School Administration";
     const schPrincipal = params.principalName || matchedInst?.principalName || "Principal";
 
     const msgContent = `🎓 *${schName} — Holistic Progress Report Card*\n\nDear Parent, the official examination results for *${params.studentName}* (${params.className}) for *${params.examTerm}* are now available:\n\n• *Overall Grade*: ${params.overallGrade}\n• *Percentage*: ${params.percentage}%\n• *Result Status*: PROMOTED / PASSED\n\n📄 *View & Download Verified Digital Report Card*:\n${params.reportCardUrl}\n\n_${schPrincipal}, ${schName}_`;

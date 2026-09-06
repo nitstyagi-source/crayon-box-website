@@ -33,7 +33,7 @@ export default function DedicatedAskVaniPage() {
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "vani"; text: string; time: string }>>([
     {
       role: "vani",
-      text: `Namaste and welcome to Crayon Box School! 🙏 I am VANI, your 24/7 digital admissions receptionist. I can answer questions regarding Academic Session ${sessionShort} admissions, approved fee structures, bus routes across Delhi NCR, and campus tour bookings. How may I assist you today?`,
+      text: `Namaste and welcome to our Admissions Desk! 🙏 I am VANI, your 24/7 digital admissions receptionist. I can answer questions regarding Academic Session ${sessionShort} admissions, approved fee structures, bus routes, and campus tour bookings. How may I assist you today?`,
       time: "Just now"
     }
   ]);

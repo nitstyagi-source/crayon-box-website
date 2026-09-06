@@ -211,7 +211,7 @@ export default function PublicCareersPage() {
                 </div>
                 <h4 className="text-xl font-black text-stone-900">Application Submitted Successfully!</h4>
                 <p className="text-xs text-stone-600 max-w-md mx-auto">
-                  Thank you for applying to Crayon Box School. Your unique Reference Candidate ID is:
+                  Thank you for submitting your application. Your unique Reference Candidate ID is:
                 </p>
                 <div className="bg-purple-50 border border-purple-200 py-3 px-6 rounded-2xl inline-block font-mono font-black text-purple-900 text-base">
                   {submittedCandidateCode}
@@ -242,7 +242,7 @@ export default function PublicCareersPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Sunita Mehra"
+                        placeholder="e.g. Applicant Full Name"
                         value={form.fullName}
                         onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                         className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 font-bold text-stone-900"

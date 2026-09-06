@@ -96,6 +96,12 @@ export async function getStudent360MasterProfile(studentId?: string) {
     const primaryMobile = primaryG?.phone || student.primary_contact || "Not Provided";
     const primaryEmail = primaryG?.email || student.email || "Not Provided";
 
+    let campusName = "Main Campus";
+    if (student.campus_id) {
+      const { data: campRec } = await supabase.from("campuses").select("name").eq("id", student.campus_id).maybeSingle();
+      if (campRec?.name) campusName = campRec.name;
+    }
+
     return {
       success: true,
       data: {
@@ -108,7 +114,7 @@ export async function getStudent360MasterProfile(studentId?: string) {
           dob: student.dob || student.date_of_birth || "Not Provided",
           gender: student.gender || "Not Specified",
           address: student.address || "Address on file",
-          campusName: "Crayon Box School (Main Campus)",
+          campusName,
           status: student.status || "Active Student"
         },
         parentAndEscort: {

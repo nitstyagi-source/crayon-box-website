@@ -437,7 +437,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                   Departed Student Profile ({student.status})
                 </h4>
                 <span className="px-2 py-0.2 bg-amber-200 text-amber-900 text-[10px] font-mono font-bold rounded-md">
-                  Previous Session: {currentEnr?.academic_session || '2025-2026'}
+                  Previous Session: {currentEnr?.academic_session || 'Prior Record'}
                 </span>
               </div>
               <p className="text-slate-600 font-medium mt-0.5">
@@ -838,16 +838,16 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
           <Card header={<h3 className="font-bold text-slate-900 text-sm">Authorized Escort / Parent Gate Pass</h3>}>
             <EscortPickupCard
               escort={{
-                guardianName: family?.guardians?.[0]?.first_name ? `${family?.guardians?.[0]?.first_name} ${family?.guardians?.[0]?.last_name}` : 'Mr. Rajesh Sharma',
-                relationship: family?.guardians?.[0]?.relationship || 'FATHER',
-                phone: family?.guardians?.[0]?.phone || '9810011001',
+                guardianName: family?.guardians?.[0]?.first_name ? `${family?.guardians?.[0]?.first_name} ${family?.guardians?.[0]?.last_name || ''}`.trim() : (student.father_name || student.mother_name || 'Parent / Guardian'),
+                relationship: family?.guardians?.[0]?.relationship || 'PARENT',
+                phone: family?.guardians?.[0]?.phone || student.father_phone || student.mother_phone || student.primary_contact || '',
                 photoUrl: family?.guardians?.[0]?.photo_url || '',
                 isAuthorizedPickup: true,
-                studentName: `${student.first_name} ${student.last_name}`,
-                studentUniversalId: student.universal_id || 'STU-VET-000001',
+                studentName: `${student.first_name} ${student.last_name || ''}`.trim(),
+                studentUniversalId: student.universal_id || `STU-${student.admission_no || student.id?.slice(0, 6)}`,
                 studentPhotoUrl: student.photo_url || '',
-                className: currentEnr?.class_name || 'Class 4',
-                sectionName: currentEnr?.section_name || 'A',
+                className: currentEnr?.class_name || '',
+                sectionName: currentEnr?.section_name || '',
                 institutionCode: currentEnr?.institution_code || 'CBS',
               }}
             />

@@ -507,7 +507,7 @@ export async function generateCandidateOfferLetter(payload: {
         offered_salary_monthly: payload.salaryMonthly,
         offered_ctc_annual: payload.ctcAnnual,
         reporting_manager: payload.reportingManager || "Principal & Managing Director",
-        work_location: payload.workLocation || "Crayon Box School Main Campus",
+        work_location: payload.workLocation || "Main Campus",
         terms_and_conditions: payload.terms || "Standard probation of 6 months. Entitled to school health insurance and academic vacations.",
         status: "Offer Sent"
       })

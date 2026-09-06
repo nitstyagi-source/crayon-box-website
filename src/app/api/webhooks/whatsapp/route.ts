@@ -46,7 +46,9 @@ export async function POST(request: Request) {
 
     const student = stuRes.rows[0];
     if (!student) {
-      const unregisteredReply = `👋 *Welcome to Crayon Box School Desk*\n\nYour mobile number (${cleanPhone.slice(-10)}) is not linked with an active enrolled student profile in our directory. Please contact the school administrative desk to update your verified parent mobile number.`;
+      const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+      const schoolName = campRes.rows[0]?.name || "School Administrative Desk";
+      const unregisteredReply = `👋 *Welcome to ${schoolName}*\n\nYour mobile number (${cleanPhone.slice(-10)}) is not linked with an active enrolled student profile in our directory. Please contact the school administrative desk to update your verified parent mobile number.`;
       const twiml = `
         <Response>
           <Message>

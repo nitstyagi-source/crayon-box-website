@@ -83,7 +83,7 @@ export async function punchTeacherGeofenceAttendanceAction(params: TeacherGeofen
     if (!campus) {
       // Fallback default CBS campus config
       campus = {
-        campus_name: 'Crayon Box School — Main Campus',
+        campus_name: 'Main Campus',
         latitude: 28.7183200,
         longitude: 77.2144500,
         radius_meters: 250

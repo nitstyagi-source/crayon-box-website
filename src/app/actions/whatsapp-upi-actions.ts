@@ -48,6 +48,12 @@ export async function dispatchQuarterlyWhatsAppInvoicesAction(quarterName?: stri
       };
     }
 
+    const setRes = await client.query(`SELECT upi_vpa, upi_payee_name FROM public.whatsapp_settings LIMIT 1;`).catch(() => ({ rows: [] }));
+    const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+    const upiPayee = setRes.rows[0]?.upi_payee_name || campRes.rows[0]?.name || "School Administration";
+    const upiVpa = setRes.rows[0]?.upi_vpa || "accounts@upi";
+    const encodedPayee = encodeURIComponent(upiPayee);
+
     const dispatchedLogs: any[] = [];
 
     for (const inv of invoices) {
@@ -62,13 +68,13 @@ export async function dispatchQuarterlyWhatsAppInvoicesAction(quarterName?: stri
       const invNo = inv.invoice_number || `INV-${inv.admission_no || inv.id?.slice(0, 6)}`;
 
       // Dynamic UPI Intent URL (Standard NPCI Specification)
-      const upiLink = `upi://pay?pa=fees.crayonbox@icici&pn=Crayon%20Box%20School&am=${dueAmount}&cu=INR&tn=Fee-${invNo}`;
+      const upiLink = `upi://pay?pa=${upiVpa}&pn=${encodedPayee}&am=${dueAmount}&cu=INR&tn=Fee-${invNo}`;
 
       const messageText = `Dear ${parentName},\n` +
         `This is a friendly reminder that the ${targetQuarter} School Fee for ${studentName} (${inv.admission_no}) ` +
         `is ₹${dueAmount.toLocaleString('en-IN')}.\n\n` +
         `Pay instantly via UPI (GPay / PhonePe / Paytm / BHIM) in 1 click:\n${upiLink}\n\n` +
-        `School Accounts Office | Crayon Box School`;
+        `School Accounts Office | ${upiPayee}`;
 
       // Insert into message audit log
       const { rows: log } = await client.query(`

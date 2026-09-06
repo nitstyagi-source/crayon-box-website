@@ -144,11 +144,11 @@ export async function requestUniversalOtpAction(params: {
     }
 
     // 🛑 WEB ERP RESTRICTION: Web ERP is strictly reserved for Super Admins, Principals, and Staff.
-    // Pure parents must use the official Crayon Box School Mobile App.
+    // Pure parents must use the official Mobile App.
     if (!staffRecord && (studentRecords.length > 0 || parentRecord)) {
       return {
         success: false,
-        error: `Parent & Student accounts access Crayon Box School exclusively via the official Mobile App. Please download and open the Crayon Box School App on your Android or iOS phone.`
+        error: `Parent & Student accounts access portals exclusively via the official Mobile App. Please download and open the official Mobile App on your Android or iOS phone.`
       };
     }
 
@@ -190,21 +190,25 @@ export async function requestUniversalOtpAction(params: {
           // 🚀 1. DISPATCH VIA RESEND (0.15s instant delivery)
           if (resendApiKey) {
             try {
+              const campRes = await client.query(`SELECT name FROM public.campuses LIMIT 1;`).catch(() => ({ rows: [] }));
+              const instRes = await client.query(`SELECT name FROM public.institutions LIMIT 1;`).catch(() => ({ rows: [] }));
+              const institutionName = instRes.rows[0]?.name || campRes.rows[0]?.name || "Educational Portal";
+
               const { Resend } = require('resend');
               const resend = new Resend(resendApiKey);
-              const fromSender = process.env.RESEND_FROM_EMAIL || 'Crayon Box School <onboarding@resend.dev>';
+              const fromSender = process.env.RESEND_FROM_EMAIL || `${institutionName} <onboarding@resend.dev>`;
               
               const resendRes = await resend.emails.send({
                 from: fromSender,
                 to: emailAddr,
-                subject: `${otpCode} is your Crayon Box Verification Code`,
+                subject: `${otpCode} is your ${institutionName} Verification Code`,
                 html: `
                   <!DOCTYPE html>
                   <html>
                   <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Crayon Box Verification Code</title>
+                    <title>${institutionName} Verification Code</title>
                   </head>
                   <body style="margin: 0; padding: 0; background-color: #FBF9F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FBF9F5; padding: 40px 16px;">
@@ -217,14 +221,14 @@ export async function requestUniversalOtpAction(params: {
                               <td style="background-color: #0B1B30; padding: 28px 24px; text-align: center;">
                                 <div style="display: inline-block; padding: 4px 12px; background-color: #183454; border: 1px solid #2A4D75; border-radius: 12px; margin-bottom: 10px;">
                                   <span style="font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #D4AF37; text-transform: uppercase;">
-                                    VAANI EDUCATIONAL TRUST
+                                    TRUST HEADQUARTERS
                                   </span>
                                 </div>
                                 <h1 style="margin: 0; font-size: 20px; color: #F8FAFC; font-weight: 800; letter-spacing: 0.3px;">
-                                  Crayon Box School
+                                  ${institutionName}
                                 </h1>
                                 <p style="margin: 4px 0 0 0; font-size: 11px; color: #94A3B8; font-weight: 500;">
-                                  Apex Multi-Campus Portal • CBS • CBPS • AS • AVM
+                                  Official ERP & Academic Portal
                                 </p>
                               </td>
                             </tr>

@@ -104,7 +104,10 @@ export async function bookPtmSlotAction(params: {
       weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
     });
 
-    const msgContent = `🗓️ *Crayon Box School — PTM Appointment Confirmation*\n\nDear *${params.parentName}*, your 1-on-1 PTM slot for *${params.studentName}* (${slot.class_name}) has been confirmed:\n\n• *Event*: ${slot.event_title}\n• *Date*: ${eventDateFormatted}\n• *Time Slot*: *${slot.time_slot}*\n• *Class Teacher*: ${slot.teacher_name}\n• *Discussion Agenda*: ${params.agendaNotes || 'Academic Progress & Term 1 Review'}\n• *Venue*: Classroom ${slot.class_name}, Main Academic Block\n\n_Please arrive 5 minutes prior to your allocated slot._\n_Academic Affairs, Crayon Box School_`;
+    const instRes = await client.query(`SELECT name FROM public.campuses LIMIT 1`);
+    const schoolName = instRes.rows[0]?.name || 'School Administration';
+
+    const msgContent = `🗓️ *${schoolName} — PTM Appointment Confirmation*\n\nDear *${params.parentName}*, your 1-on-1 PTM slot for *${params.studentName}* (${slot.class_name}) has been confirmed:\n\n• *Event*: ${slot.event_title}\n• *Date*: ${eventDateFormatted}\n• *Time Slot*: *${slot.time_slot}*\n• *Class Teacher*: ${slot.teacher_name}\n• *Discussion Agenda*: ${params.agendaNotes || 'Academic Progress & Term 1 Review'}\n• *Venue*: Classroom ${slot.class_name}, Main Academic Block\n\n_Please arrive 5 minutes prior to your allocated slot._\n_Academic Affairs, ${schoolName}_`;
 
     await client.query(`
       INSERT INTO public.whatsapp_messages (

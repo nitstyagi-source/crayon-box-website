@@ -511,7 +511,7 @@ export async function verifyFacultyQrToken(qrToken: string) {
       return {
         success: false,
         verified: false,
-        message: "Invalid or Unrecognized QR Code. Not issued by Crayon Box School."
+        message: "Invalid or Unrecognized QR Code. Not issued by authorized institutional administration."
       };
     }
 
@@ -548,7 +548,7 @@ export async function verifyFacultyQrToken(qrToken: string) {
         session: card.academic_session,
         validUntil: card.expiry_date,
         branch: campusData?.name || "Main Campus",
-        schoolName: campusData?.name || "Crayon Box School",
+        schoolName: campusData?.name || "School Administration",
         schoolAddress: campusData?.address || "",
         schoolContact: campusData?.contact_phone || "",
         schoolEmail: campusData?.contact_email || "",

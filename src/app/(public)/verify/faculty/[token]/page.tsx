@@ -33,10 +33,10 @@ export default async function VerifyFacultyQrPage({ params }: VerifyFacultyPageP
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-1">
             <div className="w-8 h-8 rounded-full bg-white text-purple-950 flex items-center justify-center font-black text-sm">
-              CB
+              <Building2 className="w-4 h-4" />
             </div>
             <h1 className="text-sm font-black uppercase tracking-wider text-stone-200">
-              CRAYON BOX SCHOOL
+              {result.facultyProfile?.schoolName || "OFFICIAL FACULTY VERIFICATION"}
             </h1>
           </div>
 
@@ -120,10 +120,10 @@ export default async function VerifyFacultyQrPage({ params }: VerifyFacultyPageP
             <div className="bg-purple-950/40 border border-purple-800/40 p-3 rounded-2xl text-[11px] text-purple-200 space-y-1">
               <div className="flex items-center gap-1.5 font-bold">
                 <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                <span>{result.facultyProfile?.schoolName || "CRAYON BOX SCHOOL"}</span>
+                <span>{result.facultyProfile?.schoolName || "Institutional Administration"}</span>
               </div>
               <p className="text-[10px] text-purple-300/80">
-                {result.facultyProfile?.schoolAddress || result.facultyProfile?.branch || "Delhi NCR"} {result.facultyProfile?.udise ? `• Code: ${result.facultyProfile.udise}` : ''}
+                {result.facultyProfile?.schoolAddress || result.facultyProfile?.branch || ""} {result.facultyProfile?.udise ? `• Code: ${result.facultyProfile.udise}` : ''}
               </p>
             </div>
 
