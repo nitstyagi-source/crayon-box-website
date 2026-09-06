@@ -6,7 +6,7 @@
 export interface VaultDocument {
   id: string;
   campusId: string;
-  entityType: 'STUDENT' | 'STAFF' | 'VEHICLE' | 'CAMPUS_FACILITY';
+  entityType: 'STUDENT' | 'STAFF' | 'PARENT' | 'ADMISSION' | 'VEHICLE' | 'CAMPUS_FACILITY' | 'PROCUREMENT' | 'COMPLIANCE';
   entityId: string;
   documentType:
     | 'BIRTH_CERTIFICATE'
@@ -14,11 +14,18 @@ export interface VaultDocument {
     | 'IMMUNIZATION_RECORD'
     | 'PREVIOUS_MARKSHEET'
     | 'TRANSFER_CERTIFICATE'
+    | 'PARENT_ID_PROOF'
+    | 'ADDRESS_PROOF'
+    | 'ADMISSION_FORM'
     | 'BUS_FITNESS_CERTIFICATE'
     | 'BUS_INSURANCE'
     | 'STAFF_DEGREE_CERTIFICATE'
     | 'STAFF_POLICE_VERIFICATION'
-    | 'STAFF_MEDICAL_FITNESS';
+    | 'STAFF_MEDICAL_FITNESS'
+    | 'VENDOR_QUOTATION'
+    | 'PURCHASE_ORDER'
+    | 'FIRE_SAFETY_NOC'
+    | 'BUILDING_SAFETY_CERTIFICATE';
   fileName: string;
   fileUrl: string;
   fileSizeBytes: number;

@@ -5,10 +5,24 @@ import { revalidatePath } from 'next/cache';
 
 export interface ApprovalRequestPayload {
   institutionCode: string;
-  requestType: 'FEE_CONCESSION' | 'FEE_REFUND' | 'STUDENT_PROFILE_CHANGE' | 'SALARY_MODIFICATION' | 'TC_ISSUANCE' | 'STAFF_LEAVE';
+  requestType:
+    | 'FEE_CONCESSION'
+    | 'FEE_REFUND'
+    | 'STUDENT_PROFILE_CHANGE'
+    | 'SALARY_MODIFICATION'
+    | 'TC_ISSUANCE'
+    | 'STAFF_LEAVE'
+    | 'ADMISSION_CONFIRMATION'
+    | 'EXPENSE_APPROVAL'
+    | 'PROCUREMENT_PO'
+    | 'ATTENDANCE_CORRECTION'
+    | 'STUDENT_TRANSFER'
+    | 'EARLY_DEPARTURE'
+    | 'DOCUMENT_VERIFICATION'
+    | 'INCIDENT_ACTION';
   title: string;
   description?: string;
-  entityType: 'STUDENT' | 'STAFF' | 'INVOICE' | 'EXPENSE';
+  entityType: 'STUDENT' | 'STAFF' | 'INVOICE' | 'EXPENSE' | 'ADMISSION' | 'PROCUREMENT' | 'ATTENDANCE' | 'DOCUMENT' | 'INCIDENT';
   entityId: string;
   entityName: string;
   requestedByName: string;
