@@ -846,6 +846,57 @@ export async function restoreInstitutionAction(params: {
 }
 
 // -------------------------------------------------------------
+// 10. PERMANENTLY DELETE INSTITUTION (SUPER ADMIN ONLY)
+// -------------------------------------------------------------
+export async function deleteInstitutionPermanentlyAction(params: {
+  id: string;
+  code: string;
+  role: string;
+}) {
+  if (params.role !== 'SUPER_ADMIN') {
+    return {
+      success: false,
+      error: 'Security Permission Denied: Only Super Admin can permanently delete an institution profile.'
+    };
+  }
+
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Delete associated campuses
+    await client.query(`
+      DELETE FROM public.campuses
+      WHERE id = $1;
+    `, [params.id]);
+
+    // Delete institution
+    await client.query(`
+      DELETE FROM public.institutions
+      WHERE id = $1 OR code = $2;
+    `, [params.id, params.code]);
+
+    await client.query('COMMIT');
+
+    safeRevalidate('/admin/dashboard');
+    safeRevalidate('/admin/analytics');
+    safeRevalidate('/admin/institutions');
+
+    return {
+      success: true,
+      message: `✓ School profile "${params.code}" has been permanently purged from the database.`
+    };
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------
 // 12. GET INSTITUTIONS LIST DIRECTLY FROM POSTGRESQL
 // -------------------------------------------------------------
 export async function getInstitutionsListAction() {
