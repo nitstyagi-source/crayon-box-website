@@ -10,8 +10,13 @@ interface VerifyFacultyPageProps {
 }
 
 export default async function VerifyFacultyQrPage({ params }: VerifyFacultyPageProps) {
-  const { token } = await params;
-  const result = await verifyFacultyQrToken(token);
+  let result: any = { verified: false, message: "Credential lookup failed" };
+  try {
+    const { token } = await params;
+    result = await verifyFacultyQrToken(token);
+  } catch (err) {
+    console.error("[VerifyFacultyQrPage] Verification error:", err);
+  }
 
   return (
     <div className="min-h-screen bg-stone-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 font-sans">

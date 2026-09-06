@@ -4,8 +4,13 @@ import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
 import { getPageContent } from "@/app/actions/cms";
 
 export default async function Footer() {
-  const globalRes = await getPageContent("global");
-  const globalData = globalRes.data || {};
+  let globalData: any = {};
+  try {
+    const globalRes = await getPageContent("global");
+    globalData = globalRes?.data || {};
+  } catch (err) {
+    console.error("[Footer] Failed to load global CMS data:", err);
+  }
 
   return (
     <footer className="bg-primary text-blue-50 border-t border-blue-950">

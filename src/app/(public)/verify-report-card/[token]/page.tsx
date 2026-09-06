@@ -8,8 +8,15 @@ interface Props {
 }
 
 export default async function VerifyReportCardPage({ params }: Props) {
-  const { token } = await params;
-  const result = await verifyReportCardTokenAction(token);
+  let token = "";
+  let result: any = { success: false };
+  try {
+    const resolved = await params;
+    token = resolved.token;
+    result = await verifyReportCardTokenAction(token);
+  } catch (err) {
+    console.error("[VerifyReportCardPage] Error resolving token:", err);
+  }
 
   if (!result.success || !result.data) {
     return (

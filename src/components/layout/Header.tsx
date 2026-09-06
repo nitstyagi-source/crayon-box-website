@@ -33,8 +33,13 @@ const NAV_LINKS = [
 ];
 
 export default async function Header() {
-  const globalRes = await getPageContent("global");
-  const globalData = globalRes.data || {};
+  let globalData: any = {};
+  try {
+    const globalRes = await getPageContent("global");
+    globalData = globalRes?.data || {};
+  } catch (err) {
+    console.error("[Header] Failed to load global CMS data:", err);
+  }
   
   return (
     <header className="sticky top-0 z-40 w-full glass-nav bg-white/90 backdrop-blur-md shadow-xs border-b border-stone-200">

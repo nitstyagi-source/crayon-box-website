@@ -7,8 +7,15 @@ export default async function PublicVerifyTcPage({
 }: {
   params: Promise<{ token: string }>;
 }) {
-  const { token } = await params;
-  const res = await verifyTransferCertificateTokenAction(token);
+  let token = "";
+  let res: any = { success: false };
+  try {
+    const resolved = await params;
+    token = resolved.token;
+    res = await verifyTransferCertificateTokenAction(token);
+  } catch (err) {
+    console.error("[PublicVerifyTcPage] Error resolving TC token:", err);
+  }
 
   if (!res.success || !res.certificate) {
     return (
