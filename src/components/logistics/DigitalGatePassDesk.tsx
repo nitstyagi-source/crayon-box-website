@@ -661,7 +661,7 @@ export function DigitalGatePassDesk({
                   required
                 />
                 <span className="text-[10px] text-emerald-800 font-mono mt-1 block font-bold">
-                  Simulated OTP: <strong>{simulatedOtp}</strong> (or master bypass: 100800)
+                  Simulated OTP: <strong>{simulatedOtp}</strong>
                 </span>
               </div>
 

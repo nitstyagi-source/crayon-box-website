@@ -534,7 +534,7 @@ export default function UniversalLoginPage() {
                       type="password"
                       value={pinCode}
                       onChange={(e) => setPinCode(e.target.value)}
-                      placeholder="e.g. 100800"
+                      placeholder="Enter 6-digit PIN"
                       className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-mono font-black text-[#0B1B30] placeholder-stone-400 focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                       required
                     />

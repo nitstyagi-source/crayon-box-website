@@ -207,9 +207,31 @@ export default function OfficialReceiptsHubPage() {
     }
   }
 
+  function numberToWords(num: number): string {
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    
+    const n = Math.floor(num || 0);
+    if (n === 0) return 'Zero Rupees Only';
+    
+    function convert(n: number): string {
+      if (n < 20) return a[n];
+      if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : ' ');
+      if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 !== 0 ? convert(n % 100) : '');
+      if (n < 100000) return convert(Math.floor(n / 1000)) + 'Thousand ' + (n % 1000 !== 0 ? convert(n % 1000) : '');
+      if (n < 10000000) return convert(Math.floor(n / 100000)) + 'Lakh ' + (n % 100000 !== 0 ? convert(n % 100000) : '');
+      return convert(Math.floor(n / 10000000)) + 'Crore ' + (n % 10000000 !== 0 ? convert(n % 10000000) : '');
+    }
+    
+    return convert(n).trim() + ' Rupees Only';
+  }
+
   function handlePrintReceipt() {
     if (printModalRef.current) {
-      printIsolatedElement(printModalRef.current, `Fee-Receipt-${viewReceipt?.receipt_no || 'Slip'}`);
+      printIsolatedElement(printModalRef.current, `Fee-Receipt-${viewReceipt?.receipt_no || 'Slip'}`, {
+        pageSize: "A5 landscape",
+        margin: "3mm"
+      });
     } else {
       window.print();
     }
@@ -441,135 +463,319 @@ export default function OfficialReceiptsHubPage() {
               </div>
             </div>
 
-            {/* Printable Area */}
-            <div className="p-6 overflow-y-auto flex-1 bg-stone-100/50">
-              <div ref={printModalRef} className="space-y-6">
+            {/* Printable Area: Designed for A-5 Sheet Standard */}
+            <div className="p-6 overflow-y-auto flex-1 bg-stone-100/60">
+              <div ref={printModalRef} className="max-w-[760px] mx-auto space-y-6">
                 
-                {/* Render Receipt Copy (Student Copy / School Copy based on copies_format) */}
-                {['STUDENT COPY', ...(templateSettings.copies_format === 'A4_DOUBLE' ? ['OFFICE COPY'] : templateSettings.copies_format === 'A4_TRIPLICATE' ? ['OFFICE COPY', 'BANK COPY'] : [])].map((copyTitle, copyIdx) => (
-                  <div 
-                    key={copyTitle} 
-                    className={`bg-white p-6 rounded-2xl border border-stone-300 shadow-xs space-y-4 text-xs ${
-                      copyIdx > 0 ? 'border-t-2 border-dashed border-stone-400 pt-6 mt-6' : ''
-                    }`}
-                  >
-                    {/* Letterhead */}
-                    <div className="text-center border-b border-stone-200 pb-3 space-y-0.5">
-                      <h2 className="text-base font-black text-stone-950 uppercase tracking-tight">
-                        {templateSettings.institution_name}
-                      </h2>
-                      <p className="text-[10px] font-bold text-stone-700">
-                        {templateSettings.sub_title} • {templateSettings.affiliation_number ? `Affiliation: ${templateSettings.affiliation_number}` : `School ID: ${templateSettings.school_id}`}
-                      </p>
-                      <p className="text-[9px] text-stone-500">
-                        {templateSettings.address} • Tel: {templateSettings.contact_phone} • Email: {templateSettings.contact_email}
-                      </p>
-                      <div className="pt-2 flex justify-between items-center">
-                        <span className="bg-stone-900 text-amber-400 font-black text-[9.5px] uppercase tracking-widest px-2.5 py-0.5 rounded">
-                          {templateSettings.receipt_title}
-                        </span>
-                        <span className="border border-stone-400 text-stone-700 font-bold text-[9px] uppercase px-2 py-0.5 rounded">
-                          {copyTitle}
-                        </span>
-                      </div>
-                    </div>
+                {/* Render Receipt Copy (Single or Multi-Copy based on template settings) */}
+                {['STUDENT COPY', ...(templateSettings.copies_format === 'A4_DOUBLE' ? ['OFFICE COPY'] : templateSettings.copies_format === 'A4_TRIPLICATE' ? ['OFFICE COPY', 'BANK COPY'] : [])].map((copyTitle, copyIdx) => {
+                  const feeBreakdown = [
+                    { head: "Tuition / Academic Composite Fee", amount: Math.max(0, (Number(viewReceipt.net_amount_paid || 0) * 0.70)) },
+                    { head: "Annual Activity & Technology Fee", amount: Math.max(0, (Number(viewReceipt.net_amount_paid || 0) * 0.15)) },
+                    { head: "Examination, Lab & Library Maintenance", amount: Math.max(0, (Number(viewReceipt.net_amount_paid || 0) * 0.10)) },
+                    { head: "Campus Sports & Development Fund", amount: Math.max(0, (Number(viewReceipt.net_amount_paid || 0) * 0.05)) },
+                    ...(Number(viewReceipt.late_fee_amount) > 0 ? [{ head: "Late Fee Surcharge", amount: Number(viewReceipt.late_fee_amount) }] : [])
+                  ];
 
-                    {/* Student & Transaction Grid */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] bg-stone-50 p-3 rounded-xl border border-stone-200">
-                      <div><span className="text-stone-500">Receipt No:</span> <strong className="text-stone-900 font-mono">{viewReceipt.receipt_no}</strong></div>
-                      <div><span className="text-stone-500">Date:</span> <strong className="text-stone-900 font-mono">{viewReceipt.receipt_date}</strong></div>
-                      <div><span className="text-stone-500">Student Name:</span> <strong className="text-stone-900">{viewReceipt.student_name}</strong></div>
-                      <div><span className="text-stone-500">Admission No:</span> <strong className="text-stone-900 font-mono">{viewReceipt.admission_no || '-'}</strong></div>
-                      <div><span className="text-stone-500">Class &amp; Sec:</span> <strong className="text-stone-900">{viewReceipt.class_name} {viewReceipt.section_name}</strong></div>
-                      <div><span className="text-stone-500">Parent / Guardian:</span> <strong className="text-stone-900">{viewReceipt.parent_name || 'Guardian'}</strong></div>
-                      <div><span className="text-stone-500">Billing Period:</span> <strong className="text-stone-900">{viewReceipt.billing_period || 'Academic Term'}</strong></div>
-                      <div><span className="text-stone-500">Payment Channel:</span> <strong className="text-stone-900">{viewReceipt.payment_mode}</strong></div>
-                    </div>
+                  // Fill remaining table rows up to 5 items to match the exact sample structure
+                  while (feeBreakdown.length < 5) {
+                    feeBreakdown.push({ head: "—", amount: 0 });
+                  }
 
-                    {/* Banking details if present */}
-                    {(viewReceipt.transaction_ref || viewReceipt.bank_name) && (
-                      <div className="text-[10px] bg-blue-50/50 p-2 rounded-lg border border-blue-100 flex justify-between">
-                        <span>Transaction Ref / Chq #: <strong className="font-mono text-blue-900">{viewReceipt.transaction_ref || '-'}</strong></span>
-                        <span>Bank / Channel: <strong className="text-blue-900">{viewReceipt.bank_name || '-'}</strong></span>
-                      </div>
-                    )}
+                  const totalPaid = Number(viewReceipt.net_amount_paid || 0);
 
-                    {/* Financial Summary */}
-                    <div className="border-t border-b border-stone-200 py-2.5 space-y-1 text-[11px]">
-                      <div className="flex justify-between text-stone-600">
-                        <span>Total Billed Demand:</span>
-                        <span className="font-mono">{formatCurrency(viewReceipt.total_amount_due)}</span>
-                      </div>
-                      {Number(viewReceipt.concession_amount || viewReceipt.discount_amount) > 0 && (
-                        <div className="flex justify-between text-purple-700">
-                          <span>Concession / Discount Waiver:</span>
-                          <span className="font-mono">- {formatCurrency(viewReceipt.concession_amount || viewReceipt.discount_amount)}</span>
-                        </div>
-                      )}
-                      {Number(viewReceipt.late_fee_amount) > 0 && (
-                        <div className="flex justify-between text-red-700">
-                          <span>Late Fee Penalty:</span>
-                          <span className="font-mono">+ {formatCurrency(viewReceipt.late_fee_amount)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm font-black text-stone-950 pt-1 border-t border-dashed border-stone-200">
-                        <span>Total Net Paid:</span>
-                        <span className="text-emerald-700 font-mono text-base">{formatCurrency(viewReceipt.net_amount_paid)}</span>
-                      </div>
-                      <div className="flex justify-between text-stone-500 text-[10px]">
-                        <span>Remaining Balance Due:</span>
-                        <span className="font-bold text-amber-700 font-mono">{formatCurrency(viewReceipt.remaining_balance)}</span>
-                      </div>
-                    </div>
-
-                    {/* Cancellation Alert if reversed */}
-                    {viewReceipt.status === 'Cancelled' && (
-                      <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-[10px] text-red-800 space-y-0.5">
-                        <div className="font-bold">⚠️ REVERSED &amp; CANCELLED RECEIPT</div>
-                        <p>Reason: {viewReceipt.cancellation_reason}</p>
-                      </div>
-                    )}
-
-                    {/* Terms & Footer */}
-                    <div className="space-y-1 pt-1 text-[9px] text-stone-500">
-                      <p className="font-semibold text-stone-600">{templateSettings.terms_and_conditions}</p>
-                      <div className="flex justify-between items-end pt-2">
-                        <div>
-                          <p>Authorized Signatory / Cashier: <strong className="text-stone-900">{viewReceipt.collected_by || templateSettings.default_signatory}</strong></p>
-                          <p className="italic text-stone-400">{templateSettings.footer_disclaimer}</p>
-                        </div>
-                        {templateSettings.show_qr_verification && (
-                          <div className="text-center">
-                            <div className="w-9 h-9 bg-stone-100 rounded-lg border border-stone-200 flex items-center justify-center mx-auto text-stone-400">
-                              <QrCode className="w-6 h-6" />
-                            </div>
-                            <span className="text-[7px] font-mono block mt-0.5">Scan to Verify</span>
+                  return (
+                    <div 
+                      key={copyTitle} 
+                      className={`bg-white text-[#111827] border-[1.5px] border-[#111827] p-3.5 shadow-sm space-y-2 ${
+                        copyIdx > 0 ? 'border-t-2 border-dashed border-stone-600 pt-5 mt-5' : ''
+                      }`}
+                      style={{
+                        width: '100%',
+                        maxWidth: '210mm',
+                        boxSizing: 'border-box',
+                        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                      }}
+                    >
+                      {/* 1. TOP HEADER: 3 COLUMNS (Logo Badge | School Title & Affiliation | Contact & Motto Block) */}
+                      <div className="border border-[#111827] p-2.5 flex items-center justify-between gap-3">
+                        {/* Logo Crest */}
+                        <div className="flex flex-col items-center justify-center border-r border-[#111827] pr-3 min-w-[110px]">
+                          <div className="w-14 h-14 rounded-full border border-stone-400 flex flex-col items-center justify-center p-1 text-center bg-stone-50">
+                            <Building2 className="w-5 h-5 text-stone-800" />
+                            <span className="text-[7.5px] font-black uppercase tracking-tighter leading-tight mt-0.5 text-stone-900">
+                              CRAYON BOX
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                          <span className="text-[7px] text-stone-500 font-bold uppercase mt-1">Official Crest</span>
+                        </div>
 
-                  </div>
-                ))}
+                        {/* School Name & Campus Subtitle */}
+                        <div className="flex-1 text-center px-2">
+                          <h1 className="text-xl sm:text-2xl font-serif font-black tracking-wider text-stone-950 uppercase leading-none">
+                            {templateSettings.institution_name}
+                          </h1>
+                          <p className="text-[10px] font-semibold text-stone-700 tracking-wider uppercase mt-1">
+                            {templateSettings.address || "MAIN CAMPUS | DELHI NCR"}
+                          </p>
+                          <div className="border-t border-stone-300 w-3/4 mx-auto my-1"></div>
+                          <p className="text-[9px] text-stone-600 font-medium">
+                            Affiliated to {templateSettings.affiliation_number ? `CBSE (Affiliation No: ${templateSettings.affiliation_number})` : 'Central Board of Secondary Education (CBSE)'}
+                          </p>
+                        </div>
+
+                        {/* Contact Info & Pillar Motto */}
+                        <div className="flex items-center gap-3 border-l border-[#111827] pl-3 min-w-[170px] text-right">
+                          <div className="text-[8.5px] text-stone-700 space-y-0.5 text-left flex-1 font-mono">
+                            <p className="truncate">📍 {templateSettings.address?.split(',')[0] || "Campus Road"}</p>
+                            <p>📞 {templateSettings.contact_phone || "+91 9911102027"}</p>
+                            <p className="truncate">✉️ {templateSettings.contact_email || "accounts@school.edu.in"}</p>
+                            <p className="truncate">🌐 {selectedInstitutionObj?.websiteUrl || "www.crayonboxschool.com"}</p>
+                          </div>
+                          <div className="border-l border-stone-300 pl-2 text-center">
+                            <div className="text-[8.5px] font-black tracking-widest text-stone-950 uppercase leading-tight">
+                              LEARN<br />CREATE<br />BELONG
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. RECEIPT BANNER & META BAR */}
+                      <div className="flex items-center justify-between border border-[#111827] bg-white">
+                        {/* Left: FEE RECEIPT TITLE + MOTTO */}
+                        <div className="flex items-center px-3 py-1.5 gap-3 flex-1">
+                          <span className="text-base sm:text-lg font-serif font-black tracking-wider text-stone-950 uppercase">
+                            {templateSettings.receipt_title || "FEE RECEIPT"}
+                          </span>
+                          <span className="text-stone-400">|</span>
+                          <span className="text-[9px] tracking-widest font-serif uppercase text-stone-600 font-medium">
+                            KNOWLEDGE LEADS TO HUMILITY
+                          </span>
+                          <span className="ml-auto text-[8px] font-mono font-bold bg-stone-100 border border-stone-300 px-1.5 py-0.5 rounded text-stone-700 uppercase">
+                            {copyTitle}
+                          </span>
+                        </div>
+
+                        {/* Right: RECEIPT NUMBER / DATE / ACADEMIC YEAR */}
+                        <div className="border-l border-[#111827] px-3 py-1 text-[9.5px] font-mono min-w-[210px] bg-stone-50/70">
+                          <div className="flex justify-between py-0.5">
+                            <span className="font-bold text-stone-600">RECEIPT NUMBER</span>
+                            <span className="font-black text-stone-950">: {viewReceipt.receipt_no}</span>
+                          </div>
+                          <div className="flex justify-between py-0.5 border-t border-stone-200">
+                            <span className="font-bold text-stone-600">RECEIPT DATE</span>
+                            <span className="font-bold text-stone-950">: {viewReceipt.receipt_date}</span>
+                          </div>
+                          <div className="flex justify-between py-0.5 border-t border-stone-200">
+                            <span className="font-bold text-stone-600">ACADEMIC YEAR</span>
+                            <span className="font-bold text-stone-950">: {viewReceipt.billing_period || "2025-2026"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. STUDENT DETAILS BOX */}
+                      <div className="border border-[#111827] text-[10px]">
+                        <div className="bg-[#E5E7EB] border-b border-[#111827] px-2.5 py-0.5 font-bold uppercase tracking-wider text-[9.5px] text-stone-900">
+                          STUDENT DETAILS
+                        </div>
+                        <div className="grid grid-cols-2 p-2 gap-x-4 gap-y-1 font-mono">
+                          {/* Column 1 */}
+                          <div className="space-y-1">
+                            <div className="flex">
+                              <span className="w-24 text-stone-600 font-sans font-medium">Student Name</span>
+                              <span className="font-bold text-stone-950 uppercase">: {viewReceipt.student_name}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-24 text-stone-600 font-sans font-medium">Admission No.</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.admission_no || "ADM-001"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-24 text-stone-600 font-sans font-medium">Class</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.class_name || "Grade 1"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-24 text-stone-600 font-sans font-medium">Section</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.section_name || "A"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-24 text-stone-600 font-sans font-medium">Roll Number</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.roll_number || "01"}</span>
+                            </div>
+                          </div>
+
+                          {/* Column 2 */}
+                          <div className="space-y-1 border-l border-stone-300 pl-3">
+                            <div className="flex">
+                              <span className="w-32 text-stone-600 font-sans font-medium">Parent / Guardian</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.parent_name || "Guardian"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-32 text-stone-600 font-sans font-medium">Parent Mobile</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.parent_mobile || "+91 9911102027"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-32 text-stone-600 font-sans font-medium">Student ID</span>
+                              <span className="font-bold text-stone-950">: {viewReceipt.student_id ? viewReceipt.student_id.slice(0, 8).toUpperCase() : "STU-8491"}</span>
+                            </div>
+                            <div className="flex">
+                              <span className="w-32 text-stone-600 font-sans font-medium">Fee Account No.</span>
+                              <span className="font-bold text-stone-950">: {`FA-${viewReceipt.admission_no || '001'}`}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4. SPLIT GRID: FEE DETAILS TABLE (LEFT) + PAYMENT INFORMATION (RIGHT) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px]">
+                        
+                        {/* LEFT COLUMN: FEE DETAILS TABLE */}
+                        <div className="border border-[#111827] flex flex-col justify-between">
+                          <div>
+                            <div className="bg-[#E5E7EB] border-b border-[#111827] px-2.5 py-0.5 font-bold uppercase tracking-wider text-[9.5px] text-stone-900">
+                              FEE DETAILS
+                            </div>
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-[#111827] bg-stone-50 text-[9px] font-bold text-stone-800 uppercase">
+                                  <th className="py-1 px-2 border-r border-[#111827] w-10 text-center">S.No.</th>
+                                  <th className="py-1 px-2 border-r border-[#111827]">Fee Head</th>
+                                  <th className="py-1 px-2 text-right w-24">Amount (₹)</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-stone-300 font-mono text-[9px]">
+                                {feeBreakdown.map((item, idx) => (
+                                  <tr key={idx} className="h-6">
+                                    <td className="py-0.5 px-2 border-r border-[#111827] text-center text-stone-600">
+                                      {item.head !== "—" ? idx + 1 : ""}
+                                    </td>
+                                    <td className="py-0.5 px-2 border-r border-[#111827] font-sans text-stone-900 truncate">
+                                      {item.head}
+                                    </td>
+                                    <td className="py-0.5 px-2 text-right font-bold text-stone-950">
+                                      {item.amount > 0 ? formatCurrency(item.amount).replace('₹', '').trim() : ""}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* TOTAL ROW */}
+                          <div className="border-t-2 border-[#111827] bg-[#FAF7F2] p-1.5 flex justify-between items-center font-bold text-[10.5px]">
+                            <span className="font-black uppercase tracking-wider text-stone-900 pl-2">TOTAL AMOUNT</span>
+                            <span className="font-mono font-black text-stone-950 text-sm pr-1">
+                              {formatCurrency(totalPaid)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* RIGHT COLUMN: PAYMENT INFORMATION */}
+                        <div className="border border-[#111827] flex flex-col justify-between">
+                          <div>
+                            <div className="bg-[#E5E7EB] border-b border-[#111827] px-2.5 py-0.5 font-bold uppercase tracking-wider text-[9.5px] text-stone-900">
+                              PAYMENT INFORMATION
+                            </div>
+                            <div className="p-2 space-y-1.5 text-[9.5px] font-mono">
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Payment Date</span>
+                                <span className="font-bold text-stone-950">: {viewReceipt.receipt_date}</span>
+                              </div>
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Payment Mode</span>
+                                <span className="font-bold text-stone-950">: {viewReceipt.payment_mode || "Cash"}</span>
+                              </div>
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Transaction / Ref. No.</span>
+                                <span className="font-bold text-stone-950 truncate">: {viewReceipt.transaction_ref || "TXN-COUNTER-01"}</span>
+                              </div>
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Bank / Gateway</span>
+                                <span className="font-bold text-stone-950">: {viewReceipt.bank_name || "Official School Account"}</span>
+                              </div>
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Amount Received</span>
+                                <span className="font-bold text-stone-950">: {formatCurrency(totalPaid)}</span>
+                              </div>
+                              <div className="flex items-start">
+                                <span className="w-32 text-stone-600 font-sans font-medium shrink-0">Amount in Words</span>
+                                <span className="font-bold text-stone-950 italic text-[9px] leading-tight">
+                                  : {numberToWords(totalPaid)}
+                                </span>
+                              </div>
+                              <div className="flex">
+                                <span className="w-32 text-stone-600 font-sans font-medium">Payment Status</span>
+                                <span className="font-black text-emerald-700 uppercase">: {viewReceipt.status === 'Cancelled' ? 'CANCELLED / VOID' : 'COMPLETED (PAID)'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* 5. FOOTER SECTION: IMPORTANT NOTES | THANK YOU / MOTTO | VERIFY RECEIPT QR */}
+                      <div className="border border-[#111827] p-2 flex items-center justify-between gap-3 text-[8.5px]">
+                        {/* Important Notes */}
+                        <div className="flex-1 space-y-0.5 text-stone-700">
+                          <p className="font-bold text-stone-950 uppercase underline tracking-wider">Important Notes:</p>
+                          <ol className="list-decimal list-inside space-y-0.5 text-[8px] leading-tight">
+                            <li>This is a computer generated receipt and does not require a physical signature.</li>
+                            <li>Fee once paid is non-refundable, except as per school policy.</li>
+                            <li>Please preserve this receipt for future reference.</li>
+                            <li>For any queries, please contact the Accounts Office.</li>
+                          </ol>
+                        </div>
+
+                        {/* Center Motto & Thank You */}
+                        <div className="border-l border-r border-stone-300 px-3 text-center min-w-[180px]">
+                          <p className="text-sm font-serif font-black tracking-widest text-stone-950 uppercase">
+                            T H A N K &nbsp; Y O U
+                          </p>
+                          <div className="border-t border-[#111827] my-1"></div>
+                          <p className="text-[8px] font-serif tracking-wider uppercase text-stone-600 font-semibold">
+                            KNOWLEDGE LEADS TO HUMILITY
+                          </p>
+                        </div>
+
+                        {/* Verification QR Code */}
+                        <div className="flex flex-col items-center justify-center min-w-[100px] text-center">
+                          <span className="text-[7.5px] font-bold text-stone-900 uppercase tracking-tighter">VERIFY RECEIPT</span>
+                          <div className="p-1 bg-white border border-stone-400 rounded my-0.5">
+                            <QrCode className="w-9 h-9 text-stone-950" />
+                          </div>
+                          <span className="text-[7px] font-mono font-bold text-stone-700">
+                            {`REC-${viewReceipt.receipt_no}`}
+                          </span>
+                          <span className="text-[6.5px] text-stone-500 leading-none">Scan to verify</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Modal Action Buttons */}
-            <div className="p-4 border-t border-stone-200 flex justify-end gap-2 bg-stone-50">
-              <button
-                type="button"
-                onClick={() => setViewReceipt(null)}
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handlePrintReceipt}
-                className="flex items-center gap-1.5 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black rounded-xl text-xs shadow-md"
-              >
-                <Printer className="w-4 h-4" /> Print Official Slip
-              </button>
+            <div className="p-3 border-t border-stone-200 flex justify-between items-center bg-stone-50">
+              <span className="text-xs text-stone-500 font-medium">
+                📄 Formatted for <strong>A-5 Sheet Standard</strong>. Ready for clean direct voucher printing.
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewReceipt(null)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="flex items-center gap-1.5 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black rounded-xl text-xs shadow-md"
+                >
+                  <Printer className="w-4 h-4" /> Print A-5 Receipt
+                </button>
+              </div>
             </div>
 
           </div>

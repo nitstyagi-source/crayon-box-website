@@ -608,14 +608,23 @@ export async function verifyEmergencyPinAction(params: {
     const pin = params.pinCode.trim().toUpperCase();
     const phone = normalizePhone(rawId);
 
-    // Master PIN Override for Chairman & Leadership
-    if (pin === '100800' || pin === '9911' || pin === '2027' || pin === '9482' || pin === 'CB-9482') {
+    // Query Super Admin from DB for Master PIN
+    const superAdminRes = await client.query(
+      `SELECT * FROM public.staff 
+       WHERE (role ILIKE '%SUPER_ADMIN%' OR designation ILIKE '%Chairman%') 
+       AND is_active = true 
+       LIMIT 1;`
+    ).catch(() => ({ rows: [] }));
+
+    const superAdmin = superAdminRes.rows[0];
+    if (superAdmin && superAdmin.emergency_login_pin && pin === superAdmin.emergency_login_pin) {
       const childrenRes = await client.query(
         `SELECT s.id, s.first_name || ' ' || COALESCE(s.last_name, '') as name, c.grade, s.admission_number as "admissionNo"
          FROM public.students s
          LEFT JOIN public.classes c ON c.id = s.class_id
          LEFT JOIN public.parents p ON p.id = s.parent_id
-         WHERE s.parent_phone LIKE '%9911102027%' OR p.phone_number LIKE '%9911102027%' OR s.emergency_contact LIKE '%9911102027%'`
+         WHERE s.parent_phone LIKE $1 OR p.phone_number LIKE $1 OR s.emergency_contact LIKE $1`,
+        [`%${superAdmin.phone_number || '9911102027'}%`]
       ).catch(() => ({ rows: [] }));
 
       const realChildren = childrenRes.rows || [];
@@ -624,21 +633,21 @@ export async function verifyEmergencyPinAction(params: {
       return {
         success: true,
         user: {
-          identifier: '9911102027',
+          identifier: superAdmin.phone_number || rawId,
           roles: hasRealChildren ? ['ADMIN', 'PARENT'] : ['ADMIN'],
           isDualRole: hasRealChildren,
           primaryRole: 'ADMIN',
           admin: {
-            id: 'a96ca895-7773-48e1-9181-e5fe36551627',
-            name: 'Nitin Tyagi',
-            role: 'SUPER_ADMIN',
-            designation: 'Chairman & Managing Trustee',
-            email: 'nits.tyagi@gmail.com'
+            id: superAdmin.id,
+            name: `${superAdmin.first_name || ''} ${superAdmin.last_name || ''}`.trim() || 'Super Admin',
+            role: superAdmin.role || 'SUPER_ADMIN',
+            designation: superAdmin.designation || 'Chairman & Managing Trustee',
+            email: superAdmin.email || superAdmin.official_email || ''
           },
           children: realChildren,
           token: `cb_master_pin_${Date.now()}`
         },
-        message: "✓ Master PIN verified. Welcome Chairman Nitin Tyagi."
+        message: `✓ Master PIN verified. Welcome ${superAdmin.first_name} ${superAdmin.last_name || ''}.`
       };
     }
 

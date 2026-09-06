@@ -153,8 +153,8 @@ export async function verifyStudentExitOtpAndIssuePassAction(params: {
 
     const pass = checkRes.rows[0];
 
-    // Master test bypass code 100800 or 123456 or exact OTP match
-    if (params.enteredOtp !== pass.parent_otp && params.enteredOtp !== '100800' && params.enteredOtp !== '123456') {
+    // Verify exact OTP match
+    if (params.enteredOtp !== pass.parent_otp) {
       return { success: false, error: "Incorrect OTP. Please check the 6-digit code on parent WhatsApp." };
     }
 

@@ -8,7 +8,7 @@ import {
   Eye, Phone, CreditCard, Sparkles, UserCheck, RefreshCw,
   Trash2, CheckCircle2, AlertTriangle, Building2, ShieldCheck,
   ChevronRight, ArrowLeft, Check, Lock, Archive, RotateCcw, CheckCheck, History, X,
-  Printer, QrCode, Mail, MapPin, HeartPulse, Award, FileText
+  Printer, QrCode, Mail, MapPin, HeartPulse, Award, FileText, BookOpen
 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +36,7 @@ import {
   getTransferCertificatesListAction,
   TcRecord
 } from "@/app/actions/tc-generator-actions";
+import { printIsolatedElement } from "@/lib/printUtils";
 
 function UniversalStudentsDirectoryContent() {
   const { currentInstitution, selectedInstitutionObj, isAllInstitutions, institutionsList } = useInstitution();
@@ -426,8 +427,19 @@ function UniversalStudentsDirectoryContent() {
   const [tcDob, setTcDob] = useState("");
   const [tcAdmissionDate, setTcAdmissionDate] = useState("");
   const [tcClassLastAttended, setTcClassLastAttended] = useState("");
+  const [tcSectionLastAttended, setTcSectionLastAttended] = useState("A");
+  const [tcClassAdmitted, setTcClassAdmitted] = useState("");
+  const [tcPenNo, setTcPenNo] = useState("");
+  const [tcWithdrawalDate, setTcWithdrawalDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [tcSlcDate, setTcSlcDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [tcDuesStatus, setTcDuesStatus] = useState("Yes - All Dues Paid");
+  const [tcAcademicSession, setTcAcademicSession] = useState(() => `${new Date().getFullYear()}-${((new Date().getFullYear() + 1) % 100).toString().padStart(2, '0')}`);
+  const [tcTotalAttendance, setTcTotalAttendance] = useState("218");
+  const [tcStudentAttendance, setTcStudentAttendance] = useState("204");
   const [tcReasonForLeaving, setTcReasonForLeaving] = useState("");
-  const [tcAnnualResult, setTcAnnualResult] = useState("");
+  const [tcAnnualResult, setTcAnnualResult] = useState("Promoted to Higher Class (Passed)");
+  const [tcRemarks, setTcRemarks] = useState("Diligent, well-behaved student. Possesses good moral character and demonstrated keen academic proficiency.");
+  const printTcRef = React.useRef<HTMLDivElement>(null);
 
   const fetchTcList = async () => {
     setTcLoading(true);
@@ -482,7 +494,16 @@ function UniversalStudentsDirectoryContent() {
     setTcMotherName(stu.mother_name || "");
     setTcDob(stu.dob ? String(stu.dob).split("T")[0] : "");
     setTcAdmissionDate(stu.admission_date ? String(stu.admission_date).split("T")[0] : (stu.created_at ? String(stu.created_at).split("T")[0] : new Date().toISOString().split("T")[0]));
-    setTcClassLastAttended(stu.class_name ? `${stu.class_name}${stu.section_name ? ` (${stu.section_name})` : ''}` : "");
+    setTcClassLastAttended(stu.class_name ? String(stu.class_name).split("-")[0].trim() : "5th");
+    setTcSectionLastAttended(stu.section_name || stu.section || "A");
+    setTcClassAdmitted(stu.enrolled_class || stu.class_name || "1st");
+    setTcPenNo(stu.pen_number || stu.pen_no || `PEN-2024-${stu.id?.slice(0, 4)?.toUpperCase() || "7821"}`);
+    setTcWithdrawalDate(new Date().toISOString().split("T")[0]);
+    setTcSlcDate(new Date().toISOString().split("T")[0]);
+    setTcDuesStatus("Yes - All Dues Cleared");
+    setTcTotalAttendance("218");
+    setTcStudentAttendance("204");
+    setTcAnnualResult("Promoted to Higher Class (Passed)");
   };
 
   // -------------------------------------------------------------
@@ -1231,7 +1252,16 @@ function UniversalStudentsDirectoryContent() {
             </div>
 
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                if (printTcRef.current) {
+                  printIsolatedElement(printTcRef.current, `Transfer-Certificate-${selectedTc?.tc_number || tcAdmissionNo || "Document"}`, {
+                    pageSize: "A4 portrait",
+                    margin: "0mm"
+                  });
+                } else {
+                  window.print();
+                }
+              }}
               className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-2xl font-black text-xs flex items-center gap-2 shadow-sm transition active:scale-95 cursor-pointer"
             >
               <Printer className="w-4 h-4" /> Print Official A4 Certificate
@@ -1269,113 +1299,225 @@ function UniversalStudentsDirectoryContent() {
                 </select>
               </div>
 
-              <form onSubmit={handleGenerateTc} className="space-y-4">
+              <form onSubmit={handleGenerateTc} className="space-y-3.5 max-h-[780px] overflow-y-auto pr-1">
                 <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Student Full Name *</label>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">3. Name of Student *</label>
                   <input
                     type="text"
                     required
                     value={tcStudentName}
                     onChange={e => setTcStudentName(e.target.value)}
                     placeholder="e.g. Student Full Name"
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Admission No *</label>
-                    <input
-                      type="text"
-                      required
-                      value={tcAdmissionNo}
-                      onChange={e => setTcAdmissionNo(e.target.value)}
-                      placeholder={`e.g. ADM-${new Date().getFullYear()}-001`}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Class Left *</label>
-                    <input
-                      type="text"
-                      required
-                      value={tcClassLastAttended}
-                      onChange={e => setTcClassLastAttended(e.target.value)}
-                      placeholder="e.g. Class 5-A"
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Father&apos;s Name *</label>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">4. Father Name *</label>
                     <input
                       type="text"
                       required
                       value={tcFatherName}
                       onChange={e => setTcFatherName(e.target.value)}
                       placeholder="e.g. Father's Full Name"
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Mother&apos;s Name *</label>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">5. Mother Name *</label>
                     <input
                       type="text"
                       required
                       value={tcMotherName}
                       onChange={e => setTcMotherName(e.target.value)}
                       placeholder="e.g. Mother's Full Name"
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Date of Birth *</label>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">6. Date of Birth *</label>
                     <input
                       type="date"
                       required
                       value={tcDob}
                       onChange={e => setTcDob(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-stone-700 block mb-1">Admission Date</label>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">7b. Admission Date</label>
                     <input
                       type="date"
                       value={tcAdmissionDate}
                       onChange={e => setTcAdmissionDate(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Reason for Leaving School *</label>
-                  <select
-                    value={tcReasonForLeaving}
-                    onChange={e => setTcReasonForLeaving(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
-                  >
-                    <option value="Parent Relocation / Job Transfer">Parent Relocation / Job Transfer</option>
-                    <option value="Admission to Higher Senior Secondary Institution">Admission to Higher Senior Secondary Institution</option>
-                    <option value="Personal / Family Reasons">Personal / Family Reasons</option>
-                    <option value="Completed Highest Class Available">Completed Highest Class Available</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">7a. Admission No *</label>
+                    <input
+                      type="text"
+                      required
+                      value={tcAdmissionNo}
+                      onChange={e => setTcAdmissionNo(e.target.value)}
+                      placeholder="ADM-001"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">8. Class Admitted</label>
+                    <input
+                      type="text"
+                      value={tcClassAdmitted}
+                      onChange={e => setTcClassAdmitted(e.target.value)}
+                      placeholder="e.g. 1st / Nursery"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">9a. Class Last Attended *</label>
+                    <input
+                      type="text"
+                      required
+                      value={tcClassLastAttended}
+                      onChange={e => setTcClassLastAttended(e.target.value)}
+                      placeholder="e.g. 5th"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">9b. Section</label>
+                    <input
+                      type="text"
+                      value={tcSectionLastAttended}
+                      onChange={e => setTcSectionLastAttended(e.target.value)}
+                      placeholder="e.g. A"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">10. PEN Number</label>
+                    <input
+                      type="text"
+                      value={tcPenNo}
+                      onChange={e => setTcPenNo(e.target.value)}
+                      placeholder="PEN-2024-XXXX"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">11. Date of Withdrawal</label>
+                    <input
+                      type="date"
+                      value={tcWithdrawalDate}
+                      onChange={e => setTcWithdrawalDate(e.target.value)}
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">12. Date of SLC Issue</label>
+                    <input
+                      type="date"
+                      value={tcSlcDate}
+                      onChange={e => setTcSlcDate(e.target.value)}
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">13. Dues Paid Status</label>
+                    <input
+                      type="text"
+                      value={tcDuesStatus}
+                      onChange={e => setTcDuesStatus(e.target.value)}
+                      placeholder="Yes / Cleared"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-stone-700 block mb-1">14. Session</label>
+                    <input
+                      type="text"
+                      value={tcAcademicSession}
+                      onChange={e => setTcAcademicSession(e.target.value)}
+                      placeholder="2025-26"
+                      className="w-full text-xs px-2.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-stone-700 block mb-1">15. Total Days</label>
+                    <input
+                      type="text"
+                      value={tcTotalAttendance}
+                      onChange={e => setTcTotalAttendance(e.target.value)}
+                      placeholder="218"
+                      className="w-full text-xs px-2.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-stone-700 block mb-1">16. Attended</label>
+                    <input
+                      type="text"
+                      value={tcStudentAttendance}
+                      onChange={e => setTcStudentAttendance(e.target.value)}
+                      placeholder="204"
+                      className="w-full text-xs px-2.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">17. Result Status</label>
+                    <input
+                      type="text"
+                      value={tcAnnualResult}
+                      onChange={e => setTcAnnualResult(e.target.value)}
+                      placeholder="Promoted to Higher Class (Passed)"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-700 block mb-1">Reason for Leaving</label>
+                    <select
+                      value={tcReasonForLeaving}
+                      onChange={e => setTcReasonForLeaving(e.target.value)}
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                    >
+                      <option value="Parent Relocation / Job Transfer">Parent Relocation</option>
+                      <option value="Admission to Higher Senior Secondary Institution">Higher Studies</option>
+                      <option value="Personal / Family Reasons">Personal Reasons</option>
+                      <option value="Completed Highest Class Available">Course Completed</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-stone-700 block mb-1">Academic Result Status</label>
-                  <input
-                    type="text"
-                    value={tcAnnualResult}
-                    onChange={e => setTcAnnualResult(e.target.value)}
-                    placeholder="Promoted to Higher Class (Passed)"
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-medium"
+                  <label className="text-xs font-bold text-stone-700 block mb-1">Remarks (if any)</label>
+                  <textarea
+                    rows={2}
+                    value={tcRemarks}
+                    onChange={e => setTcRemarks(e.target.value)}
+                    placeholder="Enter official remarks..."
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-50 font-medium resize-none"
                   />
                 </div>
 
@@ -1390,111 +1532,344 @@ function UniversalStudentsDirectoryContent() {
               </form>
             </div>
 
-            {/* Right 2 Cols: Live Printable A4 TC Document */}
+            {/* Right 2 Cols: Live Printable A4 TC Document (EXACT MATCH TO USER SPECIFICATION) */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white p-8 sm:p-12 rounded-3xl border-2 border-stone-300 shadow-xl space-y-6 text-stone-900">
-                {/* Official Crest & Header */}
-                <div className="text-center border-b-2 border-stone-900 pb-5 space-y-1.5">
-                  <div className="text-[11px] font-bold text-stone-600 tracking-widest uppercase">
-                    Recognized &amp; Registered Educational Institution, Delhi NCR
+              <div 
+                ref={printTcRef} 
+                className="bg-white p-6 sm:p-10 rounded-2xl border-2 border-stone-300 shadow-xl space-y-4 text-stone-900 mx-auto relative overflow-hidden"
+                style={{ 
+                  fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  maxWidth: '820px',
+                  minHeight: '1100px'
+                }}
+              >
+                {/* 1. TOP HEADER LETTERHEAD: LOGO | SCHOOL NAME & TRUST | CONTACT INFO */}
+                <div className="flex items-start justify-between pb-3 border-b-2 border-stone-300 gap-4">
+                  {/* Left Shield Emblem Logo */}
+                  <div className="flex flex-col items-center justify-center shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-[#0F2942] flex flex-col items-center justify-center p-1 bg-[#FAF7F2] shadow-xs">
+                      <div className="w-5 h-5 rounded-full bg-amber-500/30 flex items-center justify-center mb-0.5">
+                        <span className="text-amber-600 text-[10px] font-black">🔥</span>
+                      </div>
+                      <BookOpen className="w-8 h-8 text-[#0F2942]" />
+                    </div>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-950">
-                    {selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
-                  </h2>
-                  <div className="text-xs text-stone-600 font-medium">
-                    {selectedInstitutionObj?.address || ""} {selectedInstitutionObj?.affiliationNumber ? `| Registration Code: ${selectedInstitutionObj.affiliationNumber}` : (selectedInstitutionObj?.code ? `| Code: ${selectedInstitutionObj.code}` : '')}
+
+                  {/* Center School Name & Trust Meta */}
+                  <div className="flex-1 text-center px-2">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-serif font-black tracking-wider text-[#0F2942] uppercase leading-tight">
+                      {selectedInstitutionObj?.name || (isAllInstitutions ? "CRAYON BOX ACADEMY" : "SCHOOL OF EXCELLENCE")}
+                    </h1>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-stone-700 tracking-widest uppercase mt-0.5">
+                      {selectedInstitutionObj?.address || "CAMPUS NAME | LOCATION | CITY"}
+                    </p>
+                    
+                    <div className="h-[1px] bg-[#C59B27] w-36 mx-auto my-1.5" />
+                    
+                    <p className="text-[8px] sm:text-[8.5px] font-bold uppercase tracking-widest text-[#0F2942]">
+                      MANAGED BY VANI EDUCATIONAL TRUST
+                    </p>
+                    <p className="text-[7.5px] sm:text-[8px] font-semibold uppercase tracking-widest text-stone-600">
+                      RECOGNISED BY DIRECTORATE OF EDUCATION
+                    </p>
                   </div>
-                  <div className="inline-block mt-2 bg-stone-900 text-white px-5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                    Official Transfer Certificate (TC) / School Leaving Certificate
+
+                  {/* Right Contact Meta Box */}
+                  <div className="text-[8px] sm:text-[8.5px] font-medium text-stone-700 space-y-1 border-l-2 border-[#C59B27] pl-3 shrink-0 max-w-[190px]">
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="w-3 h-3 text-[#0F2942] shrink-0 mt-0.5" />
+                      <span className="leading-tight">{selectedInstitutionObj?.address || "Delhi NCR - 110084"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-[#0F2942] shrink-0" />
+                      <span>{selectedInstitutionObj?.phone || "+91 9911102027"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-3 h-3 text-[#0F2942] shrink-0" />
+                      <span className="truncate">{selectedInstitutionObj?.principalEmail || "info@crayonboxschool.com"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3 h-3 text-[#0F2942] shrink-0" />
+                      <span>{selectedInstitutionObj?.websiteUrl || "www.crayonboxschool.com"}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Certificate Meta Grid */}
-                <div className="grid grid-cols-2 gap-4 border-b border-stone-200 pb-4 text-xs font-mono">
-                  <div>
-                    <span className="text-stone-400 font-bold block">TC Serial Number:</span>
-                    <strong className="text-base text-amber-900">{selectedTc?.tc_number || "PENDING"}</strong>
+                {/* 2. REF NO. & DATE BAR */}
+                <div className="flex justify-between items-center text-xs font-bold text-stone-900 pt-1 pb-1">
+                  <div className="flex items-center gap-1">
+                    <span className="uppercase tracking-wider">REF NO. :</span>
+                    <span className="font-mono border-b border-stone-600 px-2 py-0.5 min-w-[160px] text-stone-900 font-bold">
+                      {selectedTc?.ref_number || (selectedTc?.tc_number ? `REF/${selectedTc.tc_number.replace('TC/', '')}` : `REF/CBS/${new Date().getFullYear()}/001`)}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-stone-400 font-bold block">Issue Date:</span>
-                    <strong className="text-stone-900">{selectedTc?.issue_date || new Date().toISOString().split("T")[0]}</strong>
+                  <div className="flex items-center gap-1">
+                    <span className="uppercase tracking-wider">DATE :</span>
+                    <span className="font-mono border-b border-stone-600 px-2 py-0.5 min-w-[140px] text-right text-stone-900 font-bold">
+                      {selectedTc?.issue_date 
+                        ? new Date(selectedTc.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </span>
                   </div>
                 </div>
 
-                {/* Statutory Schedule Table */}
-                <div className="space-y-3 text-xs">
-                  <table className="w-full text-left border border-stone-300">
-                    <tbody>
-                      <tr className="border-b border-stone-200 bg-stone-50/50">
-                        <td className="p-2.5 font-bold w-1/3 text-stone-600">1. Name of Pupil</td>
-                        <td className="p-2.5 font-black text-stone-950 uppercase">{tcStudentName}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200">
-                        <td className="p-2.5 font-bold text-stone-600">2. Father&apos;s / Guardian&apos;s Name</td>
-                        <td className="p-2.5 font-bold text-stone-900">{tcFatherName}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200 bg-stone-50/50">
-                        <td className="p-2.5 font-bold text-stone-600">3. Mother&apos;s Name</td>
-                        <td className="p-2.5 font-bold text-stone-900">{tcMotherName}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200">
-                        <td className="p-2.5 font-bold text-stone-600">4. Date of Birth (in figures)</td>
-                        <td className="p-2.5 font-bold text-stone-900">{tcDob}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200 bg-stone-50/50">
-                        <td className="p-2.5 font-bold text-stone-600">5. Admission Number</td>
-                        <td className="p-2.5 font-mono font-bold text-stone-900">{tcAdmissionNo}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200">
-                        <td className="p-2.5 font-bold text-stone-600">6. Class in which pupil last studied</td>
-                        <td className="p-2.5 font-bold text-stone-900">{tcClassLastAttended}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200 bg-stone-50/50">
-                        <td className="p-2.5 font-bold text-stone-600">7. School / Board Annual Examination Status</td>
-                        <td className="p-2.5 font-bold text-emerald-800">{tcAnnualResult}</td>
-                      </tr>
-                      <tr className="border-b border-stone-200">
-                        <td className="p-2.5 font-bold text-stone-600">8. Month up to which school dues paid</td>
-                        <td className="p-2.5 font-bold text-stone-900">
-                          {selectedTc ? (selectedTc.dues_paid ? "All Dues Fully Cleared (No Arrears)" : "Pending Dues Applicable") : "All Dues Fully Cleared (No Arrears)"}
+                {/* 3. CERTIFICATE TITLE BANNER */}
+                <div className="text-center py-2 relative">
+                  <div className="inline-block relative">
+                    {/* Ribbon Banner Shape */}
+                    <div className="bg-[#EAEFF5] border-y-2 border-[#0F2942] px-8 sm:px-14 py-1.5 rounded-xs shadow-xs">
+                      <h2 className="text-xl sm:text-2xl font-serif font-black tracking-widest text-[#0F2942] uppercase">
+                        TRANSFER CERTIFICATE
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="text-[9.5px] sm:text-[10.5px] font-bold text-[#0F2942] uppercase tracking-[0.2em] mt-1">
+                    (SCHOOL LEAVING CERTIFICATE)
+                  </p>
+                  
+                  {/* Flanking Golden Diamond Motif */}
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <div className="h-[1px] bg-[#C59B27] w-12" />
+                    <div className="w-1.5 h-1.5 rotate-45 bg-[#C59B27]" />
+                    <div className="h-[1px] bg-[#C59B27] w-12" />
+                  </div>
+                </div>
+
+                {/* 4. EXACT 17-ROW STATUTORY SCHEDULE TABLE */}
+                <div className="border border-stone-400 rounded-lg overflow-hidden bg-white text-[10.5px]">
+                  <table className="w-full text-left border-collapse">
+                    <tbody className="divide-y divide-stone-200">
+                      {/* 1. Name of School & I.D. */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 w-8 font-mono text-stone-600 font-bold">1.</td>
+                        <td className="p-1.5 font-bold text-stone-800 w-[38%]">Name of School &amp; I.D.</td>
+                        <td className="p-1.5 font-bold text-stone-400 w-4">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900 uppercase">
+                          {selectedInstitutionObj?.name || "CRAYON BOX ACADEMY"} ({selectedInstitutionObj?.code || selectedInstitutionObj?.schoolId || "CBS-01"})
                         </td>
                       </tr>
-                      <tr className="border-b border-stone-200 bg-stone-50/50">
-                        <td className="p-2.5 font-bold text-stone-600">9. Reason for leaving the school</td>
-                        <td className="p-2.5 font-medium text-stone-800">{tcReasonForLeaving || selectedTc?.reason_for_leaving || "Course Completed"}</td>
+
+                      {/* 2. UDISE Code of School */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">2.</td>
+                        <td className="p-1.5 font-bold text-stone-800">UDISE Code of School</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {selectedInstitutionObj?.udiseCode || selectedInstitutionObj?.affiliationNumber || "07010101802"}
+                        </td>
                       </tr>
-                      <tr>
-                        <td className="p-2.5 font-bold text-stone-600">10. General Conduct</td>
-                        <td className="p-2.5 font-bold text-stone-900">
-                          {selectedTc?.status === "CANCELLED" ? "Flagged / Under Administrative Review" : "Good"}
+
+                      {/* 3. Name of Student */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">3.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Name of Student</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-black text-[#0F2942] uppercase text-[11.5px]">
+                          {tcStudentName || selectedTc?.student_name || "STUDENT FULL NAME"}
+                        </td>
+                      </tr>
+
+                      {/* 4. Father's Name */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">4.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Father&apos;s Name</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900 uppercase">
+                          {tcFatherName || selectedTc?.father_name || "FATHER FULL NAME"}
+                        </td>
+                      </tr>
+
+                      {/* 5. Mother's Name */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">5.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Mother&apos;s Name</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900 uppercase">
+                          {tcMotherName || selectedTc?.mother_name || "MOTHER FULL NAME"}
+                        </td>
+                      </tr>
+
+                      {/* 6. Date of Birth */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">6.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Date of Birth</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {tcDob 
+                            ? new Date(tcDob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                            : (selectedTc?.dob ? new Date(selectedTc.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "01-Jan-2015")}
+                        </td>
+                      </tr>
+
+                      {/* 7. Admission No. & Date */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">7.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Admission No. &amp; Date</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {tcAdmissionNo || selectedTc?.admission_no || "ADM-001"} &nbsp;|&nbsp; {tcAdmissionDate ? new Date(tcAdmissionDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (selectedTc?.admission_date ? new Date(selectedTc.admission_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "01-Apr-2020")}
+                        </td>
+                      </tr>
+
+                      {/* 8. Class in which admitted */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">8.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Class in which admitted</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900">
+                          {tcClassAdmitted || "1st Standard"}
+                        </td>
+                      </tr>
+
+                      {/* 9. Class & Section last attended */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">9.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Class &amp; Section last attended</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900">
+                          {tcClassLastAttended || selectedTc?.class_last_attended || "5th"} &nbsp;|&nbsp; Section {tcSectionLastAttended || selectedTc?.section_last_attended || "A"}
+                        </td>
+                      </tr>
+
+                      {/* 10. Permanent Education Number (PEN) */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">10.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Permanent Education Number (PEN)</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {tcPenNo || selectedTc?.pen_no || "PEN-2024-7821"}
+                        </td>
+                      </tr>
+
+                      {/* 11. Date of withdrawal of admission */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">11.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Date of withdrawal of admission</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono text-stone-900 font-bold">
+                          {tcWithdrawalDate ? new Date(tcWithdrawalDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (selectedTc?.withdrawal_date ? new Date(selectedTc.withdrawal_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }))}
+                        </td>
+                      </tr>
+
+                      {/* 12. Date of SLC issue */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">12.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Date of SLC issue</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono text-stone-900 font-bold">
+                          {tcSlcDate ? new Date(tcSlcDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (selectedTc?.issue_date ? new Date(selectedTc.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }))}
+                        </td>
+                      </tr>
+
+                      {/* 13. Whether he or she has paid all dues of the school */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">13.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Whether he or she has paid all dues of the school (Yes/No)</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-emerald-800">
+                          {tcDuesStatus || (selectedTc?.dues_paid ? "Yes - All Dues Fully Cleared (No Arrears)" : "Yes - All Dues Paid")}
+                        </td>
+                      </tr>
+
+                      {/* 14. Last attended academic session and class */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">14.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Last attended academic session and class</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-stone-900">
+                          Session {tcAcademicSession || "2025-26"} &nbsp;|&nbsp; Class {tcClassLastAttended || selectedTc?.class_last_attended || "5th"}
+                        </td>
+                      </tr>
+
+                      {/* 15. Total Attendance during session */}
+                      <tr className="hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">15.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Total Attendance during session</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {tcTotalAttendance || "218"} Days
+                        </td>
+                      </tr>
+
+                      {/* 16. Student Attendance during session */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">16.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Student Attendance during session</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-mono font-bold text-stone-900">
+                          {tcStudentAttendance || "204"} Days ({Math.round((Number(tcStudentAttendance || 204) / Number(tcTotalAttendance || 218)) * 100)}%)
+                        </td>
+                      </tr>
+
+                      {/* 17. Result */}
+                      <tr className="bg-stone-50/30 hover:bg-stone-50/50">
+                        <td className="p-1.5 pl-3 font-mono text-stone-600 font-bold">17.</td>
+                        <td className="p-1.5 font-bold text-stone-800">Result</td>
+                        <td className="p-1.5 font-bold text-stone-400">:</td>
+                        <td className="p-1.5 pr-3 font-bold text-[#0F2942]">
+                          {tcAnnualResult || selectedTc?.annual_result || "Promoted to Higher Class (Passed)"}
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
-                {/* QR Code & Seals */}
-                <div className="flex items-end justify-between pt-6 border-t-2 border-stone-900 text-xs font-black">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 bg-stone-50 border border-stone-300 rounded-xl p-1 flex items-center justify-center">
-                      <QrCode className="w-14 h-14 text-stone-900" />
-                    </div>
-                    <div className="text-[10px] space-y-0.5 font-mono text-stone-500">
-                      <div>Scan to Verify Authenticity</div>
-                      <div className="text-emerald-700 font-bold">✓ Valid Digital Document</div>
-                    </div>
+                {/* 5. REMARKS SECTION */}
+                <div className="pt-2 text-xs">
+                  <div className="font-bold text-stone-900 mb-1">
+                    Remarks (if any) :
                   </div>
-
-                  <div className="text-center space-y-1">
-                    <div className="w-32 border-b border-stone-900 pb-8" />
-                    <span className="text-[10px] uppercase text-stone-500 block">Class In-Charge</span>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <div className="w-32 border-b border-stone-900 pb-8" />
-                    <span className="text-[10px] uppercase text-stone-900 block font-bold">Principal / Head</span>
+                  <div className="border-b border-stone-400 pb-1 text-stone-800 leading-relaxed italic min-h-[32px]">
+                    {tcRemarks || "Diligent, well-behaved student. Possesses good moral character and demonstrated keen academic proficiency."}
                   </div>
                 </div>
+
+                {/* 6. SIGNATORIES & GOLDEN SEAL */}
+                <div className="pt-8 pb-4 flex items-end justify-between text-xs">
+                  {/* Checked By */}
+                  <div className="text-center w-36">
+                    <div className="border-b border-stone-800 pb-10" />
+                    <span className="text-[11px] font-bold text-stone-900 block mt-1.5">Checked By</span>
+                  </div>
+
+                  {/* Admission In-Charge */}
+                  <div className="text-center w-40">
+                    <div className="border-b border-stone-800 pb-10" />
+                    <span className="text-[11px] font-bold text-stone-900 block mt-1.5">Admission In-Charge</span>
+                  </div>
+
+                  {/* Center Official Gold Circular Seal Emblem */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#C59B27] flex flex-col items-center justify-center p-1 bg-[#FAF7F2] shadow-sm">
+                      <div className="w-16 h-16 rounded-full border border-[#C59B27] flex flex-col items-center justify-center text-center">
+                        <BookOpen className="w-5 h-5 text-[#C59B27] mb-0.5" />
+                        <span className="text-[7px] font-serif font-black tracking-widest text-[#8C6D1F] uppercase">
+                          SCHOOL
+                        </span>
+                        <span className="text-[6.5px] font-serif font-black tracking-widest text-[#8C6D1F] uppercase">
+                          SEAL
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Principal */}
+                  <div className="text-center w-36">
+                    <div className="border-b border-stone-800 pb-10" />
+                    <span className="text-[11px] font-bold text-stone-900 block mt-1.5">Principal</span>
+                  </div>
+                </div>
+
+                {/* 7. FOOTER MOTTO */}
+                <div className="pt-4 border-t border-stone-300 text-center">
+                  <p className="text-[9.5px] sm:text-[10px] font-serif font-bold tracking-[0.25em] text-[#0F2942] uppercase">
+                    DISCIPLINE &nbsp;|&nbsp; COMPASSION &nbsp;|&nbsp; OPPORTUNITY
+                  </p>
+                  <p className="text-[7.5px] font-serif font-semibold tracking-widest text-stone-500 uppercase mt-0.5">
+                    KNOWLEDGE LEADS TO HUMILITY
+                  </p>
+                </div>
+
               </div>
             </div>
           </div>

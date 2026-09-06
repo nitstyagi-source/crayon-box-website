@@ -64,6 +64,56 @@ export async function proxy(request: NextRequest) {
 
   const userRole = request.cookies.get('cb_user_role')?.value;
 
+  // Subdomain Detection (e.g. billing.crayonboxschool.com or billing.localhost)
+  const host = request.headers.get("host") || "";
+  const isBillingSubdomain =
+    host.startsWith("billing.") ||
+    host === "billing.crayonboxschool.com" ||
+    host.startsWith("billing.localhost");
+
+  // 1. BILLING SUBDOMAIN ROUTING
+  if (isBillingSubdomain) {
+    // Unauthenticated -> Login with billing context
+    if (!isAuthenticated) {
+      if (url.pathname !== '/login') {
+        const loginRedirect = new URL('/login', request.url);
+        loginRedirect.searchParams.set('subdomain', 'billing');
+        return NextResponse.redirect(loginRedirect);
+      }
+      return supabaseResponse;
+    }
+
+    // Authenticated on login page -> Direct to Billing Terminal POS
+    if (url.pathname === '/login') {
+      return NextResponse.redirect(new URL('/billing/collections', request.url));
+    }
+
+    // Route shortcuts on billing subdomain: / -> /billing/collections
+    if (url.pathname === '/' || url.pathname === '/admin' || url.pathname === '/billing') {
+      return NextResponse.rewrite(new URL('/billing/collections', request.url));
+    }
+
+    // Rewrite friendly top-level paths (e.g. /collections -> /billing/collections)
+    const billingShortcuts = ['/collections', '/receipts', '/day-book', '/vouchers', '/defaulters', '/reconciliation'];
+    if (billingShortcuts.some(s => url.pathname.startsWith(s))) {
+      return NextResponse.rewrite(new URL(`/billing${url.pathname}`, request.url));
+    }
+
+    // Allow normal /billing/... routes
+    if (url.pathname.startsWith('/billing')) {
+      return supabaseResponse;
+    }
+  }
+
+  // 2. MAIN ERP RBAC FOR CASHIER ROLES
+  if (userRole === 'CASHIER' && !isBillingSubdomain) {
+    // Restrict standalone cashiers strictly to Billing Terminal
+    if (!url.pathname.startsWith('/billing') && url.pathname !== '/login') {
+      return NextResponse.redirect(new URL('/billing/collections', request.url));
+    }
+  }
+
+  // 3. MAIN ERP ROUTING & SECURITY
   if (url.pathname.startsWith('/admin')) {
     if (!isAuthenticated) {
       const redirectUrl = new URL('/login', request.url);

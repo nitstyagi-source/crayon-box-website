@@ -374,64 +374,259 @@ function ProcurementHubContent() {
             </div>
           </div>
 
-          {/* Printable A5 Voucher Canvas */}
-          <div className="bg-white p-8 sm:p-10 rounded-3xl border-2 border-slate-300 shadow-md space-y-6 text-slate-900 max-w-3xl mx-auto print:m-0 print:p-0 print:border-none">
-            <div className="text-center border-b-2 border-slate-900 pb-3 space-y-0.5">
-              <h2 className="text-xl font-black uppercase text-slate-900">
-                {voucherData.institution_name || selectedInstitutionObj?.name || "EDUCATIONAL INSTITUTION"}
-              </h2>
-              <p className="text-[10px] uppercase text-slate-600 font-bold">
-                {voucherData.institution_address || selectedInstitutionObj?.address || "Main Campus"} • ID: {voucherData.school_id || selectedInstitutionObj?.code || "SCH"}
-              </p>
-              <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 pt-1">PAYMENT VOUCHER</h3>
-            </div>
+          {/* Printable A5 Voucher Canvas (Matches Sample Design with Counterfoil) */}
+          <div className="bg-white p-4 sm:p-6 rounded-3xl border-2 border-slate-300 shadow-md max-w-4xl mx-auto overflow-x-auto print:m-0 print:p-0 print:border-none">
+            <div 
+              ref={printVoucherRef}
+              className="relative flex flex-row border-2 border-black w-full min-w-[760px] max-w-[840px] mx-auto text-black bg-white"
+              style={{ 
+                fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                boxSizing: 'border-box'
+              }}
+            >
+              {/* 1. LEFT COUNTERFOIL STRIP */}
+              <div className="w-[19%] border-r-2 border-dashed border-black relative p-2 flex flex-col justify-between text-[8.5px] bg-[#FAF7F2]/20">
+                <div 
+                  className="w-full h-full flex flex-col justify-between py-1"
+                  style={{
+                    writingMode: "vertical-rl",
+                    transform: "rotate(180deg)",
+                    letterSpacing: "0.2px"
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-stone-700">Rs.</span>
+                    <span className="font-mono font-black text-[10px] border-b border-black pb-0.5 min-w-[90px] text-stone-950">
+                      ₹ {formatCurrency(voucherData.total_amount || 0)}
+                    </span>
+                  </div>
 
-            <div className="flex justify-between items-center text-xs font-bold bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFC8]">
-              <div>Voucher No: <span className="font-mono font-black text-slate-950">{voucherData.voucher_no}</span></div>
-              <div>Date: <span className="font-mono">{voucherData.voucher_date}</span></div>
-              <div>Mode: <span className="font-mono text-emerald-800">{voucherData.payment_mode}</span></div>
-            </div>
+                  <div className="space-y-1.5 text-[8.5px] leading-relaxed">
+                    <p className="font-medium text-stone-800">
+                      Received with thanks from <strong className="font-black text-stone-950 uppercase">{voucherData.institution_name || selectedInstitutionObj?.name || "CRAYON BOX ACADEMY"}</strong>
+                    </p>
+                    <p className="text-stone-800">
+                      the sum of Rupees <span className="font-serif italic font-bold text-stone-950">{voucherData.amount_in_words || "Zero Rupees Only"}</span>
+                    </p>
+                    <p className="text-stone-800">
+                      on account of <span className="border-b border-dotted border-black font-semibold text-stone-950">{voucherData.on_account_of || "Operational Procurement"}</span>
+                    </p>
+                    <p className="text-stone-800">
+                      by {voucherData.payment_mode || "Bank Transfer"} (Transaction No: <span className="font-mono font-bold text-stone-950">{voucherData.cheque_or_txn_no || "TXN-001"}</span>)
+                    </p>
+                  </div>
 
-            <div className="text-xs space-y-1">
-              <div>Paid To (Vendor): <strong className="text-slate-900">{voucherData.vendor_name}</strong></div>
-              <div>On Account Of: <span className="text-slate-700 italic">{voucherData.on_account_of}</span></div>
-            </div>
+                  <div className="flex justify-between items-center pt-2 text-[8px]">
+                    <span>Date: <strong className="font-mono">{voucherData.voucher_date}</strong></span>
+                    <div className="border-t border-black pt-0.5 text-center min-w-[80px]">
+                      <span className="font-bold">Receiver's Signature</span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="border border-[#E8DFC8] rounded-xl overflow-hidden text-xs">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#FAF7F2] text-[10px] font-black uppercase text-slate-600 border-b border-[#E8DFC8]">
-                    <th className="py-2 px-3">Particulars / Debit Head</th>
-                    <th className="py-2 px-3 text-right">Amount (INR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8DFC8]">
-                  {voucherData.debit_lines.map((l, idx) => (
-                    <tr key={idx}>
-                      <td className="py-2 px-3 text-slate-800">{l.particulars}</td>
-                      <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(l.amount)}</td>
-                    </tr>
-                  ))}
-                  <tr className="bg-[#FAF7F2] font-black border-t-2 border-[#E8DFC8]">
-                    <td className="py-2 px-3 uppercase">Total Disbursed:</td>
-                    <td className="py-2 px-3 text-right font-mono text-sm text-indigo-900">{formatCurrency(voucherData.total_amount)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="text-xs font-bold text-slate-700 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
-              Amount in Words: <span className="italic text-slate-950">{voucherData.amount_in_words}</span>
-            </div>
-
-            <div className="pt-8 grid grid-cols-2 text-center text-xs font-black text-slate-700 border-t border-slate-200">
-              <div>
-                <div className="h-8"></div>
-                <span>Receiver's Signature</span>
+                <div className="absolute -right-3 -bottom-3 flex items-center gap-0.5 bg-white px-1 z-10">
+                  <span className="text-[6.5px] text-stone-600 italic font-mono">✂ Please tear here</span>
+                </div>
               </div>
-              <div>
-                <div className="h-8"></div>
-                <span className="text-slate-950 font-black">Authorised Signatory / Trustee</span>
+
+              {/* 2. MAIN VOUCHER RIGHT BODY */}
+              <div className="w-[81%] flex flex-col justify-between p-3.5 space-y-2">
+                
+                {/* Header: Logo | School Name & Sanskrit Motto | Contact */}
+                <div className="flex items-center justify-between pb-2 border-b border-stone-300">
+                  <div className="flex flex-col items-center justify-center min-w-[100px] border-r border-stone-300 pr-3">
+                    <div className="w-12 h-12 rounded-full border border-stone-400 flex flex-col items-center justify-center p-1 bg-stone-50">
+                      <Building2 className="w-5 h-5 text-stone-900" />
+                    </div>
+                    <span className="text-[7.5px] font-black uppercase tracking-tight text-stone-900 mt-1">
+                      SCHOOL LOGO
+                    </span>
+                    <span className="text-[6px] text-stone-500 italic">LEARNING FOR A BRIGHTER TOMORROW</span>
+                  </div>
+
+                  <div className="flex-1 text-center px-3">
+                    <h1 className="text-xl sm:text-2xl font-serif font-black tracking-wider text-stone-950 uppercase leading-none">
+                      {voucherData.institution_name || selectedInstitutionObj?.name || "CRAYON BOX ACADEMY"}
+                    </h1>
+                    <p className="text-[9.5px] font-semibold text-stone-700 uppercase tracking-widest mt-0.5">
+                      {voucherData.institution_address || selectedInstitutionObj?.address || "Main Campus | Delhi NCR"}
+                    </p>
+                    
+                    <div className="flex items-center justify-center gap-2 my-1">
+                      <div className="h-[1px] bg-amber-800/60 w-12"></div>
+                      <span className="text-xs font-serif font-black text-amber-900 tracking-wider">
+                        विद्या ददाति विनयम्
+                      </span>
+                      <div className="h-[1px] bg-amber-800/60 w-12"></div>
+                    </div>
+                    <p className="text-[8px] font-serif uppercase tracking-widest text-stone-600 font-medium">
+                      KNOWLEDGE LEADS TO HUMILITY
+                    </p>
+                  </div>
+
+                  <div className="border-l border-stone-300 pl-3 min-w-[160px] text-[8px] text-stone-700 space-y-0.5 font-mono">
+                    <p className="truncate">📍 {(voucherData.institution_address || selectedInstitutionObj?.address || "Main Campus").split('|')[0]}</p>
+                    <p>📞 {selectedInstitutionObj?.phone || "+91 9911102027"}</p>
+                    <p className="truncate">✉️ {selectedInstitutionObj?.principalEmail || "accounts@crayonboxschool.com"}</p>
+                    <p className="truncate">🌐 {selectedInstitutionObj?.websiteUrl || "www.crayonboxschool.com"}</p>
+                  </div>
+                </div>
+
+                {/* Title Badge & Voucher Meta */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="bg-[#E5E7EB] border border-black rounded-lg px-8 py-1">
+                    <h2 className="text-sm sm:text-base font-black tracking-widest text-stone-950 uppercase font-sans">
+                      PAYMENT VOUCHER
+                    </h2>
+                  </div>
+
+                  <div className="border border-black text-[9px] font-mono min-w-[200px]">
+                    <div className="flex justify-between px-2 py-0.5 border-b border-black">
+                      <span className="font-bold text-stone-700">VOUCHER NO.</span>
+                      <span className="font-black text-stone-950">: {voucherData.voucher_no}</span>
+                    </div>
+                    <div className="flex justify-between px-2 py-0.5 bg-stone-50">
+                      <span className="font-bold text-stone-700">DATE</span>
+                      <span className="font-black text-stone-950">: {voucherData.voucher_date}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Particulars Grid */}
+                <div className="grid grid-cols-2 text-[9.5px] border border-black p-2 gap-x-4 gap-y-1 font-mono">
+                  <div className="space-y-1">
+                    <div className="flex">
+                      <span className="w-24 text-stone-600 font-sans font-medium">Paid To (Name)</span>
+                      <span className="font-bold text-stone-950 uppercase">: {voucherData.vendor_name || "Vendor / Supplier"}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-24 text-stone-600 font-sans font-medium">Address</span>
+                      <span className="font-medium text-stone-900">: Local Supplier / Contractor</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-24 text-stone-600 font-sans font-medium">Purpose</span>
+                      <span className="font-medium text-stone-900">: {voucherData.on_account_of || "Operational Procurement"}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 border-l border-stone-300 pl-3">
+                    <div className="flex">
+                      <span className="w-28 text-stone-600 font-sans font-medium">Payment Mode</span>
+                      <span className="font-bold text-stone-950">: {voucherData.payment_mode || "Bank Transfer"}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-stone-600 font-sans font-medium">Transaction No.</span>
+                      <span className="font-bold text-stone-950 truncate">: {voucherData.cheque_or_txn_no || "TXN-001"}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-stone-600 font-sans font-medium">Reference</span>
+                      <span className="font-bold text-stone-950">: PO-{voucherData.voucher_no.slice(-4)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Double-Entry Tables */}
+                <div className="space-y-2 text-[9px]">
+                  {/* DEBIT TABLE */}
+                  <div className="border border-black">
+                    <div className="bg-[#E5E7EB] border-b border-black px-2 py-0.5 font-bold uppercase tracking-wider text-[9px] text-stone-900">
+                      DEBIT
+                    </div>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black bg-stone-50 text-[8.5px] font-bold text-stone-800 uppercase">
+                          <th className="py-0.5 px-2 border-r border-black w-10 text-center">S.No.</th>
+                          <th className="py-0.5 px-2 border-r border-black">Account Head / Description</th>
+                          <th className="py-0.5 px-2 text-right w-28">Amount (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200 font-mono text-[9px]">
+                        {(voucherData.debit_lines.length > 0 ? voucherData.debit_lines : [{ particulars: voucherData.on_account_of || "Procurement Ledger", amount: voucherData.total_amount }]).map((item, idx) => (
+                          <tr key={idx} className="h-5">
+                            <td className="py-0.5 px-2 border-r border-black text-center text-stone-600">{idx + 1}</td>
+                            <td className="py-0.5 px-2 border-r border-black font-sans text-stone-900 truncate">{item.particulars}</td>
+                            <td className="py-0.5 px-2 text-right font-bold text-stone-950">{formatCurrency(item.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-black bg-[#E5E7EB] font-bold text-[9px]">
+                          <td colSpan={2} className="py-0.5 px-2 text-right border-r border-black uppercase font-black">
+                            TOTAL (A)
+                          </td>
+                          <td className="py-0.5 px-2 text-right font-mono font-black text-stone-950">
+                            ₹ {formatCurrency(voucherData.total_amount)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* CREDIT TABLE */}
+                  <div className="border border-black">
+                    <div className="bg-[#E5E7EB] border-b border-black px-2 py-0.5 font-bold uppercase tracking-wider text-[9px] text-stone-900">
+                      CREDIT
+                    </div>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black bg-stone-50 text-[8.5px] font-bold text-stone-800 uppercase">
+                          <th className="py-0.5 px-2 border-r border-black w-10 text-center">S.No.</th>
+                          <th className="py-0.5 px-2 border-r border-black">Account Head / Description</th>
+                          <th className="py-0.5 px-2 text-right w-28">Amount (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200 font-mono text-[9px]">
+                        <tr className="h-5">
+                          <td className="py-0.5 px-2 border-r border-black text-center text-stone-600">1</td>
+                          <td className="py-0.5 px-2 border-r border-black font-sans text-stone-900">
+                            By {voucherData.payment_mode || "Bank Transfer"} - Official School Account
+                          </td>
+                          <td className="py-0.5 px-2 text-right font-bold text-stone-950">
+                            {formatCurrency(voucherData.total_amount)}
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-black bg-[#E5E7EB] font-bold text-[9px]">
+                          <td colSpan={2} className="py-0.5 px-2 text-right border-r border-black uppercase font-black">
+                            TOTAL (B)
+                          </td>
+                          <td className="py-0.5 px-2 text-right font-mono font-black text-stone-950">
+                            ₹ {formatCurrency(voucherData.total_amount)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* RUPEES (IN WORDS) BAR */}
+                <div className="bg-[#E5E7EB] border border-black p-1.5 flex items-center gap-2 text-[9.5px]">
+                  <span className="font-black uppercase tracking-wider text-stone-950 shrink-0">
+                    RUPEES (IN WORDS)
+                  </span>
+                  <span className="font-serif italic font-bold text-stone-900">
+                    : {voucherData.amount_in_words || "Zero Rupees Only"}
+                  </span>
+                </div>
+
+                {/* NOTES & SIGNATORY */}
+                <div className="flex justify-between items-end pt-1 gap-4">
+                  <div className="text-[9px] text-stone-700 flex-1">
+                    <span className="font-bold">Notes (if any):</span>
+                    <span className="italic pl-1">
+                      Being payment authorized towards statutory school procurement &amp; operational expenses.
+                    </span>
+                  </div>
+
+                  <div className="border border-black px-6 py-3 text-center min-w-[160px] bg-stone-50/50">
+                    <div className="h-4"></div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider block border-t border-black pt-1">
+                      Authorised Signatory
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

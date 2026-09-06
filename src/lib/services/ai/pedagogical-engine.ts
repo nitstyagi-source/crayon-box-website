@@ -94,7 +94,18 @@ export async function generateQuestionPaperWithKey(params: QuestionPaperParams) 
     campusId = 'default'
   } = params;
 
-  const durationMinutes = totalMarks <= 25 ? 45 : totalMarks <= 50 ? 90 : 180;
+  const isPrimary = /class\s*[345]|grade\s*[345]/i.test(className);
+  const durationMinutes = totalMarks <= 25 ? 45 : totalMarks <= 50 ? (isPrimary ? 90 : 90) : (isPrimary ? 120 : 180);
+
+  const primaryGuidance = isPrimary ? `
+SPECIAL PRIMARY STAGE PEDAGOGY (CLASSES 3 TO 5 - AGES 8 TO 11):
+- Use encouraging, age-appropriate, child-friendly vocabulary adhering to NCERT Primary curriculum.
+- Incorporate concrete real-world contexts (animals, nature, daily family life, toys, school activities).
+- Section A: Include high-quality MCQs with 4 options, Fill in the Blanks, and True/False.
+- Section B: Conceptual short answers (2 marks) that require 2-3 lines of handwriting. Set "linesCount": 3.
+- Section C: Practical problem solving, step-by-step word problems, or drawing/diagram questions. Set "linesCount": 5. If Math, set "hasMathWorkingBox": true. If Science/EVS with diagram, set "hasDrawingBox": true.
+- Section D: Real-life application, picture observation, or short story passage with sub-questions (a), (b), (c). Set "linesCount": 5.
+` : ``;
 
   const prompt = `You are a Senior CBSE & NEP 2020 Academic Curriculum Specialist and Chief Paper Setter.
 Create an authentic Question Paper with Step-by-Step Marking Scheme / Solution Key.
@@ -107,13 +118,14 @@ SPECIFICATIONS:
 - Duration: ${durationMinutes} minutes
 - Examination Term: ${examTerm}
 - Difficulty: ${difficulty} (CBSE Bloom's: 20% Knowledge, 40% Understanding, 30% Application, 10% HOTS)
+${primaryGuidance}
 
 BLUEPRINT STRUCTURE:
 Distribute the ${totalMarks} marks logically across:
 - Section A: Objective / MCQs (1 Mark each)
 - Section B: Very Short Answer (2 Marks each)
-- Section C: Short Answer (3 Marks each)
-- Section D: Long Answer (5 Marks each)
+- Section C: Short Answer (3-4 Marks each)
+- Section D: Long / HOTS / Activity (4-5 Marks each)
 (Ensure questions sum EXACTLY to ${totalMarks} marks).
 
 CRITICAL: Return ONLY valid, parseable JSON matching this schema:
@@ -126,25 +138,30 @@ CRITICAL: Return ONLY valid, parseable JSON matching this schema:
   "durationMinutes": ${durationMinutes},
   "chapters": "${chapters}",
   "generalInstructions": [
+    "Write your Name, Roll Number, and Section clearly at the top.",
+    "Read each question carefully before writing answers.",
     "All questions are compulsory.",
-    "Section A contains objective questions of 1 mark each.",
-    "Section B contains short answer questions of 2 marks each.",
-    "Section C contains short answer questions of 3 marks each.",
-    "Section D contains long answer questions of 5 marks each."
+    "Write answers in neat handwriting in the space provided.",
+    "Re-check your work before handing over the paper."
   ],
   "sections": [
     {
       "sectionCode": "Section A",
       "title": "Section A: Objective Type Questions (1 Mark Each)",
       "marksPerQuestion": 1,
+      "totalSectionMarks": 10,
       "questions": [
         {
           "qNum": 1,
           "question": "Question text here with options if MCQ",
           "type": "MCQ",
           "marks": 1,
+          "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+          "linesCount": 1,
+          "hasDrawingBox": false,
+          "hasMathWorkingBox": false,
           "answer": "Correct answer",
-          "markingScheme": "1 mark for correct answer"
+          "markingScheme": "1 mark for correct option"
         }
       ]
     }

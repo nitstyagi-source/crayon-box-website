@@ -40,6 +40,7 @@ export default function ManagementReportsModule() {
   const [dailyToDate, setDailyToDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [dailyClass, setDailyClass] = useState<string>("All");
   const [dailyChannel, setDailyChannel] = useState<'All' | 'Cash' | 'Online' | 'Payment Gateway'>("All");
+  const [dailyRemarks, setDailyRemarks] = useState<string>("All counter collections reconciled with cash in hand and verified with bank e-collections settlement statement.");
   const [dailyData, setDailyData] = useState<{
     summary?: any;
     channelGroups?: DayBookChannelGroup[];
@@ -467,6 +468,44 @@ export default function ManagementReportsModule() {
     return Math.max(1, count);
   }, [activeSelectedColumns]);
 
+  // Group columns for Day Book layout matching official spec: Info/Accounting vs Fee Heads
+  const activeFeeHeadColumns = useMemo(() => {
+    return activeSelectedColumns.filter(c => c.isFeeHead);
+  }, [activeSelectedColumns]);
+
+  const activeInfoAccountingColumns = useMemo(() => {
+    return activeSelectedColumns.filter(c => !c.isFeeHead);
+  }, [activeSelectedColumns]);
+
+  // Pre-Fee Head columns (S.No, Receipt No, Adm No, Student Name, Class, Sec, Mode, Bank, Chq/UPI, Balance Due, Advance Paid, Concession)
+  const preFeeHeadColumns = useMemo(() => {
+    return activeSelectedColumns
+      .filter(c => !c.isFeeHead && c.id !== 'amount_paid')
+      .map(c => c.id === 'receipt_date' ? { ...c, label: 'S.No.', align: 'center' as const } : c);
+  }, [activeSelectedColumns]);
+
+  // Post-Fee Head columns (Total Paid, etc.)
+  const postFeeHeadColumns = useMemo(() => {
+    return activeSelectedColumns.filter(c => c.id === 'amount_paid');
+  }, [activeSelectedColumns]);
+
+  // Ordered sequence of all visible columns for the table body: Info & non-fee-head columns, then Fee Heads, then Total Paid
+  const activeColumnsInOrder = useMemo(() => {
+    const feeHeads = activeSelectedColumns.filter(c => c.isFeeHead);
+    return [...preFeeHeadColumns, ...feeHeads, ...postFeeHeadColumns];
+  }, [preFeeHeadColumns, activeSelectedColumns, postFeeHeadColumns]);
+
+  // Numeric / value columns (accounting + fee heads + total paid) that participate in subtotals and grand total
+  const numericColumnsInOrder = useMemo(() => {
+    return activeColumnsInOrder.filter(c => c.category === 'accounting' || c.isFeeHead);
+  }, [activeColumnsInOrder]);
+
+  // Span of info/text columns preceding the first numeric column in activeColumnsInOrder
+  const infoSpanCount = useMemo(() => {
+    const idx = activeColumnsInOrder.findIndex(c => c.category === 'accounting' || c.isFeeHead);
+    return idx > 0 ? idx : 1;
+  }, [activeColumnsInOrder]);
+
   return (
     <div className="min-h-screen bg-stone-100/60 p-4 sm:p-6 lg:p-8 space-y-6">
       
@@ -659,6 +698,18 @@ export default function ManagementReportsModule() {
                   <option value="Payment Gateway">Payment Gateway Only</option>
                 </select>
               </div>
+
+              {/* Day Book Statement Remarks */}
+              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-1.5 flex-1 min-w-[220px]">
+                <span className="text-xs font-bold text-stone-500 whitespace-nowrap">Remarks:</span>
+                <input
+                  type="text"
+                  value={dailyRemarks}
+                  onChange={(e) => setDailyRemarks(e.target.value)}
+                  placeholder="Enter day book statement closing remarks..."
+                  className="bg-transparent text-xs font-medium text-stone-800 focus:outline-none w-full"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -679,111 +730,143 @@ export default function ManagementReportsModule() {
             </div>
           </div>
 
-          {/* PRINTABLE AREA: WRAPS INSTITUTIONAL HEADER, METRIC CARDS & FULL DAY BOOK REGISTER */}
-          <div ref={printAreaRef} className="space-y-4">
+          {/* Quick Metric Cards (Hidden during isolated Day Book print) */}
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 print:hidden">
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-amber-500">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">Total Realized</span>
+              <h3 className="text-base sm:text-xl font-black text-stone-950 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.gross_collected || 0)}
+              </h3>
+              <span className="text-[9px] text-amber-700 font-bold">{dailyData.summary?.total_receipts || 0} Receipts</span>
+            </div>
+
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-green-600">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">💵 Cash Total</span>
+              <h3 className="text-base sm:text-xl font-black text-slate-900 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.cash_total || 0)}
+              </h3>
+              <span className="text-[9px] text-green-700 font-bold">Counter Cash</span>
+            </div>
+
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-blue-600">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">📱 Online / UPI</span>
+              <h3 className="text-base sm:text-xl font-black text-blue-700 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.online_total || 0)}
+              </h3>
+              <span className="text-[9px] text-blue-700 font-bold">Bank Reconciled</span>
+            </div>
+
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-purple-600">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">⚡ Payment Gateway</span>
+              <h3 className="text-base sm:text-xl font-black text-purple-700 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.gateway_total || 0)}
+              </h3>
+              <span className="text-[9px] text-purple-700 font-bold">Razorpay / App</span>
+            </div>
+
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-indigo-600">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">🎁 Concessions</span>
+              <h3 className="text-base sm:text-xl font-black text-indigo-700 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.total_concession || 0)}
+              </h3>
+              <span className="text-[9px] text-indigo-700 font-bold">Waivers</span>
+            </div>
+
+            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-orange-500">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">⏳ Balance Due</span>
+              <h3 className="text-base sm:text-xl font-black text-orange-600 mt-0.5 font-mono">
+                {formatINR(dailyData.summary?.total_balance_due || 0)}
+              </h3>
+              <span className="text-[9px] text-orange-700 font-bold">Arrears</span>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* PRINTABLE AREA: EXACT DESIGN MATCH TO DAY BOOK SPECIFICATION */}
+          {/* ========================================================================= */}
+          <div 
+            ref={printAreaRef} 
+            className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-300 shadow-md space-y-4 text-stone-900 overflow-hidden"
+            style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+          >
             
-            {/* Official School Print Letterhead Banner */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-1 text-center">
-              <h1 className="text-base sm:text-lg font-black text-stone-950 uppercase tracking-tight">
-                {selectedInstitutionObj?.name || (isAllInstitutions ? "All Campuses (Trust HQ)" : "School Accounts Department")}
-              </h1>
-              <p className="text-[10.5px] font-bold text-stone-700">
-                {selectedInstitutionObj?.affiliation_number ? `Affiliation No: ${selectedInstitutionObj.affiliation_number}` : (selectedInstitutionObj?.udiseCode ? `UDISE Code: ${selectedInstitutionObj.udiseCode}` : (selectedInstitutionObj?.code ? `School Code: ${selectedInstitutionObj.code}` : "Recognized & Registered Institution"))}
-              </p>
-              <p className="text-[9.5px] text-stone-500">
-                {[
-                  selectedInstitutionObj?.address,
-                  selectedInstitutionObj?.phone ? `Tel: ${selectedInstitutionObj.phone}` : null,
-                  selectedInstitutionObj?.email ? `Email: ${selectedInstitutionObj.email}` : null
-                ].filter(Boolean).join(" • ") || "Accounts Division • Quality Education Foundation"}
-              </p>
-              <div className="pt-2 flex flex-wrap justify-between items-center border-t border-stone-200 text-[11px] font-bold text-stone-900">
-                <span className="bg-stone-900 text-amber-400 font-black px-2 py-0.5 rounded text-[10px] uppercase">
-                  📘 DAY BOOK DETAIL REGISTER
-                </span>
-                <span>Date Period: {dailyFromDate} To {dailyToDate}</span>
-                <span>User / In-Charge: {dailyData.summary?.user_stamp || "Accounts Cashier"}</span>
-                <span>Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-              </div>
-            </div>
-
-            {/* Day Book Metric Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-amber-500">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">Total Realized</span>
-                <h3 className="text-base sm:text-xl font-black text-stone-950 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.gross_collected || 0)}
-                </h3>
-                <span className="text-[9px] text-amber-700 font-bold">{dailyData.summary?.total_receipts || 0} Receipts</span>
-              </div>
-
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-green-600">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">💵 Cash Total</span>
-                <h3 className="text-base sm:text-xl font-black text-slate-900 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.cash_total || 0)}
-                </h3>
-                <span className="text-[9px] text-green-700 font-bold">Counter Cash</span>
-              </div>
-
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-blue-600">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">📱 Online / UPI</span>
-                <h3 className="text-base sm:text-xl font-black text-blue-700 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.online_total || 0)}
-                </h3>
-                <span className="text-[9px] text-blue-700 font-bold">Bank Reconciled</span>
-              </div>
-
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-purple-600">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">⚡ Payment Gateway</span>
-                <h3 className="text-base sm:text-xl font-black text-purple-700 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.gateway_total || 0)}
-                </h3>
-                <span className="text-[9px] text-purple-700 font-bold">Razorpay / App</span>
-              </div>
-
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-indigo-600">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">🎁 Concessions</span>
-                <h3 className="text-base sm:text-xl font-black text-indigo-700 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.total_concession || 0)}
-                </h3>
-                <span className="text-[9px] text-indigo-700 font-bold">Waivers</span>
-              </div>
-
-              <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs border-l-4 border-l-orange-500">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 block">⏳ Balance Due</span>
-                <h3 className="text-base sm:text-xl font-black text-orange-600 mt-0.5 font-mono">
-                  {formatINR(dailyData.summary?.total_balance_due || 0)}
-                </h3>
-                <span className="text-[9px] text-orange-700 font-bold">Arrears</span>
-              </div>
-            </div>
-
-            {/* MAIN DAY BOOK DETAIL TABLE */}
-            <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+            {/* 1. HEADER (3 SECTIONS: LEFT CREST & MOTTO | CENTER DAY BOOK & DATE PILL | RIGHT METADATA) */}
+            <div className="flex flex-col md:flex-row items-center justify-between pb-3 border-b-2 border-stone-900 gap-4">
               
-              {/* Table Sub-header */}
-              <div className="p-4 sm:p-5 border-b border-stone-200 space-y-1 bg-stone-50/80">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                  <div>
-                    <h2 className="text-sm sm:text-base font-black text-stone-950 uppercase tracking-wide">
-                      DAY BOOK DETAIL1
-                    </h2>
-                    <p className="text-xs font-bold text-stone-700 mt-0.5">
-                      From : {dailyFromDate} &nbsp;&nbsp;&nbsp; To : {dailyToDate}
-                    </p>
-                    <p className="text-[11px] font-semibold text-stone-500">
-                      User : {dailyData.summary?.user_stamp || "Accounts Cashier"} &nbsp;&nbsp;&nbsp;&nbsp; OFY : YES &nbsp;&nbsp;&nbsp; WOCB : YES
-                    </p>
+              {/* Left Column: School Crest, Name, Campus, Sanskrit Motto */}
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="w-14 h-14 rounded-full border-2 border-stone-800 flex flex-col items-center justify-center p-1 bg-[#FAF7F2] shrink-0">
+                  <Building2 className="w-7 h-7 text-[#0F2942]" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-serif font-black tracking-wider text-[#0F2942] uppercase leading-tight">
+                    {selectedInstitutionObj?.name || (isAllInstitutions ? "CRAYON BOX ACADEMY" : "SCHOOL OF EXCELLENCE")}
+                  </h1>
+                  <p className="text-[10px] font-semibold text-stone-600 uppercase tracking-wider">
+                    {selectedInstitutionObj?.address || "Main Campus • Delhi NCR"}
+                  </p>
+                  
+                  {/* Sanskrit Motto: विद्या ददाति विनयम् */}
+                  <div className="flex items-center gap-2 my-0.5">
+                    <div className="h-[1px] bg-[#C59B27] w-8"></div>
+                    <span className="text-[11px] font-serif font-black text-[#8C6D1F] tracking-wider">
+                      विद्या ददाति विनयम्
+                    </span>
+                    <div className="h-[1px] bg-[#C59B27] w-8"></div>
                   </div>
-                  <div className="text-right text-xs">
-                    <span className="font-bold text-stone-400 block">Report Scope: Day Book Register</span>
-                    <strong className="text-stone-900 font-mono text-sm">
-                      Grand Net Paid: {formatINR(dailyData.summary?.gross_collected || 0)}
-                    </strong>
-                  </div>
+                  <p className="text-[7.5px] font-serif uppercase tracking-widest text-stone-500 font-semibold">
+                    KNOWLEDGE LEADS TO HUMILITY
+                  </p>
                 </div>
               </div>
 
+              {/* Center Column: DAY BOOK Title and Golden Date Pill */}
+              <div className="text-center w-full md:w-auto my-1 md:my-0">
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-widest text-[#0F2942] leading-none">
+                  DAY BOOK
+                </h2>
+                <div className="mt-1.5 inline-block bg-[#E8DFC8] border border-[#C59B27] px-4 py-1 rounded-full text-xs font-black text-[#5C4511] uppercase tracking-wider shadow-xs">
+                  {dailyFromDate === dailyToDate 
+                    ? new Date(dailyFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : `${new Date(dailyFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${new Date(dailyToDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                </div>
+              </div>
+
+              {/* Right Column: Two-Column Metadata Box */}
+              <div className="w-full md:w-auto text-[10px] font-semibold text-stone-700 bg-stone-50/80 p-2.5 rounded-xl border border-stone-200">
+                <table className="border-collapse">
+                  <tbody>
+                    <tr>
+                      <td className="font-bold text-stone-600 pr-2">Academic Year</td>
+                      <td className="pr-1 text-stone-400">:</td>
+                      <td className="font-mono font-bold text-stone-900">
+                        {new Date().getFullYear()}-{((new Date().getFullYear() + 1) % 100).toString().padStart(2, '0')}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="font-bold text-stone-600 pr-2">User</td>
+                      <td className="pr-1 text-stone-400">:</td>
+                      <td className="font-bold text-stone-900">{dailyData.summary?.user_stamp || "Accounts Cashier"} (Counter-1)</td>
+                    </tr>
+                    <tr>
+                      <td className="font-bold text-stone-600 pr-2">Generated On</td>
+                      <td className="pr-1 text-stone-400">:</td>
+                      <td className="font-mono text-stone-900">{new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</td>
+                    </tr>
+                    <tr>
+                      <td className="font-bold text-stone-600 pr-2">Page</td>
+                      <td className="pr-1 text-stone-400">:</td>
+                      <td className="font-mono font-bold text-stone-900">1 of 1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+
+            {/* 2. MAIN MULTI-COLUMN DAY BOOK DETAIL TABLE */}
+            <div className="border-2 border-[#0F2942] rounded-lg overflow-hidden bg-white shadow-xs">
+              
               {isLoadingDaily ? (
                 <div className="p-14 text-center text-xs font-bold text-stone-400">Loading Day Book statement...</div>
               ) : !dailyData.channelGroups || dailyData.channelGroups.length === 0 ? (
@@ -794,80 +877,157 @@ export default function ManagementReportsModule() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-[11px]">
+                  <table className="w-full text-left border-collapse text-[9.5px]">
+                    {/* Multi-tier Table Header */}
                     <thead>
-                      <tr className="bg-stone-200/90 text-stone-800 font-black border-y border-stone-300 text-[10px]">
-                        {activeSelectedColumns.map(col => (
+                      {/* Top Header Row with Grouped FEE HEAD */}
+                      <tr className="bg-[#0F2942] text-white font-black text-[9px] uppercase tracking-wider">
+                        {preFeeHeadColumns.map(col => (
                           <th 
-                            key={col.id}
-                            className={`p-2 border-r border-stone-300 whitespace-nowrap text-${col.align || 'left'} ${
-                              col.id === 'amount_paid' ? 'text-stone-950 font-black' : ''
+                            key={col.id} 
+                            rowSpan={activeFeeHeadColumns.length > 0 ? 2 : 1} 
+                            className={`p-1.5 border border-stone-600 whitespace-nowrap text-${col.align || 'left'}`}
+                          >
+                            {col.label}
+                          </th>
+                        ))}
+                        {activeFeeHeadColumns.length > 0 && (
+                          <th 
+                            colSpan={activeFeeHeadColumns.length} 
+                            className="p-1 text-center bg-[#173A5E] text-amber-200 border border-stone-600 whitespace-nowrap tracking-widest font-black"
+                          >
+                            FEE HEAD
+                          </th>
+                        )}
+                        {postFeeHeadColumns.map(col => (
+                          <th 
+                            key={col.id} 
+                            rowSpan={activeFeeHeadColumns.length > 0 ? 2 : 1} 
+                            className={`p-1.5 border border-stone-600 whitespace-nowrap text-${col.align || 'left'} ${
+                              col.id === 'amount_paid' ? 'bg-[#091B2C] text-amber-300 font-black' : ''
                             }`}
                           >
                             {col.label}
                           </th>
                         ))}
                       </tr>
+
+                      {/* Second Header Row for Individual Fee Heads */}
+                      {activeFeeHeadColumns.length > 0 && (
+                        <tr className="bg-[#122F4C] text-white font-bold text-[8.5px] uppercase tracking-wider">
+                          {activeFeeHeadColumns.map(col => (
+                            <th 
+                              key={col.id} 
+                              className={`p-1.5 border border-stone-600 whitespace-nowrap text-${col.align || 'right'}`}
+                            >
+                              {col.shortLabel || col.label}
+                            </th>
+                          ))}
+                        </tr>
+                      )}
                     </thead>
-                    <tbody className="divide-y divide-stone-200 font-medium">
-                      {dailyData.channelGroups.map((grp) => (
-                        <React.Fragment key={grp.mode}>
-                          {grp.transactions.map((t, idx) => (
-                            <tr key={t.id || idx} className="hover:bg-stone-50 transition">
-                              {activeSelectedColumns.map(col => {
-                                const val = getTransactionCellValue(t, grp.mode, col.id);
+
+                    {/* Table Body */}
+                    <tbody className="divide-y divide-stone-300 font-medium">
+                      {dailyData.channelGroups.map((grp, groupIdx) => {
+                        const groupHeading = grp.mode === 'Cash' 
+                          ? '1. CASH PAYMENTS' 
+                          : grp.mode === 'Online' 
+                          ? '2. ONLINE PAYMENTS' 
+                          : '3. PAYMENT GATEWAY';
+
+                        return (
+                          <React.Fragment key={grp.mode}>
+                            {/* Payment Channel Group Header */}
+                            <tr className="bg-[#F5F2EB] font-black border-y-2 border-stone-400 text-[10px]">
+                              <td 
+                                colSpan={activeColumnsInOrder.length} 
+                                className="p-1.5 px-3 uppercase tracking-wider text-[#0F2942]"
+                              >
+                                {groupHeading}
+                              </td>
+                            </tr>
+
+                            {/* Group Transactions */}
+                            {grp.transactions.map((t, idx) => (
+                              <tr key={t.id || idx} className="hover:bg-stone-50 transition">
+                                {activeColumnsInOrder.map((col) => {
+                                  // Serial number override
+                                  if (col.id === 'receipt_date') {
+                                    return (
+                                      <td key={col.id} className="p-1.5 border-r border-stone-200 text-center font-mono text-stone-600">
+                                        {idx + 1}
+                                      </td>
+                                    );
+                                  }
+                                  
+                                  const val = getTransactionCellValue(t, grp.mode, col.id);
+                                  return (
+                                    <td 
+                                      key={col.id}
+                                      className={`p-1.5 border-r border-stone-200 whitespace-nowrap text-${col.align || 'left'} ${
+                                        col.id === 'student_name' ? 'font-bold text-stone-950' :
+                                        col.id === 'receipt_no' ? 'font-mono font-bold text-[#0F2942]' :
+                                        col.id === 'admission_no' ? 'font-mono text-stone-700' :
+                                        col.id === 'concession_amount' ? 'font-mono text-indigo-800' :
+                                        col.id === 'balance_due' ? 'font-mono text-orange-700' :
+                                        col.id === 'advance_amount' ? 'font-mono text-emerald-800' :
+                                        col.id === 'amount_paid' ? 'font-mono font-black text-stone-950 bg-amber-50/60' :
+                                        col.isFeeHead ? 'font-mono text-stone-800' : 'text-stone-700'
+                                      }`}
+                                    >
+                                      {typeof val === 'number' && (col.category === 'accounting' || col.isFeeHead)
+                                        ? (val === 0 ? '-' : Number(val).toLocaleString('en-IN'))
+                                        : val}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+
+                            {/* Mode Subtotal Row */}
+                            <tr className="bg-[#EFECE3] font-black border-y-2 border-stone-400 text-[10px]">
+                              <td 
+                                colSpan={infoSpanCount} 
+                                className="p-2 text-right uppercase tracking-wider text-[#0F2942]"
+                              >
+                                Total ({grp.mode})
+                              </td>
+                              {numericColumnsInOrder.map(col => {
+                                const subVal = getSubtotalCellValue(grp.subtotal, col.id);
                                 return (
                                   <td 
                                     key={col.id}
-                                    className={`p-2 border-r border-stone-200 whitespace-nowrap text-${col.align || 'left'} ${
-                                      col.id === 'student_name' ? 'font-bold text-stone-950' :
-                                      col.id === 'receipt_no' ? 'font-mono font-bold text-stone-900' :
-                                      col.id === 'concession_amount' ? 'font-mono text-indigo-700' :
-                                      col.id === 'balance_due' ? 'font-mono text-orange-600' :
-                                      col.id === 'advance_amount' ? 'font-mono text-emerald-700' :
-                                      col.id === 'amount_paid' ? 'font-mono font-black text-stone-950 bg-stone-50' :
-                                      col.isFeeHead ? 'font-mono text-stone-800' : 'text-stone-700'
+                                    className={`p-2 border-r border-stone-300 whitespace-nowrap text-${col.align || 'right'} font-mono ${
+                                      col.id === 'amount_paid' ? 'font-black text-stone-950 bg-[#E2D8C0]' :
+                                      col.id === 'concession_amount' ? 'text-indigo-900' :
+                                      col.id === 'balance_due' ? 'text-orange-900' :
+                                      col.id === 'advance_amount' ? 'text-emerald-900' : 'text-stone-900'
                                     }`}
                                   >
-                                    {val}
+                                    {typeof subVal === 'number'
+                                      ? (subVal === 0 ? '-' : Number(subVal).toLocaleString('en-IN'))
+                                      : subVal}
                                   </td>
                                 );
                               })}
                             </tr>
-                          ))}
+                          </React.Fragment>
+                        );
+                      })}
 
-                          {/* MODE SUBTOTAL ROW */}
-                          <tr className="bg-stone-200 font-black border-y-2 border-stone-400 text-[11px]">
-                            <td colSpan={infoColumnsCount} className="p-2.5 text-right uppercase tracking-wider text-stone-900">
-                              Total ({grp.mode})
-                            </td>
-                            {activeSelectedColumns.slice(infoColumnsCount).map(col => {
-                              const subVal = getSubtotalCellValue(grp.subtotal, col.id);
-                              return (
-                                <td 
-                                  key={col.id}
-                                  className={`p-2.5 border-r border-stone-300 whitespace-nowrap text-${col.align || 'right'} font-mono ${
-                                    col.id === 'amount_paid' ? 'font-black text-stone-950 bg-stone-300' :
-                                    col.id === 'concession_amount' ? 'text-indigo-900' :
-                                    col.id === 'balance_due' ? 'text-orange-800' :
-                                    col.id === 'advance_amount' ? 'text-emerald-800' : 'text-stone-900'
-                                  }`}
-                                >
-                                  {subVal}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        </React.Fragment>
-                      ))}
-
-                      {/* GRAND DAY / RANGE TOTAL ROW */}
+                      {/* 3. DAILY GRAND TOTAL ROW */}
                       {dailyData.summary && (
-                        <tr className="bg-slate-900 text-white font-black font-mono border-t-2 border-slate-700 text-xs">
-                          <td colSpan={infoColumnsCount} className="p-3 text-xs font-black uppercase tracking-wider text-amber-400 whitespace-nowrap">
-                            🏆 GRAND TOTAL ({dailyFromDate} to {dailyToDate})
+                        <tr className="bg-[#D4B86A] text-[#1A1400] font-black font-mono border-t-2 border-[#8C6D1F] text-[10.5px]">
+                          <td 
+                            colSpan={infoSpanCount} 
+                            className="p-2.5 text-right font-black uppercase tracking-wider whitespace-nowrap"
+                          >
+                            DAILY GRAND TOTAL ({dailyFromDate === dailyToDate 
+                              ? new Date(dailyFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                              : `${dailyFromDate} to ${dailyToDate}`})
                           </td>
-                          {activeSelectedColumns.slice(infoColumnsCount).map(col => {
+                          {numericColumnsInOrder.map(col => {
                             const grandVal = getGrandTotalCellValue(
                               dailyData.summary,
                               dailyData.summary.gross_collected,
@@ -877,14 +1037,16 @@ export default function ManagementReportsModule() {
                             return (
                               <td 
                                 key={col.id}
-                                className={`p-3 text-${col.align || 'right'} whitespace-nowrap ${
-                                  col.id === 'amount_paid' ? 'text-amber-300 text-sm bg-slate-950 font-black' :
-                                  col.id === 'concession_amount' ? 'text-indigo-300' :
-                                  col.id === 'balance_due' ? 'text-orange-400' :
-                                  col.id === 'advance_amount' ? 'text-emerald-400' : 'text-white'
+                                className={`p-2.5 border-r border-[#8C6D1F]/50 whitespace-nowrap text-${col.align || 'right'} ${
+                                  col.id === 'amount_paid' ? 'text-black text-xs bg-[#C5A34E] font-black underline' :
+                                  col.id === 'concession_amount' ? 'text-indigo-950' :
+                                  col.id === 'balance_due' ? 'text-red-950' :
+                                  col.id === 'advance_amount' ? 'text-emerald-950' : 'text-stone-950'
                                 }`}
                               >
-                                {grandVal}
+                                {typeof grandVal === 'number'
+                                  ? (grandVal === 0 ? '-' : Number(grandVal).toLocaleString('en-IN'))
+                                  : grandVal}
                               </td>
                             );
                           })}
@@ -896,13 +1058,104 @@ export default function ManagementReportsModule() {
               )}
             </div>
 
-            {/* Print Signatory Footer */}
-            <div className="flex justify-between items-end pt-3 pb-1 text-[10px] text-stone-600 border-t border-stone-200">
-              <p className="italic">This is an official system-generated Day Book Statement of Accounts.</p>
-              <div className="text-right space-y-0.5">
-                <div className="font-bold text-stone-900">Authorised Signatory / Accounts Desk</div>
-                <div className="text-[9px] text-stone-500">{dailyData.summary?.user_stamp || "Accounts Cashier"}</div>
+            {/* 3. BOTTOM SPLIT PANELS: MONTHLY SUMMARY TABLE (LEFT) & REMARKS BOX (RIGHT) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              
+              {/* Left Panel: Monthly Summary Table */}
+              <div className="border border-stone-300 rounded-lg overflow-hidden bg-white shadow-xs">
+                <div className="bg-[#0F2942] text-white px-3 py-1.5 text-xs font-black uppercase tracking-wider flex items-center justify-between">
+                  <span>
+                    MONTHLY SUMMARY {new Date(dailyToDate).toLocaleString('en-IN', { month: 'long' }).toUpperCase()} {new Date(dailyToDate).getFullYear()}
+                  </span>
+                  <span className="text-[10px] text-amber-300 font-mono">Consolidated</span>
+                </div>
+                <table className="w-full text-left border-collapse text-[10px]">
+                  <thead>
+                    <tr className="bg-[#F5F2EB] font-black text-stone-800 border-b border-stone-300 text-[9px] uppercase">
+                      <th className="p-1.5 pl-2.5 border-r border-stone-200">S.No.</th>
+                      <th className="p-1.5 border-r border-stone-200">Payment Mode</th>
+                      <th className="p-1.5 border-r border-stone-200 text-center">No. of Receipts</th>
+                      <th className="p-1.5 pr-2.5 text-right">Total Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200 font-medium">
+                    {/* 1. Cash */}
+                    <tr>
+                      <td className="p-1.5 pl-2.5 border-r border-stone-200 font-mono">1</td>
+                      <td className="p-1.5 border-r border-stone-200 font-bold text-stone-900">Cash</td>
+                      <td className="p-1.5 border-r border-stone-200 text-center font-mono">
+                        {dailyData.channelGroups?.find(g => g.mode === 'Cash')?.subtotal.receipt_count || (dailyData.summary?.cash_total > 0 ? 1 : 0)}
+                      </td>
+                      <td className="p-1.5 pr-2.5 text-right font-mono font-bold text-stone-900">
+                        {Number(dailyData.summary?.cash_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    {/* 2. Online */}
+                    <tr>
+                      <td className="p-1.5 pl-2.5 border-r border-stone-200 font-mono">2</td>
+                      <td className="p-1.5 border-r border-stone-200 font-bold text-stone-900">Online</td>
+                      <td className="p-1.5 border-r border-stone-200 text-center font-mono">
+                        {dailyData.channelGroups?.find(g => g.mode === 'Online')?.subtotal.receipt_count || (dailyData.summary?.online_total > 0 ? 1 : 0)}
+                      </td>
+                      <td className="p-1.5 pr-2.5 text-right font-mono font-bold text-stone-900">
+                        {Number(dailyData.summary?.online_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    {/* 3. Payment Gateway */}
+                    <tr>
+                      <td className="p-1.5 pl-2.5 border-r border-stone-200 font-mono">3</td>
+                      <td className="p-1.5 border-r border-stone-200 font-bold text-stone-900">Payment Gateway</td>
+                      <td className="p-1.5 border-r border-stone-200 text-center font-mono">
+                        {dailyData.channelGroups?.find(g => g.mode === 'Payment Gateway')?.subtotal.receipt_count || (dailyData.summary?.gateway_total > 0 ? 1 : 0)}
+                      </td>
+                      <td className="p-1.5 pr-2.5 text-right font-mono font-bold text-stone-900">
+                        {Number(dailyData.summary?.gateway_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                    {/* Total Row */}
+                    <tr className="bg-[#E8DFC8] font-black text-stone-950 border-t-2 border-stone-400 text-[10px]">
+                      <td colSpan={2} className="p-1.5 pl-2.5 text-right uppercase tracking-wide">Total</td>
+                      <td className="p-1.5 text-center font-mono">
+                        {dailyData.summary?.total_receipts || 0}
+                      </td>
+                      <td className="p-1.5 pr-2.5 text-right font-mono font-black text-[#0F2942]">
+                        {Number(dailyData.summary?.gross_collected || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+
+              {/* Right Panel: Remarks & Signatory Box */}
+              <div className="border border-stone-300 rounded-lg p-3 bg-white flex flex-col justify-between shadow-xs">
+                <div>
+                  <h4 className="text-xs font-black text-[#0F2942] uppercase tracking-wider pb-1 border-b border-stone-200">
+                    Remarks:
+                  </h4>
+                  <p className="text-xs font-medium text-stone-800 pt-2 leading-relaxed italic">
+                    {dailyRemarks || "All counter receipts verified, reconciled with daily cash physically held and payment gateway bank clearing logs."}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-end pt-4 mt-2 border-t border-dashed border-stone-300 text-[9.5px]">
+                  <div className="text-stone-600">
+                    <div>Cashier Signature</div>
+                    <div className="font-mono font-bold text-stone-800">{dailyData.summary?.user_stamp || "Accounts Cashier"}</div>
+                  </div>
+                  <div className="text-right text-stone-600">
+                    <div>Accounts Officer / Bursar</div>
+                    <div className="font-bold text-stone-900">Authorised Signatory</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* 4. FOOTER: CENTRED SLOGAN */}
+            <div className="pt-3 pb-1 text-center border-t border-stone-300">
+              <p className="text-[10px] sm:text-[11px] font-serif font-black tracking-[0.25em] text-[#0F2942] uppercase">
+                LEARNING TODAY &nbsp;&bull;&nbsp; LEADING TOMORROW
+              </p>
             </div>
 
           </div>
