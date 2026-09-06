@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { 
   Building2, Calendar, ChevronDown, Check, 
   Search, Bell, LogOut, User, ShieldCheck, Menu, Sparkles,
-  Edit3, KeyRound, Phone, Mail, Award, X, Save, CheckCircle2
+  Edit3, KeyRound, Phone, Mail, Award, X, Save, CheckCircle2,
+  Banknote, CreditCard
 } from 'lucide-react';
 import { useInstitution } from '@/components/providers/InstitutionContext';
 import { VANI_TRUST_INSTITUTIONS } from '@/lib/core/institution/trust-hierarchy';
@@ -225,8 +226,21 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
             </button>
           </div>
 
-          {/* Right: Actions (Notifications, Profile, Direct Logout) */}
+          {/* Right: Actions (Cashier POS Quick Launch, Notifications, Profile, Direct Logout) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+             {/* Quick Launch Cashier POS Button */}
+             <Link
+               href="/billing"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs shadow-sm hover:shadow-md transition-all hover:scale-[1.02] border border-emerald-500/30 shrink-0 cursor-pointer"
+               title="Open Standalone Fee Cashier POS Terminal"
+             >
+               <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+               <Banknote className="w-3.5 h-3.5 text-emerald-100" />
+               <span>Cashier POS</span>
+             </Link>
+
              {/* Mobile-only Ask Vani Copilot button */}
              <button
                onClick={() => setIsVaniPaletteOpen(true)}
