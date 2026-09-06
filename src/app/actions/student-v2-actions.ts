@@ -3,7 +3,7 @@
 import pg from 'pg';
 import { revalidatePath } from 'next/cache';
 
-const DB_CONNECTION_STRING = process.env.DATABASE_URL || '';
+const DB_CONNECTION_STRING = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
 
 let globalPool: pg.Pool | null = null;
 function getPool(): pg.Pool {

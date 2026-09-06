@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 let pool: pg.Pool | null = null;
 function getPool(): pg.Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || '';
+    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
     pool = new pg.Pool({
       connectionString,
       ssl: { rejectUnauthorized: false }
@@ -290,7 +290,7 @@ export async function requestUniversalOtpAction(params: {
             const { createClient } = require('@supabase/supabase-js');
             const supabaseAdmin = createClient(
               process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
-              process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+              process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlc3F0cnVua3FsbXZ5dnFvZHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNzM4OTYsImV4cCI6MjEwMjY0OTg5Nn0.orDLjRNcUVXRNuGvJCDZHJdx8BDMvYC-6MvRKuDUm3o'
             );
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.crayonboxschool.com';
             await supabaseAdmin.auth.signInWithOtp({
@@ -430,7 +430,7 @@ export async function verifyUniversalOtpAction(params: {
       const { createClient } = require('@supabase/supabase-js');
       const supabaseClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fesqtrunkqlmvyvqodzy.supabase.co',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlc3F0cnVua3FsbXZ5dnFvZHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNzM4OTYsImV4cCI6MjEwMjY0OTg5Nn0.orDLjRNcUVXRNuGvJCDZHJdx8BDMvYC-6MvRKuDUm3o'
       );
       const { data: supaVerify, error: supaErr } = await supabaseClient.auth.verifyOtp({
         email: rawId,

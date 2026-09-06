@@ -5,7 +5,7 @@ import pg from 'pg';
 let pool: pg.Pool | null = null;
 function getPool(): pg.Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || '';
+    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
     pool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;

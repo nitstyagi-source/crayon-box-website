@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 let globalPool: pg.Pool | null = null;
 function getPool(): pg.Pool {
   if (!globalPool) {
-    const connectionString = process.env.DATABASE_URL || '';
+    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.fesqtrunkqlmvyvqodzy:RUby%401008100@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
     globalPool = new pg.Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return globalPool;
