@@ -40,9 +40,9 @@ export async function getIdCardDashboardStats(campusId?: string) {
       supabase.from('student_pickups').select('*, students:student_id(first_name, last_name, photo_url), escorts:escort_id(full_name, relationship, photo_url)').eq('pickup_date', todayStr).order('pickup_time', { ascending: false }).limit(6)
     ]);
 
-    const enrolledCount = stuRes.count || 5;
-    const studentCardsCount = stuCardsRes.count || enrolledCount;
-    const escortCardsCount = escCardsRes.count || 5;
+    const enrolledCount = stuRes.count ?? 0;
+    const studentCardsCount = stuCardsRes.count ?? enrolledCount;
+    const escortCardsCount = escCardsRes.count ?? 0;
 
     return {
       success: true,
@@ -50,9 +50,9 @@ export async function getIdCardDashboardStats(campusId?: string) {
         totalStudentCards: enrolledCount,
         totalEscortCards: escortCardsCount,
         activeCards: studentCardsCount + escortCardsCount,
-        blockedCards: blockedCardsRes.count || 1,
+        blockedCards: blockedCardsRes.count ?? 0,
         expiringCards: 0,
-        todayPickups: todayPickupsRes.count || 1,
+        todayPickups: todayPickupsRes.count ?? 0,
         recentPickups: recentPickupsRes.data || []
       }
     };

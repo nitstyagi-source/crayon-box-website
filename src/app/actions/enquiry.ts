@@ -871,4 +871,117 @@ export async function convertEnquiryToStudent(enquiryId: string, _classId?: stri
   return convertEnquiryToApplicationAction(enquiryId);
 }
 
+/**
+ * Check for duplicate enquiries by phone number, email, or student name
+ */
+export async function checkDuplicateEnquiryAction(params: {
+  phone: string;
+  email?: string;
+  childName?: string;
+  session?: string;
+}) {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    const cleanPhone = params.phone.replace(/[\s\-\(\)]/g, '').slice(-10);
+    const query = `
+      SELECT id, enquiry_number, child_name, primary_guardian_name, primary_guardian_phone,
+             academic_session, admission_class, status, created_at
+      FROM public.enquiries
+      WHERE (primary_guardian_phone ILIKE $1 OR ($2 <> '' AND primary_guardian_email ILIKE $2))
+      ORDER BY created_at DESC
+      LIMIT 5;
+    `;
+    const res = await client.query(query, [`%${cleanPhone}%`, params.email ? params.email.trim() : '']);
+    return {
+      success: true,
+      hasDuplicates: res.rows.length > 0,
+      duplicates: res.rows
+    };
+  } catch (error: any) {
+    console.error("Error in checkDuplicateEnquiryAction:", error);
+    return { success: false, error: error.message, duplicates: [] };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Merge duplicate enquiries into a primary enquiry
+ */
+export async function mergeDuplicateEnquiriesAction(primaryEnquiryId: string, secondaryEnquiryIds: string[]) {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query('BEGIN');
+    for (const secId of secondaryEnquiryIds) {
+      await client.query(
+        `UPDATE public.enquiry_followups SET enquiry_id = $1 WHERE enquiry_id = $2;`,
+        [primaryEnquiryId, secId]
+      );
+      await client.query(
+        `UPDATE public.enquiries SET status = 'MERGED', internal_notes = COALESCE(internal_notes, '') || E'\\nMerged into primary #' || $1 WHERE id = $2;`,
+        [primaryEnquiryId, secId]
+      );
+    }
+    await client.query('COMMIT');
+    safeRevalidate('/admin/enquiries');
+    return { success: true, message: `Successfully merged ${secondaryEnquiryIds.length} duplicate enquiries.` };
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Reopen a closed or lost enquiry
+ */
+export async function reopenEnquiryAction(enquiryId: string, reason?: string) {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query(
+      `UPDATE public.enquiries
+       SET status = 'REOPENED',
+           internal_notes = COALESCE(internal_notes, '') || E'\\nReopened on ' || NOW() || ': ' || $2
+       WHERE id = $1;`,
+      [enquiryId, reason || 'Reopened by admissions counselor.']
+    );
+    safeRevalidate('/admin/enquiries');
+    return { success: true, message: 'Enquiry reopened successfully.' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Mark enquiry as lost with reason and optional future intake year
+ */
+export async function markEnquiryLostAction(enquiryId: string, lostReason: string, futureIntakeYear?: string) {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query(
+      `UPDATE public.enquiries
+       SET status = 'LOST',
+           lost_reason = $2,
+           future_intake_year = $3,
+           internal_notes = COALESCE(internal_notes, '') || E'\\nMarked LOST (' || $2 || ')'
+       WHERE id = $1;`,
+      [enquiryId, lostReason, futureIntakeYear || null]
+    );
+    safeRevalidate('/admin/enquiries');
+    return { success: true, message: 'Enquiry marked as lost.' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  } finally {
+    client.release();
+  }
+}
+
+
 

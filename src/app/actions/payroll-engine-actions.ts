@@ -258,15 +258,19 @@ export async function getStaffOfficialPayslipAction(param1: any, param2?: any) {
       res = await client.query("SELECT * FROM public.staff_payroll_records ORDER BY created_at DESC LIMIT 1;");
     }
 
+    if (res.rows.length === 0) {
+      return { success: false, error: "No payroll records found in the system." };
+    }
+
     const r = res.rows[0];
-    const basic = Number(r?.basic_pay || 28000);
-    const da = Number(r?.da || 5600);
-    const hra = Number(r?.hra || 11200);
-    const gross = Number(r?.gross_salary || (basic + da + hra));
-    const epf = Number(r?.epf_deduction || 3360);
-    const esi = Number(r?.esi_deduction || 336);
-    const totDed = Number(r?.total_deductions || (epf + esi));
-    const net = Number(r?.net_salary || (gross - totDed));
+    const basic = Number(r.basic_pay || 0);
+    const da = Number(r.da || 0);
+    const hra = Number(r.hra || 0);
+    const gross = Number(r.gross_salary || (basic + da + hra));
+    const epf = Number(r.epf_deduction || 0);
+    const esi = Number(r.esi_deduction || 0);
+    const totDed = Number(r.total_deductions || (epf + esi));
+    const net = Number(r.net_salary || (gross - totDed));
 
     let staffBankingRes: any = { rows: [] };
     if (r?.staff_name) {
@@ -284,11 +288,11 @@ export async function getStaffOfficialPayslipAction(param1: any, param2?: any) {
       error: undefined,
       payslip: {
         employee: {
-          id: r?.id || staffId || staffBank.employee_id || '',
-          name: r?.staff_name || "Academic Staff Member",
-          empCode: staffBank.employee_id || "CBS-FAC-102",
-          designation: r?.designation || "Faculty Educator",
-          department: r?.department || "Academic Wing",
+          id: r.id || staffId || staffBank.employee_id || '',
+          name: r.staff_name || "Staff Member",
+          empCode: staffBank.employee_id || r.employee_id || (staffId ? `EMP-${staffId.slice(0, 6)}` : 'EMP-001'),
+          designation: r.designation || "Staff",
+          department: r.department || "General",
           pan: staffBank.pan_no || "",
           uan: staffBank.uan_no || "",
           bankAccount: staffBank.bank_account_no || "",

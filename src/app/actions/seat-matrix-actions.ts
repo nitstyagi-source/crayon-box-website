@@ -118,3 +118,54 @@ export async function checkSeatAvailabilityAndReserveAction(className: string, q
     client.release();
   }
 }
+
+/**
+ * 3. AUTHORIZED CAPACITY OVERRIDE (Section 3)
+ */
+export async function overrideSeatCapacityAction(params: {
+  matrixId: string;
+  additionalSeats: number;
+  reason: string;
+  authorizedBy: string;
+}) {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `SELECT * FROM public.seat_inventory_matrices WHERE id = $1 FOR UPDATE;`,
+      [params.matrixId]
+    );
+    if (rows.length === 0) throw new Error("Seat matrix record not found.");
+
+    const current = rows[0];
+    const newTotal = current.total_seats + params.additionalSeats;
+    const newRemaining = Math.max(0, newTotal - current.admitted_seats);
+
+    await client.query(
+      `UPDATE public.seat_inventory_matrices
+       SET total_seats = $1,
+           status = CASE WHEN $2 > 0 THEN 'OPEN' ELSE 'WAITLIST_ONLY' END,
+           notes = COALESCE(notes, '') || E'\\nOverride on ' || NOW() || ': +' || $3 || ' seats. Reason: ' || $4 || ' (Auth: ' || $5 || ')',
+           updated_at = NOW()
+       WHERE id = $6;`,
+      [newTotal, newRemaining, params.additionalSeats, params.reason, params.authorizedBy, params.matrixId]
+    );
+
+    await client.query('COMMIT');
+    safeRevalidate('/admin/admissions/seat-matrix');
+    safeRevalidate('/admin/admissions');
+
+    return {
+      success: true,
+      newTotalSeats: newTotal,
+      message: `Capacity overridden successfully! New total capacity is ${newTotal} seats.`
+    };
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    return { success: false, error: err.message };
+  } finally {
+    client.release();
+  }
+}
+

@@ -53,13 +53,13 @@ export async function getVisitorDashboardStats(campusId?: string) {
       success: true,
       data: {
         visitorsToday: todayPasses.length ?? 0,
-        currentlyInside: currentlyInside.length || 6,
-        expectedVisitors: expected.length || 8,
+        currentlyInside: currentlyInside.length ?? 0,
+        expectedVisitors: expected.length ?? 0,
         checkedOut: checkedOut.length ?? 0,
-        pendingApprovals: pendingApproval.length || 2,
+        pendingApprovals: pendingApproval.length ?? 0,
         blacklistAlerts: 0,
         studentPickupVisitors: studentPickup.length ?? 0,
-        deliveryVisitors: deliveryCount.length || 5
+        deliveryVisitors: deliveryCount.length ?? 0
       }
     };
   } catch (error: any) {
@@ -242,24 +242,39 @@ export async function getEmergencyInsideList(campusId?: string) {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
 
-    const { data: insideVisitors } = await supabase
-      .from("school_gate_passes")
-      .select("*")
-      .eq("campus_id", resolvedCampusId)
-      .eq("status", "Inside");
+    const [insideVisitorsRes, stuRes, staffRes] = await Promise.all([
+      supabase
+        .from("school_gate_passes")
+        .select("*")
+        .eq("campus_id", resolvedCampusId)
+        .eq("status", "Inside"),
+      supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["Active", "Enrolled", "Admitted"]),
+      supabase
+        .from("staff")
+        .select("id", { count: "exact", head: true })
+        .eq("employment_status", "Active"),
+    ]);
+
+    const insideVisitors = insideVisitorsRes.data || [];
+    const studentsInside = stuRes.count ?? 0;
+    const staffInside = staffRes.count ?? 0;
+    const visitorsInside = insideVisitors.length;
 
     return {
       success: true,
       data: {
         timestamp: new Date().toISOString(),
         summary: {
-          studentsInside: 1185,
-          staffInside: 94,
-          visitorsInside: insideVisitors?.length || 6,
-          totalHeadcount: 1185 + 94 + (insideVisitors?.length || 6)
+          studentsInside,
+          staffInside,
+          visitorsInside,
+          totalHeadcount: studentsInside + staffInside + visitorsInside,
         },
-        visitors: insideVisitors || []
-      }
+        visitors: insideVisitors,
+      },
     };
   } catch (error: any) {
     console.error("Error in getEmergencyInsideList:", error);

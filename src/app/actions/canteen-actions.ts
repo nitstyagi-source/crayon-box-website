@@ -72,7 +72,7 @@ export async function searchCanteenStudentAction(searchTerm: string) {
       name: `${row.first_name} ${row.last_name || ''}`.trim(),
       admissionNo: row.admission_no,
       grade: row.grade,
-      balance: Number(row.balance || 500)
+      balance: Number(row.balance ?? 0)
     };
 
     return { success: true, student };

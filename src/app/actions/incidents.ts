@@ -61,12 +61,12 @@ export async function getIncidentDashboardStats(campusId?: string) {
     return {
       success: true,
       data: {
-        todayIncidents: todayCount || 4,
-        openIncidents: openCount || 7,
-        medicalIncidents: medicalCount || 3,
-        generalIncidents: generalCount || 4,
-        highCritical: highCriticalCount || 1,
-        pendingFollowUp: pendingFollowUpCount || 5,
+        todayIncidents: todayCount ?? 0,
+        openIncidents: openCount ?? 0,
+        medicalIncidents: medicalCount ?? 0,
+        generalIncidents: generalCount ?? 0,
+        highCritical: highCriticalCount ?? 0,
+        pendingFollowUp: pendingFollowUpCount ?? 0,
         totalRecords: incidents?.length || 0,
         topLocations
       }
