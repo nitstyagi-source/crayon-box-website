@@ -22,7 +22,7 @@ export interface FacultyEnrollmentInput {
 
   // Step 2: Institutional Assignment
   institutionCode: string; // 'CBS' | 'AVM' | 'AS' | 'CBPS'
-  academicSession: string; // '2026-2027'
+  academicSession: string; // e.g. "YYYY-YYYY" (dynamic)
   department: string;
   designation: string;
   workloadPercentage: number;

@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { FolderOpen } from 'lucide-react';
 import { Button } from './Button';
 
@@ -8,8 +9,10 @@ export interface EmptyStateProps {
   description: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionHref?: string;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
+  secondaryActionHref?: string;
   className?: string;
 }
 
@@ -19,8 +22,10 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  actionHref,
   secondaryActionLabel,
   onSecondaryAction,
+  secondaryActionHref,
   className = '',
 }: EmptyStateProps) {
   return (
@@ -36,12 +41,28 @@ export function EmptyState({
       </div>
       {(actionLabel || secondaryActionLabel) && (
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-          {actionLabel && onAction && (
+          {actionLabel && actionHref && (
+            <Link
+              href={actionHref}
+              className="inline-flex items-center justify-center font-bold text-xs px-3 py-1.5 gap-1.5 h-8 rounded-xl bg-[#D97706] text-white hover:bg-[#B45309] shadow-xs active:scale-95 transition"
+            >
+              {actionLabel}
+            </Link>
+          )}
+          {actionLabel && !actionHref && onAction && (
             <Button size="sm" variant="primary" onClick={onAction}>
               {actionLabel}
             </Button>
           )}
-          {secondaryActionLabel && onSecondaryAction && (
+          {secondaryActionLabel && secondaryActionHref && (
+            <Link
+              href={secondaryActionHref}
+              className="inline-flex items-center justify-center font-bold text-xs px-3 py-1.5 gap-1.5 h-8 rounded-xl border border-[#E8DFC8] bg-white/90 text-stone-700 hover:bg-[#FAF7F2] shadow-xs active:scale-95 transition"
+            >
+              {secondaryActionLabel}
+            </Link>
+          )}
+          {secondaryActionLabel && !secondaryActionHref && onSecondaryAction && (
             <Button size="sm" variant="outline" onClick={onSecondaryAction}>
               {secondaryActionLabel}
             </Button>
@@ -51,3 +72,4 @@ export function EmptyState({
     </div>
   );
 }
+

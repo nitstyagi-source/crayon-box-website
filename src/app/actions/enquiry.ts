@@ -22,7 +22,7 @@ function safeRevalidate(path: string) {
 // TYPES & INTERFACES
 // -------------------------------------------------------------
 export interface PublicEnquiryInput {
-  academicSession: string; // "2026-2027"
+  academicSession: string; // e.g. "YYYY-YYYY" (dynamic)
   institutionCode: string; // "CBS" | "AVM" | "AS" | "CBPS"
   admissionClass: string; // "Nursery", "Class 1", etc.
   childFirstName: string;

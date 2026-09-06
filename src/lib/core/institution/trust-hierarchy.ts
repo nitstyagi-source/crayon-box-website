@@ -99,7 +99,7 @@ export interface CampusMaster {
 export interface AcademicSessionMaster {
   id: string;
   institutionId: string;
-  name: string; // e.g. "2026-2027"
+  name: string; // e.g. "YYYY-YYYY" (dynamic)
   startDate: string;
   endDate: string;
   calendarModel: 'CBSE_ANNUAL' | 'STANDARD_ANNUAL' | 'MONTESSORI_CONTINUOUS' | 'STATE_BOARD_ANNUAL';

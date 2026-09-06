@@ -36,7 +36,7 @@ export interface UniversalStudentEnrollmentInput {
   // Step 2: Institutional Enrollment
   institutionCode: string; // 'CBS' | 'AVM' | 'AS' | 'CBPS'
   campusId?: string;
-  academicSession: string; // '2026-2027'
+  academicSession: string; // e.g. "YYYY-YYYY" (dynamic)
   academicStage: string; // 'FOUNDATION' | 'PRIMARY' | 'MIDDLE' | 'SECONDARY' | 'SENIOR_SECONDARY'
   className: string;
   sectionName: string;
