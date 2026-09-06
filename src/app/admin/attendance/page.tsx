@@ -237,7 +237,7 @@ function DailyAttendanceContent() {
       <VastuModuleBanner
         badgeText="Statutory Institutional Register"
         badgeIcon={<GraduationCap className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText={`Campus: ${activeInst} • Session 2026–2027`}
+        institutionText={`Campus: ${activeInst} • Session ${new Date().getFullYear()}–${new Date().getFullYear() + 1}`}
         title="Daily Attendance, Biometrics & Muster Hub"
         titleIcon={<CheckCircle2 className="w-7 h-7 text-[#D97706]" />}
         description="Unified institutional muster uniting Student Classroom Roll-call, Faculty Geofence Muster, Medical Leaves, and 75% Statutory Attendance Defaulter Radar."

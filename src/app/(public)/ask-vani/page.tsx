@@ -26,16 +26,20 @@ export default function DedicatedAskVaniPage() {
   const [contextState, setContextState] = useState<PublicVaniState>({});
   const [enquiryNo, setEnquiryNo] = useState<string | null>(null);
 
+  const curYear = new Date().getFullYear();
+  const nextYearShort = (curYear + 1).toString().slice(-2);
+  const sessionShort = `${curYear}–${nextYearShort}`;
+
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "vani"; text: string; time: string }>>([
     {
       role: "vani",
-      text: "Namaste and welcome to Crayon Box School! 🙏 I am VANI, your 24/7 digital admissions receptionist. I can answer questions regarding Academic Session 2026–27 admissions, approved fee structures, bus routes across Delhi NCR, and campus tour bookings. How may I assist you today?",
+      text: `Namaste and welcome to Crayon Box School! 🙏 I am VANI, your 24/7 digital admissions receptionist. I can answer questions regarding Academic Session ${sessionShort} admissions, approved fee structures, bus routes across Delhi NCR, and campus tour bookings. How may I assist you today?`,
       time: "Just now"
     }
   ]);
 
   const quickPrompts = [
-    { label: "🎓 Admissions 2026–27", text: "How do I apply for admissions for Academic Session 2026–27?" },
+    { label: `🎓 Admissions ${sessionShort}`, text: `How do I apply for admissions for Academic Session ${sessionShort}?` },
     { label: "💰 Fee Structure", text: "What is the complete quarterly fee breakdown for Nursery and Class 1?" },
     { label: "🚌 Bus Routes", text: "Do you provide school bus transport in Burari, Sant Nagar, and Delhi NCR?" },
     { label: "📅 Book Campus Visit", text: "I would like to schedule a personal campus tour tomorrow at 11 AM." },
@@ -94,7 +98,7 @@ export default function DedicatedAskVaniPage() {
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-            Trained directly on our approved fee rules, transport routes, and 2026–27 prospectus. Automatically creates verified admissions enquiries and schedules campus tours.
+            Trained directly on our approved fee rules, transport routes, and {sessionShort} prospectus. Automatically creates verified admissions enquiries and schedules campus tours.
           </p>
         </div>
 

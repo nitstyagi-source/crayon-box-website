@@ -66,7 +66,7 @@ export default function PublicCareersPage() {
       });
 
       if (res.success) {
-        setSubmittedCandidateCode(res.candidateCode || "CBS-CAN-2026-0921");
+        setSubmittedCandidateCode(res.candidateCode || `CBS-CAN-${new Date().getFullYear()}-0001`);
       } else {
         alert("Error submitting application: " + res.error);
       }

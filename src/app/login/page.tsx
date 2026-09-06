@@ -517,7 +517,7 @@ export default function UniversalLoginPage() {
                       type="text"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. 9911102027 or ADM-2026-0089"
+                      placeholder={`e.g. 9911102027 or ADM-${new Date().getFullYear()}-0089`}
                       className="w-full bg-[#FAF7F2] border border-[#E8DFD3] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-[#0B1B30] placeholder-stone-400 focus:outline-none focus:border-[#C85A32] focus:bg-white focus:ring-2 focus:ring-[#C85A32]/15 transition"
                       required
                     />
@@ -562,7 +562,7 @@ export default function UniversalLoginPage() {
               Front Desk Assistance: <Link href="/contact" className="text-[#0B1B30] font-bold hover:underline">Help &amp; Support Desk</Link>
             </div>
             <div className="text-[11px] text-stone-400">
-              © 2026 Vaani Educational Trust
+              © {new Date().getFullYear()} Vaani Educational Trust
             </div>
           </div>
 

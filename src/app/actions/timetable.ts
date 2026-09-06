@@ -78,9 +78,11 @@ export async function saveTimetableSlot(payload: any) {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, payload.campus_id);
 
+    const curYear = new Date().getFullYear();
+    const defaultSession = `${curYear}-${curYear + 1}`;
     const slotData = {
       campus_id: resolvedCampusId,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || defaultSession,
       wing: payload.wing || 'Primary (3-5)',
       day_of_week: payload.day_of_week || 'Monday',
       period_number: Number(payload.period_number) || 1,
@@ -439,9 +441,10 @@ export async function bulkGenerateStandardTimetable(campusId?: string) {
             else if (subject.includes("Music")) room = "Music & Dance Studio";
           }
 
+          const curGenYear = new Date().getFullYear();
           slotsToInsert.push({
             campus_id: resolvedCampusId,
-            academic_session: '2026-2027',
+            academic_session: `${curGenYear}-${curGenYear + 1}`,
             wing: cls.wing,
             day_of_week: day,
             period_number: p.num,

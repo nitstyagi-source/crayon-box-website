@@ -54,6 +54,9 @@ export function SchoolCalendarDesk() {
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1); // 1-indexed
   const [selectedDay, setSelectedDay] = useState<number | null>(() => new Date().getDate());
+  const activeYear = new Date().getFullYear();
+  const currentSessionCode = `${activeYear}-${activeYear + 1}`;
+  const currentSessionShort = `${activeYear}-${(activeYear + 1).toString().slice(-2)}`;
 
   // Filters
   const [selectedClass, setSelectedClass] = useState("Grade 5");
@@ -470,7 +473,7 @@ export function SchoolCalendarDesk() {
               <CalendarIcon className="w-3 h-3 text-purple-600" /> Unified Calendar Module
             </span>
             <span className="bg-emerald-100 text-emerald-900 text-[10px] font-bold px-2 py-0.5 rounded-md">
-              Session 2026-2027
+              Session {currentSessionCode}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
@@ -484,9 +487,9 @@ export function SchoolCalendarDesk() {
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-sm flex items-center gap-2 cursor-pointer active:scale-95 transition"
         >
-          <Plus className="w-4 h-4" /> [ + Add Event / Holiday ]
+          <Plus className="w-4 h-4" /> Broadcast / Add Event
         </button>
       </div>
 
@@ -501,15 +504,15 @@ export function SchoolCalendarDesk() {
         </div>
       )}
 
-      {/* Simple ERP Menu Tabs */}
-      <div className="flex items-center gap-1.5 border-b border-stone-200 pb-2 text-xs font-bold text-stone-500 overflow-x-auto">
+      {/* View Tabs */}
+      <div className="flex flex-wrap gap-2 text-xs font-bold text-stone-600">
         <button
           onClick={() => setActiveTab("school_calendar")}
           className={`px-3.5 py-2 rounded-xl transition ${
             activeTab === "school_calendar" ? "bg-purple-600 text-white shadow-xs font-black" : "hover:text-stone-900 bg-white border border-stone-200"
           }`}
         >
-          🏫 School Calendar
+          📅 School Calendar (Monthly Grid)
         </button>
 
         <button
@@ -518,7 +521,7 @@ export function SchoolCalendarDesk() {
             activeTab === "academic_calendar" ? "bg-purple-600 text-white shadow-xs font-black" : "hover:text-stone-900 bg-white border border-stone-200"
           }`}
         >
-          🎓 Academic Calendar (2026-27)
+          🎓 Academic Calendar ({currentSessionShort})
         </button>
 
         <button
@@ -1144,7 +1147,11 @@ export function SchoolCalendarDesk() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setCurrentMonth(8); setCurrentYear(2026); }}
+                  onClick={() => { 
+                    const now = new Date();
+                    setCurrentMonth(now.getMonth() + 1); 
+                    setCurrentYear(now.getFullYear()); 
+                  }}
                   className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold text-stone-700"
                 >
                   Today
@@ -1325,12 +1332,12 @@ export function SchoolCalendarDesk() {
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-6">
           <div className="flex justify-between items-center border-b border-stone-100 pb-3">
             <div>
-              <h3 className="text-base font-black text-stone-900">Academic Session 2026–2027 Master Calendar</h3>
+              <h3 className="text-base font-black text-stone-900">Academic Session {currentSessionCode} Master Calendar</h3>
               <p className="text-xs text-stone-500">Official yearly schedule including school opening, vacations, exams, and annual day.</p>
             </div>
             <button
               type="button"
-              onClick={() => alert("Downloading official Academic Calendar 2026-2027 (PDF)...")}
+              onClick={() => alert(`Downloading official Academic Calendar ${currentSessionCode} (PDF)...`)}
               className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" /> Download Academic Planner (PDF)
@@ -1466,7 +1473,7 @@ export function SchoolCalendarDesk() {
               <p className="text-xs text-stone-500">Staff meetings, question paper submission deadlines, exam duties, and development days.</p>
             </div>
             <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-xl">
-              Academic Session 2026-27
+              Academic Session {new Date().getFullYear()}–{(new Date().getFullYear() + 1).toString().slice(-2)}
             </span>
           </div>
 
@@ -1516,7 +1523,7 @@ export function SchoolCalendarDesk() {
         <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-stone-100 flex justify-between items-center text-xs">
             <div>
-              <strong className="font-black text-stone-900 text-sm">Official Examination Calendar 2026–2027</strong>
+              <strong className="font-black text-stone-900 text-sm">Official Examination Calendar {currentSessionCode}</strong>
               <p className="text-stone-400 text-[11px]">Connected with the Examination Module.</p>
             </div>
             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl">
@@ -1591,7 +1598,7 @@ export function SchoolCalendarDesk() {
               <p className="text-xs text-stone-500">Gazetted festival holidays, winter/autumn vacations, and second/fourth Saturdays.</p>
             </div>
             <span className="text-xs font-mono font-bold text-red-700 bg-red-50 px-3 py-1 rounded-xl">
-              2026–2027
+              {currentSessionCode}
             </span>
           </div>
 

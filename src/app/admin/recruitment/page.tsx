@@ -345,7 +345,7 @@ export default function RecruitmentPortalPage() {
                 <p className="text-xs text-stone-500">Live applicant funnel across teaching and administrative openings.</p>
               </div>
               <span className="text-xs font-mono font-bold bg-purple-50 text-purple-900 px-2.5 py-1 rounded-xl">
-                Session 2026-27
+                Session {new Date().getFullYear()}–{(new Date().getFullYear() + 1).toString().slice(-2)}
               </span>
             </div>
 
@@ -777,7 +777,7 @@ export default function RecruitmentPortalPage() {
                   <div key={cand.id || i} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                       <span className="text-[10px] font-mono text-purple-700 font-bold">
-                        {cand.offer_letter_number || `CBS/HR/OFFER/2026-${(i + 1).toString().padStart(3, '0')}`}
+                        {cand.offer_letter_number || `CBS/HR/OFFER/${new Date().getFullYear()}-${(i + 1).toString().padStart(3, '0')}`}
                       </span>
                       <strong className="text-stone-900 font-bold text-sm block mt-0.5">{cand.full_name}</strong>
                       <span className="text-[11px] text-stone-600">{cand.position_applied || 'Educator'} • {cand.department || 'Academics'}</span>

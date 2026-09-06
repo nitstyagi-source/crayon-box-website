@@ -81,9 +81,16 @@ export async function createClass(campusId: string, payload: {
 
     let yearId = academicYear?.id;
     if (!yearId) {
+      const curYear = new Date().getFullYear();
       const { data: newYear } = await supabase
         .from('academic_years')
-        .insert([{ campus_id: resolvedCampusId, name: '2026-2027', start_date: '2026-04-01', end_date: '2027-03-31', is_active: true }])
+        .insert([{
+          campus_id: resolvedCampusId,
+          name: `${curYear}-${curYear + 1}`,
+          start_date: `${curYear}-04-01`,
+          end_date: `${curYear + 1}-03-31`,
+          is_active: true
+        }])
         .select()
         .single();
       yearId = newYear?.id;

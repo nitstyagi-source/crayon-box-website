@@ -246,7 +246,7 @@ export function ParentGrievanceDesk() {
                     value={studentInput}
                     onChange={(e) => setStudentInput(e.target.value)}
                     className="w-full bg-[#FAF7F2] border border-[#E8DFC8] rounded-xl px-3 py-2 font-bold text-stone-900 focus:outline-none focus:border-[#D97706]"
-                    placeholder="e.g. CBS-2026-0001"
+                    placeholder={`e.g. CBS-${new Date().getFullYear()}-0001`}
                     required
                   />
                 </div>

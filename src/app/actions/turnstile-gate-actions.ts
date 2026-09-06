@@ -153,8 +153,9 @@ export async function simulateTurnstileTapAction(payload: {
   // Persist live entry to gate logs
   try {
     const supabase = await createClient();
+    const curYear = new Date().getFullYear();
     await supabase.from('student_gate_attendance_logs').insert({
-      academic_session: '2026-2027',
+      academic_session: `${curYear}-${curYear + 1}`,
       date: nowStr.split('T')[0],
       status: 'PRESENT',
       gate_status: payload.direction === 'IN' ? 'IN_CAMPUS' : 'EXITED',

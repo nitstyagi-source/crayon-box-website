@@ -35,7 +35,7 @@ export async function submitAdmission(formData: FormData) {
     const client = await p.connect();
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.admissions_applications;`);
     const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-    const trackingToken = `APP-2026-${nextSeq}`;
+    const trackingToken = `APP-${new Date().getFullYear()}-${nextSeq}`;
 
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
     const campusId = campusRes.rows[0]?.id || null;
@@ -94,7 +94,7 @@ export async function submitFeePayment(formData: FormData) {
     const amount = parseFloat(formData.get("amount") as string) || 0;
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.fee_payment_transactions;`);
     const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-    const utr = `PAY-2026-${nextSeq}`;
+    const utr = `PAY-${new Date().getFullYear()}-${nextSeq}`;
 
     const { rows } = await client.query(`
       INSERT INTO public.fee_payment_transactions (
@@ -124,7 +124,7 @@ export async function submitContactEnquiry(formData: FormData) {
     const message = (formData.get("message") as string) || "";
     const enqCountRes = await client.query(`SELECT count(*)::int as count FROM public.enquiries;`);
     const nextEnqSeq = String((enqCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-    const enqNo = `ENQ-2026-${nextEnqSeq}`;
+    const enqNo = `ENQ-${new Date().getFullYear()}-${nextEnqSeq}`;
 
     await client.query(`
       INSERT INTO public.enquiries (

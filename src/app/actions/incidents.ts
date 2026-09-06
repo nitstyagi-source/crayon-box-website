@@ -181,7 +181,7 @@ export async function createSchoolIncident(payload: {
 
     const { count: incCount } = await supabase.from("school_incidents").select("*", { count: "exact", head: true });
     const nextIncSeq = ((incCount || 0) + 1).toString().padStart(4, '0');
-    const incidentCode = `CBS-INC-2026-${nextIncSeq}`;
+    const incidentCode = `CBS-INC-${new Date().getFullYear()}-${nextIncSeq}`;
 
     const { data, error } = await supabase
       .from("school_incidents")

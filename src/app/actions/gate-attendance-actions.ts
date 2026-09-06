@@ -79,7 +79,7 @@ export async function recordStudentGateScanAction(input: GateScanInput): Promise
         // Direct query (UUID, Universal ID, or Admission No)
         if (raw.startsWith('STU-VET-')) {
           searchUniversalId = raw;
-        } else if (raw.includes('-2026-') || raw.includes('/')) {
+        } else if (/-\d{4}-/.test(raw) || raw.includes('/')) {
           searchAdmissionNo = raw;
         } else if (raw.length === 36) {
           searchStudentId = raw;
@@ -144,16 +144,19 @@ export async function recordStudentGateScanAction(input: GateScanInput): Promise
       entryTime = new Date();
       gateStatus = 'IN_CAMPUS';
       action = 'ENTRY_RECORDED';
+      const curYear = new Date().getFullYear();
+      const curSession = `${curYear}-${curYear + 1}`;
 
       await client.query(`
         INSERT INTO public.student_gate_attendance_logs (
           student_id, institution_code, academic_session, class_name, section_name,
           date, status, gate_status, entry_time, entry_gate, entry_method, qr_token, parent_sms_alert
         )
-        VALUES ($1, $2, '2026-2027', $3, $4, $5, 'PRESENT', 'IN_CAMPUS', $6, $7, 'QR_SCAN', $8, true);
+        VALUES ($1, $2, $3, $4, $5, $6, 'PRESENT', 'IN_CAMPUS', $7, $8, 'QR_SCAN', $9, true);
       `, [
         stu.id,
         stu.institution_code || 'CBS',
+        curSession,
         stu.class_name || 'Class 4',
         stu.section_name || 'A',
         todayStr,
@@ -168,9 +171,9 @@ export async function recordStudentGateScanAction(input: GateScanInput): Promise
           student_id, date, time, academic_session, class_name, section_name,
           event_type, status, verification_method, device_id, parent_notified
         )
-        VALUES ($1, $2, CURRENT_TIME, '2026-2027', $3, $4, 'ENTRY', 'PRESENT', 'QR_SCAN', $5, true);
+        VALUES ($1, $2, CURRENT_TIME, $3, $4, $5, 'ENTRY', 'PRESENT', 'QR_SCAN', $6, true);
       `, [
-        stu.id, todayStr, stu.class_name, stu.section_name, gateName
+        stu.id, todayStr, curSession, stu.class_name, stu.section_name, gateName
       ]);
 
     } else {
@@ -204,15 +207,16 @@ export async function recordStudentGateScanAction(input: GateScanInput): Promise
           WHERE id = $1;
         `, [existingLog.id, exitTime, gateName]);
 
+        const curExitYear = new Date().getFullYear();
         // Audit log in student_attendance_records
         await client.query(`
           INSERT INTO public.student_attendance_records (
             student_id, date, time, academic_session, class_name, section_name,
             event_type, status, verification_method, device_id, parent_notified
           )
-          VALUES ($1, $2, CURRENT_TIME, '2026-2027', $3, $4, 'EXIT', 'PRESENT', 'QR_SCAN', $5, true);
+          VALUES ($1, $2, CURRENT_TIME, $3, $4, $5, 'EXIT', 'PRESENT', 'QR_SCAN', $6, true);
         `, [
-          stu.id, todayStr, stu.class_name, stu.section_name, gateName
+          stu.id, todayStr, `${curExitYear}-${curExitYear + 1}`, stu.class_name, stu.section_name, gateName
         ]);
       } else {
         // Re-entry scan
@@ -239,7 +243,7 @@ export async function recordStudentGateScanAction(input: GateScanInput): Promise
         firstName: stu.first_name,
         lastName: stu.last_name,
         universalId: stu.universal_id,
-        admissionNumber: stu.admission_number || stu.admission_no || 'CBS-2026-XXXX',
+        admissionNumber: stu.admission_number || stu.admission_no || stu.universal_id || 'CBS-STUDENT',
         className: stu.class_name || 'Class 4',
         sectionName: stu.section_name || 'A',
         institutionCode: stu.institution_code || 'CBS',

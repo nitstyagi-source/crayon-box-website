@@ -504,7 +504,7 @@ function LibraryManagementContent() {
 
                     <div className="flex justify-between items-center text-[11px] font-mono">
                       <span className="text-slate-500">ISBN:</span>
-                      <span className="text-slate-600">{book.isbn || "978-81-2026-0001"}</span>
+                      <span className="text-slate-600">{book.isbn || "Not Assigned"}</span>
                     </div>
                   </div>
 

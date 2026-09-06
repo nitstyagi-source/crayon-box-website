@@ -133,7 +133,7 @@ export async function registerNewFixedAssetAction(params: {
 
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.assets;`);
     const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const skuCode = `AST-${category.slice(0, 3).toUpperCase()}-2026-${seq}`;
+    const skuCode = `AST-${category.slice(0, 3).toUpperCase()}-${new Date().getFullYear()}-${seq}`;
 
     const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
     const campusId = campRes.rows[0]?.id || null;

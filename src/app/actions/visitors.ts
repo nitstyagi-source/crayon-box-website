@@ -155,7 +155,7 @@ export async function createNewGatePass(payload: {
 
     const { count: passCount } = await supabase.from("school_gate_passes").select("*", { count: "exact", head: true });
     const nextPassSeq = ((passCount || 0) + 1).toString().padStart(4, '0');
-    const passNumber = `VIS-2026-${nextPassSeq}`;
+    const passNumber = `VIS-${new Date().getFullYear()}-${nextPassSeq}`;
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

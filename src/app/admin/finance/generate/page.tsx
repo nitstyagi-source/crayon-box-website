@@ -27,8 +27,9 @@ export default function GenerateInvoicesPage() {
   const { selectedInstitutionObj } = useInstitution();
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">("individual");
 
-  // Common State
-  const [billingPeriod, setBillingPeriod] = useState("Q1 (April-June 2026)");
+  const curYear = new Date().getFullYear();
+  const currentSession = `${curYear}–${curYear + 1}`;
+  const [billingPeriod, setBillingPeriod] = useState(`Q1 (April-June ${curYear})`);
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 15);
@@ -605,7 +606,7 @@ export default function GenerateInvoicesPage() {
               Invoice Generation Engine
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
+            <span className="text-stone-500 text-xs font-bold">Academic Session {currentSession}</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">Generate Fee Invoices</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">
@@ -868,7 +869,7 @@ export default function GenerateInvoicesPage() {
                     type="text"
                     value={billingPeriod}
                     onChange={(e) => setBillingPeriod(e.target.value)}
-                    placeholder="e.g. Q1 (April-June 2026), Term 1, Annual"
+                    placeholder={`e.g. Q1 (April-June ${curYear}), Term 1, Annual`}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-900 font-semibold"
                     required
                   />
@@ -1128,7 +1129,7 @@ export default function GenerateInvoicesPage() {
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Q1 Term Fee Demand for Academic Year 2026-27"
+                placeholder={`e.g. Q1 Term Fee Demand for Academic Year ${new Date().getFullYear()}–${(new Date().getFullYear() + 1).toString().slice(-2)}`}
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 font-semibold text-stone-900"
               />
             </div>

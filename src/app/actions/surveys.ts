@@ -131,7 +131,7 @@ export async function createSurveyForm(payload: {
 
     const { count: formCount } = await supabase.from("survey_forms").select("*", { count: "exact", head: true });
     const nextFormSeq = ((formCount || 0) + 1).toString().padStart(4, '0');
-    const formCode = `SURV-2026-${nextFormSeq}`;
+    const formCode = `SURV-${new Date().getFullYear()}-${nextFormSeq}`;
     const qrToken = `QR-${formCode}-${Date.now().toString().slice(-4)}`;
 
     const { data, error } = await supabase
@@ -238,7 +238,7 @@ export async function submitSurveyResponse(payload: {
 
     if (isLowRating) {
       const { count } = await supabase.from("survey_responses").select("id", { count: "exact", head: true });
-      ticketNum = `TKT-2026-${((count || 0) + 1).toString().padStart(5, '0')}`;
+      ticketNum = `TKT-${new Date().getFullYear()}-${((count || 0) + 1).toString().padStart(5, '0')}`;
     }
 
     const { data: resp, error: rErr } = await supabase

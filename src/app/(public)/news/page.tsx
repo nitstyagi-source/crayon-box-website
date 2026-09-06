@@ -32,6 +32,14 @@ export default function NewsMedia() {
   const cmsData = useLivePreview("news");
   const supabase = createClient();
 
+  const curYear = new Date().getFullYear();
+  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const newsletterEditions = [1, 2, 3].map(offset => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - offset);
+    return `${d.toLocaleString('en-US', { month: 'long', year: 'numeric' })} Edition`;
+  });
+
   useEffect(() => {
     async function fetchNews() {
       const { data } = await supabase.from('news_articles').select('*').eq('is_published', true).order('published_date', { ascending: false });
@@ -122,11 +130,11 @@ export default function NewsMedia() {
                   </thead>
                   <tbody className="space-y-4">
                     {(cmsData.notices || [
-                      { date: 'Aug 18, 2026', title: 'Winter Uniform Guidelines for K-8', aud: 'Grades Pre-K to 8', tag: 'General', new: true },
-                      { date: 'Aug 15, 2026', title: 'Term 1 Examination Schedule Published', aud: 'Grades 6 to 8', tag: 'Academics', new: false },
-                      { date: 'Aug 10, 2026', title: 'Transport Route Changes for Sector 4', aud: 'Bus Route 04 Parents', tag: 'Transport', new: false },
-                      { date: 'Aug 05, 2026', title: 'Call for Registrations: Inter-School MUN', aud: 'Grades 7 to 8', tag: 'Co-Curricular', new: false },
-                      { date: 'Jul 30, 2026', title: 'Parent-Teacher Meeting (PTM) Setup', aud: 'All Grades', tag: 'Events', new: false },
+                      { date: `Aug 18, ${curYear}`, title: 'Winter Uniform Guidelines for K-8', aud: 'Grades Pre-K to 8', tag: 'General', new: true },
+                      { date: `Aug 15, ${curYear}`, title: 'Term 1 Examination Schedule Published', aud: 'Grades 6 to 8', tag: 'Academics', new: false },
+                      { date: `Aug 10, ${curYear}`, title: 'Transport Route Changes for Sector 4', aud: 'Bus Route 04 Parents', tag: 'Transport', new: false },
+                      { date: `Aug 05, ${curYear}`, title: 'Call for Registrations: Inter-School MUN', aud: 'Grades 7 to 8', tag: 'Co-Curricular', new: false },
+                      { date: `Jul 30, ${curYear}`, title: 'Parent-Teacher Meeting (PTM) Setup', aud: 'All Grades', tag: 'Events', new: false },
                     ]).map((notice: any, idx: number) => (
                       <tr key={idx} className="bg-white hover:bg-orange-50/50 transition-colors group shadow-sm border border-stone-100 rounded-xl relative">
                         <td className="p-6 text-sm text-stone-500 whitespace-nowrap align-top">
@@ -167,7 +175,7 @@ export default function NewsMedia() {
               {/* Interactive Visual Mini-Calendar Mockup */}
               <div className="bg-white border border-stone-200 shadow-xl rounded-[2rem] p-8">
                 <div className="flex items-center justify-between mb-8">
-                  <h4 className="font-bold text-lg text-stone-900 font-serif">August 2026</h4>
+                  <h4 className="font-bold text-lg text-stone-900 font-serif">{currentMonthName}</h4>
                   <div className="flex gap-2">
                     <button className="w-8 h-8 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-colors">&lt;</button>
                     <button className="w-8 h-8 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-colors">&gt;</button>
@@ -283,7 +291,7 @@ export default function NewsMedia() {
                 <p className="text-stone-600 font-light text-sm mb-8">Download previous editions of our monthly digital newsletter.</p>
                 
                 <ul className="space-y-4">
-                  {['July 2026 Edition', 'June 2026 Edition', 'May 2026 Edition'].map((nl, idx) => (
+                  {newsletterEditions.map((nl, idx) => (
                     <li key={idx}>
                       <button className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 rounded-xl hover:border-primary hover:text-primary transition-colors group">
                         <span className="font-bold text-sm text-stone-700 group-hover:text-primary">{nl}</span>

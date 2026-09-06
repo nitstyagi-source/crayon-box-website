@@ -45,7 +45,13 @@ export type {
 // -------------------------------------------------------------
 // 1. GET TIMETABLE SETTINGS (SCHOOL TIMINGS & WORKING DAYS)
 // -------------------------------------------------------------
-export async function getTimetableSettingsAction(institutionCode = 'CBS', academicSession = '2026-2027') {
+
+function getDefaultAcademicSession(): string {
+  const y = new Date().getFullYear();
+  return `${y}-${y + 1}`;
+}
+
+export async function getTimetableSettingsAction(institutionCode = 'CBS', academicSession = getDefaultAcademicSession()) {
   const pool = getPool();
   const client = await pool.connect();
   try {
@@ -124,7 +130,7 @@ export async function saveTimetableSettingsAction(payload: TimetableSettingsInpu
   try {
     const {
       institutionCode,
-      academicSession = '2026-2027',
+      academicSession = getDefaultAcademicSession(),
       schoolStartTime,
       schoolEndTime,
       assemblyStartTime,
@@ -208,7 +214,7 @@ export async function updatePeriodTimingsAction(payload: {
   try {
     const {
       institutionCode = 'CBS',
-      academicSession = '2026-2027',
+      academicSession = getDefaultAcademicSession(),
       periodTimings
     } = payload;
 
@@ -263,7 +269,7 @@ export async function updatePeriodTimingsAction(payload: {
 // -------------------------------------------------------------
 // 3. MOTHER TEACHER ALLOCATION (UP TO CLASS 2)
 // -------------------------------------------------------------
-export async function getMotherTeacherAllocationAction(institutionCode: string, className: string, sectionName: string, academicSession = '2026-2027') {
+export async function getMotherTeacherAllocationAction(institutionCode: string, className: string, sectionName: string, academicSession = getDefaultAcademicSession()) {
   const pool = getPool();
   const client = await pool.connect();
   try {
@@ -311,7 +317,7 @@ export async function saveMotherTeacherAllocationAction(payload: MotherTeacherAl
   try {
     const {
       institutionCode,
-      academicSession = '2026-2027',
+      academicSession = getDefaultAcademicSession(),
       className,
       sectionName,
       motherTeacherId,
@@ -389,7 +395,7 @@ export async function checkTimetableConflictAction(input: SlotConflictCheckInput
       teacherId,
       teacherName,
       roomNumber,
-      academicSession = '2026-2027'
+      academicSession = getDefaultAcademicSession()
     } = input;
 
     const conflicts: {
@@ -476,6 +482,7 @@ export async function saveTimetableSlotWithConflictProtectionAction(payload: {
   roomNumber?: string;
   breakType?: string;
   forceOverride?: boolean;
+  academicSession?: string;
 }) {
   const pool = getPool();
   const client = await pool.connect();
@@ -525,6 +532,8 @@ export async function saveTimetableSlotWithConflictProtectionAction(payload: {
     const campusRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
     const campusId = campusRes.rows[0]?.id || null;
 
+    const academicSession = payload.academicSession || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+
     if (id) {
       await client.query(`
         UPDATE public.school_timetable
@@ -563,7 +572,7 @@ export async function saveTimetableSlotWithConflictProtectionAction(payload: {
           end_time, duration_minutes, subject_name, teacher_id,
           teacher_name, room_number, break_type, status
         ) VALUES (
-          $1, '2026-2027', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'Active'
+          $1, $15, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'Active'
         );
       `, [
         campusId,
@@ -579,7 +588,8 @@ export async function saveTimetableSlotWithConflictProtectionAction(payload: {
         teacherId || null,
         teacherName,
         roomNumber,
-        breakType
+        breakType,
+        academicSession
       ]);
     }
 
@@ -603,7 +613,7 @@ export async function autoGenerateTimetableAction(payload: AutoGenerateTimetable
   try {
     const {
       institutionCode = 'CBS',
-      academicSession = '2026-2027',
+      academicSession = getDefaultAcademicSession(),
       scope = 'SINGLE_CLASS',
       className = 'Class 1',
       sectionName = 'A',

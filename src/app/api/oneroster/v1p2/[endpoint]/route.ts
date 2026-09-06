@@ -59,24 +59,26 @@ export async function GET(
 
       // 2. ACADEMIC SESSIONS (Terms & School Years)
       case 'academicsessions': {
+        const curYear = new Date().getFullYear();
+        const nextYear = curYear + 1;
         return NextResponse.json({
           academicSessions: [
             {
-              sourcedId: 'session-2026-2027',
+              sourcedId: `session-${curYear}-${nextYear}`,
               status: 'active',
               dateLastModified: new Date().toISOString(),
-              title: 'Academic Session 2026-2027',
-              startDate: '2026-04-01',
-              endDate: '2027-03-31',
+              title: `Academic Session ${curYear}-${nextYear}`,
+              startDate: `${curYear}-04-01`,
+              endDate: `${nextYear}-03-31`,
               type: 'schoolYear'
             },
             {
-              sourcedId: 'term-1-2026',
+              sourcedId: `term-1-${curYear}`,
               status: 'active',
               dateLastModified: new Date().toISOString(),
               title: 'Term 1 (Half Yearly)',
-              startDate: '2026-04-01',
-              endDate: '2026-09-30',
+              startDate: `${curYear}-04-01`,
+              endDate: `${curYear}-09-30`,
               type: 'term'
             }
           ]

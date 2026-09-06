@@ -132,10 +132,10 @@ export async function getStudentsForIdCardGeneration(campusId?: string, filters?
         class_name: h?.class_name || s.grade || 'N/A',
         section_name: h?.section_name || s.section || 'A',
         roll_no: h?.roll_no || s.roll_no || `${idx + 1}`,
-        card_number: card?.card_number || `CB-STU-2026-${(idx + 1).toString().padStart(4, '0')}`,
+        card_number: card?.card_number || `CB-STU-${new Date().getFullYear()}-${(idx + 1).toString().padStart(4, '0')}`,
         qr_token: defaultQr,
         card_status: card?.status || 'Active',
-        expiry_date: card?.expiry_date || '2027-03-31',
+        expiry_date: card?.expiry_date || `${new Date().getFullYear() + 1}-03-31`,
         parent_phone: parentMap[s.id] || '',
         father_name: fatherMap[s.id] || '',
         mother_name: motherMap[s.id] || '',
@@ -172,7 +172,8 @@ export async function generateAllMissingIdCards() {
       if (!existingSet.has(st.id)) {
         const cleanAdm = st.admission_no || `CB10${(i + 1).toString().padStart(2, '0')}`;
         const qrToken = `CBS-SEC-STU-${cleanAdm}-${st.id.substring(0, 4).toUpperCase()}`;
-        const cardNum = `CB-STU-2026-${(i + 1).toString().padStart(4, '0')}`;
+        const curYear = new Date().getFullYear();
+        const cardNum = `CB-STU-${curYear}-${(i + 1).toString().padStart(4, '0')}`;
 
         await supabase.from('id_cards').insert([{
           campus_id: st.campus_id || defaultCampusId,
@@ -181,9 +182,9 @@ export async function generateAllMissingIdCards() {
           student_id: st.id,
           qr_token: qrToken,
           template_type: 'Standard',
-          academic_session: '2026-2027',
-          issue_date: '2026-04-01',
-          expiry_date: '2027-03-31',
+          academic_session: `${curYear}-${curYear + 1}`,
+          issue_date: `${curYear}-04-01`,
+          expiry_date: `${curYear + 1}-03-31`,
           status: 'Active',
           reprint_count: 0
         }]);
@@ -249,7 +250,7 @@ export async function getEscortsForCardGeneration(campusId?: string, filters?: {
 
       return {
         ...e,
-        card_number: card?.card_number || `CB-ESC-2026-${(idx + 1).toString().padStart(4, '0')}`,
+        card_number: card?.card_number || `CB-ESC-${new Date().getFullYear()}-${(idx + 1).toString().padStart(4, '0')}`,
         qr_token: defaultQr,
         card_status: card?.status || e.status || 'Active',
         authorized_students: mappingMap[e.id] || []
@@ -629,11 +630,12 @@ export async function addEscortToStudent(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
+    const curYear = new Date().getFullYear();
     const { count: escortCount } = await supabase
       .from('escorts')
       .select('*', { count: 'exact', head: true });
     const nextEscortSeq = String((escortCount || 0) + 1).padStart(4, '0');
-    const randomCode = `ESC-2026-${nextEscortSeq}`;
+    const randomCode = `ESC-${curYear}-${nextEscortSeq}`;
 
     // 1. Insert Escort record
     const { data: escort, error: escErr } = await supabase
@@ -647,8 +649,8 @@ export async function addEscortToStudent(payload: {
         id_proof_type: payload.idProofType || 'Aadhaar',
         id_proof_number_masked: payload.idProofNumber ? `XXXX-XXXX-${payload.idProofNumber.slice(-4)}` : null,
         status: 'Active',
-        valid_from: '2026-04-01',
-        valid_until: '2027-03-31'
+        valid_from: `${curYear}-04-01`,
+        valid_until: `${curYear + 1}-03-31`
       }])
       .select()
       .single();
@@ -674,6 +676,7 @@ export async function addEscortToStudent(payload: {
       const cleanAdm = student.admission_no || `CB10${student.id.substring(0, 2)}`;
       const qrToken = `CBS-SEC-ESC-STU-${cleanAdm}-${student.id.substring(0, 4).toUpperCase()}`;
 
+      const curEscYear = new Date().getFullYear();
       await supabase.from('id_cards').upsert({
         campus_id: student.campus_id,
         card_number: `CB-ESC-CARD-${cleanAdm}`,
@@ -682,9 +685,9 @@ export async function addEscortToStudent(payload: {
         escort_id: escort.id,
         qr_token: qrToken,
         template_type: 'Multi-Escort',
-        academic_session: '2026-2027',
-        issue_date: '2026-04-01',
-        expiry_date: '2027-03-31',
+        academic_session: `${curEscYear}-${curEscYear + 1}`,
+        issue_date: `${curEscYear}-04-01`,
+        expiry_date: `${curEscYear + 1}-03-31`,
         status: 'Active',
         reprint_count: 0
       }, { onConflict: 'card_number' });
@@ -708,9 +711,10 @@ export async function generateStudentIdCard(studentId: string) {
     const { data: student, error } = await supabase.from('students').select('*').eq('id', studentId).single();
     if (error || !student) throw new Error("Student not found.");
 
+    const curStuYear = new Date().getFullYear();
     const cleanAdm = student.admission_no || `CB10${student.id.substring(0, 2)}`;
     const qrToken = `CBS-SEC-STU-${cleanAdm}-${student.id.substring(0, 4).toUpperCase()}`;
-    const cardNum = `CB-STU-2026-${cleanAdm}`;
+    const cardNum = `CB-STU-${curStuYear}-${cleanAdm}`;
 
     const { data: card, error: cardErr } = await supabase.from('id_cards').upsert({
       campus_id: student.campus_id,
@@ -719,9 +723,9 @@ export async function generateStudentIdCard(studentId: string) {
       student_id: student.id,
       qr_token: qrToken,
       template_type: 'Standard',
-      academic_session: '2026-2027',
-      issue_date: '2026-04-01',
-      expiry_date: '2027-03-31',
+      academic_session: `${curStuYear}-${curStuYear + 1}`,
+      issue_date: `${curStuYear}-04-01`,
+      expiry_date: `${curStuYear + 1}-03-31`,
       status: 'Active',
       reprint_count: 0
     }, { onConflict: 'card_number' }).select().single();

@@ -19,7 +19,8 @@ function safeRevalidate(path: string) {
 /**
  * 1. GET DYNAMIC SEAT INVENTORY MATRIX
  */
-export async function getSeatInventoryMatrixAction(session: string = '2026-2027') {
+export async function getSeatInventoryMatrixAction(session?: string) {
+  const currentSession = session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   const p = getPool();
   const client = await p.connect();
   try {
@@ -27,7 +28,7 @@ export async function getSeatInventoryMatrixAction(session: string = '2026-2027'
       SELECT * FROM public.seat_inventory_matrices
       WHERE academic_session = $1
       ORDER BY class_name ASC, quota_type ASC
-    `, [session]);
+    `, [currentSession]);
 
     const mapped = rows.map((r: any) => {
       const remaining = Math.max(0, r.total_seats - r.admitted_seats);
@@ -68,15 +69,16 @@ export async function getSeatInventoryMatrixAction(session: string = '2026-2027'
 /**
  * 2. LIVE CHECK SEAT AVAILABILITY DURING APPLICATION INTAKE
  */
-export async function checkSeatAvailabilityAndReserveAction(className: string, quotaType: string = 'GENERAL') {
+export async function checkSeatAvailabilityAndReserveAction(className: string, quotaType: string = 'GENERAL', session?: string) {
+  const currentSession = session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   const p = getPool();
   const client = await p.connect();
   try {
     const { rows } = await client.query(`
       SELECT * FROM public.seat_inventory_matrices
-      WHERE class_name = $1 AND quota_type = $2 AND academic_session = '2026-2027'
+      WHERE class_name = $1 AND quota_type = $2 AND academic_session = $3
       FOR UPDATE
-    `, [className, quotaType]);
+    `, [className, quotaType, currentSession]);
 
     if (rows.length === 0) {
       return { success: true, isWaitlisted: false, message: 'Seats open' };

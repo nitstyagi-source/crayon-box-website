@@ -36,7 +36,17 @@ function PayrollHubContent() {
   const { activeCampusId } = useCampusContext();
   const activeInst = currentInstitution || activeCampusId || 'CBS';
 
-  const [selectedMonth, setSelectedMonth] = useState<string>('September 2026');
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dynamicMonths = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  });
+
+  const curYear = new Date().getFullYear();
+  const currentSession = `${curYear}–${curYear + 1}`;
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(dynamicMonths[0]);
   const [payrollData, setPayrollData] = useState<any>({
     isBatchProcessed: false,
     counts: {
@@ -150,7 +160,7 @@ function PayrollHubContent() {
       <VastuModuleBanner
         badgeText="Statutory Staff Compensation & EPF"
         badgeIcon={<IndianRupee className="w-3.5 h-3.5 text-[#D97706]" />}
-        institutionText={`Campus: ${activeInst} • Session 2026–2027`}
+        institutionText={`Campus: ${activeInst} • Session ${currentSession}`}
         title="HR, Statutory Payroll & Disbursals Hub"
         titleIcon={<Users className="w-7 h-7 text-[#D97706]" />}
         description="Unified payroll lifecycle uniting Attendance-Linked Salary Runs, Indian Statutory Deductions (EPF 12%, ESIC, PT, TDS), Digital Payslips with WhatsApp Dispatch, and 1-Click Bank NEFT CSV."
@@ -163,9 +173,9 @@ function PayrollHubContent() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
               >
-                <option value="September 2026">September 2026</option>
-                <option value="August 2026">August 2026</option>
-                <option value="July 2026">July 2026</option>
+                {dynamicMonths.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
               </select>
             </div>
 

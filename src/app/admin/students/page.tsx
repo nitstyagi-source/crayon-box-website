@@ -1290,7 +1290,7 @@ function UniversalStudentsDirectoryContent() {
                       required
                       value={tcAdmissionNo}
                       onChange={e => setTcAdmissionNo(e.target.value)}
-                      placeholder="e.g. ADM-2026-001"
+                      placeholder={`e.g. ADM-${new Date().getFullYear()}-001`}
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 font-mono"
                     />
                   </div>

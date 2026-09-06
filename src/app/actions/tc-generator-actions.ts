@@ -64,10 +64,10 @@ export async function generateTransferCertificateAction(params: {
     const instCode = (params.institutionCode || 'CBS').toUpperCase();
     const tcCountRes = await client.query(`SELECT count(*)::int as count FROM public.transfer_certificates;`);
     const nextTcNum = ((tcCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const tcNumber = `TC/${instCode}/2026/${nextTcNum}`;
+    const tcNumber = `TC/${instCode}/${new Date().getFullYear()}/${nextTcNum}`;
     const refNumber = `REF/${instCode}/${nextTcNum}`;
     const result = params.annualResult || "Promoted to Higher Class (Passed)";
-    const pen = params.penNo || `PEN-2026-${nextTcNum}`;
+    const pen = params.penNo || `PEN-${new Date().getFullYear()}-${nextTcNum}`;
 
     // Verify real student record & dues in database
     const stuRes = await client.query(`

@@ -27,6 +27,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const cmsData = useLivePreview("home");
 
+  const curYear = new Date().getFullYear();
+  const defaultTicker = `• ADMISSIONS OPEN FOR ${curYear}–${(curYear + 1).toString().slice(-2)} • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •`;
+
   useEffect(() => {
     // Capture Email Magic Link sign-ins
     const { createClient } = require('@supabase/supabase-js');
@@ -97,8 +100,8 @@ export default function Home() {
         {/* Live Circular Ticker */}
         <div className="absolute top-24 left-0 w-full z-20 bg-accent/90 text-white overflow-hidden py-2 backdrop-blur-sm">
           <div className="whitespace-nowrap flex animate-[marquee_20s_linear_infinite]">
-             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || "• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •"}</span>
-             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || "• ADMISSIONS OPEN FOR 2026-27 • K-12 EXPANSION IN PROGRESS • ROBOTICS LAB INAUGURATION NEXT WEEK •"}</span>
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || defaultTicker}</span>
+             <span className="mx-4 text-sm font-bold tracking-widest uppercase">{cmsData.hero?.ticker_text || defaultTicker}</span>
           </div>
         </div>
 

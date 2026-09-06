@@ -25,6 +25,11 @@ function safeRevalidate(path: string) {
   } catch {}
 }
 
+function getDefaultAcademicSession(): string {
+  const curYear = new Date().getFullYear();
+  return `${curYear}-${curYear + 1}`;
+}
+
 // -------------------------------------------------------------
 // INTERFACES & TYPES
 // -------------------------------------------------------------
@@ -468,7 +473,7 @@ export async function getCurriculumRadarAction(params?: {
   const client = await pool.connect();
   try {
     const inst = params?.institutionCode || 'CBS';
-    const session = params?.session || '2026-2027';
+    const session = params?.session || getDefaultAcademicSession();
     const className = params?.className || 'All';
     const search = params?.subjectSearch?.trim() || '';
     const pacing = params?.pacingFilter || 'ALL';
@@ -889,7 +894,7 @@ export async function getTeacherLessonDiaryAction(params?: {
   const client = await pool.connect();
   try {
     const inst = params?.institutionCode || 'CBS';
-    const session = params?.session || '2026-2027';
+    const session = params?.session || getDefaultAcademicSession();
     const limit = params?.limit || 50;
 
     let query = `
@@ -1021,7 +1026,7 @@ export async function saveTeacherLessonDiaryEntryAction(payload: {
 
     const {
       institutionCode = 'CBS',
-      academicSession = '2026-2027',
+      academicSession = getDefaultAcademicSession(),
       lessonDate,
       className,
       sectionName = 'A',

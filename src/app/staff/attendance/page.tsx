@@ -36,7 +36,7 @@ export default function AttendanceGrid() {
           res.data.map((s: any) => ({
             id: s.id,
             name: `${s.first_name} ${s.last_name || ''}`.trim(),
-            rollNumber: s.admission_no || s.roll_no || 'ADM-2026',
+            rollNumber: s.admission_no || s.roll_no || `ADM-${new Date().getFullYear()}`,
             photoUrl: s.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${s.first_name}`,
             status: (s.current_attendance_status as any) || null
           }))

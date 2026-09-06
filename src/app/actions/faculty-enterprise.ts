@@ -261,7 +261,7 @@ export async function saveStaffLessonPlan(staffId: string, data: any) {
     const supabase = getSupabaseAdmin();
     const payload = {
       staff_id: staffId,
-      academic_session: data.academic_session || '2026-2027',
+      academic_session: data.academic_session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       class_name: data.class_name,
       section_name: data.section_name || 'A',
       subject_name: data.subject_name,
@@ -375,7 +375,7 @@ export async function saveStaffAppraisal(staffId: string, data: any) {
       .from('staff_appraisals')
       .insert([{
         staff_id: staffId,
-        appraisal_year: data.appraisal_year || '2026-2027',
+        appraisal_year: data.appraisal_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         evaluation_scores: data.evaluation_scores,
         average_score: data.average_score || 4.5,
         overall_rating: data.overall_rating || 'Very Good',

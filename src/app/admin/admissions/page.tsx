@@ -243,7 +243,7 @@ function AdmissionsCommandCenterContent() {
       <VastuModuleBanner
         badgeText="Unified Admissions Command Suite"
         badgeIcon={<Sparkles className="w-3 h-3 text-[#D97706]" />}
-        institutionText="Academic Session 2026–2027"
+        institutionText={`Academic Session ${new Date().getFullYear()}–${new Date().getFullYear() + 1}`}
         title="Admissions Command Suite & CRM"
         titleIcon={<GraduationCap className="w-7 h-7 text-[#D97706]" />}
         description="Consolidated pre-admission cockpit uniting Kanban Pipeline CRM, Rapid Walk-ins Intake, Funnel Analytics, and 24/7 AI Copilot."
@@ -698,7 +698,7 @@ function AdmissionsCommandCenterContent() {
                   <h3 className="font-extrabold text-stone-900 text-sm">Admissions AI WhatsApp & Prospectus Bot</h3>
                   <div className="flex items-center gap-2 text-[10px] text-stone-600 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>Trained on Official 2026-27 Institutional Prospectus & Fee Structure</span>
+                    <span>Trained on Official {new Date().getFullYear()}-{(new Date().getFullYear() + 1).toString().slice(-2)} Institutional Prospectus & Fee Structure</span>
                   </div>
                 </div>
               </div>
@@ -768,7 +768,7 @@ function AdmissionsCommandCenterContent() {
                 {[
                   "What is the annual tuition fee for Class 5?",
                   "Are sibling discounts applicable across all campuses?",
-                  "What is the minimum age for Nursery admissions 2026-27?",
+                  `What is the minimum age for Nursery admissions ${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}?`,
                   "Is school transport bus route available for Burari / Sant Nagar?",
                 ].map((q, i) => (
                   <button

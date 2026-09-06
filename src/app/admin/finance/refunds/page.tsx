@@ -148,7 +148,7 @@ export default function RefundsModule() {
               Audit & Settlements
             </span>
             <span className="text-stone-400 text-xs">•</span>
-            <span className="text-stone-500 text-xs font-bold">Academic Session 2026-2027</span>
+            <span className="text-stone-500 text-xs font-bold">Academic Session {new Date().getFullYear()}–{new Date().getFullYear() + 1}</span>
           </div>
           <h1 className="text-3xl font-black text-stone-900 tracking-tight">Refunds & Adjustments</h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-1">

@@ -128,7 +128,7 @@ export async function getStudent360MasterProfile(studentId?: string) {
           lateDaysThisTerm: 0
         },
         financeModule: {
-          feePlan: "Quarterly Standard 2026-27",
+          feePlan: `Quarterly Standard ${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`,
           augustFeeStatus: latestReceipt ? `Receipt #${latestReceipt.receipt_no}` : "Pending Verification",
           receiptNo: latestReceipt?.receipt_no || "N/A",
           outstandingDues: "₹ 0.00",

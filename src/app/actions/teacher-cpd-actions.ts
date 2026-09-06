@@ -34,7 +34,8 @@ export interface TeacherCpdRecord {
   }>;
 }
 
-export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2027') {
+export async function getTeacherCpdOverviewAction(academicYear?: string) {
+  const currentAcademicYear = academicYear || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   try {
     const supabase = getSupabaseAdmin();
 
@@ -58,7 +59,7 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
     const { data: cpdData } = await supabase
       .from('teacher_cpd_records')
       .select('*')
-      .eq('academic_year', academicYear);
+      .eq('academic_year', currentAcademicYear);
 
     // Query staff_trainings for additional logged records
     const { data: staffTrainings } = await supabase
@@ -121,7 +122,7 @@ export async function getTeacherCpdOverviewAction(academicYear: string = '2026-2
         employee_code: f.employee_code || `FAC-${100 + idx}`,
         department: f.department || 'Academics',
         designation: f.designation || 'Teacher',
-        academic_year: academicYear,
+        academic_year: currentAcademicYear,
         total_hours: totalHours,
         cbse_external_hours: externalHours,
         internal_school_hours: internalHours,
@@ -149,9 +150,10 @@ export async function logTeacherCpdWorkshopAction(payload: {
 }) {
   try {
     const supabase = getSupabaseAdmin();
+    const curYear = new Date().getFullYear();
     const record = {
       teacher_id: payload.teacher_id,
-      academic_year: payload.academic_year || '2026-2027',
+      academic_year: payload.academic_year || `${curYear}-${curYear + 1}`,
       workshop_title: payload.workshop_title,
       conducting_agency: payload.conducting_agency,
       hours_credited: payload.hours_credited,

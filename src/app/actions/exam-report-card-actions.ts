@@ -25,11 +25,23 @@ function safeRevalidate(path: string) {
   } catch {}
 }
 
+function toDateString(d: any): string {
+  if (!d) return '';
+  if (d instanceof Date) return d.toISOString().split('T')[0];
+  if (typeof d === 'string') return d.split('T')[0];
+  return String(d);
+}
+
 function safeDateStr(d: any): string {
   if (!d) return new Date().toISOString().split('T')[0];
   if (d instanceof Date) return d.toISOString().split('T')[0];
   if (typeof d === 'string') return d.split('T')[0];
   return String(d);
+}
+
+function getDefaultAcademicSession(): string {
+  const curYear = new Date().getFullYear();
+  return `${curYear}–${curYear + 1}`;
 }
 
 // -------------------------------------------------------------
@@ -47,7 +59,7 @@ export async function getClassExamMarksRosterAction(params: {
   try {
     const className = params.className || 'Class 1';
     const examTerm = params.examTerm || 'Term 1 (Half Yearly Examination)';
-    const session = params.academicSession || '2026–2027';
+    const session = params.academicSession || getDefaultAcademicSession();
 
     // 1. Fetch all students in class
     const stuRes = await client.query(`
@@ -198,7 +210,7 @@ export async function getStudentCompleteReportCardAction(params: {
   const client = await pool.connect();
 
   try {
-    const session = params.academicSession || '2026–2027';
+    const session = params.academicSession || getDefaultAcademicSession();
 
     // 1. Fetch Student Details
     const stuRes = await client.query(`
@@ -399,7 +411,7 @@ export async function moderateAndLockResultsAction(params: {
   const client = await pool.connect();
 
   try {
-    const { className, examTerm, academicSession = '2026–2027' } = params;
+    const { className, examTerm, academicSession = getDefaultAcademicSession() } = params;
 
     await client.query(`
       UPDATE public.student_exam_marks
@@ -434,7 +446,7 @@ export async function getBulkClassReportCardsAction(params: {
   try {
     const className = params.className || 'Class 1';
     const examTerm = params.examTerm || 'Term 1 (Half Yearly Examination)';
-    const session = params.academicSession || '2026–2027';
+    const session = params.academicSession || getDefaultAcademicSession();
 
     // 1. Fetch all students in class
     const stuRes = await client.query(`
@@ -662,7 +674,7 @@ export async function verifyReportCardTokenAction(token: string) {
           admissionNo: stu.admission_no,
           className: stu.class_name,
           sectionName: stu.section_name,
-          academicSession: session || '2026–2027',
+          academicSession: session || getDefaultAcademicSession(),
           institution: matchedInst.name,
           shortName: matchedInst.shortName,
           affiliation: matchedInst.affiliationNumber ? `Affiliation No: ${matchedInst.affiliationNumber} (${matchedInst.boardAffiliation})` : (matchedInst.boardAffiliation || 'Recognized Academic Institution'),

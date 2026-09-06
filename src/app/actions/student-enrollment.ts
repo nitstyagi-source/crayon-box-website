@@ -40,7 +40,7 @@ export async function getStudentMasterWithEnrollments(studentUuid: string) {
       institutionId: e.institution_id || e.institution_code,
       institutionCode: e.institution_code || 'CBS',
       campusId: e.campus_id || 'cmp-cbs-spe',
-      academicSessionId: e.academic_session || '2026-2027',
+      academicSessionId: e.academic_session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       admissionNumber: e.admission_number || stu.admission_no || '',
       gradeLevel: e.class_name,
       section: e.section_name,
@@ -122,8 +122,10 @@ export async function executeInternalTrustTransferAction(params: {
 
     // 3. Generate new admission number
     const enrCountRes = await client.query(`SELECT count(*)::int as count FROM public.student_enrollments;`);
+    const curYear = new Date().getFullYear();
+    const curSession = `${curYear}-${curYear + 1}`;
     const nextEnrSeq = String((enrCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-    const newAdmNo = `${params.targetInstitutionCode}-2026-${nextEnrSeq}`;
+    const newAdmNo = `${params.targetInstitutionCode}-${curYear}-${nextEnrSeq}`;
 
     // 4. Insert new enrollment
     const newEnrRes = await client.query(`
@@ -131,11 +133,12 @@ export async function executeInternalTrustTransferAction(params: {
         student_id, institution_code, academic_session, class_name, 
         section_name, admission_number, status, remarks
       ) VALUES (
-        $1, $2, '2026-2027', $3, $4, $5, 'ACTIVE', $6
+        $1, $2, $3, $4, $5, $6, 'ACTIVE', $7
       ) RETURNING *;
     `, [
       student.id,
       params.targetInstitutionCode,
+      curSession,
       params.targetGrade,
       params.targetSection,
       newAdmNo,
@@ -159,7 +162,7 @@ export async function executeInternalTrustTransferAction(params: {
       legalEntityId: 'leg-vet-main',
       institutionId: currentEnrollment?.institution_code || 'CBS',
       campusId: params.targetCampusId || 'cmp-cbs-spe',
-      sessionId: '2026-2027',
+      sessionId: curSession,
       actor: {
         userId: params.actor.userId,
         name: params.actor.name,

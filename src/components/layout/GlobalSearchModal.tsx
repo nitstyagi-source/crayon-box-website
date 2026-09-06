@@ -64,7 +64,7 @@ export default function GlobalSearchModal({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search students, families, staff, invoices, receipts (e.g. 'Aarav', 'Sharma', 'INV-2026')..."
+            placeholder={`Search students, families, staff, invoices, receipts (e.g. 'Aarav', 'Sharma', 'INV-${new Date().getFullYear()}')...`}
             className="w-full text-sm font-semibold text-stone-900 bg-transparent focus:outline-none placeholder:text-stone-400"
           />
           <button
@@ -89,7 +89,7 @@ export default function GlobalSearchModal({
               <div className="flex justify-center gap-2 text-[11px] font-bold text-stone-500">
                 <span className="px-2 py-0.5 bg-stone-100 rounded-md">Aarav Sharma</span>
                 <span className="px-2 py-0.5 bg-stone-100 rounded-md">Sharma Family</span>
-                <span className="px-2 py-0.5 bg-stone-100 rounded-md">INV-2026</span>
+                <span className="px-2 py-0.5 bg-stone-100 rounded-md">{`INV-${new Date().getFullYear()}`}</span>
               </div>
             </div>
           )}

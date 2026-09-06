@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const clockInRecord = {
       userId,
-      employeeCode: employeeCode || "EMP-2026-042",
+      employeeCode: employeeCode || (userId ? `EMP-${userId.slice(0, 8).toUpperCase()}` : 'EMP-STAFF'),
       clockInTime: new Date().toISOString(),
       distanceMeters: Math.round(distance),
       accuracyMeters: accuracy || 10,

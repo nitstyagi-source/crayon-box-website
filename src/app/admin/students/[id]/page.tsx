@@ -156,7 +156,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
         setReadmitForm(prev => ({
           ...prev,
           institutionCode: latestEnr.institution_code || 'CBS',
-          academicSession: '2026-2027',
+          academicSession: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
           className: latestEnr.class_name || 'Class 3',
           sectionName: latestEnr.section_name || 'A',
           academicStage: latestEnr.academic_stage || 'PRIMARY',
@@ -502,7 +502,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
               )}
             </div>
             <p className="text-xs text-slate-500 font-medium">
-              Current / Latest Enrollment: <strong className="text-slate-900">{currentEnr?.institution_code} • {currentEnr?.class_name} ({currentEnr?.section_name})</strong> • Session: <strong className="text-slate-900">{currentEnr?.academic_session || '2026-2027'}</strong> • Admission No: <span className="font-mono font-bold text-slate-700">{student.admission_no || currentEnr?.admission_number}</span>
+              Current / Latest Enrollment: <strong className="text-slate-900">{currentEnr?.institution_code} • {currentEnr?.class_name} ({currentEnr?.section_name})</strong> • Session: <strong className="text-slate-900">{currentEnr?.academic_session || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`}</strong> • Admission No: <span className="font-mono font-bold text-slate-700">{student.admission_no || currentEnr?.admission_number}</span>
             </p>
             <div className="flex items-center gap-3 text-xs text-slate-500 pt-1">
               <span>PEN: <strong className="font-mono text-slate-800">{student.pen_no || 'Not Assigned'}</strong></span>
@@ -1497,7 +1497,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
 
           <Input
             label="Document / Certificate Number"
-            placeholder="e.g. BC-2026-9901"
+            placeholder={`e.g. BC-${new Date().getFullYear()}-9901`}
             value={docForm.documentNo}
             onChange={e => setDocForm({ ...docForm, documentNo: e.target.value })}
           />
@@ -1662,7 +1662,7 @@ export default function UniversalStudent360DossierV2Page({ params }: { params: P
                     value={readmitForm.admissionNumber}
                     onChange={(e) => setReadmitForm({ ...readmitForm, admissionNumber: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500"
-                    placeholder="e.g. CBS-2026-0042"
+                    placeholder={`e.g. CBS-${new Date().getFullYear()}-0042`}
                     required
                   />
                 </div>

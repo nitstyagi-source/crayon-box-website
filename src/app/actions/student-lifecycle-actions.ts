@@ -77,7 +77,7 @@ export async function withdrawStudentAction(params: {
       institution_code: params.institutionCode,
       from_state: 'ACTIVE',
       to_state: 'WITHDRAWN',
-      academic_session: '2026-2027',
+      academic_session: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       action_by: params.actionBy || 'Admin',
       remarks: params.reason || 'Parent requested withdrawal',
     });
@@ -179,7 +179,7 @@ export async function transferInstitutionAction(params: {
       institution_code: params.toInstitution,
       from_state: `ACTIVE_${params.fromInstitution}`,
       to_state: `TRANSFERRED_${params.toInstitution}`,
-      academic_session: '2026-2027',
+      academic_session: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
       class_name: params.targetClass,
       action_by: params.actionBy || 'Admin',
       remarks: `Inter-institutional transfer from ${params.fromInstitution} to ${params.toInstitution}`,

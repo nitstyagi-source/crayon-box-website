@@ -17,7 +17,7 @@ function ApplyContent() {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Academic Session 2026–2027 Admissions Open</span>
+            <span>Academic Session {new Date().getFullYear()}–{new Date().getFullYear() + 1} Admissions Open</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-stone-900 font-serif tracking-tight">

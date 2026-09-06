@@ -28,12 +28,18 @@ export default function WhatsAppBotSimulatorPage() {
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
-  const [senderPhone, setSenderPhone] = useState('+919810022334');
+  const [senderPhone, setSenderPhone] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const handleSend = async (customText?: string) => {
     const textToSend = customText || inputMessage;
     if (!textToSend.trim()) return;
+
+    const activePhone = senderPhone.trim();
+    if (!activePhone) {
+      alert('Please enter a simulated parent mobile number (e.g. +91XXXXXXXXXX) to test chatbot responses.');
+      return;
+    }
 
     const parentMsg = {
       sender: 'PARENT' as const,
@@ -47,7 +53,7 @@ export default function WhatsAppBotSimulatorPage() {
 
     try {
       const formData = new FormData();
-      formData.append('From', senderPhone.trim() || '+919810022334');
+      formData.append('From', activePhone);
       formData.append('Body', textToSend);
 
       const res = await fetch('/api/webhooks/whatsapp', {
@@ -129,7 +135,7 @@ export default function WhatsAppBotSimulatorPage() {
                 type="text"
                 value={senderPhone}
                 onChange={(e) => setSenderPhone(e.target.value)}
-                placeholder="+919810022334"
+                placeholder="e.g. +91 98765 43210"
                 className="w-full px-3 py-1.5 text-xs font-mono rounded-xl border border-stone-300 bg-white focus:outline-emerald-500"
               />
             </div>

@@ -222,21 +222,23 @@ export async function submitDailyAttendanceAction(
         `, [status, remarks, className, sectionName, parentNotified, checkRes.rows[0].id]);
       } else {
         // Insert new record with all required non-null constraints satisfied
+        const curAttYear = new Date().getFullYear();
         await client.query(`
           INSERT INTO public.student_attendance_records (
             institution_code, student_id, campus_id, date, time, academic_session,
             class_name, section_name, event_type, status,
             verification_method, remarks, parent_notified, created_at
           ) VALUES (
-            $1, $2, $3, $4, CURRENT_TIME, '2026-2027',
-            $5, $6, 'Classroom', $7,
-            'Manual', $8, $9, NOW()
+            $1, $2, $3, $4, CURRENT_TIME, $5,
+            $6, $7, 'Classroom', $8,
+            'Manual', $9, $10, NOW()
           );
         `, [
           inst === 'ALL' ? 'CBS' : inst,
           entry.studentId,
           campusId,
           targetDate,
+          `${curAttYear}-${curAttYear + 1}`,
           className,
           sectionName,
           status,

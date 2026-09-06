@@ -687,7 +687,7 @@ export async function convertEnquiryToApplicationAction(enquiryId: string) {
     // Generate Application Number based on sequential count
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.admissions_applications;`);
     const appSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const appNo = `APP-2026-${appSeq}`;
+    const appNo = `APP-${new Date().getFullYear()}-${appSeq}`;
 
     const appInsert = await client.query(
       `INSERT INTO public.admissions_applications (

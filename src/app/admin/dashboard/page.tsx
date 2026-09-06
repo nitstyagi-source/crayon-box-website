@@ -128,7 +128,8 @@ export default function AdminDashboard() {
     fetchDashboard();
   }, [currentInstitution]);
 
-  const activeSession = sessions.find(s => s.is_current) || sessions[0] || { name: '2026-2027' };
+  const curYear = new Date().getFullYear();
+  const activeSession = sessions.find(s => s.is_current) || sessions[0] || { name: `${curYear}-${curYear + 1}` };
 
   // Handle Add Session Submit
   const handleCreateSession = async (e: React.FormEvent) => {
@@ -177,7 +178,7 @@ export default function AdminDashboard() {
       websiteUrl: newSchoolWebsite,
       logoUrl: newSchoolLogo,
       brandColor: newSchoolBrandColor,
-      establishedYear: Number(newSchoolEstYear) || 2026,
+      establishedYear: Number(newSchoolEstYear) || curYear,
       role: 'SUPER_ADMIN'
     });
     setIsSubmittingNewSchool(false);
@@ -1478,7 +1479,7 @@ export default function AdminDashboard() {
                     value={newSchoolAffilNo}
                     onChange={(e) => setNewSchoolAffilNo(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900"
-                    placeholder="AFF/2026/09"
+                    placeholder={`AFF/${curYear}/09`}
                   />
                 </div>
               </div>
@@ -1537,7 +1538,7 @@ export default function AdminDashboard() {
                     value={newSchoolEstYear}
                     onChange={(e) => setNewSchoolEstYear(Number(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900"
-                    placeholder="2026"
+                    placeholder={String(curYear)}
                   />
                 </div>
               </div>

@@ -51,7 +51,7 @@ export async function getEnquiryForPrefillAction(identifier: string) {
         locality: enq.locality || '',
         transport_required: Boolean(enq.transport_required),
         campus_id: enq.campus_id || null,
-        academic_year: enq.academic_year || '2026-2027'
+        academic_year: enq.academic_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
       }
     };
   } catch (err: any) {
@@ -135,7 +135,7 @@ export async function saveMasterAdmissionApplicationAction(data: any) {
     if (!appNo) {
       const countRes = await client.query(`SELECT count(*)::int as count FROM public.admission_applications;`);
       const nextSeq = String((countRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-      appNo = `APP-2026-${nextSeq}`;
+      appNo = `APP-${new Date().getFullYear()}-${nextSeq}`;
     }
     const fullName = `${data.first_name || ''} ${data.middle_name || ''} ${data.last_name || ''}`.trim().replace(/\s+/g, ' ');
 
@@ -181,7 +181,7 @@ export async function saveMasterAdmissionApplicationAction(data: any) {
         updated_at = NOW()
       RETURNING id, application_no, full_name, class_applied;
     `, [
-      appNo, data.enquiry_no || null, data.campus_id || null, data.academic_year || '2026-2027', data.class_applied || 'Nursery', data.admission_type || 'NEW_ADMISSION',
+      appNo, data.enquiry_no || null, data.campus_id || null, data.academic_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`, data.class_applied || 'Nursery', data.admission_type || 'NEW_ADMISSION',
       data.first_name, data.middle_name || null, data.last_name, fullName, data.name_as_per_birth_cert || fullName,
       data.dob || '2022-01-01', data.gender || 'MALE', data.blood_group || null, data.nationality || 'Indian', data.mother_tongue || 'Hindi', data.category || 'GENERAL', data.aadhaar_number || null, data.student_photo_url || null, data.id_mark_1 || null, data.id_mark_2 || null,
       data.birth_place || null, data.birth_city || null, data.birth_district || null, data.birth_state || null, data.birth_country || 'India', data.birth_certificate_no || null, data.birth_cert_issuing_authority || null, data.birth_cert_issue_date || null, data.birth_cert_url || null,
@@ -296,7 +296,7 @@ export async function approveAdmissionAndCreateStudentMasterAction(params: {
     const app = apps[0];
     const stdCountRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
     const nextStdSeq = String((stdCountRes.rows[0]?.count || 0) + 1).padStart(4, '0');
-    const admNo = `ADM-2026-${nextStdSeq}`;
+    const admNo = `ADM-${new Date().getFullYear()}-${nextStdSeq}`;
 
     // 2. Commit into public.students (The Single System of Record)
     const { rows: studentRows } = await client.query(`

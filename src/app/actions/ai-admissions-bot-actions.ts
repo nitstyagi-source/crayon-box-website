@@ -53,12 +53,16 @@ export async function askAdmissionsAiBotAction(params: {
     let aiResponse = "";
     let intent = "GENERAL_INQUIRY";
 
+    const curYear = new Date().getFullYear();
+    const nextYear = curYear + 1;
+    const sessionStr = `${curYear}–${nextYear}`;
+
     if (query.includes("fee") || query.includes("fees") || query.includes("cost") || query.includes("charge") || query.includes("fees structure")) {
       intent = "FEE_STRUCTURE";
-      aiResponse = `Namaste ${parentName}! For Academic Session 2026–2027, our fee structure is highly transparent with zero hidden charges:\n\n• **Quarterly Tuition Fee**: ₹13,500 / Quarter (₹4,500/month)\n• **Annual Activity & Digital LMS Fee**: ₹6,000 / year\n• **Sibling Concession**: 10% discount for the 2nd child\n• **Payment Modes**: 1-Click UPI, Net Banking, or Card via our Parent Portal.\n\nWould you like us to send the complete detailed fee breakdown PDF to your WhatsApp?`;
+      aiResponse = `Namaste ${parentName}! For Academic Session ${sessionStr}, our fee structure is highly transparent with zero hidden charges:\n\n• **Quarterly Tuition Fee**: ₹13,500 / Quarter (₹4,500/month)\n• **Annual Activity & Digital LMS Fee**: ₹6,000 / year\n• **Sibling Concession**: 10% discount for the 2nd child\n• **Payment Modes**: 1-Click UPI, Net Banking, or Card via our Parent Portal.\n\nWould you like us to send the complete detailed fee breakdown PDF to your WhatsApp?`;
     } else if (query.includes("age") || query.includes("eligibility") || query.includes("criteria") || query.includes("class 1") || query.includes("nursery")) {
       intent = "AGE_ELIGIBILITY";
-      aiResponse = `For admission in Session 2026–2027, the NEP 2020 age eligibility criteria as of 31st March 2026 are:\n\n• **Nursery**: 3+ years\n• **LKG**: 4+ years\n• **UKG**: 5+ years\n• **Class 1**: 6+ years\n\nAdmissions are granted on a first-come, first-served basis following document verification.`;
+      aiResponse = `For admission in Session ${sessionStr}, the NEP 2020 age eligibility criteria as of 31st March ${curYear} are:\n\n• **Nursery**: 3+ years\n• **LKG**: 4+ years\n• **UKG**: 5+ years\n• **Class 1**: 6+ years\n\nAdmissions are granted on a first-come, first-served basis following document verification.`;
     } else if (query.includes("bus") || query.includes("transport") || query.includes("route") || query.includes("burari") || query.includes("sant nagar")) {
       intent = "TRANSPORT_FACILITY";
       aiResponse = `Yes! We provide safe GPS-tracked AC school bus transport with female attendants and live 500m parent proximity tracking across Delhi:\n\n• **Key Routes**: Burari Main, Sant Nagar Chowk, Kamalpur, Milan Vihar, Nathupura, Shastri Park, and Jahangirpuri.\n• **Safety**: Real-time GPS tracking on parent mobile app + CCTV surveillance inside all buses.`;

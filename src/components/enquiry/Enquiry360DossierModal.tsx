@@ -170,7 +170,7 @@ export function Enquiry360DossierModal({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-black text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-md border border-amber-500/30">
-                  {enquiry.enquiry_number || "ENQ-2026-LIVE"}
+                  {enquiry.enquiry_number || `ENQ-${new Date().getFullYear()}-LIVE`}
                 </span>
                 <span className="text-xs text-slate-400">•</span>
                 <span className="text-xs font-bold text-slate-300">

@@ -226,7 +226,7 @@ RULES:
           subject: subjectName,
           chapters,
           totalMarks,
-          examTerm: 'Periodic Assessment 2026-2027',
+          examTerm: `Periodic Assessment ${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
           difficulty: 'BALANCED',
           createdByTeacher: params.userName || 'Faculty'
         });

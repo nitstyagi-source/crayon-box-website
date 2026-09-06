@@ -151,7 +151,11 @@ export async function askPublicVaniAction(params: {
     // -------------------------------------------------------------------
     // DYNAMIC FEE LOOKUP (ZERO HARDCODING)
     // -------------------------------------------------------------------
-    else if (query.includes('fee') || query.includes('fees') || query.includes('cost') || query.includes('quarterly') || query.includes('annual charge')) {
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const academicSessionStr = `${currentYear}–${nextYear}`;
+
+    if (query.includes('fee') || query.includes('fees') || query.includes('cost') || query.includes('quarterly') || query.includes('annual charge')) {
       intentTags.push('FEE_STRUCTURE');
       detectedIntent = 'FEE_QUERY';
 
@@ -169,13 +173,13 @@ export async function askPublicVaniAction(params: {
           return `• **${type}**: ₹${amt} (${freq})`;
         }).join('\n');
 
-        responseMarkdown = `Here is the approved fee breakdown for **${targetG}** for Academic Session 2026–2027:\n\n${feeSummary}\n\n• **Payment Modes**: 1-Click Online UPI, Net Banking, Debit/Credit Card, or Demand Draft.\n• **Sibling Concession**: 10% on tuition fee for the second child.\n\nMay I have your WhatsApp mobile number so our admissions team can share the official prospectus PDF?`;
+        responseMarkdown = `Here is the approved fee breakdown for **${targetG}** for Academic Session ${academicSessionStr}:\n\n${feeSummary}\n\n• **Payment Modes**: 1-Click Online UPI, Net Banking, Debit/Credit Card, or Demand Draft.\n• **Sibling Concession**: 10% on tuition fee for the second child.\n\nMay I have your WhatsApp mobile number so our admissions team can share the official prospectus PDF?`;
       } else if (dbFees.length > 0) {
         const sampleFee = dbFees[0];
         const amt = Number(sampleFee.amount || sampleFee.total_annual_amount || 13500).toLocaleString('en-IN');
-        responseMarkdown = `Our approved fee schedule for Academic Session 2026–2027 is structured transparently across quarterly installments:\n\n• **Quarterly Composite Tuition Fee**: ₹${amt} per quarter\n• **Annual Activity & Digital LMS**: Included with zero hidden charges.\n• **Sibling Concession**: 10% discount on tuition fee for younger sibling.\n\nWhich specific grade or class are you applying for?`;
+        responseMarkdown = `Our approved fee schedule for Academic Session ${academicSessionStr} is structured transparently across quarterly installments:\n\n• **Quarterly Composite Tuition Fee**: ₹${amt} per quarter\n• **Annual Activity & Digital LMS**: Included with zero hidden charges.\n• **Sibling Concession**: 10% discount on tuition fee for younger sibling.\n\nWhich specific grade or class are you applying for?`;
       } else {
-        responseMarkdown = `Our admissions fee schedule for Academic Session 2026–2027 is currently undergoing annual regulatory committee review. I can connect you directly with our admissions team to share the official schedule. May I have your WhatsApp number?`;
+        responseMarkdown = `Our admissions fee schedule for Academic Session ${academicSessionStr} is currently undergoing annual regulatory committee review. I can connect you directly with our admissions team to share the official schedule. May I have your WhatsApp number?`;
       }
     }
     // -------------------------------------------------------------------
@@ -216,7 +220,7 @@ export async function askPublicVaniAction(params: {
         } else if (!state.targetGrade) {
           responseMarkdown = `Wonderful! And which class or grade are you planning for **${state.childName}**?`;
         } else if (!state.parentPhone) {
-          responseMarkdown = `Great! Admissions for **${state.targetGrade}** are currently open for Academic Session 2026–2027. May I have your 10-digit mobile number so we can register your priority enquiry and share the official brochure?`;
+          responseMarkdown = `Great! Admissions for **${state.targetGrade}** are currently open for Academic Session ${academicSessionStr}. May I have your 10-digit mobile number so we can register your priority enquiry and share the official brochure?`;
         } else {
           responseMarkdown = `Thank you for sharing the details! We warmly welcome you to Crayon Box School. We offer experiential learning, robotics innovation labs, smart classrooms, and 360° NEP child development.\n\nWould you like me to schedule a campus tour for you tomorrow at **11:00 AM** or **04:00 PM**?`;
 
@@ -247,7 +251,7 @@ export async function askPublicVaniAction(params: {
     if (state.parentPhone || state.childName) {
       const enqCountRes = await client.query(`SELECT count(*)::int as count FROM public.enquiries;`);
       const nextSeq = ((enqCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-      const genNo = `ENQ-2026-${nextSeq}`;
+      const genNo = `ENQ-${currentYear}-${nextSeq}`;
       const pName = state.parentName || (state.childName ? `Parent of ${state.childName}` : 'Prospective Parent');
       const pPhone = state.parentPhone || '+91 9999999999';
       const cName = state.childName || 'Applicant';

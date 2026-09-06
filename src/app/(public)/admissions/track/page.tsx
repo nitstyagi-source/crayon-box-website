@@ -57,7 +57,7 @@ function TrackApplicationContent() {
                 type="text" 
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="e.g. APP-2026-XXXX" 
+                placeholder={`e.g. APP-${new Date().getFullYear()}-XXXX`} 
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 text-stone-800 font-mono text-lg uppercase"
               />
             </div>

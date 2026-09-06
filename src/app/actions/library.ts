@@ -617,7 +617,7 @@ export async function addNewBookTitleAction(payload: {
 
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.library_books;`);
     const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const bookCode = `BK-2026-${seq}`;
+    const bookCode = `BK-${new Date().getFullYear()}-${seq}`;
     const copiesCount = Math.max(1, payload.totalCopies || 1);
 
     // 1. Insert Title
@@ -629,15 +629,12 @@ export async function addNewBookTitleAction(payload: {
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11, $12,
-        $13, $13, $14, NOW(), NOW()
-      )
-      RETURNING *;
+        $13, $14, $15, NOW(), NOW()
+      ) RETURNING id;
     `, [
-      cid, bookCode, payload.title, payload.author, payload.publisher,
-      payload.isbn || (bookCode ? `ISBN-${bookCode}` : 'ISBN-PENDING'),
-      payload.edition || '1st Edition', payload.category, payload.language || 'English',
-      payload.classGrade || 'All Grades', payload.rackLocation, payload.price ?? 0,
-      copiesCount, payload.description || 'Institutional library acquisition'
+      cid, bookCode, payload.title, payload.author, payload.publisher || 'NCERT', payload.isbn || null, payload.edition || '1st Edition',
+      payload.category || 'GENERAL', payload.language || 'English', payload.classGrade || 'All Classes', payload.rackLocation || 'Rack A1',
+      payload.price || 250, copiesCount, copiesCount, payload.description || ''
     ]);
 
     const createdBook = bookRes.rows[0];
@@ -666,14 +663,14 @@ export async function addNewBookTitleAction(payload: {
         ) VALUES (
           $1, $2, $3, $4, 'Available', $5, NOW()
         );
-      `, [createdBook.id, accNum, barcodeQr, i, payload.rackLocation]);
+      `, [createdBook.id, accNum, barcodeQr, i, payload.rackLocation || 'Rack A1']);
     }
 
     safeRevalidate("/admin/library");
 
     return {
       success: true,
-      message: `✓ Book '${payload.title}' added to catalog with ${copiesCount} physical accession copies (ACC-${nextAccNum} to ACC-${nextAccNum + copiesCount - 1})!`,
+      message: `✓ Book '${payload.title}' added to catalog with code ${bookCode} and ${copiesCount} physical accession copies (ACC-${nextAccNum} to ACC-${nextAccNum + copiesCount - 1})!`,
       book: createdBook
     };
   } catch (error: any) {
@@ -691,16 +688,27 @@ export async function getStudentLibraryProfile(studentIdOrName?: string) {
   const client = await pool.connect();
 
   try {
-    const queryParam = studentIdOrName || 'CBS-2026-0001';
-    const stuRes = await client.query(`
-      SELECT s.id, s.first_name, s.last_name, s.admission_no, COALESCE(c.grade, 'Grade 5') as grade, COALESCE(c.section, 'A') as section
-      FROM public.students s
-      LEFT JOIN public.classes c ON c.id = s.class_id
-      WHERE s.admission_no ILIKE $1 OR (s.first_name || ' ' || s.last_name) ILIKE $1
-      LIMIT 1;
-    `, [`%${queryParam}%`]);
-
-    const student = stuRes.rows[0];
+    let student: any = null;
+    if (studentIdOrName && studentIdOrName.trim()) {
+      const stuRes = await client.query(`
+        SELECT s.id, s.first_name, s.last_name, s.admission_no, COALESCE(c.grade, 'Grade 5') as grade, COALESCE(c.section, 'A') as section
+        FROM public.students s
+        LEFT JOIN public.classes c ON c.id = s.class_id
+        WHERE s.admission_no ILIKE $1 OR (s.first_name || ' ' || s.last_name) ILIKE $1
+        LIMIT 1;
+      `, [`%${studentIdOrName.trim()}%`]);
+      student = stuRes.rows[0];
+    } else {
+      const stuRes = await client.query(`
+        SELECT s.id, s.first_name, s.last_name, s.admission_no, COALESCE(c.grade, 'Grade 5') as grade, COALESCE(c.section, 'A') as section
+        FROM public.students s
+        LEFT JOIN public.classes c ON c.id = s.class_id
+        WHERE s.status = 'ACTIVE'
+        ORDER BY s.created_at ASC
+        LIMIT 1;
+      `);
+      student = stuRes.rows[0];
+    }
     if (!student) {
       return {
         success: false,

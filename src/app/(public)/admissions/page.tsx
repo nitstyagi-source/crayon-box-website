@@ -24,6 +24,10 @@ export default function AdmissionsHub() {
   const [feeKits, setFeeKits] = useState("none");
   const cmsData = useLivePreview("admissions");
 
+  const currentYear = new Date().getFullYear();
+  const nextYearShort = (currentYear + 1).toString().slice(-2);
+  const currentSessionShort = `${currentYear}–${nextYearShort}`;
+
   // Simple fee calculation logic for the demo UI
   const baseTuition = feeGrade === "pre-k" || feeGrade === "kg" ? 18000 : 22000;
   const transportFee = feeTransport === "none" ? 0 : (feeTransport === "zone1" ? 4500 : 7500);
@@ -36,7 +40,7 @@ export default function AdmissionsHub() {
   const faqs = [
     { q: "What is the student-to-teacher ratio?", a: "We maintain a strict 1:20 ratio in primary grades and 1:25 in middle school to ensure personalized attention." },
     { q: "Is there any application or registration fee?", a: "No, submitting an online admission enquiry / application at Crayon Box School is 100% free of charge." },
-    { q: "How do I track my application status?", a: "Use your unique Application Token (e.g., APP-2026-8942) in our application tracker portal." }
+    { q: "How do I track my application status?", a: `Use your unique Application Token (e.g., APP-${currentYear}-XXXX) in our application tracker portal.` }
   ];
 
   return (
@@ -61,7 +65,7 @@ export default function AdmissionsHub() {
               {cmsData.hero?.headline || "Begin Your Child’s"} <span className="text-accent italic">{cmsData.hero?.subtext || "Journey."}</span>
             </motion.h1>
             <motion.p variants={fadeUp} className="text-xl text-stone-200 font-light leading-relaxed border-l-4 border-accent pl-6">
-              {cmsData.hero?.description || "Welcome to a paperless, transparent, and seamless admissions experience. We are currently accepting applications for the 2026–27 academic year."}
+              {cmsData.hero?.description || `Welcome to a paperless, transparent, and seamless admissions experience. We are currently accepting applications for the ${currentSessionShort} academic year.`}
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link href="/admissions/enquiry" className="px-7 py-3.5 bg-slate-900 text-white font-bold rounded-full hover:bg-slate-800 transition-colors shadow-xl text-center text-sm flex items-center justify-center gap-2">
@@ -106,7 +110,7 @@ export default function AdmissionsHub() {
       <section className="py-24 bg-stone-50 border-b border-stone-200">
         <div className="container mx-auto px-4 max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-12 text-center">
-            <motion.h2 variants={fadeUp} className="text-4xl font-serif font-bold text-stone-900 mb-4">{cmsData.criteria?.headline || "Admission Criteria for 2026–27"}</motion.h2>
+            <motion.h2 variants={fadeUp} className="text-4xl font-serif font-bold text-stone-900 mb-4">{cmsData.criteria?.headline || `Admission Criteria for ${currentSessionShort}`}</motion.h2>
             <motion.p variants={fadeUp} className="text-stone-600 font-light">{cmsData.criteria?.description || "Please review the age eligibility requirements before proceeding with the application."}</motion.p>
           </motion.div>
 
@@ -116,7 +120,7 @@ export default function AdmissionsHub() {
                 <thead>
                   <tr className="bg-stone-100 text-stone-600 text-sm uppercase tracking-widest border-b border-stone-200">
                     <th className="p-6 font-bold">Grade Applied For</th>
-                    <th className="p-6 font-bold">Age Criteria <span className="text-xs font-normal lowercase tracking-normal text-stone-400">(As of Mar 31, 2026)</span></th>
+                    <th className="p-6 font-bold">Age Criteria <span className="text-xs font-normal lowercase tracking-normal text-stone-400">(As of Mar 31, {currentYear})</span></th>
                     <th className="p-6 font-bold text-right">Status</th>
                   </tr>
                 </thead>

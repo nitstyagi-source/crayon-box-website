@@ -953,7 +953,7 @@ export default function TrustCommandCenterPage() {
                     type="text"
                     value={certForm.certificateNumber}
                     onChange={(e) => setCertForm({ ...certForm, certificateNumber: e.target.value })}
-                    placeholder="e.g. REG/AFF/2130891/2026"
+                    placeholder={`e.g. REG/AFF/2130891/${new Date().getFullYear()}`}
                     className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-mono text-slate-800"
                   />
                 </div>
@@ -1242,7 +1242,7 @@ export default function TrustCommandCenterPage() {
                     required
                     value={resolutionForm.resolutionNumber}
                     onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionNumber: e.target.value })}
-                    placeholder="e.g. RES-2026-05"
+                    placeholder={`e.g. RES-${new Date().getFullYear()}-05`}
                     className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-mono text-slate-800"
                   />
                 </div>
@@ -1284,7 +1284,7 @@ export default function TrustCommandCenterPage() {
                     required
                     value={resolutionForm.resolutionDate}
                     onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionDate: e.target.value })}
-                    placeholder="e.g. 15 Aug 2026"
+                    placeholder={`e.g. 15 Aug ${new Date().getFullYear()}`}
                     className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 font-medium text-slate-800"
                   />
                 </div>

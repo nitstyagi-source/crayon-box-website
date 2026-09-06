@@ -105,8 +105,9 @@ export default function TemplatesModule() {
             <div>
               <label className="text-xs font-bold text-stone-500 block mb-1">Academic Year</label>
               <select value={newAcademicYear} onChange={e => setNewAcademicYear(e.target.value)} className="w-full border border-stone-200 p-2.5 rounded-xl text-sm">
-                <option>2026-2027</option>
-                <option>2027-2028</option>
+                {[new Date().getFullYear(), new Date().getFullYear() + 1].map(y => (
+                  <option key={y} value={`${y}-${y + 1}`}>{`${y}-${y + 1}`}</option>
+                ))}
               </select>
             </div>
           </div>

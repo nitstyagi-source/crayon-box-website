@@ -30,7 +30,7 @@ export async function generateAndDispatchStudentCredentialsAction(params: {
 
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.students;`);
     const nextSeq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const admissionNo = `ADM-2026-${nextSeq}`;
+    const admissionNo = `ADM-${new Date().getFullYear()}-${nextSeq}`;
     const initialPassword = `Crayon@${nextSeq}`;
 
     const msgContent = `🎓 *Welcome to Crayon Box School! Official Portal Credentials*\n\nDear Parent, student admission and digital profile for *${params.studentName}* (${params.className}) has been activated:\n\n• *Admission ID*: ${admissionNo}\n• *Portal Username*: ${params.parentPhone}\n• *Default Password*: ${initialPassword}\n• *School Code*: CBS-DELHI\n\n📲 *Login to Parent Portal*: https://www.crayonboxschool.com/login\n\n_Please change your password upon first login._\n_Admissions Board, Crayon Box School_`;

@@ -74,7 +74,9 @@ export async function runGeneticTimetableGeneratorAction() {
     const result = engine.generate();
 
     // 3. Clear old generated timetable and write new conflict-free slots
-    await client.query(`DELETE FROM public.school_timetable WHERE academic_session = '2026-2027';`);
+    const curYear = new Date().getFullYear();
+    const currentSession = `${curYear}-${curYear + 1}`;
+    await client.query(`DELETE FROM public.school_timetable WHERE academic_session = $1;`, [currentSession]);
 
     const periodTimings = [
       { p: 1, start: '08:00:00', end: '08:45:00' },
@@ -94,11 +96,12 @@ export async function runGeneticTimetableGeneratorAction() {
           start_time, end_time, duration_minutes, class_name, section_name,
           subject_name, teacher_id, teacher_name, room_number, status
         ) VALUES (
-          '2026-2027', $1, $2, $3,
-          $4, $5, 45, $6, $7,
-          $8, $9, $10, $11, 'PUBLISHED'
+          $1, $2, $3, $4,
+          $5, $6, 45, $7, $8,
+          $9, $10, $11, $12, 'PUBLISHED'
         )
       `, [
+        currentSession,
         slot.day,
         slot.periodNumber,
         `Period ${slot.periodNumber}`,

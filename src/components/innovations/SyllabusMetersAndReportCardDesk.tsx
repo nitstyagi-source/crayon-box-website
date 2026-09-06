@@ -29,7 +29,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // AI Narrative Generator State
-  const [studentSearchId, setStudentSearchId] = useState("ADM-2026-0048");
+  const [studentSearchId, setStudentSearchId] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [reportCardNarrative, setReportCardNarrative] = useState<any | null>(null);
 
@@ -50,10 +50,14 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
   }
 
   async function handleGenerateNarrative() {
+    if (!studentSearchId.trim()) {
+      alert("Please enter a valid student Admission Number");
+      return;
+    }
     setIsGeneratingAi(true);
     setReportCardNarrative(null);
     try {
-      const res = await generateAiNarrativeReportCardAction(studentSearchId);
+      const res = await generateAiNarrativeReportCardAction(studentSearchId.trim());
       if (res.success) {
         setReportCardNarrative(res);
       } else {
@@ -178,8 +182,8 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
               type="text"
               value={studentSearchId}
               onChange={(e) => setStudentSearchId(e.target.value)}
-              placeholder="Enter Admission No..."
-              className="bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-stone-900 w-44"
+              placeholder={`Enter Admission No (e.g. ADM-${new Date().getFullYear()}-0001)...`}
+              className="bg-white border border-stone-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-stone-900 w-56"
             />
             <button
               onClick={handleGenerateNarrative}
@@ -207,7 +211,7 @@ export const SyllabusMetersAndReportCardDesk: React.FC = () => {
             </p>
             <div className="flex items-center justify-between text-[10px] text-stone-400 pt-1">
               <span>Standards: NEP 2020 Holistic Progress Card (HPC)</span>
-              <span>Generated in 1.2s</span>
+              <span>Generated via Vani AI Engine</span>
             </div>
           </div>
         )}

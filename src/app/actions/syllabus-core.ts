@@ -25,7 +25,13 @@ async function resolveCampusId(supabase: any, campusId: string): Promise<string>
 // -------------------------------------------------------------
 // 1. EXECUTIVE DASHBOARD & OVERVIEW
 // -------------------------------------------------------------
-export async function getSyllabusDashboard(campusId: string, session = '2026-2027', className?: string, teacherName?: string) {
+
+function getDefaultAcademicSession(): string {
+  const y = new Date().getFullYear();
+  return `${y}-${y + 1}`;
+}
+
+export async function getSyllabusDashboard(campusId: string, session = getDefaultAcademicSession(), className?: string, teacherName?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -148,7 +154,7 @@ export async function getSyllabusDashboard(campusId: string, session = '2026-202
 // -------------------------------------------------------------
 // 2. SUBJECTS CRUD
 // -------------------------------------------------------------
-export async function getAcademicSubjects(campusId: string, session = '2026-2027', className?: string, teacherName?: string) {
+export async function getAcademicSubjects(campusId: string, session = getDefaultAcademicSession(), className?: string, teacherName?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -244,7 +250,7 @@ export async function saveAcademicSubject(payload: {
 
     const record = {
       campus_id: resolvedCampusId,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || getDefaultAcademicSession(),
       class_name: payload.class_name,
       name: payload.name,
       code: payload.code || `${payload.class_name.replace(/\s+/g, '')}-${payload.name.substring(0, 4).toUpperCase()}`,
@@ -608,7 +614,7 @@ export async function deleteSyllabusTopic(id: string) {
 // -------------------------------------------------------------
 // 7. ANNUAL & MONTHLY PLANNER
 // -------------------------------------------------------------
-export async function getAnnualMonthlyPlanner(campusId: string, subjectId?: string, session = '2026-2027') {
+export async function getAnnualMonthlyPlanner(campusId: string, subjectId?: string, session = getDefaultAcademicSession()) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -652,7 +658,7 @@ export async function saveMonthlyPlannerEntry(payload: {
       campus_id: resolvedCampusId,
       subject_id: payload.subject_id,
       chapter_id: payload.chapter_id,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || getDefaultAcademicSession(),
       month_name: payload.month_name,
       week_number: Number(payload.week_number || 1),
       planned_periods: Number(payload.planned_periods || 4),
@@ -820,7 +826,7 @@ export async function deleteTeachingLog(id: string) {
 // -------------------------------------------------------------
 // 9. CATCH-UP / REMEDIAL PLANS CRUD
 // -------------------------------------------------------------
-export async function getCatchUpRemedialPlans(campusId: string, session = '2026-2027', className?: string) {
+export async function getCatchUpRemedialPlans(campusId: string, session = getDefaultAcademicSession(), className?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -918,7 +924,7 @@ export async function deleteCatchUpPlan(id: string) {
 // -------------------------------------------------------------
 // 10. EXAM SYLLABUS & BLUEPRINTS CRUD
 // -------------------------------------------------------------
-export async function getExamBlueprints(campusId: string, session = '2026-2027', className?: string) {
+export async function getExamBlueprints(campusId: string, session = getDefaultAcademicSession(), className?: string) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -963,7 +969,7 @@ export async function saveExamBlueprint(payload: {
     const record = {
       campus_id: resolvedCampusId,
       exam_name: payload.exam_name,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || getDefaultAcademicSession(),
       class_name: payload.class_name,
       subject_id: payload.subject_id,
       selected_chapter_ids: payload.selected_chapter_ids || [],
@@ -1317,7 +1323,7 @@ export async function deleteQuestionBankItem(id: string) {
 // -------------------------------------------------------------
 export async function getGeneratedPapers(
   campusId: string, 
-  session = '2026-2027', 
+  session = getDefaultAcademicSession(), 
   className?: string, 
   subjectId?: string,
   teacherName?: string,
@@ -1369,7 +1375,7 @@ export async function getGeneratedPapers(
   }
 }
 
-export async function getDistinctTeachers(campusId: string, session = '2026-2027') {
+export async function getDistinctTeachers(campusId: string, session = getDefaultAcademicSession()) {
   try {
     const supabase = getSupabaseAdmin();
     const resolvedCampusId = await resolveCampusId(supabase, campusId);
@@ -1446,7 +1452,7 @@ export async function saveGeneratedPaper(payload: {
 
     const record: any = {
       campus_id: resolvedCampusId,
-      academic_session: payload.academic_session || '2026-2027',
+      academic_session: payload.academic_session || getDefaultAcademicSession(),
       class_name: payload.class_name,
       subject_id: payload.subject_id,
       exam_title: payload.exam_title,

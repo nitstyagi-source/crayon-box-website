@@ -18,6 +18,12 @@ function safeRevalidate(path: string) {
   } catch {}
 }
 
+function getCurrentMonthYear(): string {
+  const d = new Date();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export interface PayrollRecord {
   id: string;
   staff_name: string;
@@ -45,7 +51,7 @@ export async function getMonthlyPayrollRecordsAction(monthYear?: string) {
   const client = await p.connect();
 
   try {
-    const period = monthYear || "September 2026";
+    const period = monthYear || getCurrentMonthYear();
     const res = await client.query(`
       SELECT * FROM public.staff_payroll_records
       WHERE month_year = $1 OR $1 = 'ALL'
@@ -127,7 +133,7 @@ export async function sendSalarySlipWhatsAppAction(recordId: string) {
 // 3. BACKWARD COMPATIBLE EXPORTS FOR HR PAYROLL
 // -------------------------------------------------------------
 export async function getMonthlyPayrollSummaryAction(params?: any) {
-  const month = typeof params === 'string' ? params : params?.month || "September 2026";
+  const month = typeof params === 'string' ? params : params?.month || getCurrentMonthYear();
   const res = await getMonthlyPayrollRecordsAction(month);
 
   const roster = res.records.map((r: any) => ({
@@ -173,7 +179,7 @@ export async function getMonthlyPayrollSummaryAction(params?: any) {
 export async function processMonthlyPayrollRunAction(params?: any) {
   const p = getPool();
   const client = await p.connect();
-  const month = typeof params === 'string' ? params : params?.month || "September 2026";
+  const month = typeof params === 'string' ? params : params?.month || getCurrentMonthYear();
 
   try {
     const { rows: staffMembers } = await client.query(`
@@ -321,7 +327,7 @@ export async function generateBankNeftCsvAction(params?: any) {
   const client = await p.connect();
 
   try {
-    const monthYear = typeof params === 'string' ? params : params?.month || 'September 2026';
+    const monthYear = typeof params === 'string' ? params : params?.month || getCurrentMonthYear();
     const cleanMonth = monthYear.replace(/_/g, ' ');
     const res = await client.query(`
       SELECT p.staff_name, p.phone_number, p.net_salary, p.month_year,

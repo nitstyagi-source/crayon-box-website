@@ -30,7 +30,7 @@ export async function enrollStudentAction(input: EnrollStudentInput) {
       .from('students')
       .select('*', { count: 'exact', head: true });
     const nextSeq = String((studentCount || 0) + 1).padStart(4, '0');
-    const admissionNo = `${input.institutionCode}-2026-${nextSeq}`;
+    const admissionNo = `${input.institutionCode}-${new Date().getFullYear()}-${nextSeq}`;
 
     // 1. Insert permanent student master
     const { data: student, error: stuErr } = await supabase
@@ -53,12 +53,13 @@ export async function enrollStudentAction(input: EnrollStudentInput) {
     }
 
     // 2. Insert contextual student enrollment
+    const curYear = new Date().getFullYear();
     const { error: enrErr } = await supabase
       .from('student_enrollments')
       .insert({
         student_id: student.id,
         institution_code: input.institutionCode,
-        academic_session: '2026-2027',
+        academic_session: `${curYear}-${curYear + 1}`,
         class_name: input.className,
         section_name: input.sectionName,
         admission_number: admissionNo,
@@ -216,13 +217,13 @@ export async function registerFacultyAction(input: {
       throw new Error(staffErr?.message || 'Failed to register staff member');
     }
 
-    // 2. Insert employee assignment
+    const curYear = new Date().getFullYear();
     await supabase
       .from('employee_assignments')
       .insert({
         staff_id: staff.id,
         institution_code: input.institutionCode,
-        academic_session: '2026-2027',
+        academic_session: `${curYear}-${curYear + 1}`,
         designation: input.designation,
         department: input.department,
         workload_percentage: input.workloadPercentage || 100.00,

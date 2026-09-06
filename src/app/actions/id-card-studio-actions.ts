@@ -52,9 +52,10 @@ export async function getBatchIdCardDataAction(className?: string) {
       LIMIT 8;
     `, [cls]);
 
+    const curYear = new Date().getFullYear();
     const cards: StudentIdCardBadge[] = res.rows.map((r: any, idx: number) => ({
       id: r.id,
-      admissionNo: r.admission_no || `ADM-2026-00${idx + 1}`,
+      admissionNo: r.admission_no || `ADM-${curYear}-00${idx + 1}`,
       studentName: `${r.first_name} ${r.last_name}`.trim(),
       className: r.grade || cls,
       sectionName: r.section || "A",

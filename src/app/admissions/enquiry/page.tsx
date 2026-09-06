@@ -3,8 +3,10 @@ import Link from "next/link";
 import { PublicEnquiryForm } from "@/components/enquiry/PublicEnquiryForm";
 import { Sparkles, Phone, MessageSquare, MapPin, Award, CheckCircle2, ChevronRight } from "lucide-react";
 
+const curYear = new Date().getFullYear();
+
 export const metadata = {
-  title: "School Admission Enquiry 2026-2027 | Crayon Box School",
+  title: `School Admission Enquiry ${curYear}-${curYear + 1} | Crayon Box School`,
   description: "Official online admission enquiry for Nursery to Class 12. Book campus visits, download fee structures, and explore bus transport routes."
 };
 

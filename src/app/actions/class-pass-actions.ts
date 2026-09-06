@@ -48,15 +48,19 @@ export async function getClassPassesForClassAction(params: {
     const students = stuRes.data;
 
     // Generate dynamic access passes for each student
+    const curYear = new Date().getFullYear();
+    const nextYear = curYear + 1;
+    const yearShort = String(curYear).slice(-2);
+
     const passes: ClassAccessPass[] = students.map((s: any, idx: number) => {
       const studentName = `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Student';
-      const universalId = s.universal_id || `CBS-2026-${String(idx + 1).padStart(4, '0')}`;
+      const universalId = s.universal_id || `CBS-${curYear}-${String(idx + 1).padStart(4, '0')}`;
       const cName = s.class_name || className || 'Class 1';
       const sName = s.section_name || sectionName || 'A';
       const rollNo = s.roll_number || String(idx + 1);
 
       return {
-        passId: `PASS-26-${s.id.slice(0, 8)}`,
+        passId: `PASS-${yearShort}-${s.id.slice(0, 8)}`,
         studentId: s.id,
         universalId,
         studentName,
@@ -67,10 +71,10 @@ export async function getClassPassesForClassAction(params: {
         emergencyPhone: s.guardian_phone || s.emergency_contact || s.father_phone || s.mother_phone || 'N/A',
         bloodGroup: s.blood_group || 'N/A',
         busRoute: s.transport_route || s.transport_bus_no ? `${s.transport_route || s.transport_bus_no}` : 'Self / Walker',
-        academicSession: '2026–2027',
+        academicSession: `${curYear}–${nextYear}`,
         qrPayload: `SCHOOL_ACCESS:${universalId}:${cName}-${sName}:ROLL-${rollNo}:VERIFIED`,
         issuedDate: new Date().toLocaleDateString('en-GB'),
-        validTill: '31 Mar 2027',
+        validTill: `31 Mar ${nextYear}`,
         accessLevel: 'CAMPUS_TURNSTILE_MAIN_GATE_AND_LIBRARY',
         institutionCode: s.institution_code || institutionCode,
       };

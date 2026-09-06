@@ -288,7 +288,7 @@ export async function getFilteredUniversalStudentsAction(filters: StudentFilterQ
         s.created_at,
         se.id as enrollment_id,
         COALESCE(se.institution_code, 'CBS') as institution_code,
-        COALESCE(se.academic_session, '2026-2027') as academic_session,
+        COALESCE(se.academic_session, CONCAT(EXTRACT(YEAR FROM CURRENT_DATE)::text, '-', (EXTRACT(YEAR FROM CURRENT_DATE) + 1)::text)) as academic_session,
         COALESCE(se.academic_stage, 'PRIMARY') as academic_stage,
         COALESCE(se.class_name, 'Class 1') as class_name,
         COALESCE(se.section_name, 'A') as section_name,

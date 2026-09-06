@@ -93,7 +93,7 @@ export async function createHelpdeskTicketAction(params: {
     const stu = stuRes.rows[0];
     const countRes = await client.query(`SELECT count(*)::int as count FROM public.helpdesk_tickets;`);
     const seq = ((countRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const ticketNo = `TCK-2026-${seq}`;
+    const ticketNo = `TCK-${new Date().getFullYear()}-${seq}`;
 
     const campRes = await client.query(`SELECT id FROM public.campuses LIMIT 1;`);
     const campusId = stu?.campus_id || campRes.rows[0]?.id || null;
@@ -215,7 +215,7 @@ export async function createPurchaseOrderAction(params: {
     const { vendorName, category, totalAmount, itemsSummary } = params;
     const poCountRes = await client.query(`SELECT count(*)::int as count FROM public.purchase_orders;`);
     const nextPoSeq = ((poCountRes.rows[0]?.count || 0) + 1).toString().padStart(4, '0');
-    const poNumber = `PO-2026-${nextPoSeq}`;
+    const poNumber = `PO-${new Date().getFullYear()}-${nextPoSeq}`;
 
     const res = await client.query(`
       INSERT INTO public.purchase_orders (
