@@ -83,7 +83,11 @@ export default function UniversalLoginPage() {
 
           if (staffMember) {
             userName = `${staffMember.first_name || ''} ${staffMember.last_name || ''}`.trim() || userName;
-            userRole = (staffMember.role || 'TEACHER').toUpperCase();
+            const rawRole = (staffMember.role || 'TEACHER').toUpperCase();
+            const isSuper = rawRole.includes('SUPER') || rawRole.includes('TRUSTEE') || rawRole.includes('CHAIRMAN');
+            const isAdmin = isSuper || rawRole.includes('ADMIN') || rawRole.includes('PRINCIPAL');
+            userRole = isSuper ? 'SUPER_ADMIN' : (isAdmin ? 'ADMIN' : (rawRole.includes('TEACHER') ? 'TEACHER' : 'STAFF'));
+
             localStorage.setItem("cbs_auth_user", JSON.stringify({
               identifier: userEmail,
               roles: [userRole],

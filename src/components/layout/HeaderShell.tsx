@@ -72,6 +72,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
       resolvedRole = getCookie('cb_user_role') || '';
     }
 
+    let customTitle = '';
     if (typeof window !== 'undefined') {
       const localUserRaw = localStorage.getItem('cbs_auth_user');
       if (localUserRaw) {
@@ -80,6 +81,11 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
           resolvedName = parsed.faculty?.name || parsed.parent?.name || parsed.admin?.name || parsed.name || resolvedName;
           resolvedEmail = parsed.faculty?.email || parsed.parent?.email || parsed.admin?.email || parsed.email || resolvedEmail;
           resolvedRole = parsed.primaryRole || parsed.faculty?.role || resolvedRole;
+          if (parsed.faculty?.role) {
+            customTitle = parsed.faculty.role;
+          } else if (parsed.faculty?.designation) {
+            customTitle = parsed.faculty.designation;
+          }
         } catch {}
       }
       const localName = localStorage.getItem('cb_user_name');
@@ -93,7 +99,11 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
     if (resolvedName) setUserName(resolvedName);
     if (resolvedEmail) setUserEmail(resolvedEmail);
     const activeEffectiveRole = resolvedRole || currentRole;
-    if (activeEffectiveRole) setUserTitle(activeEffectiveRole.replace(/_/g, ' '));
+    if (customTitle) {
+      setUserTitle(customTitle);
+    } else if (activeEffectiveRole) {
+      setUserTitle(activeEffectiveRole.replace(/_/g, ' '));
+    }
 
     // 2. Load dynamic academic sessions from database
     getAcademicSessionsAction().then(res => {

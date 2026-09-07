@@ -563,15 +563,20 @@ export async function verifyUniversalOtpAction(params: {
       };
     }
 
-    // Determine Roles
+    // Determine Roles dynamically based on real staff profile
+    const rawStaffRole = (staffProfile?.role || '').toUpperCase();
+    const isSuper = rawStaffRole.includes('SUPER') || rawStaffRole.includes('TRUSTEE') || rawStaffRole.includes('CHAIRMAN');
+    const isAdmin = isSuper || rawStaffRole.includes('ADMIN') || rawStaffRole.includes('PRINCIPAL') || rawStaffRole.includes('MANAGER');
+    const isTeaching = rawStaffRole.includes('TEACHER') || rawStaffRole.includes('FACULTY');
+
     const roles: string[] = [];
-    if (staffProfile) roles.push('FACULTY');
+    if (isSuper) roles.push('SUPER_ADMIN');
+    if (isAdmin && !roles.includes('ADMIN')) roles.push('ADMIN');
+    if (isTeaching || (staffProfile && !isAdmin && !isSuper)) roles.push('FACULTY');
     if (children.length > 0) roles.push('PARENT');
-    if (staffProfile?.role?.toLowerCase().includes('admin') || staffProfile?.role?.toLowerCase().includes('principal')) {
-      roles.push('ADMIN');
-    }
 
     const isDualRole = Boolean(staffProfile && children.length > 0);
+    const primaryRole = isSuper ? 'SUPER_ADMIN' : (isAdmin ? 'ADMIN' : (staffProfile ? 'FACULTY' : 'PARENT'));
 
     return {
       success: true,
@@ -579,7 +584,7 @@ export async function verifyUniversalOtpAction(params: {
         identifier: phone || rawId,
         roles,
         isDualRole,
-        primaryRole: staffProfile ? 'FACULTY' : 'PARENT',
+        primaryRole,
         faculty: staffProfile,
         parent: parentProfile,
         children,
@@ -706,13 +711,25 @@ export async function verifyEmergencyPinAction(params: {
 
     if (staffRes.rows.length > 0) {
       const s = staffRes.rows[0];
+      const rawStaffRole = (s.role || '').toUpperCase();
+      const isSuper = rawStaffRole.includes('SUPER') || rawStaffRole.includes('TRUSTEE') || rawStaffRole.includes('CHAIRMAN');
+      const isAdmin = isSuper || rawStaffRole.includes('ADMIN') || rawStaffRole.includes('PRINCIPAL') || rawStaffRole.includes('MANAGER');
+      const isTeaching = rawStaffRole.includes('TEACHER') || rawStaffRole.includes('FACULTY');
+
+      const roles: string[] = [];
+      if (isSuper) roles.push('SUPER_ADMIN');
+      if (isAdmin && !roles.includes('ADMIN')) roles.push('ADMIN');
+      if (isTeaching || (!isAdmin && !isSuper)) roles.push('FACULTY');
+
+      const primaryRole = isSuper ? 'SUPER_ADMIN' : (isAdmin ? 'ADMIN' : 'FACULTY');
+
       return {
         success: true,
         user: {
           identifier: phone || rawId,
-          roles: ['FACULTY'],
+          roles,
           isDualRole: false,
-          primaryRole: 'FACULTY',
+          primaryRole,
           faculty: {
             id: s.id,
             name: `${s.first_name} ${s.last_name || ''}`.trim(),

@@ -66,6 +66,18 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
   const [currentSession, setCurrentSession] = useState<string>(defaultCurrentSession);
   const [currentRole, setCurrentRole] = useState<string>(() => {
     if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('cbs_auth_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const staffRole = `${parsed.primaryRole || ''} ${parsed.faculty?.role || ''} ${parsed.role || ''} ${Array.isArray(parsed.roles) ? parsed.roles.join(' ') : ''}`.toUpperCase();
+          if (staffRole.includes('SUPER') || staffRole.includes('TRUSTEE') || staffRole.includes('CHAIRMAN')) {
+            const activeChoice = localStorage.getItem('cbs_active_role');
+            if (activeChoice === 'PARENT' || activeChoice === 'FACULTY') return activeChoice;
+            return 'SUPER_ADMIN';
+          }
+        }
+      } catch {}
       const stored = localStorage.getItem('vet_current_role') || localStorage.getItem('cbs_active_role') || localStorage.getItem('cb_user_role');
       if (stored) return stored;
       const match = document.cookie.match(/(?:^| )cb_user_role=([^;]+)/);
@@ -104,15 +116,35 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
     const savedSession = localStorage.getItem('vet_current_session');
     if (savedSession) setCurrentSession(savedSession);
 
+    let activeRoleToSet = 'SUPER_ADMIN';
+    let elevated = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('cbs_auth_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const staffRole = `${parsed.primaryRole || ''} ${parsed.faculty?.role || ''} ${parsed.role || ''} ${Array.isArray(parsed.roles) ? parsed.roles.join(' ') : ''}`.toUpperCase();
+          if (staffRole.includes('SUPER') || staffRole.includes('TRUSTEE') || staffRole.includes('CHAIRMAN')) {
+            elevated = true;
+          }
+        }
+      } catch {}
+    }
+
     const savedRole = localStorage.getItem('vet_current_role') || localStorage.getItem('cbs_active_role') || localStorage.getItem('cb_user_role');
-    if (savedRole) {
-      setCurrentRole(savedRole);
+    if (elevated) {
+      if (savedRole === 'PARENT') activeRoleToSet = 'PARENT';
+      else if (savedRole === 'FACULTY') activeRoleToSet = 'FACULTY';
+      else activeRoleToSet = 'SUPER_ADMIN';
+    } else if (savedRole) {
+      activeRoleToSet = savedRole;
     } else if (typeof document !== 'undefined') {
       const match = document.cookie.match(/(?:^| )cb_user_role=([^;]+)/);
       if (match) {
-        setCurrentRole(decodeURIComponent(match[1]));
+        activeRoleToSet = decodeURIComponent(match[1]);
       }
     }
+    setCurrentRole(activeRoleToSet);
 
     fetchInstitutionsFromDb();
   }, [fetchInstitutionsFromDb]);
