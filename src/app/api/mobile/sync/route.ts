@@ -127,12 +127,18 @@ export async function GET(request: Request) {
     try {
       const [instsRes, trustRes] = await Promise.all([
         pool.query(`
-          SELECT id, code, name, short_name as "shortName", institution_type as "institutionType",
-                 academic_framework as "academicFramework", board_affiliation as "boardAffiliation",
-                 affiliation_number as "affiliationNumber", principal_name as "principalName",
-                 principal_email as "principalEmail", brand_color as "brandColor", address, status
-          FROM public.institutions
-          ORDER BY created_at ASC;
+          SELECT i.id, i.code, i.name, i.short_name as "shortName", i.institution_type as "institutionType",
+                 i.academic_framework as "academicFramework", i.board_affiliation as "boardAffiliation",
+                 i.affiliation_number as "affiliationNumber", i.principal_name as "principalName",
+                 i.principal_email as "principalEmail", i.brand_color as "brandColor", i.address, i.status,
+                 COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "phoneNumber",
+                 COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "contactPhone",
+                 COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "emergencyPhone",
+                 c.name as "campusName",
+                 c.id as "campusId"
+          FROM public.institutions i
+          LEFT JOIN public.campuses c ON 1=1
+          ORDER BY i.created_at ASC;
         `),
         pool.query(`SELECT * FROM public.trusts ORDER BY created_at ASC LIMIT 1;`)
       ]);

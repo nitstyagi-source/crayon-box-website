@@ -95,12 +95,12 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.sosRow}>
             <Phone size={20} color={Colors.danger} />
             <View style={styles.sosInfo}>
-              <Text style={[Typography.bodyBold, { color: '#FFFFFF' }]}>Principal & Security Desk</Text>
-              <Text style={[Typography.subtext, { color: '#CBD5E1' }]}>+91 (0120) 4488-999 / Ext. 101</Text>
+              <Text style={[Typography.bodyBold, { color: '#FFFFFF' }]}>AVINYA SCHOOL Desk</Text>
+              <Text style={[Typography.subtext, { color: '#CBD5E1' }]}>+91 9911102005</Text>
             </View>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => Alert.alert('Calling SOS', 'Dialing campus emergency desk...')}
+              onPress={() => Alert.alert('Calling SOS', 'Dialing AVINYA SCHOOL campus emergency desk (+91 9911102005)...')}
               style={styles.sosBtn}
             >
               <Text style={styles.sosBtnText}>CALL</Text>
