@@ -20,35 +20,58 @@ export async function GET(request: Request) {
     const search = searchParams.get("search") || "";
     const dept = searchParams.get("department") || "";
     const category = searchParams.get("category") || "";
+    const institutionCode = searchParams.get("institutionCode") || searchParams.get("institution_code") || searchParams.get("school") || "";
+    let campusId = searchParams.get("campusId") || searchParams.get("campus_id") || "";
+
+    if (!campusId && institutionCode && institutionCode !== "ALL") {
+      const cRes = await pool.query(`
+        SELECT c.id FROM public.campuses c
+        JOIN public.institutions i ON (LOWER(TRIM(c.name)) = LOWER(TRIM(i.name)) OR LOWER(TRIM(c.name)) = LOWER(TRIM(i.short_name)))
+        WHERE i.code = $1 OR c.id::text = $1
+        LIMIT 1;
+      `, [institutionCode]);
+      if (cRes.rows.length > 0) {
+        campusId = cRes.rows[0].id;
+      }
+    }
 
     let query = `
-      SELECT id, first_name, middle_name, last_name, employee_id, employee_code,
-             role, designation, department, wing, qualification, experience_years,
-             phone_number, personal_mobile, whatsapp_no, email, personal_email, official_email,
-             status, is_active, photo_url, gender, dob, blood_group,
-             is_class_teacher, class_teacher_for, subjects_taught,
-             police_verification_status, emergency_contact, bio, created_at
-      FROM public.staff
+      SELECT s.id, s.first_name, s.middle_name, s.last_name, s.employee_id, s.employee_code,
+             s.campus_id as "campusId", s.campus_id,
+             c.name as "campusName",
+             s.role, s.designation, s.department, s.wing, s.qualification, s.experience_years,
+             s.phone_number, s.personal_mobile, s.whatsapp_no, s.email, s.personal_email, s.official_email,
+             s.status, s.is_active, s.photo_url, s.gender, s.dob, s.blood_group,
+             s.is_class_teacher, s.class_teacher_for, s.subjects_taught,
+             s.police_verification_status, s.emergency_contact, s.bio, s.created_at
+      FROM public.staff s
+      LEFT JOIN public.campuses c ON c.id = s.campus_id
       WHERE 1=1
     `;
     const params: any[] = [];
 
+    if (campusId && campusId !== "ALL") {
+      params.push(campusId);
+      // Filter staff by selected school's campus, plus universal trust leadership (Nitin Tyagi)
+      query += ` AND (s.campus_id = $${params.length} OR (s.campus_id IS NULL AND (s.role ILIKE '%SUPER%' OR s.role ILIKE '%CHAIRMAN%' OR s.designation ILIKE '%CHAIRMAN%')))`;
+    }
+
     if (search) {
       params.push(`%${search.toLowerCase()}%`);
-      query += ` AND (LOWER(first_name) LIKE $${params.length} OR LOWER(last_name) LIKE $${params.length} OR LOWER(designation) LIKE $${params.length} OR LOWER(employee_id) LIKE $${params.length})`;
+      query += ` AND (LOWER(s.first_name) LIKE $${params.length} OR LOWER(s.last_name) LIKE $${params.length} OR LOWER(s.designation) LIKE $${params.length} OR LOWER(s.employee_id) LIKE $${params.length})`;
     }
 
     if (dept && dept !== "All") {
       params.push(dept);
-      query += ` AND department = $${params.length}`;
+      query += ` AND s.department = $${params.length}`;
     }
 
     if (category && category !== "All") {
       params.push(category);
-      query += ` AND employee_category = $${params.length}`;
+      query += ` AND s.employee_category = $${params.length}`;
     }
 
-    query += ` ORDER BY created_at DESC, first_name ASC`;
+    query += ` ORDER BY s.created_at DESC, s.first_name ASC`;
 
     const res = await pool.query(query, params);
     return NextResponse.json({ success: true, staff: res.rows });
@@ -82,10 +105,26 @@ export async function POST(request: Request) {
       police_verification_status = "PENDING",
       emergency_contact = "",
       bio = "",
+      campus_id,
+      campusId,
+      institution_code,
+      institutionCode,
     } = body;
 
     if (!first_name) {
       return NextResponse.json({ success: false, error: "First name is required" }, { status: 400 });
+    }
+
+    let finalCampusId = campus_id || campusId || null;
+    const instCode = institution_code || institutionCode || "";
+    if (!finalCampusId && instCode && instCode !== "ALL") {
+      const cRes = await pool.query(`
+        SELECT c.id FROM public.campuses c
+        JOIN public.institutions i ON (LOWER(TRIM(c.name)) = LOWER(TRIM(i.name)) OR LOWER(TRIM(c.name)) = LOWER(TRIM(i.short_name)))
+        WHERE i.code = $1
+        LIMIT 1;
+      `, [instCode]);
+      if (cRes.rows.length > 0) finalCampusId = cRes.rows[0].id;
     }
 
     let finalEmpId = employee_id;
@@ -100,12 +139,14 @@ export async function POST(request: Request) {
         first_name, last_name, middle_name, role, designation, department, wing,
         phone_number, personal_mobile, email, official_email, qualification,
         experience_years, gender, blood_group, employee_id, employee_code,
-        status, is_active, police_verification_status, emergency_contact, bio
+        status, is_active, police_verification_status, emergency_contact, bio,
+        campus_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7,
         $8, $8, $9, $9, $10,
         $11, $12, $13, $14, $14,
-        $15, $16, $17, $18, $19
+        $15, $16, $17, $18, $19,
+        $20
       ) RETURNING *;
     `;
 
@@ -129,6 +170,7 @@ export async function POST(request: Request) {
       police_verification_status,
       emergency_contact,
       bio,
+      finalCampusId,
     ];
 
     const res = await pool.query(insertQuery, values);

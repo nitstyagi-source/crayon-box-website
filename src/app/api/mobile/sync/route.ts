@@ -20,6 +20,8 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId') || 'anon';
     const role = searchParams.get('role') || 'Parent';
     const childId = searchParams.get('childId') || '';
+    const institutionCode = searchParams.get('institutionCode') || searchParams.get('institution_code') || searchParams.get('school') || '';
+    const campusId = searchParams.get('campusId') || searchParams.get('campus_id') || '';
 
     // Dynamic resolution of staff identity & multi-role permissions
     let staffIdentity: any = null;
@@ -180,16 +182,22 @@ export async function GET(request: Request) {
                  COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "phoneNumber",
                  COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "contactPhone",
                  COALESCE(c.contact_phone, i.phone_number, '+91 9911102005') as "emergencyPhone",
-                 c.name as "campusName",
+                 COALESCE(c.name, i.name) as "campusName",
                  c.id as "campusId"
           FROM public.institutions i
-          LEFT JOIN public.campuses c ON 1=1
+          LEFT JOIN public.campuses c ON LOWER(TRIM(c.name)) = LOWER(TRIM(i.name)) OR LOWER(TRIM(c.name)) = LOWER(TRIM(i.short_name))
           ORDER BY i.created_at ASC;
         `),
         pool.query(`SELECT * FROM public.trusts ORDER BY created_at ASC LIMIT 1;`)
       ]);
 
-      institutions = instsRes.rows;
+      const seen = new Set<string>();
+      institutions = instsRes.rows.filter((inst: any) => {
+        if (!inst || !inst.code || seen.has(inst.code)) return false;
+        seen.add(inst.code);
+        return true;
+      });
+
       if (trustRes.rows.length > 0) {
         trustInfo = trustRes.rows[0];
       }
