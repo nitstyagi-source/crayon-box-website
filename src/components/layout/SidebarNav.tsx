@@ -63,6 +63,30 @@ interface ExecutiveDomain {
   items: NavSubItem[];
 }
 
+function roleHasAccess(allowedRoles?: string[], userRole: string = "SUPER_ADMIN"): boolean {
+  if (!allowedRoles || allowedRoles.length === 0) return true;
+  if (userRole === "SUPER_ADMIN") return true;
+  if (allowedRoles.includes(userRole)) return true;
+
+  // Normalized role aliases:
+  const isFacultyOrTeacher = userRole === "FACULTY" || userRole === "TEACHER" || userRole === "STAFF";
+  if (isFacultyOrTeacher && (allowedRoles.includes("TEACHER") || allowedRoles.includes("FACULTY") || allowedRoles.includes("STAFF"))) {
+    return true;
+  }
+
+  const isAdminOrPrincipal = userRole === "ADMIN" || userRole === "PRINCIPAL";
+  if (isAdminOrPrincipal && (allowedRoles.includes("PRINCIPAL") || allowedRoles.includes("SUPER_ADMIN") || allowedRoles.includes("ADMIN"))) {
+    return true;
+  }
+
+  const isFinance = userRole === "ACCOUNTS" || userRole === "ACCOUNTANT";
+  if (isFinance && (allowedRoles.includes("ACCOUNTS") || allowedRoles.includes("ACCOUNTANT"))) {
+    return true;
+  }
+
+  return false;
+}
+
 export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, onCloseMobile }: SidebarNavProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -110,9 +134,10 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Governance",
       icon: Building2,
       accentColor: "#D4AF37",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS", "TEACHER", "FACULTY", "STAFF"],
       items: [
-        { name: "Executive Command Desk", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
+        { name: "Executive Command Desk", href: "/admin/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "Faculty Classroom Desk", href: "/teacher", icon: GraduationCap, badge: "Classroom", roles: ["TEACHER", "FACULTY", "STAFF"] },
         { name: "Trust Board & MIS Intelligence", href: "/admin/trust", icon: Award, roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
         { name: "Enterprise Audit Vault", href: "/admin/audit-logs", icon: ShieldAlert, badge: "ISO & DPDP", roles: ["SUPER_ADMIN", "ACCOUNTS"] },
         { name: "Statutory Board Exporter", href: "/admin/reports/compliance", icon: Award, badge: "Board & U-DISE", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
@@ -126,11 +151,11 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Admissions",
       icon: GraduationCap,
       accentColor: "#0284C7",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTS", "PARENT"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "ACCOUNTS", "PARENT"],
       items: [
         { name: "Admissions Command Suite", href: "/admin/admissions", icon: GraduationCap, badge: "Pipeline & CRM", roles: ["SUPER_ADMIN", "PRINCIPAL", "ACCOUNTS"] },
-        { name: "Student & Family 360 Master", href: "/admin/students", icon: Users, badge: "Enrolled & TC", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "ACCOUNTS"] },
-        { name: "SEN & Inclusive Education Studio", href: "/admin/students/sen-iep", icon: HeartPulse, badge: "IEP & Needs", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "Student & Family 360 Master", href: "/admin/students", icon: Users, badge: "Enrolled & TC", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "ACCOUNTS"] },
+        { name: "SEN & Inclusive Education Studio", href: "/admin/students/sen-iep", icon: HeartPulse, badge: "IEP & Needs", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
         { name: "Predictive Retention Radar", href: "/admin/students/retention", icon: Sparkles, badge: "AI Early Warning", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
@@ -140,11 +165,11 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Academics",
       icon: BookOpen,
       accentColor: "#059669",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"],
       items: [
-        { name: "Daily Attendance & Muster Hub", href: "/admin/attendance", icon: GraduationCap, badge: "Roll-Call", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "Curriculum, Diary & Homework LMS", href: "/admin/curriculum", icon: BookOpen, badge: "LMS", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "AI Genetic Timetable & Proxy Hub", href: "/admin/timetable", icon: Clock, badge: "Genetic GA", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "Daily Attendance & Muster Hub", href: "/admin/attendance", icon: GraduationCap, badge: "Roll-Call", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "Curriculum, Diary & Homework LMS", href: "/admin/curriculum", icon: BookOpen, badge: "LMS", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "AI Genetic Timetable & Proxy Hub", href: "/admin/timetable", icon: Clock, badge: "Genetic GA", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
         { name: "Faculty Directory & Academic Calendar", href: "/admin/faculty", icon: Users, badge: "Staff", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
@@ -154,11 +179,11 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Exams",
       icon: Award,
       accentColor: "#D97706",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"],
       items: [
-        { name: "Examination & Gradebook Center", href: "/admin/exams", icon: Award, badge: "HPC & AI Studio", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "Assessment Rubrics Builder", href: "/admin/academics/rubrics", icon: BookOpen, badge: "NEP 2020", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "360° Holistic Progress Card", href: "/admin/reports/holistic-card", icon: Sparkles, badge: "Printable", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "Examination & Gradebook Center", href: "/admin/exams", icon: Award, badge: "HPC & AI Studio", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "Assessment Rubrics Builder", href: "/admin/academics/rubrics", icon: BookOpen, badge: "NEP 2020", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "360° Holistic Progress Card", href: "/admin/reports/holistic-card", icon: Sparkles, badge: "Printable", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
       ],
     },
     {
@@ -181,12 +206,12 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Logistics",
       icon: Bus,
       accentColor: "#EA580C",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"],
       items: [
         { name: "Smart Fleet Telematics & Transport", href: "/admin/transport", icon: Bus, badge: "GPS Radar", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
         { name: "Campus Security & Gate Pass Hub", href: "/admin/visitors", icon: ShieldCheck, badge: "Gate & CCTV", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
-        { name: "Student Wellness, Clinic & POCSO", href: "/admin/health", icon: HeartPulse, badge: "Infirmary", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "Digital Library & Knowledge Media", href: "/admin/library", icon: Library, badge: "Catalog", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
+        { name: "Student Wellness, Clinic & POCSO", href: "/admin/health", icon: HeartPulse, badge: "Infirmary", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "Digital Library & Knowledge Media", href: "/admin/library", icon: Library, badge: "Catalog", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
       ],
     },
     {
@@ -195,14 +220,14 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       shortName: "Community",
       icon: MessageSquare,
       accentColor: "#7C3AED",
-      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"],
+      allowedRoles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "PARENT"],
       items: [
-        { name: "Omnichannel Comms & WhatsApp Hub", href: "/admin/communications", icon: MessageSquare, badge: "AI & WhatsApp", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER"] },
-        { name: "PBIS House Cup & Pastoral Care", href: "/admin/pastoral/house-points", icon: Trophy, badge: "House Cup", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
+        { name: "Omnichannel Comms & WhatsApp Hub", href: "/admin/communications", icon: MessageSquare, badge: "AI & WhatsApp", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF"] },
+        { name: "PBIS House Cup & Pastoral Care", href: "/admin/pastoral/house-points", icon: Trophy, badge: "House Cup", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "PARENT"] },
         { name: "2-Way WhatsApp Bot Simulator", href: "/admin/communications/whatsapp-bot", icon: Bot, badge: "Interactive", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
         { name: "Native Mobile Push Center", href: "/admin/communications/push", icon: Bell, badge: "FCM & Web", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
-        { name: "Parent Engagement & Grievance Hub", href: "/admin/parent-care", icon: HeartHandshake, badge: "Grievance", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
-        { name: "PTM Appointment Desk", href: "/admin/parent-care?tab=ptm", icon: Calendar, badge: "Self-Service", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "PARENT"] },
+        { name: "Parent Engagement & Grievance Hub", href: "/admin/parent-care", icon: HeartHandshake, badge: "Grievance", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "PARENT"] },
+        { name: "PTM Appointment Desk", href: "/admin/parent-care?tab=ptm", icon: Calendar, badge: "Self-Service", roles: ["SUPER_ADMIN", "PRINCIPAL", "TEACHER", "FACULTY", "STAFF", "PARENT"] },
         { name: "Public Website CMS & Portal Hub", href: "/admin/cms", icon: Globe, badge: "Newsroom", roles: ["SUPER_ADMIN", "PRINCIPAL"] },
       ],
     },
@@ -210,10 +235,10 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
 
   // Filter accessible domains for active role and exclude dynamically disabled modules
   const accessibleDomains = EXECUTIVE_DOMAINS
-    .filter(domain => domain.allowedRoles.includes(currentRole))
+    .filter(domain => roleHasAccess(domain.allowedRoles, currentRole))
     .map(domain => ({
       ...domain,
-      items: domain.items.filter(item => !disabledHrefs.includes(item.href))
+      items: domain.items.filter(item => !disabledHrefs.includes(item.href) && roleHasAccess(item.roles, currentRole))
     }))
     .filter(domain => domain.items.length > 0);
 
@@ -352,7 +377,7 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
       {/* 2. Scrollable Navigation: 7 Domains & 20 Master Hubs */}
       <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-5 custom-scrollbar">
         {accessibleDomains.map((domain) => {
-          const visibleItems = domain.items.filter(item => !item.roles || item.roles.includes(currentRole));
+          const visibleItems = domain.items.filter(item => roleHasAccess(item.roles, currentRole));
           if (visibleItems.length === 0) return null;
 
           return (
@@ -439,8 +464,15 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
         {!isCollapsed ? (
           <button
             onClick={() => {
-              const nextRole = currentRole === "TEACHER" || currentRole === "SUPER_ADMIN" ? "PARENT" : "TEACHER";
+              const isStaffPersona = currentRole === "TEACHER" || currentRole === "SUPER_ADMIN" || currentRole === "FACULTY" || currentRole === "STAFF";
+              const nextRole = isStaffPersona ? "PARENT" : "FACULTY";
               localStorage.setItem("cbs_active_role", nextRole);
+              localStorage.setItem("vet_current_role", nextRole);
+              localStorage.setItem("cb_user_role", nextRole);
+              if (typeof document !== "undefined") {
+                document.cookie = `cb_user_role=${encodeURIComponent(nextRole)}; path=/; max-age=2592000; SameSite=Lax`;
+                document.cookie = `vet_current_role=${encodeURIComponent(nextRole)}; path=/; max-age=2592000; SameSite=Lax`;
+              }
               window.location.href = nextRole === "PARENT" ? "/parent/live-stream" : "/admin/dashboard";
             }}
             title={`Switch to ${currentRole === "PARENT" ? "Faculty Mode" : "Parent Mode"}`}
@@ -457,8 +489,15 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
         ) : (
           <button
             onClick={() => {
-              const nextRole = currentRole === "TEACHER" || currentRole === "SUPER_ADMIN" ? "PARENT" : "TEACHER";
+              const isStaffPersona = currentRole === "TEACHER" || currentRole === "SUPER_ADMIN" || currentRole === "FACULTY" || currentRole === "STAFF";
+              const nextRole = isStaffPersona ? "PARENT" : "FACULTY";
               localStorage.setItem("cbs_active_role", nextRole);
+              localStorage.setItem("vet_current_role", nextRole);
+              localStorage.setItem("cb_user_role", nextRole);
+              if (typeof document !== "undefined") {
+                document.cookie = `cb_user_role=${encodeURIComponent(nextRole)}; path=/; max-age=2592000; SameSite=Lax`;
+                document.cookie = `vet_current_role=${encodeURIComponent(nextRole)}; path=/; max-age=2592000; SameSite=Lax`;
+              }
               window.location.href = nextRole === "PARENT" ? "/parent/live-stream" : "/admin/dashboard";
             }}
             title={`Switch to ${currentRole === "PARENT" ? "Faculty Mode" : "Parent Mode"}`}
