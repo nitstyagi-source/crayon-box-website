@@ -64,7 +64,15 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
   const defaultCurrentSession = `${currentYear}–${currentYear + 1} (Active)`;
   const [currentInstitution, setCurrentInstitutionState] = useState<string>('ALL');
   const [currentSession, setCurrentSession] = useState<string>(defaultCurrentSession);
-  const [currentRole, setCurrentRole] = useState<string>('SUPER_ADMIN');
+  const [currentRole, setCurrentRole] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('vet_current_role') || localStorage.getItem('cbs_active_role') || localStorage.getItem('cb_user_role');
+      if (stored) return stored;
+      const match = document.cookie.match(/(?:^| )cb_user_role=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return 'SUPER_ADMIN';
+  });
   const [dbInstitutions, setDbInstitutions] = useState<DynamicInstitution[]>([]);
 
   const fetchInstitutionsFromDb = useCallback(async () => {
@@ -96,8 +104,15 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
     const savedSession = localStorage.getItem('vet_current_session');
     if (savedSession) setCurrentSession(savedSession);
 
-    const savedRole = localStorage.getItem('vet_current_role');
-    if (savedRole) setCurrentRole(savedRole);
+    const savedRole = localStorage.getItem('vet_current_role') || localStorage.getItem('cbs_active_role') || localStorage.getItem('cb_user_role');
+    if (savedRole) {
+      setCurrentRole(savedRole);
+    } else if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^| )cb_user_role=([^;]+)/);
+      if (match) {
+        setCurrentRole(decodeURIComponent(match[1]));
+      }
+    }
 
     fetchInstitutionsFromDb();
   }, [fetchInstitutionsFromDb]);
@@ -116,6 +131,12 @@ export function InstitutionProvider({ children }: { children: React.ReactNode })
   const setRole = (r: string) => {
     setCurrentRole(r);
     localStorage.setItem('vet_current_role', r);
+    localStorage.setItem('cbs_active_role', r);
+    localStorage.setItem('cb_user_role', r);
+    if (typeof document !== 'undefined') {
+      document.cookie = `cb_user_role=${encodeURIComponent(r)}; path=/; max-age=2592000; SameSite=Lax`;
+      document.cookie = `vet_current_role=${encodeURIComponent(r)}; path=/; max-age=2592000; SameSite=Lax`;
+    }
   };
 
   // Pure dynamic mapping from database institutions (empty array if 0 institutions in DB)

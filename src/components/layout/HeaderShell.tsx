@@ -57,19 +57,43 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
   const [sessionsList, setSessionsList] = useState<string[]>([`${new Date().getFullYear()}–${new Date().getFullYear() + 1} (Active)`]);
 
   useEffect(() => {
-    // 1. Resolve user profile from cookies / active session
+    // 1. Resolve user profile from cookies / localStorage
+    let resolvedName = '';
+    let resolvedEmail = '';
+    let resolvedRole = '';
+
     if (typeof document !== 'undefined') {
       const getCookie = (name: string) => {
         const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
         return match ? decodeURIComponent(match[2]) : null;
       };
-      const cookieName = getCookie('cb_user_name');
-      const cookieEmail = getCookie('cb_user_email');
-      const cookieRole = getCookie('cb_user_role');
-      if (cookieName) setUserName(cookieName);
-      if (cookieEmail) setUserEmail(cookieEmail);
-      if (cookieRole) setUserTitle(cookieRole.replace(/_/g, ' '));
+      resolvedName = getCookie('cb_user_name') || '';
+      resolvedEmail = getCookie('cb_user_email') || '';
+      resolvedRole = getCookie('cb_user_role') || '';
     }
+
+    if (typeof window !== 'undefined') {
+      const localUserRaw = localStorage.getItem('cbs_auth_user');
+      if (localUserRaw) {
+        try {
+          const parsed = JSON.parse(localUserRaw);
+          resolvedName = parsed.faculty?.name || parsed.parent?.name || parsed.admin?.name || parsed.name || resolvedName;
+          resolvedEmail = parsed.faculty?.email || parsed.parent?.email || parsed.admin?.email || parsed.email || resolvedEmail;
+          resolvedRole = parsed.primaryRole || parsed.faculty?.role || resolvedRole;
+        } catch {}
+      }
+      const localName = localStorage.getItem('cb_user_name');
+      if (localName && !resolvedName) resolvedName = localName;
+      const localEmail = localStorage.getItem('cb_user_email');
+      if (localEmail && !resolvedEmail) resolvedEmail = localEmail;
+      const localRole = localStorage.getItem('cbs_active_role') || localStorage.getItem('vet_current_role') || localStorage.getItem('cb_user_role');
+      if (localRole && !resolvedRole) resolvedRole = localRole;
+    }
+
+    if (resolvedName) setUserName(resolvedName);
+    if (resolvedEmail) setUserEmail(resolvedEmail);
+    const activeEffectiveRole = resolvedRole || currentRole;
+    if (activeEffectiveRole) setUserTitle(activeEffectiveRole.replace(/_/g, ' '));
 
     // 2. Load dynamic academic sessions from database
     getAcademicSessionsAction().then(res => {
@@ -79,15 +103,24 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
       }
     });
 
-    // 3. Load trust chairman details if available
+    // 3. Load trust chairman details ONLY if Super Admin root identity without a specific non-super employee logged in
     getTrustDetailsAction().then(res => {
       if (res.success && res.trust) {
-        if (res.trust.chairmanName && currentRole === 'SUPER_ADMIN') {
-          setUserName(res.trust.chairmanName);
-          setUserTitle('Trust Chairman & Super Administrator');
+        const isSuperAdmin = activeEffectiveRole === 'SUPER_ADMIN' || currentRole === 'SUPER_ADMIN';
+        const hasEmployeeSession = resolvedName && resolvedName !== 'Staff Administrator' && !resolvedName.includes('Nitin Tyagi');
+        
+        if (isSuperAdmin && !hasEmployeeSession) {
+          if (res.trust.chairmanName && (!resolvedName || resolvedName === 'Staff Administrator')) {
+            setUserName(res.trust.chairmanName);
+            setUserTitle('Trust Chairman & Super Administrator');
+          }
+          if (res.trust.contactEmail && (!resolvedEmail || resolvedEmail === 'admin@school.edu.in')) {
+            setUserEmail(res.trust.contactEmail);
+          }
         }
-        if (res.trust.contactEmail) setUserEmail(res.trust.contactEmail);
-        if (res.trust.contactPhone) setUserPhone(res.trust.contactPhone);
+        if (res.trust.contactPhone && !userPhone) {
+          setUserPhone(res.trust.contactPhone);
+        }
       }
     });
   }, [currentRole]);
@@ -100,6 +133,16 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
       const supabase = createClient();
       await supabase.auth.signOut();
       await clearServerAuthSession();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cbs_auth_user');
+        localStorage.removeItem('cbs_active_role');
+        localStorage.removeItem('cbs_auth_token');
+        localStorage.removeItem('vet_current_role');
+        localStorage.removeItem('cb_user_role');
+        localStorage.removeItem('cb_user_name');
+        localStorage.removeItem('cb_user_email');
+        localStorage.removeItem('cb_auth_token');
+      }
     } catch (e) {
       console.error('Logout error:', e);
     } finally {
@@ -111,22 +154,28 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
     e.preventDefault();
     setIsSavingProfile(true);
     try {
-      const res = await updateTrustDetailsAction({
-        name: 'Vaani Educational Trust',
-        chairmanName: userName,
-        contactEmail: userEmail,
-        contactPhone: userPhone
-      });
-
-      if (res.success) {
-        setProfileSuccessMsg("✓ Super User profile updated successfully!");
-        setTimeout(() => {
-          setProfileSuccessMsg(null);
-          setIsEditProfileModalOpen(false);
-        }, 1500);
+      if (currentRole === 'SUPER_ADMIN') {
+        const res = await updateTrustDetailsAction({
+          name: 'Vaani Educational Trust',
+          chairmanName: userName,
+          contactEmail: userEmail,
+          contactPhone: userPhone
+        });
+        if (!res.success) throw new Error(res.error);
       } else {
-        alert("Error saving profile: " + res.error);
+        localStorage.setItem('cb_user_name', userName);
+        localStorage.setItem('cb_user_email', userEmail);
+        if (typeof document !== 'undefined') {
+          document.cookie = `cb_user_name=${encodeURIComponent(userName)}; path=/; max-age=2592000; SameSite=Lax`;
+          document.cookie = `cb_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=2592000; SameSite=Lax`;
+        }
       }
+
+      setProfileSuccessMsg("✓ Profile updated successfully!");
+      setTimeout(() => {
+        setProfileSuccessMsg(null);
+        setIsEditProfileModalOpen(false);
+      }, 1500);
     } catch (err: any) {
       alert("Error: " + err.message);
     } finally {
@@ -188,16 +237,19 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                <p className="text-stone-500 text-[11px] font-medium truncate flex items-center gap-1.5 mt-0.5">
                  <span className="font-bold text-stone-800">
                    {currentRole === 'SUPER_ADMIN' && `Good morning, ${userName}.`}
-                   {currentRole === 'PRINCIPAL' && `See. Understand. Act.`}
-                   {currentRole === 'TEACHER' && `Welcome, ${userName}.`}
+                   {currentRole === 'PRINCIPAL' && `Welcome, ${userName}.`}
+                   {(currentRole === 'TEACHER' || currentRole === 'FACULTY') && `Welcome, ${userName}.`}
                    {currentRole === 'PARENT' && `Everything about your child's school, in one place.`}
                    {currentRole === 'ACCOUNTS' && `Precision & Reconciliation.`}
+                   {currentRole === 'STAFF' && `Good morning, ${userName}.`}
+                   {!['SUPER_ADMIN', 'PRINCIPAL', 'TEACHER', 'FACULTY', 'PARENT', 'ACCOUNTS', 'STAFF'].includes(currentRole) && `Welcome, ${userName}.`}
                  </span>
                  <span className="text-stone-400 hidden md:inline">
                    {currentRole === 'SUPER_ADMIN' && `• Cross-campus overview.`}
                    {currentRole === 'PRINCIPAL' && `• Campus vitals & actions.`}
-                   {currentRole === 'TEACHER' && `• Classroom diary & attendance.`}
+                   {(currentRole === 'TEACHER' || currentRole === 'FACULTY') && `• Classroom diary & attendance.`}
                    {currentRole === 'ACCOUNTS' && `• Daily counter collection.`}
+                   {currentRole === 'STAFF' && `• Campus operations & tasks.`}
                  </span>
                </p>
             </div>
@@ -285,14 +337,16 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
                        <span>Edit Profile & Credentials</span>
                      </button>
 
-                     <Link
-                       href="/admin/trust"
-                       onClick={() => setIsProfileOpen(false)}
-                       className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition"
-                     >
-                       <Award className="w-4 h-4 text-amber-500" />
-                       <span>Trust Master Governance</span>
-                     </Link>
+                     {currentRole === 'SUPER_ADMIN' && (
+                       <Link
+                         href="/admin/trust"
+                         onClick={() => setIsProfileOpen(false)}
+                         className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition"
+                       >
+                         <Award className="w-4 h-4 text-amber-500" />
+                         <span>Trust Master Governance</span>
+                       </Link>
+                     )}
 
                      <div className="my-1 border-t border-slate-100" />
 
@@ -486,7 +540,7 @@ export function HeaderShell({ onOpenSearch, onToggleMobileMenu }: HeaderShellPro
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Active Security Role</label>
                 <div className="p-2.5 bg-slate-100 rounded-xl text-slate-600 font-bold flex items-center justify-between">
-                  <span>Super Administrator (Root)</span>
+                  <span>{currentRole.replace(/_/g, ' ')}</span>
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 </div>
               </div>

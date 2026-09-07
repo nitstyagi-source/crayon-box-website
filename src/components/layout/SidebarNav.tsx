@@ -217,12 +217,63 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
     }))
     .filter(domain => domain.items.length > 0);
 
+  const [userName, setUserName] = useState<string>("Staff Member");
+  const [userRole, setUserRole] = useState<string>(currentRole);
+
+  useEffect(() => {
+    let resolvedName = "";
+    let resolvedRole = currentRole;
+
+    if (typeof document !== "undefined") {
+      const matchName = document.cookie.match(/(?:^| )cb_user_name=([^;]+)/);
+      if (matchName) resolvedName = decodeURIComponent(matchName[1]);
+      const matchRole = document.cookie.match(/(?:^| )cb_user_role=([^;]+)/);
+      if (matchRole) resolvedRole = decodeURIComponent(matchRole[1]);
+    }
+
+    if (typeof window !== "undefined") {
+      const localUserRaw = localStorage.getItem("cbs_auth_user");
+      if (localUserRaw) {
+        try {
+          const parsed = JSON.parse(localUserRaw);
+          resolvedName = parsed.faculty?.name || parsed.parent?.name || parsed.admin?.name || parsed.name || resolvedName;
+          resolvedRole = parsed.primaryRole || parsed.faculty?.role || resolvedRole;
+        } catch {}
+      }
+      const localName = localStorage.getItem("cb_user_name");
+      if (localName && !resolvedName) resolvedName = localName;
+      const localRole = localStorage.getItem("cbs_active_role") || localStorage.getItem("vet_current_role") || localStorage.getItem("cb_user_role");
+      if (localRole) resolvedRole = localRole;
+    }
+
+    if (resolvedName) setUserName(resolvedName);
+    if (resolvedRole) setUserRole(resolvedRole);
+  }, [currentRole]);
+
+  const userInitials = userName
+    .split(" ")
+    .filter(Boolean)
+    .map(n => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "CB";
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
       await clearServerAuthSession();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cbs_auth_user");
+        localStorage.removeItem("cbs_active_role");
+        localStorage.removeItem("cbs_auth_token");
+        localStorage.removeItem("vet_current_role");
+        localStorage.removeItem("cb_user_role");
+        localStorage.removeItem("cb_user_name");
+        localStorage.removeItem("cb_user_email");
+        localStorage.removeItem("cb_auth_token");
+      }
     } catch (e) {
       console.error("Logout error:", e);
     } finally {
@@ -422,17 +473,17 @@ export function SidebarNav({ currentRole = "SUPER_ADMIN", isMobileOpen = false, 
           {!isCollapsed ? (
             <div className="min-w-0 flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-[#D97706]/20 text-[#92400E] flex items-center justify-center font-bold text-xs shrink-0 border border-[#D97706]/30">
-                NT
+                {userInitials}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-stone-900 truncate leading-tight">Nitin Tyagi</p>
-                <p className="text-[9px] text-stone-500 font-semibold truncate leading-tight uppercase tracking-wider">{currentRole}</p>
+                <p className="text-xs font-bold text-stone-900 truncate leading-tight">{userName}</p>
+                <p className="text-[9px] text-stone-500 font-semibold truncate leading-tight uppercase tracking-wider">{userRole.replace(/_/g, ' ')}</p>
               </div>
             </div>
           ) : (
             <div className="w-full flex justify-center">
-              <div className="w-7 h-7 rounded-full bg-[#D97706]/20 text-[#92400E] flex items-center justify-center font-bold text-xs shrink-0 border border-[#D97706]/30">
-                NT
+              <div className="w-7 h-7 rounded-full bg-[#D97706]/20 text-[#92400E] flex items-center justify-center font-bold text-xs shrink-0 border border-[#D97706]/30" title={`${userName} (${userRole})`}>
+                {userInitials}
               </div>
             </div>
           )}

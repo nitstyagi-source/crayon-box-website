@@ -95,10 +95,27 @@ export async function loginWithCredentialsAction(formData: {
     }
 
     if (data.session && data.user) {
-      let detectedRole = "SUPER_ADMIN";
-      let fullName = data.user.user_metadata?.full_name || "Staff Member";
-      if (cleanEmail.includes("teacher") || cleanEmail.includes("faculty")) detectedRole = "TEACHER";
-      else if (cleanEmail.includes("parent")) detectedRole = "PARENT";
+      let detectedRole = cleanEmail === 'nits.tyagi@gmail.com' || cleanEmail.includes('tyagi') ? "SUPER_ADMIN" : "STAFF";
+      let fullName = data.user.user_metadata?.full_name || (detectedRole === "SUPER_ADMIN" ? "Nitin Tyagi" : cleanEmail.split('@')[0]);
+
+      try {
+        const { data: staffMember } = await supabase
+          .from('staff')
+          .select('*')
+          .or(`email.ilike.${cleanEmail},official_email.ilike.${cleanEmail},personal_email.ilike.${cleanEmail}`)
+          .maybeSingle();
+
+        if (staffMember) {
+          fullName = `${staffMember.first_name || ''} ${staffMember.last_name || ''}`.trim() || fullName;
+          detectedRole = (staffMember.role || 'TEACHER').toUpperCase();
+        } else if (cleanEmail.includes("teacher") || cleanEmail.includes("faculty")) {
+          detectedRole = "TEACHER";
+        } else if (cleanEmail.includes("parent")) {
+          detectedRole = "PARENT";
+        }
+      } catch (e) {
+        console.error("Staff lookup error in loginWithCredentialsAction:", e);
+      }
 
       await setServerAuthSession({
         userId: data.user.id,
@@ -108,7 +125,7 @@ export async function loginWithCredentialsAction(formData: {
         accessToken: data.session.access_token
       });
 
-      return { success: true, role: detectedRole };
+      return { success: true, role: detectedRole, fullName, email: cleanEmail };
     }
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to authenticate session." };

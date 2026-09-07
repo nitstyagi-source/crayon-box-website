@@ -70,9 +70,37 @@ export default function UniversalLoginPage() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (session?.user?.email) {
-        const userEmail = session.user.email;
-        const userName = userEmail.includes('tyagi') ? 'Nitin Tyagi (Chairman)' : userEmail.split('@')[0];
-        const userRole = userEmail.includes('tyagi') ? 'SUPER_ADMIN' : 'STAFF';
+        const userEmail = session.user.email.toLowerCase().trim();
+        let userName = userEmail.includes('tyagi') ? 'Nitin Tyagi (Chairman)' : userEmail.split('@')[0];
+        let userRole = userEmail.includes('tyagi') ? 'SUPER_ADMIN' : 'STAFF';
+
+        try {
+          const { data: staffMember } = await supabase
+            .from('staff')
+            .select('*')
+            .or(`email.ilike.${userEmail},official_email.ilike.${userEmail},personal_email.ilike.${userEmail}`)
+            .maybeSingle();
+
+          if (staffMember) {
+            userName = `${staffMember.first_name || ''} ${staffMember.last_name || ''}`.trim() || userName;
+            userRole = (staffMember.role || 'TEACHER').toUpperCase();
+            localStorage.setItem("cbs_auth_user", JSON.stringify({
+              identifier: userEmail,
+              roles: [userRole],
+              primaryRole: userRole,
+              faculty: {
+                id: staffMember.id,
+                name: userName,
+                email: userEmail,
+                role: staffMember.role,
+                designation: staffMember.designation,
+                department: staffMember.department
+              }
+            }));
+          }
+        } catch (e) {
+          console.error("Error checking staff profile:", e);
+        }
 
         await setServerAuthSession({
           userId: session.user.id || 'supa_user',
@@ -83,9 +111,19 @@ export default function UniversalLoginPage() {
         });
 
         localStorage.setItem('cb_auth_token', session.access_token || 'true');
+        localStorage.setItem('cbs_auth_token', session.access_token || 'true');
         localStorage.setItem('cb_user_role', userRole);
+        localStorage.setItem('cbs_active_role', userRole);
+        localStorage.setItem('vet_current_role', userRole);
         localStorage.setItem('cb_user_name', userName);
         localStorage.setItem('cb_user_email', userEmail);
+
+        if (typeof document !== 'undefined') {
+          document.cookie = `cb_user_name=${encodeURIComponent(userName)}; path=/; max-age=2592000; SameSite=Lax`;
+          document.cookie = `cb_user_email=${encodeURIComponent(userEmail)}; path=/; max-age=2592000; SameSite=Lax`;
+          document.cookie = `cb_user_role=${encodeURIComponent(userRole)}; path=/; max-age=2592000; SameSite=Lax`;
+          document.cookie = `vet_current_role=${encodeURIComponent(userRole)}; path=/; max-age=2592000; SameSite=Lax`;
+        }
 
         router.replace('/admin');
       }
@@ -196,16 +234,31 @@ export default function UniversalLoginPage() {
   // Save session & redirect
   async function completeLoginSession(userData: any, chosenRole: string) {
     try {
+      const resolvedName = userData.faculty?.name || userData.parent?.name || userData.admin?.name || userData.name || (userData.identifier ? `User (${userData.identifier})` : 'Faculty Member');
+      const resolvedEmail = userData.faculty?.email || userData.parent?.email || userData.admin?.email || userData.email || `${userData.identifier}@crayonboxschool.com`;
+      const finalRole = chosenRole || userData.primaryRole || 'FACULTY';
+
       localStorage.setItem("cbs_auth_user", JSON.stringify(userData));
-      localStorage.setItem("cbs_active_role", chosenRole);
-      localStorage.setItem("cbs_auth_token", userData.token);
+      localStorage.setItem("cbs_active_role", finalRole);
+      localStorage.setItem("cbs_auth_token", userData.token || `cb_token_${Date.now()}`);
+      localStorage.setItem("vet_current_role", finalRole);
+      localStorage.setItem("cb_user_role", finalRole);
+      localStorage.setItem("cb_user_name", resolvedName);
+      localStorage.setItem("cb_user_email", resolvedEmail);
+
+      if (typeof document !== 'undefined') {
+        document.cookie = `cb_user_name=${encodeURIComponent(resolvedName)}; path=/; max-age=2592000; SameSite=Lax`;
+        document.cookie = `cb_user_email=${encodeURIComponent(resolvedEmail)}; path=/; max-age=2592000; SameSite=Lax`;
+        document.cookie = `cb_user_role=${encodeURIComponent(finalRole)}; path=/; max-age=2592000; SameSite=Lax`;
+        document.cookie = `vet_current_role=${encodeURIComponent(finalRole)}; path=/; max-age=2592000; SameSite=Lax`;
+      }
 
       // Set cookie session so Next.js server actions / middleware authorize the session
       await setServerAuthSession({
-        userId: userData.identifier || 'admin',
-        email: userData.faculty?.email || userData.parent?.email || `${userData.identifier}@crayonboxschool.com`,
-        role: chosenRole,
-        fullName: userData.faculty?.name || userData.parent?.name || 'User',
+        userId: userData.identifier || userData.faculty?.id || 'admin',
+        email: resolvedEmail,
+        role: finalRole,
+        fullName: resolvedName,
         accessToken: userData.token || `cb_token_${Date.now()}`
       });
 
