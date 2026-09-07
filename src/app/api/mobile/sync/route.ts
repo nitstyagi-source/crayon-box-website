@@ -21,6 +21,52 @@ export async function GET(request: Request) {
     const role = searchParams.get('role') || 'Parent';
     const childId = searchParams.get('childId') || '';
 
+    // Dynamic resolution of staff identity & multi-role permissions
+    let staffIdentity: any = null;
+    if (userId && userId !== 'anon') {
+      try {
+        const staffRes = await pool.query(`
+          SELECT id, first_name, last_name, email, official_email, role, designation, department
+          FROM public.staff
+          WHERE id::text = $1 
+             OR email ILIKE $1 
+             OR official_email ILIKE $1 
+             OR phone_number LIKE $2
+             OR CONCAT(first_name, ' ', COALESCE(last_name, '')) ILIKE $1
+          LIMIT 1;
+        `, [userId.trim(), `%${userId.replace(/\D/g, '').slice(-10)}%`]);
+
+        if (staffRes.rows.length > 0) {
+          const s = staffRes.rows[0];
+          const rawRole = (s.role || '').toUpperCase();
+          const normRole = rawRole.replace(/_/g, ' ');
+          const rawDesig = (s.designation || '').toUpperCase();
+          const normDesig = rawDesig.replace(/_/g, ' ');
+
+          const isSuper = normRole.includes('SUPER ADMIN') || normRole.includes('CHAIRMAN') || normRole.includes('TRUSTEE') || normDesig.includes('CHAIRMAN') || normDesig.includes('TRUSTEE');
+          const hasAdmin = isSuper || normRole.includes('ADMIN') || normRole.includes('PRINCIPAL') || normRole.includes('OFFICER') || normRole.includes('COORDINATOR');
+          const hasTeaching = normRole.includes('TEACHER') || normRole.includes('FACULTY') || normDesig.includes('TEACHER');
+
+          const availableRoles: string[] = [];
+          if (hasAdmin) availableRoles.push('Admin');
+          if (hasTeaching && !availableRoles.includes('Faculty')) availableRoles.push('Faculty');
+          if (availableRoles.length === 0) availableRoles.push('Faculty');
+
+          staffIdentity = {
+            staffId: s.id,
+            name: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+            role: s.role,
+            designation: s.designation,
+            department: s.department,
+            isSuperAdmin: isSuper,
+            availableRoles
+          };
+        }
+      } catch (err) {
+        console.error('Error resolving staff identity in sync route:', err);
+      }
+    }
+
     // 1. Live Campus CCTV Channels
     let liveCameras: any[] = [];
     try {
@@ -171,7 +217,8 @@ export async function GET(request: Request) {
       userContext: {
         userId,
         role,
-        activeChildId: childId
+        activeChildId: childId,
+        staffIdentity
       },
       institutions,
       trust: trustInfo,

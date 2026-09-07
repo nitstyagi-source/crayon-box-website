@@ -110,19 +110,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'No account is associated with this mobile number.' }, { status: 404 });
     }
 
-    // Map role to app standard
-    let mappedRole: 'Admin' | 'Faculty' | 'Parent' | 'Student' | 'Driver' = 'Parent';
-    if (profile.role === 'Super Admin' || profile.role === 'Admin' || profile.role === 'Principal') {
-      mappedRole = 'Admin';
-    } else if (profile.role === 'Faculty' || profile.role === 'Teacher') {
-      mappedRole = 'Faculty';
-    } else if (profile.role === 'Driver') {
-      mappedRole = 'Driver';
-    } else if (profile.role === 'Student') {
-      mappedRole = 'Student';
-    } else {
-      mappedRole = 'Parent';
-    }
+    // Map role to app standard with multi-role support
+    const rawRole = (profile.role || '').toUpperCase();
+    const normRole = rawRole.replace(/_/g, ' ');
+    const isSuper = normRole.includes('SUPER ADMIN') || normRole.includes('CHAIRMAN') || normRole.includes('TRUSTEE');
+    const hasAdmin = isSuper || normRole.includes('ADMIN') || normRole.includes('PRINCIPAL') || normRole.includes('OFFICER') || normRole.includes('COORDINATOR');
+    const hasTeaching = normRole.includes('TEACHER') || normRole.includes('FACULTY');
+
+    const availableRoles: ('Admin' | 'Faculty' | 'Parent' | 'Student' | 'Driver')[] = [];
+    if (hasAdmin) availableRoles.push('Admin');
+    if (hasTeaching && !availableRoles.includes('Faculty')) availableRoles.push('Faculty');
+    if (normRole.includes('DRIVER')) availableRoles.push('Driver');
+    if (normRole.includes('STUDENT')) availableRoles.push('Student');
+    if (availableRoles.length === 0) availableRoles.push('Parent');
+
+    let mappedRole: 'Admin' | 'Faculty' | 'Parent' | 'Student' | 'Driver' = isSuper ? 'Admin' : (hasAdmin ? 'Admin' : availableRoles[0]);
 
     // Log Login Audit with device_info
     const userAccId = profile.id.includes('-') && profile.id.length === 36 ? profile.id : null;
@@ -143,6 +145,8 @@ export async function POST(request: Request) {
         email: profile.email || null,
         phoneNumber: profile.phoneNumber,
         role: mappedRole,
+        availableRoles,
+        isSuperAdmin: isSuper,
         originalRole: profile.role
       }
     });

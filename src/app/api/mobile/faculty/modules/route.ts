@@ -21,14 +21,7 @@ export async function GET(request: Request) {
     const teacherId = searchParams.get('teacher_id') || '';
     const email = searchParams.get('email') || '';
 
-    // Fetch dynamic modules for this role
-    const result = await getFacultyAuthorizedMobileModulesAction(role);
-
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
-    }
-
-    // Query real staff profile from PostgreSQL database
+    // Query real staff profile from PostgreSQL database first
     let facultyProfile = {
       id: teacherId || 'FAC-STAFF',
       role: role,
@@ -39,9 +32,9 @@ export async function GET(request: Request) {
       contact_phone: ''
     };
 
+    let staffRow: any = null;
     try {
       const pool = getPool();
-      let staffRow: any = null;
 
       if (teacherId && teacherId.length > 10) {
         const res = await pool.query(`
@@ -85,6 +78,14 @@ export async function GET(request: Request) {
       }
     } catch (dbErr) {
       console.error('[FACULTY API] Staff query error:', dbErr);
+    }
+
+    // Fetch dynamic modules using staff's real role
+    const effectiveRole = staffRow?.role || role;
+    const result = await getFacultyAuthorizedMobileModulesAction(effectiveRole);
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
     return NextResponse.json({

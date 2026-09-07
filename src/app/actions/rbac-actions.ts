@@ -453,9 +453,172 @@ export async function getFacultyAuthorizedMobileModulesAction(facultyRoleCode: s
       ORDER BY ems.category ASC, ems.name ASC;
     `, [facultyRoleCode]);
 
+    if (permissionsRes.rows.length > 0) {
+      return {
+        success: true,
+        modules: permissionsRes.rows
+      };
+    }
+
+    // Fallback: When DB tables are unseeded or empty, provide canonical dynamic modules
+    const normCode = (facultyRoleCode || '').toUpperCase().replace(/_/g, ' ');
+    const isElevated = normCode.includes('ADMIN') || normCode.includes('SUPER') || normCode.includes('TRUSTEE') || normCode.includes('CHAIRMAN');
+
+    const canonicalModules: any[] = [
+      {
+        module_code: 'ATTENDANCE_REGISTER',
+        name: 'Attendance Register',
+        category: 'Academic Operations',
+        mobile_icon: 'CheckSquare',
+        mobile_route: 'AttendanceRegister',
+        mobile_persona: 'FACULTY',
+        description: 'Take student class roll calls and mark period attendance.',
+        can_view: true,
+        can_create: true,
+        can_edit: true
+      },
+      {
+        module_code: 'HOMEWORK',
+        name: 'Homework & Assignments',
+        category: 'Academic Operations',
+        mobile_icon: 'BookOpen',
+        mobile_route: 'HomeworkPublisher',
+        mobile_persona: 'FACULTY',
+        description: 'Publish and assign daily homework to classrooms.',
+        can_view: true,
+        can_create: true,
+        can_edit: true
+      },
+      {
+        module_code: 'TIMETABLE',
+        name: 'Class Timetable',
+        category: 'Academic Operations',
+        mobile_icon: 'Calendar',
+        mobile_route: 'Timetable',
+        mobile_persona: 'FACULTY',
+        description: 'Weekly period schedules and room allocations.',
+        can_view: true,
+        can_create: false,
+        can_edit: false
+      },
+      {
+        module_code: 'CURRICULUM',
+        name: 'Curriculum & Lesson Diary',
+        category: 'Academic Operations',
+        mobile_icon: 'Layers',
+        mobile_route: 'Curriculum',
+        mobile_persona: 'FACULTY',
+        description: 'Track syllabus completion, chapter lesson plans and diaries.',
+        can_view: true,
+        can_create: true,
+        can_edit: true
+      },
+      {
+        module_code: 'EXAMS_GRADEBOOK',
+        name: 'Exams & Gradebook',
+        category: 'Academic Operations',
+        mobile_icon: 'Award',
+        mobile_route: 'ReportCard',
+        mobile_persona: 'FACULTY',
+        description: 'Enter term marks, grading rubrics, and generate report cards.',
+        can_view: true,
+        can_create: true,
+        can_edit: true
+      },
+      {
+        module_code: 'STUDENTS_DIRECTORY',
+        name: 'Students Roster',
+        category: 'Students & Admissions',
+        mobile_icon: 'Users',
+        mobile_route: 'StudentsDirectory',
+        mobile_persona: 'FACULTY',
+        description: 'Class student profiles, emergency contacts and rosters.',
+        can_view: true,
+        can_create: false,
+        can_edit: false
+      },
+      {
+        module_code: 'LIVE_CCTV',
+        name: 'Classroom CCTV Hub',
+        category: 'Campus Logistics & Safety',
+        mobile_icon: 'Video',
+        mobile_route: 'LiveCctv',
+        mobile_persona: 'FACULTY',
+        description: 'Live surveillance feeds across school classrooms.',
+        can_view: true,
+        can_create: false,
+        can_edit: false
+      },
+      {
+        module_code: 'LIBRARY_OPAC',
+        name: 'Digital Library OPAC',
+        category: 'Academic Operations',
+        mobile_icon: 'BookOpenCheck',
+        mobile_route: 'LibraryOpac',
+        mobile_persona: 'FACULTY',
+        description: 'Search catalog books, issue tokens and check returns.',
+        can_view: true,
+        can_create: false,
+        can_edit: false
+      },
+      {
+        module_code: 'AI_WRITER',
+        name: 'AI Lesson Assistant',
+        category: 'System & Security',
+        mobile_icon: 'Bot',
+        mobile_route: 'AIWriter',
+        mobile_persona: 'FACULTY',
+        description: 'Generate question papers, rubrics, and circular drafts.',
+        can_view: true,
+        can_create: true,
+        can_edit: true
+      }
+    ];
+
+    if (isElevated) {
+      canonicalModules.push(
+        {
+          module_code: 'GOVERNANCE',
+          name: 'Trust Governance & Overview',
+          category: 'Governance & Overview',
+          mobile_icon: 'Building2',
+          mobile_route: 'Governance',
+          mobile_persona: 'ADMIN',
+          description: 'Trust leadership, statutory benchmarks, and multi-campus KPIs.',
+          can_view: true,
+          can_create: true,
+          can_edit: true
+        },
+        {
+          module_code: 'APPROVALS',
+          name: 'Executive Approvals Desk',
+          category: 'Governance & Overview',
+          mobile_icon: 'CheckSquare',
+          mobile_route: 'Approvals',
+          mobile_persona: 'ADMIN',
+          description: 'Review and approve staff leaves, waivers, and purchase requisitions.',
+          can_view: true,
+          can_create: true,
+          can_edit: true
+        },
+        {
+          module_code: 'FEES_COLLECTION',
+          name: 'Fee Collection & Finance',
+          category: 'Finance & Procurement',
+          mobile_icon: 'IndianRupee',
+          mobile_route: 'Fees',
+          mobile_persona: 'ADMIN',
+          description: 'Fee collection analytics, dues reconciliations, and receipts.',
+          can_view: true,
+          can_create: true,
+          can_edit: true
+        }
+      );
+    }
+
     return {
       success: true,
-      modules: permissionsRes.rows
+      modules: canonicalModules
     };
   } catch (error: any) {
     console.error('getFacultyAuthorizedMobileModulesAction error:', error);
